@@ -1,0 +1,284 @@
+---
+description: Locked stack, monorepo boundaries, and responsibility split for Civil Engineering apps
+alwaysApply: true
+---
+
+# Project Core — LOCKED
+
+Source of truth: `Docs/[01] Main App/Tech Stack.md`. Do not invent alternate stacks or architectures.
+
+## Monorepo
+
+| App | Path | Role |
+| --- | --- | --- |
+| Backend | `backend/` | Single API + business logic + data access |
+| Web | `civil-web/` | React + TypeScript browser client |
+| Mobile | `civil-mobile/` | React Native + TypeScript client |
+
+Both clients talk to the same versioned REST API only. Never let web/mobile touch PostgreSQL, Redis, or Prisma directly.
+
+## Locked stack
+
+- Web: React + TypeScript
+- Mobile: React Native + TypeScript
+- Backend: Express + TypeScript (monolith, layered, DDD modules)
+- DB: PostgreSQL + Prisma
+- Cache/queue: Redis
+- API: REST under `/api/v1`
+- Auth: JWT access + refresh tokens
+- Clients: feature-based folders + Zustand (UI/client state only)
+- Validation: Zod on clients (UX) and backend (security) — frontend Zod is not a security boundary
+- Deploy: Docker + Nginx reverse proxy (Hostinger VPS)
+
+Still open (do not invent as locked): storage provider, exact domain boundaries, Docker layout details.
+
+## Responsibility split (clean / simple / fast / secure)
+
+**Clients (`civil-web`, `civil-mobile`)**
+- UI, navigation, feature screens, local UX validation
+- Call REST only; hold tokens securely; keep Zustand for client/UI state — not every API response
+- No business rules that authorize data or enforce server invariants
+
+**Backend (`backend`)**
+- Sole owner of authz, business rules, persistence, caching, jobs
+- Layer per module: Route → Controller → Service → Repository → Prisma → PostgreSQL
+- Controller: HTTP in/out only. Service: business logic. Repository: data access. Schema (Zod): validate at the edge before logic
+
+**Infrastructure**
+- Nginx: public entry / TLS / reverse proxy
+- Express: app API
+- PostgreSQL: source of truth
+- Redis: cache/queue — not a substitute for DB authority
+
+## Hard rules
+
+1. Prefer the existing module/feature layout; do not add parallel “shared god” layers without need.
+2. Keep each layer thin — no Prisma in controllers, no HTTP in repositories, no DB in clients.
+3. Validate and authorize on the backend for every mutating or sensitive read.
+4. Version APIs as `/api/v1/...`; do not break the contract casually.
+5. Optimize with clear boundaries first (correct queries, Redis where justified) — not premature microservices.
+6. If a decision is marked open in Tech Stack.md, ask or leave a clear TBD — do not silently lock it.
+
+## Working principles
+
+- Understand existing architecture before coding
+- Reuse existing patterns
+- Don't create unnecessary files
+- Don't duplicate functionality
+- Don't introduce new libraries without reason
+- Ask before changing architecture
+- Keep changes scoped
+- Preserve existing conventions
+- Explain architectural changes
+- Never bypass established layers
+
+## Performance
+
+- Database query efficiency — select only needed fields; use indexes intentionally; keep heavy work in repositories/services
+- N+1 prevention — prefer Prisma `include`/`select` or batched queries; never loop per-row DB calls
+- Caching — use Redis for hot, repeatable reads; always define invalidation; Postgres remains source of truth
+- Pagination — list endpoints must paginate (cursor or page/limit); never return unbounded collections by default
+- API payload size — return lean DTOs; avoid over-fetching relations and unused fields
+- Frontend rendering — keep lists virtualized/paginated when large; avoid unnecessary re-renders and stuffing API data into Zustand
+- Avoid premature optimization — measure or justify first; prefer correct boundaries over speculative complexity
+
+## State management
+
+- **Zustand responsibilities**: client/UI state only (auth session flags, UI preferences, wizard drafts, cross-screen ephemeral UI)
+- **Local vs global**: default to local/component state; promote to Zustand only when multiple distant consumers need the same client state
+- **Server-state separation**: API/server data is not Zustand by default — fetch via the API client; cache server data deliberately (or a dedicated server-state layer if introduced later)
+- **Avoid unnecessary global state**: no dumping every response into stores; no god-store
+- **State ownership**: each slice owned by one feature/domain; shared client state must have a clear owner module
+
+## API client / data fetching
+
+- **Centralized API client**: one shared HTTP client per app (`services/`); features call it — no scattered raw `fetch` with duplicated headers
+- **Authentication handling**: attach access token centrally; refresh-token flow in one place; on auth failure clear session and route to login
+- **Request/response handling**: consistent JSON parsing, timeout, and typed error mapping; never leak raw transport errors to UI unchecked
+- **Loading/error states**: handle per request/feature; avoid a single global loading boolean for the whole app
+- **Caching**: client cache only when justified; Redis caching is backend-side; invalidate on mutations that change listed data
+- **Server-state management**: treat server data as source-of-truth from the API; do not fork conflicting copies across Zustand and component trees
+
+## TypeScript rules
+
+- **Strict typing**: enable/keep strict mode; type public functions and API boundaries
+- **Avoid `any`**: use `unknown` + narrowing; `any` only with a one-line justification
+- **Shared types**: put cross-layer types in `*.types.ts` next to the module/feature; do not create a dumping-ground `types/` for everything
+- **Type naming**: `PascalCase` for types/interfaces; suffix DTOs clearly (`CreateProjectDto`, `ProjectResponse`)
+- **Interfaces vs types**: prefer `type` for unions/intersections/aliases; `interface` for extendable object shapes — stay consistent within a module
+- **Type-safe API boundaries**: validate with Zod at edges; infer types from schemas where practical; never trust untyped `req.body`
+
+## Naming conventions
+
+- **Files**: backend `project.routes.ts`, `project.controller.ts`, `project.service.ts`, `project.repository.ts`, `project.schema.ts`, `project.types.ts`; clients use feature folders + clear component file names
+- **Folders**: backend `modules/<domain>/`; clients `features/<feature>/`; shared `components/`, `hooks/`, `services/`, `middleware/`, `config/`
+- **Variables**: `camelCase`; booleans prefixed `is`/`has`/`can`
+- **Functions**: `camelCase`; verbs for actions (`getProject`, `createExpense`)
+- **Classes**: `PascalCase` (use sparingly; prefer functions/modules unless a class already fits)
+- **Components**: `PascalCase` files/components (`ProjectList.tsx`)
+- **API endpoints**: `/api/v1/<resource>` plural nouns; path params for ids
+- **Database entities**: Prisma models `PascalCase` singular; tables mapped consistently; fields `camelCase` in Prisma schema unless an existing convention differs
+
+## Code quality & simplicity
+
+- **DRY without over-abstraction**: reuse when duplication is real and stable — not after one occurrence
+- **KISS**: simplest solution that matches existing layers
+- **Small functions**: one job per function; extract when a block needs a name
+- **Clear code**: readable names over cleverness; comments only for non-obvious intent
+- **Avoid premature abstraction**: no generic frameworks for one use case
+- **Avoid unnecessary dependencies**: ask before adding libraries
+- **Prefer explicit/simple solutions**: obvious control flow over magic indirection
+
+## Dependency rules
+
+- **Allowed imports**: clients → API client/services only for network; backend repository → Prisma only; controllers must not import Prisma
+- **Layer dependency direction**: Route → Controller → Service → Repository → Prisma (never upward or sideways into HTTP from repository)
+- **Module boundaries**: domain modules do not reach into another module’s internals; share via explicit public functions/types or shared kernels sparingly
+- **Preventing circular dependencies**: no A↔B module cycles; extract shared pure utils if needed
+- **Shared utilities**: pure helpers only (dates, formatting, guards); no hidden business rules or DB access in `utils/`
+
+## Security
+
+- **Secrets/environment variables**: never commit secrets; use env/runtime injection; restrict who can read production secrets
+- **CORS**: allow only known web origins; do not use `*` with credentials
+- **Rate limiting**: protect auth and sensitive endpoints; prefer gateway/Nginx or Express middleware
+- **Input validation**: Zod on every external input (body/query/params); frontend Zod is UX only
+- **SQL injection prevention**: Prisma only — no raw SQL unless parameterized and justified
+- **XSS protection**: encode/escape output; do not `dangerouslySetInnerHTML` without sanitization
+- **File security**: validate type/size; store outside public roots; signed/limited access when storage is chosen
+- **Secure authentication**: JWT access + refresh; httpOnly/secure cookie or secure mobile storage as established; short-lived access tokens; revoke/rotate refresh on logout where applicable
+
+## Logging & monitoring
+
+- **What to log**: request id/method/path, auth subject id (not tokens), meaningful business failures, unhandled errors
+- **Log levels**: `error` / `warn` / `info` / `debug` — debug not in production by default
+- **Error logging**: log with stack/context once at the boundary; do not double-log and rethrow noisily
+- **Request logging**: concise access logs via middleware; skip noisy health checks if present
+- **Sensitive-data restrictions**: never log passwords, tokens, refresh tokens, full payment data, or raw PII dumps
+- **Production logging**: stdout/stderr for Docker; structured logs preferred; no verbose body logging in production
+
+## Testing
+
+- **Unit tests**: services, pure utils, schema validation — fast, no real DB unless using lightweight doubles
+- **Integration tests**: module paths with DB/Redis where justified (repository/service + Prisma)
+- **API tests**: HTTP against routes/controllers with auth cases
+- **E2E tests**: critical user flows only (web); keep suite small and stable
+- **What should be tested**: business rules, authz boundaries, validation, regressions for bugs fixed
+- **What shouldn't be tested**: trivial passthrough wrappers, third-party library internals, pure styling
+- **Test organization**: colocate `*.test.ts` / `*.spec.ts` near code or mirror tree under `tests/`; name after the behavior under test
+
+## API design
+
+- **REST conventions**: resource-oriented URLs; consistent plural nouns; JSON request/response bodies
+- **Endpoint naming**: `/api/v1/projects`, `/api/v1/projects/:id`, nested only when ownership is clear (`/api/v1/projects/:id/expenses`)
+- **HTTP methods**: `GET` read, `POST` create, `PUT`/`PATCH` update (prefer `PATCH` for partial), `DELETE` remove
+- **Status codes**: `200`/`201` success, `204` no content, `400` validation, `401` unauthenticated, `403` forbidden, `404` missing, `409` conflict, `429` rate limit, `500` unexpected
+- **Request/response structure**: stable DTO shapes; wrap lists with `{ data, meta }` when paginated; keep field names consistent with Prisma/client types where practical
+- **API versioning**: all public API under `/api/v1`; breaking changes require a new version — do not silently break v1
+- **Pagination/filtering/sorting**: every list endpoint paginates; accept explicit `page`/`limit` or cursor + `sort`/`filter` query params; enforce max page size
+
+## Error handling
+
+- **Centralized error handling**: Express error middleware maps domain errors to HTTP; controllers/services throw typed errors — do not `res.status` ad hoc everywhere
+- **Error types**: distinguish validation, auth, forbidden, not-found, conflict, and internal errors
+- **Error codes**: stable machine-readable codes (e.g. `PROJECT_NOT_FOUND`) alongside HTTP status
+- **HTTP error mapping**: one place maps error type → status + body
+- **User-safe messages**: clients show safe messages only; never return stack traces or internal details to clients
+- **Logging vs returned errors**: log full context server-side; return sanitized payload to the client
+
+## Validation
+
+- **Zod usage**: schemas live in `*.schema.ts` (backend modules) and feature/form schemas on clients
+- **Request validation**: validate `body` / `query` / `params` before the service runs
+- **Input sanitization**: trim/normalize where needed; reject unexpected fields when strict object schemas are used
+- **Backend validation**: mandatory for security and correctness on every mutating/sensitive endpoint
+- **Validation responsibility**: frontend Zod = UX; backend Zod = authority — never rely on the client alone
+
+## Database & Prisma
+
+- **Schema organization**: single Prisma schema (split with Prisma multi-file only if already adopted); models grouped by domain comments
+- **Naming conventions**: models `PascalCase` singular; relations explicit; ids clear (`id`, foreign keys `projectId`)
+- **Relations**: declare in schema; load via repository `include`/`select` — avoid implicit over-fetch
+- **Migrations**: Prisma Migrate only; never hand-edit production DB as the source of truth; review migrations in PRs
+- **Repository-only DB access**: only repositories import Prisma Client; services never query Prisma directly
+- **Query organization**: each query has a clear repository method name; keep raw queries rare and parameterized
+- **Avoiding unnecessary queries**: no N+1; batch; select only required columns; don’t reload what the service already has
+
+## Authentication & authorization
+
+- **JWT**: short-lived access tokens; verify signature/expiry on protected routes
+- **Refresh tokens**: long-lived, stored securely, rotatable; exchange endpoint for new access tokens; invalidate on logout/reuse detection where applicable
+- **Password/security rules**: hash with a strong algorithm (e.g. bcrypt/argon2); never store plaintext; enforce minimum strength at registration/change
+- **Authentication middleware**: attach `req.user` (or equivalent) after JWT verify; fail closed
+- **Authorization/RBAC**: roles/permissions checked in service or dedicated authz helpers — not only in the UI
+- **Permission checks**: enforce on every sensitive action; default deny
+- **Resource ownership**: verify the caller may access the specific resource id (project/expense/etc.), not just “is authenticated”
+
+## Redis / cache / queue
+
+- **What belongs in Redis**: hot read caches, rate-limit counters, short-lived session/metadata, job queues — not the system of record
+- **Cache strategy**: cache expensive, repeatable reads with an explicit key scheme (`entity:id`, list keys versioned)
+- **Cache invalidation**: invalidate or bump version on writes that affect that data
+- **TTL**: always set TTL on cache keys unless a deliberate exception is documented
+- **Queue/job responsibilities**: background work (emails, heavy aggregation, retries) in `jobs/`; API handlers stay fast
+- **Idempotency**: jobs and critical POSTs must be safe to retry (idempotency keys where needed)
+- **Retry rules**: bounded retries with backoff; dead-letter or log permanently failed jobs; do not retry non-idempotent side effects blindly
+
+## Storage / file handling
+
+- **Storage abstraction**: access files behind a storage interface/service — do not hardcode a vendor in controllers (provider still TBD)
+- **Upload/download flow**: client → API (authz + validation) → storage; downloads via controlled URL or proxy — never open DB/filesystem from the client
+- **Presigned URLs**: prefer short-lived signed upload/download URLs when using object storage; scope path and content type
+- **File metadata**: persist metadata in Postgres (owner, mime, size, key, entity link); blob stays in storage
+- **File validation**: enforce mime allowlist, max size, and extension checks on the backend
+- **Access permissions**: authorize before issuing URLs or streaming files; no public buckets for private docs
+
+## Frontend architecture (`civil-web`)
+
+Feature-based React + TypeScript. Folder structure:
+
+```
+civil-web/src/
+  features/
+    <feature>/          # auth, projects, expenses, workers, ...
+      components/       # feature-only UI
+      hooks/            # feature hooks
+      <FeaturePage>.tsx # routes/screens for the feature
+  components/           # shared presentational UI
+  hooks/                # shared hooks
+  services/             # centralized REST API client + resource calls
+  stores/               # Zustand stores (client/UI state only) when needed
+```
+
+- **Feature-based structure**: group by domain feature, not by technical type alone
+- **Components**: presentational/UI; receive data via props/hooks — no direct Prisma/DB
+- **Hooks**: encapsulate reusable UI/data wiring; feature hooks stay under the feature
+- **Services/API layer**: all HTTP through `services/`; features do not reinvent clients
+- **UI vs business logic**: UI in components; domain/authz rules stay on the backend — client may mirror for UX only
+- **Shared components**: truly reusable UI in `components/`; do not dump feature-specific widgets there
+- **Responsibility boundaries**: web never touches Postgres/Redis/Prisma; talk to `/api/v1` only
+
+## Mobile architecture (`civil-mobile`)
+
+Feature-based React Native + TypeScript. Same API contract as web. Folder structure:
+
+```
+civil-mobile/src/
+  features/
+    <feature>/          # auth, projects, expenses, workers, ...
+      components/       # feature-only UI
+      screens/          # feature screens
+      hooks/
+  components/           # shared UI
+  navigation/           # navigators and route config
+  services/             # centralized REST API client + resource calls
+  stores/               # Zustand (client/UI state only) when needed
+```
+
+- **Feature-based structure**: mirror web feature domains where practical
+- **Screens**: route-level UI under `features/<feature>/screens/`
+- **Components**: shared in `components/`; feature-local beside screens
+- **API services**: same centralized `services/` pattern as web
+- **Navigation**: all navigators/routes owned by `navigation/`
+- **Local state**: component state first; Zustand only for real cross-screen client state
+- **Business logic boundaries**: no DB access; no bypassing API authz; secure token storage on device

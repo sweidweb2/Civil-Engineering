@@ -1,0 +1,23 @@
+---
+description: React web client — feature-based structure and Zustand usage
+globs: civil-web/**/*
+alwaysApply: false
+---
+
+# Web (`civil-web`)
+
+React + TypeScript. Follow `project-core` frontend architecture.
+
+```
+src/
+  features/<feature>/components|hooks|<FeaturePage>.tsx
+  components/
+  hooks/
+  services/
+  stores/
+```
+
+- REST `/api/v1` only — never DB/Redis/Prisma
+- Zod for UX; backend is the security boundary
+- Zustand for client/UI state only
+- Shared UI in `components/`; feature UI stays in the feature

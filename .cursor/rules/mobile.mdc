@@ -1,0 +1,23 @@
+---
+description: React Native mobile client — feature-based structure and navigation
+globs: civil-mobile/**/*
+alwaysApply: false
+---
+
+# Mobile (`civil-mobile`)
+
+React Native + TypeScript. Same API as web. Follow `project-core` mobile architecture.
+
+```
+src/
+  features/<feature>/components|screens|hooks
+  components/
+  navigation/
+  services/
+  stores/
+```
+
+- REST `/api/v1` only — never DB/Redis/Prisma
+- Navigation owned by `navigation/`
+- Zustand for client/UI state only; local state first
+- Secure token storage; never log tokens/PII

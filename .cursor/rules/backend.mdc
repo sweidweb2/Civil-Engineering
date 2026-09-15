@@ -1,0 +1,40 @@
+---
+description: Express backend layered DDD modules, REST, Prisma, Redis
+globs: backend/**/*
+alwaysApply: false
+---
+
+# Backend
+
+Monolith Express + TypeScript under `backend/`. Organize by domain modules (`auth`, `users`, `projects`, …).
+
+## Request flow
+
+```
+Route → Controller → Service → Repository → Prisma → PostgreSQL
+```
+
+- **Controller**: parse/respond HTTP; call one service; no business rules or Prisma.
+- **Service**: business logic, orchestration, authz checks coordination.
+- **Repository**: data access only via Prisma.
+- **Schema**: Zod validate request before service logic.
+
+## Module shape
+
+```
+modules/<domain>/
+  <domain>.routes.ts
+  <domain>.controller.ts
+  <domain>.service.ts
+  <domain>.repository.ts
+  <domain>.schema.ts
+  <domain>.types.ts
+```
+
+Shared cross-cutting code stays in `middleware/`, `config/`, `database/`, `jobs/`.
+
+## API & auth
+
+- REST paths: `/api/v1/...`
+- Auth: JWT access + refresh; protect routes with middleware; never trust client-only checks.
+- Use Redis for cache/queue workloads; PostgreSQL remains source of truth.

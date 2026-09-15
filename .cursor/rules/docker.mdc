@@ -1,0 +1,68 @@
+---
+description: Docker, Compose, Nginx, networking, volumes, and production deploy conventions
+globs: "**/Dockerfile*,**/docker-compose*.{yml,yaml},**/compose*.{yml,yaml},**/nginx/**/*,**/*nginx*.conf"
+alwaysApply: false
+---
+
+# Docker & Deployment
+
+Target: Hostinger VPS via Docker. Nginx is the only public entry. Align with `Docs/[01] Main App/Tech Stack.md`. Exact Compose filenames/layout may evolve — do not invent microservices or bypass this model.
+
+## Container responsibilities
+
+| Service | Responsibility |
+| --- | --- |
+| `nginx` | TLS termination, reverse proxy, static web assets (if served from container/host) |
+| `api` (Express) | App API only — no public port except via Nginx |
+| `postgres` | Source of truth data |
+| `redis` | Cache / queue only |
+| Other | Only when justified (e.g. workers); ask before adding |
+
+- One concern per container. Do not put Postgres or Redis inside the API image.
+- Mobile is not deployed as a Docker service on the VPS.
+
+## Dockerfile rules
+
+- Multi-stage builds for Node apps (build → lean runtime).
+- Run as non-root; pin base image tags (avoid `:latest` in production).
+- Copy dependency manifests first; leverage layer cache.
+- Never bake secrets, `.env`, or private keys into images — inject at runtime.
+- Production image: build artifacts + runtime deps only (no devDependencies, no source maps unless needed).
+- `backend` Dockerfile lives with the backend; web static build is produced then served by Nginx (or a dedicated web image that only holds built assets).
+
+## Docker Compose structure
+
+- Prefer a root Compose file for the VPS stack: `nginx`, `api`, `postgres`, `redis` (+ optional workers).
+- Use Compose profiles or a separate override for local vs production — do not commit production secrets.
+- Services declare explicit `depends_on` where startup order matters; healthchecks for `postgres` / `api` / `redis`.
+- Keep env via `env_file` / Compose `environment` referencing host/secrets — not hardcoded passwords in git.
+
+## Nginx
+
+- Sole publicly exposed HTTP/HTTPS endpoint.
+- Proxy `/api/` (or `/api/v1/`) to the Express service on the internal Docker network.
+- Serve the web SPA/static files; route unknown paths to `index.html` when using client-side routing.
+- Do not expose Postgres, Redis, or Express ports to the public internet.
+
+## Networking
+
+- Put app services on a private Docker bridge network.
+- Publish only Nginx ports (`80`/`443`) to the host.
+- API reaches Postgres/Redis by Compose service DNS names — never via public IPs.
+- Prefer internal URLs inside the network (`http://api:PORT`), not `localhost` from other containers.
+
+## Volumes
+
+- Persist Postgres data on a named volume (required).
+- Persist Redis only if durability is required; otherwise ephemeral is acceptable for cache.
+- Mount Nginx config/certs as needed; prefer managed cert volumes or host mounts — do not commit private keys.
+- Do not bind-mount application source into production containers.
+
+## Production configuration
+
+- Restart policy: `unless-stopped` (or equivalent) for core services.
+- Resource limits where the VPS is constrained; log to stdout/stderr for Docker logging.
+- TLS at Nginx; HTTP→HTTPS redirect.
+- Separate secrets from Compose committed to git (Hostinger env, Docker secrets, or untracked `.env`).
+- Migrations run as an explicit release step (one-off container/job), not silently on every API start unless that pattern is already established.
+- Ask before changing the public proxy layout, exposed ports, or adding new long-running services.

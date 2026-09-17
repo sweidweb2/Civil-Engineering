@@ -7,7 +7,6 @@ export default defineConfig({
       'tests/unit/**/*.{test,spec}.ts',
       'tests/integration/**/*.{test,spec}.ts',
     ],
-    // E2E skipped for now — wire later
     exclude: ['tests/e2e/**', 'node_modules/**'],
   },
 })

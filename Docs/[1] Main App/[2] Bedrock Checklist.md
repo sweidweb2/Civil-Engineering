@@ -227,9 +227,9 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Tokens to fill
 
-- [ ] Brand colors
-- [ ] Semantic colors (success / warning / error / info / disabled)
-- [ ] Background / surface / text / border
+- [x] Brand colors (`primary` `#2FA084`, `secondary` `#6FCF97` — light mode, web + mobile)
+- [ ] Semantic colors (success / warning / error / info / disabled) — `success` filled; rest TBD
+- [x] Background / surface / text / border (light mode, web + mobile)
 - [ ] Spacing scale
 - [ ] Typography + semantic text styles
 - [ ] Radius scale
@@ -238,7 +238,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [ ] Web breakpoints
 - [ ] Web z-index layers
 
-> Note: theme file scaffolds + docs exist; actual token values still empty/commented.
+> Note: light brand + surface tokens filled in `colors.ts` (web + mobile). Dark mode and remaining scales still empty/commented.
 
 ---
 

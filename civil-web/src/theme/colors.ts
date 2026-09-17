@@ -22,19 +22,19 @@
  */
 
 export const colors = {
-  // light: {
-  //   primary: '',
-  //   secondary: '',
-  //   background: '',
-  //   surface: '',
-  //   text: '',
-  //   border: '',
-  //   success: '',
-  //   warning: '',
-  //   error: '',
-  //   info: '',
-  //   disabled: '',
-  // },
+  light: {
+    primary: '#2FA084',
+    secondary: '#6FCF97',
+    background: '#EEEEEE',
+    surface: '#EEEEEE',
+    text: '#1F6F5F',
+    border: '#2FA084',
+    success: '#6FCF97',
+    // warning: '',
+    // error: '',
+    // info: '',
+    // disabled: '',
+  },
   // dark: {
   //   primary: '',
   //   secondary: '',
@@ -50,4 +50,4 @@ export const colors = {
   // },
 } as const;
 
-export type ColorToken = keyof typeof colors;
+export type ColorToken = keyof typeof colors.light;

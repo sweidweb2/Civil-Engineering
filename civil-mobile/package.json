@@ -34,6 +34,9 @@
   "devDependencies": {
     "@testing-library/react-native": "^14.0.1",
     "@types/react": "~19.2.2",
+    "detox": "^20.51.4",
+    "detox-cli": "^20.51.4",
+    "jest-circus": "^30.5.1",
     "react-test-renderer": "^19.2.3",
     "typescript": "~6.0.3"
   },
@@ -45,8 +48,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "test:unit": "jest",
-    "test:e2e": "echo \"E2E (Detox) skipped for now\" && exit 0"
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:e2e": "detox test --configuration android.emu.debug",
+    "test:e2e:build": "detox build --configuration android.emu.debug"
   },
   "private": true
 }

@@ -6,11 +6,12 @@ import { createApp } from '../../src/app.js'
 /**
  * Backend E2E against real Test PostgreSQL.
  * Start DB: npm run test:db:up
- * Default URL: postgresql://postgres:postgres@127.0.0.1:5433/civil_test
+ * Default URL: postgresql://postgres:postgres@127.0.0.1:55432/civil_test (embedded)
+ * Docker compose URL: postgresql://postgres:postgres@127.0.0.1:5433/civil_test
  */
 const DATABASE_URL =
   process.env.DATABASE_URL ??
-  'postgresql://postgres:postgres@127.0.0.1:5433/civil_test'
+  'postgresql://postgres:postgres@127.0.0.1:55432/civil_test'
 
 describe('backend e2e (postgres)', () => {
   let pool: Pool

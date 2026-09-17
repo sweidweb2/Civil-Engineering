@@ -69,6 +69,13 @@ civil-mobile/*.orig.*
 docker-data/
 postgres-data/
 redis-data/
+backend/tests/e2e/.embedded-pg/
+
+# Playwright
+civil-web/test-results/
+civil-web/playwright-report/
+civil-web/blob-report/
+civil-web/playwright/.cache/
 
 # Misc
 example

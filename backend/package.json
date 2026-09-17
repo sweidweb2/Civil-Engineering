@@ -29,6 +29,7 @@
     "@types/node": "^26.6.1",
     "@types/pg": "^8.15.5",
     "@types/supertest": "^7.2.1",
+    "embedded-postgres": "^18.4.0-beta.17",
     "supertest": "^7.2.2",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",

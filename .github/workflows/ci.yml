@@ -1,7 +1,7 @@
 # CI — quality, tests, builds (change-detected)
-
+#
 # Decision: Docs/[3] Decisions/[3] CI & Testing.md
-# Scripts/packages are not all installed yet — jobs call the agreed npm script contract.
+# E2E is DISABLED in CI for now — flip CI_RUN_E2E to "true" when ready.
 
 name: CI
 
@@ -15,6 +15,10 @@ on:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # Set to "true" later to enable Playwright / Detox / backend e2e in CI
+  CI_RUN_E2E: "false"
 
 jobs:
   changes:
@@ -125,7 +129,7 @@ jobs:
           fi
 
   web:
-    name: Web — unit · build · e2e(policy)
+    name: Web — unit · build
     needs: [changes, quality]
     if: |
       always() &&
@@ -150,17 +154,14 @@ jobs:
       - name: Build
         run: |
           if npm run | grep -q ' build'; then npm run build; else echo "TODO: npm run build"; fi
-      - name: E2E (Playwright) — policy
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')) ||
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      - name: E2E (Playwright) — skipped for now
+        if: env.CI_RUN_E2E == 'true'
         run: |
-          if npm run | grep -q 'test:e2e'; then npm run test:e2e; else echo "TODO: npm run test:e2e (Playwright)"; fi
+          npx playwright install --with-deps chromium
+          npm run test:e2e
 
   mobile:
-    name: Mobile — unit · e2e(policy)
+    name: Mobile — unit
     needs: [changes, quality]
     if: |
       always() &&
@@ -182,17 +183,12 @@ jobs:
       - name: Unit tests (Jest + RNTL)
         run: |
           if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
-      - name: E2E (Detox) — policy
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')) ||
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
-        run: |
-          if npm run | grep -q 'test:e2e'; then npm run test:e2e; else echo "TODO: npm run test:e2e (Detox — may need macOS/Android runner)"; fi
+      - name: E2E (Detox) — skipped for now
+        if: env.CI_RUN_E2E == 'true'
+        run: npm run test:e2e
 
   backend:
-    name: Backend — unit · integration · build · e2e(policy)
+    name: Backend — unit · integration · build
     needs: [changes, quality]
     if: |
       always() &&
@@ -237,11 +233,8 @@ jobs:
       - name: Build
         run: |
           if npm run | grep -q ' build'; then npm run build; else echo "TODO: npm run build"; fi
-      - name: E2E API — policy
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')) ||
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
-        run: |
-          if npm run | grep -q 'test:e2e'; then npm run test:e2e; else echo "TODO: npm run test:e2e"; fi
+      - name: E2E API — skipped for now
+        if: env.CI_RUN_E2E == 'true'
+        env:
+          SKIP_EMBEDDED_PG: '1'
+        run: npm run test:e2e

@@ -1,41 +1,52 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import EmbeddedPostgres from 'embedded-postgres'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const dataDir = path.join(__dirname, '.embedded-pg')
+const PORT = Number(process.env.TEST_PG_PORT ?? 55432)
+const dataDir = path.join(os.tmpdir(), `civil-pg-e2e-${process.pid}-${Date.now()}`)
 
-const PORT = Number(process.env.TEST_PG_PORT ?? 5433)
+async function canConnect(url: string) {
+  const { default: pg } = await import('pg')
+  const probe = new pg.Pool({
+    connectionString: url,
+    connectionTimeoutMillis: 1500,
+  })
+  try {
+    await probe.query('SELECT 1')
+    return true
+  } finally {
+    await probe.end()
+  }
+}
 
 /**
- * Starts real embedded PostgreSQL for e2e when Docker is unavailable.
- * Prefer Docker: `npm run test:db:up` + DATABASE_URL to compose service.
+ * Real Test Postgres for e2e:
+ * 1) Reuse Docker/`DATABASE_URL` if already up
+ * 2) Else start embedded-postgres in a temp dir
  */
 export async function setup() {
-  if (process.env.DATABASE_URL && process.env.SKIP_EMBEDDED_PG === '1') {
+  const url =
+    process.env.DATABASE_URL ??
+    `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`
+
+  if (process.env.SKIP_EMBEDDED_PG === '1') {
+    process.env.DATABASE_URL = url
     return
   }
 
-  // If Docker Postgres already answers, reuse it
   if (!process.env.FORCE_EMBEDDED_PG) {
     try {
-      const { default: pg } = await import('pg')
-      const probe = new pg.Pool({
-        connectionString:
-          process.env.DATABASE_URL ??
-          `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`,
-        connectionTimeoutMillis: 1500,
-      })
-      await probe.query('SELECT 1')
-      await probe.end()
-      process.env.DATABASE_URL =
-        process.env.DATABASE_URL ??
-        `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`
-      return
+      if (await canConnect(url)) {
+        process.env.DATABASE_URL = url
+        return
+      }
     } catch {
-      // fall through to embedded
+      // continue
     }
   }
+
+  fs.mkdirSync(dataDir, { recursive: true })
 
   const server = new EmbeddedPostgres({
     databaseDir: dataDir,
@@ -48,10 +59,18 @@ export async function setup() {
   await server.initialise()
   await server.start()
   await server.createDatabase('civil_test')
-
   process.env.DATABASE_URL = `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`
 
   return async () => {
-    await server.stop()
+    try {
+      await server.stop()
+    } catch {
+      // ignore
+    }
+    try {
+      fs.rmSync(dataDir, { recursive: true, force: true })
+    } catch {
+      // ignore
+    }
   }
 }

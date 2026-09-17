@@ -1,0 +1,247 @@
+# CI — quality, tests, builds (change-detected)
+
+# Decision: Docs/[3] Decisions/[3] CI & Testing.md
+# Scripts/packages are not all installed yet — jobs call the agreed npm script contract.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changed apps
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      backend: ${{ steps.filter.outputs.backend }}
+      shared: ${{ steps.filter.outputs.shared }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Path filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - 'civil-web/**'
+            mobile:
+              - 'civil-mobile/**'
+            backend:
+              - 'backend/**'
+            shared:
+              - '*'
+              - '.github/**'
+              - '.cursor/**'
+              - '.vscode/**'
+              - 'infrastructure/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
+              - 'yarn.lock'
+              - '.prettierrc'
+              - '.prettierrc.*'
+              - '.prettierignore'
+              - 'eslint.config.*'
+              - '.editorconfig'
+              - 'tsconfig*.json'
+              - 'docker-compose*.yml'
+              - 'Dockerfile*'
+            docs_only:
+              - 'Docs/**'
+
+  quality:
+    name: Format · Lint · Typecheck
+    needs: changes
+    if: |
+      always() &&
+      needs.changes.result == 'success' &&
+      (
+        needs.changes.outputs.shared == 'true' ||
+        needs.changes.outputs.web == 'true' ||
+        needs.changes.outputs.mobile == 'true' ||
+        needs.changes.outputs.backend == 'true'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Root + workspaces install when root package.json exists.
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          else
+            echo "Root package.json not ready — skip monorepo install"
+          fi
+          if [ -f civil-web/package.json ]; then (cd civil-web && npm ci); fi
+          if [ -f civil-mobile/package.json ]; then (cd civil-mobile && npm ci); fi
+          if [ -f backend/package.json ]; then (cd backend && npm ci); fi
+
+      - name: Format check
+        run: |
+          if npm run | grep -q 'format:check'; then
+            npm run format:check
+          else
+            echo "TODO: add npm run format:check (Prettier)"
+            exit 0
+          fi
+
+      - name: ESLint
+        run: |
+          if npm run | grep -q ' lint'; then
+            npm run lint
+          else
+            echo "TODO: add npm run lint"
+            exit 0
+          fi
+
+      - name: TypeScript typecheck
+        run: |
+          if npm run | grep -q 'typecheck'; then
+            npm run typecheck
+          else
+            echo "TODO: add npm run typecheck"
+            exit 0
+          fi
+
+  web:
+    name: Web — unit · build · e2e(policy)
+    needs: [changes, quality]
+    if: |
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.quality.result == 'success' &&
+      (needs.changes.outputs.web == 'true' || needs.changes.outputs.shared == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: civil-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: civil-web/package-lock.json
+      - run: npm ci
+      - name: Unit tests (Vitest)
+        run: |
+          if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
+      - name: Build
+        run: |
+          if npm run | grep -q ' build'; then npm run build; else echo "TODO: npm run build"; fi
+      - name: E2E (Playwright) — policy
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')) ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: |
+          if npm run | grep -q 'test:e2e'; then npm run test:e2e; else echo "TODO: npm run test:e2e (Playwright)"; fi
+
+  mobile:
+    name: Mobile — unit · e2e(policy)
+    needs: [changes, quality]
+    if: |
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.quality.result == 'success' &&
+      (needs.changes.outputs.mobile == 'true' || needs.changes.outputs.shared == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: civil-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: civil-mobile/package-lock.json
+      - run: npm ci
+      - name: Unit tests (Jest + RNTL)
+        run: |
+          if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
+      - name: E2E (Detox) — policy
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')) ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: |
+          if npm run | grep -q 'test:e2e'; then npm run test:e2e; else echo "TODO: npm run test:e2e (Detox — may need macOS/Android runner)"; fi
+
+  backend:
+    name: Backend — unit · integration · build · e2e(policy)
+    needs: [changes, quality]
+    if: |
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.quality.result == 'success' &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.shared == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: civil_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/civil_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Unit tests (Vitest)
+        run: |
+          if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
+      - name: Integration tests (Vitest + Supertest + Postgres)
+        run: |
+          if npm run | grep -q 'test:integration'; then npm run test:integration; else echo "TODO: npm run test:integration"; fi
+      - name: Build
+        run: |
+          if npm run | grep -q ' build'; then npm run build; else echo "TODO: npm run build"; fi
+      - name: E2E API — policy
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')) ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: |
+          if npm run | grep -q 'test:e2e'; then npm run test:e2e; else echo "TODO: npm run test:e2e"; fi

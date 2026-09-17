@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Builds / output
+dist/
+dist-ssr/
+build/
+coverage/
+web-build/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment & secrets — never commit real values
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.jks
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Backend
+backend/dist/
+backend/coverage/
+
+# Web (Vite)
+civil-web/dist/
+civil-web/dist-ssr/
+civil-web/*.local
+
+# Mobile (Expo / React Native)
+civil-mobile/.expo/
+civil-mobile/dist/
+civil-mobile/web-build/
+civil-mobile/expo-env.d.ts
+civil-mobile/.kotlin/
+civil-mobile/ios/
+civil-mobile/android/
+civil-mobile/*.orig.*
+.metro-health-check*
+
+# Docker / local data (if used)
+*.sql.gz
+docker-data/
+postgres-data/
+redis-data/
+
+# Misc
+example
+.cache/
+tmp/
+temp/

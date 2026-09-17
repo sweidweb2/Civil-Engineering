@@ -32,6 +32,15 @@ Both clients talk to the same versioned REST API only. Never let web/mobile touc
 
 Still open (do not invent as locked): storage provider, exact domain boundaries, Docker layout details.
 
+## Project architecture & principles
+
+- **Overall architecture**: monolith Express API + separate web/mobile clients over versioned REST
+- **Monolith boundaries**: one deployable backend; no premature microservices; clients stay outside the monolith
+- **Separation of concerns**: HTTP, business rules, persistence, and UI each stay in their layer/app
+- **Simplicity / avoid overengineering**: prefer the existing layout; no parallel frameworks or “shared god” layers
+- **Single responsibility**: every module, class, and function has one clear reason to change — do not mix HTTP, domain rules, and persistence in the same unit
+- **Dependency direction**: Route → Controller → Service → Repository → Prisma; clients → API only; never reverse those arrows
+
 ## Responsibility split (clean / simple / fast / secure)
 
 **Clients (`civil-web`, `civil-mobile`)**
@@ -103,10 +112,13 @@ Still open (do not invent as locked): storage provider, exact domain boundaries,
 
 - **Strict typing**: enable/keep strict mode; type public functions and API boundaries
 - **Avoid `any`**: use `unknown` + narrowing; `any` only with a one-line justification
-- **Shared types**: put cross-layer types in `*.types.ts` next to the module/feature; do not create a dumping-ground `types/` for everything
+- **Shared types**: put cross-layer types in `*.types.ts` next to the module/feature; keep DTOs/schemas colocated — do not create a dumping-ground `types/` for everything
 - **Type naming**: `PascalCase` for types/interfaces; suffix DTOs clearly (`CreateProjectDto`, `ProjectResponse`)
 - **Interfaces vs types**: prefer `type` for unions/intersections/aliases; `interface` for extendable object shapes — stay consistent within a module
-- **Type-safe API boundaries**: validate with Zod at edges; infer types from schemas where practical; never trust untyped `req.body`
+- **Type-safe API boundaries**: validate with Zod at edges (API handlers, forms); infer types from schemas where practical; never trust untyped `req.body`
+- Prefer `async/await` over raw promise chains; never swallow errors in empty `catch`
+- Name files by role: `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.schema.ts`, `*.types.ts` (backend); feature folders on clients
+- Do not commit secrets, tokens, or `.env` values into source
 
 ## Naming conventions
 
@@ -232,6 +244,38 @@ Still open (do not invent as locked): storage provider, exact domain boundaries,
 - **File metadata**: persist metadata in Postgres (owner, mime, size, key, entity link); blob stays in storage
 - **File validation**: enforce mime allowlist, max size, and extension checks on the backend
 - **Access permissions**: authorize before issuing URLs or streaming files; no public buckets for private docs
+
+## Backend layering & responsibilities
+
+Flow: **Route → Controller → Service → Repository → Prisma (models/entities)**. Zod **DTOs/schemas** sit at the HTTP edge before the service.
+
+| Layer | Must do | Must NOT do |
+| --- | --- | --- |
+| **Routes** | Wire path/method to controller + middleware (auth, validate) | Business logic, Prisma, response shaping, authz decisions |
+| **Controllers** | Parse HTTP, call one service, map result/error to response | Business rules, Prisma/DB, Redis, cross-module orchestration |
+| **Services** | Domain/application logic, authz coordination, orchestrate repos/jobs | Touch `req`/`res`, import Prisma Client, leak HTTP details |
+| **Repositories** | Data access via Prisma; focused query methods | Business rules, HTTP, calling other modules’ controllers/services casually |
+| **Models/entities** | Prisma schema models as persistence shape / relations | App business workflows, HTTP DTOs, authz |
+| **DTOs/schemas** | Zod validate/transform input; define API contract types | Persist data, contain business workflows, bypass service layer |
+
+- Prefer one service method per use case; keep repositories thin and intentional.
+- Controllers stay boring; richness lives in services (and pure domain helpers when needed).
+
+## DDD / domain rules
+
+- **Bounded contexts/modules**: each `modules/<domain>/` owns one business area (`auth`, `users`, `projects`, …). Exact context map may still evolve — do not invent new top-level domains without asking.
+- **Domain ownership**: the owning module defines its schemas, services, repositories, and public operations; other modules must not reach into its private files.
+- **Cross-module communication**: call another module only through its explicit public service/API surface (or a thin shared kernel); no deep imports into `*.repository.ts` / internals across modules.
+- **Domain logic placement**: invariants, policies, and use-case rules live in the owning module’s **service** (or pure domain helpers used by that service) — not in routes, controllers, repositories, or clients.
+- **Avoiding circular dependencies**: no A↔B module cycles; extract shared pure types/utils if two domains need a common contract.
+
+## Environment & configuration
+
+- **Development / staging / production**: distinct environments with separate credentials, DB, Redis, and API URLs — never point dev tools at production data by default.
+- **Environment variables**: all secrets and environment-specific values via env (or secret store); document required keys; provide `.env.example` without real secrets.
+- **Configuration management**: load config once through a central `config/` module; do not scatter `process.env` reads across business code.
+- **Secrets**: never commit `.env`, keys, or tokens; inject at runtime (Docker/host); rotate when leaked.
+- **Environment-specific behavior**: feature flags/URLs/log levels via config — avoid `if (production)` branches deep in domain logic; keep differences at edges (config, logging, CORS origins).
 
 ## Frontend architecture (`civil-web`)
 

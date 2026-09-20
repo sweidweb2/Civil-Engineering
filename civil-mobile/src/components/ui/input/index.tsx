@@ -1,10 +1,10 @@
 'use client'
 import React from 'react'
-import { Pressable, TextInput,View } from 'react-native'
+import { Pressable, TextInput, View } from 'react-native'
 import { UIIcon } from '@gluestack-ui/core/icon/creator'
 import { createInput } from '@gluestack-ui/core/input/creator'
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
-import { tva , withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
 import { withUniwind } from 'uniwind'
 
 const SCOPE = 'INPUT'

@@ -14,9 +14,9 @@ describe('backend e2e (auth)', () => {
     DATABASE_URL: process.env.DATABASE_URL,
   })
 
-  beforeAll(() => {
-    migrateTestDatabase()
-  })
+  beforeAll(async () => {
+    await migrateTestDatabase()
+  }, 60_000)
 
   beforeEach(async () => {
     await clearUsers()

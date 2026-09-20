@@ -114,16 +114,18 @@ Keep PRs **small and reviewable**.
 
 ### Before opening a PR
 
-Run what applies to the touched app(s):
+Run what applies to the touched app(s) (from **repo root**):
 
-- [ ] Format (when Prettier/format script exists)
-- [ ] Lint
-- [ ] Typecheck
+- [ ] `npm run format` / `npm run format:check`
+- [ ] `npm run lint`
+- [ ] `npm run typecheck`
 - [ ] Tests
 - [ ] Build (web/backend) or Expo start check (mobile)
 - [ ] No secrets in the diff
 - [ ] Docs / rules updated if architecture or public API changed
 - [ ] Migrations included and reviewed if schema changed
+
+Quality toolchain: [`Docs/[3] Decisions/[1] Formatting & Linting.md`](../[3]%20Decisions/[1]%20Formatting%20%26%20Linting.md).
 
 ### Review expectations
 

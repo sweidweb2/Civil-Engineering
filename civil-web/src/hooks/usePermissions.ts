@@ -1,4 +1,4 @@
-import { ADMIN_ROLES, hasAnyRole, hasRole,STAFF_ROLES } from '@/lib/permissions'
+import { ADMIN_ROLES, hasAnyRole, hasRole, STAFF_ROLES } from '@/lib/permissions'
 import type { AuthRole } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
 

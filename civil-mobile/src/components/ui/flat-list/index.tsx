@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { FlatList as RNFlatList, FlatListProps,Platform } from 'react-native'
+import { FlatList as RNFlatList, FlatListProps, Platform } from 'react-native'
 
 // Performance-optimized FlatList with Android defaults
 export function FlatList<ItemT = any>(props: FlatListProps<ItemT>) {

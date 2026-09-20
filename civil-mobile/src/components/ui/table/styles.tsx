@@ -1,4 +1,4 @@
-import { isWeb,tva  } from '@gluestack-ui/utils/nativewind-utils'
+import { isWeb, tva } from '@gluestack-ui/utils/nativewind-utils'
 
 const captionTableStyle = isWeb ? 'caption-bottom' : ''
 

@@ -5,11 +5,7 @@ export type RemoteLoading = { status: 'loading' }
 export type RemoteSuccess<T> = { status: 'success'; data: T }
 export type RemoteError = { status: 'error'; error: unknown }
 
-export type RemoteState<T> =
-  | RemoteIdle
-  | RemoteLoading
-  | RemoteSuccess<T>
-  | RemoteError
+export type RemoteState<T> = RemoteIdle | RemoteLoading | RemoteSuccess<T> | RemoteError
 
 type UseRemoteDataOptions = {
   /** When false, skip the initial fetch. Default true. */
@@ -20,10 +16,7 @@ type UseRemoteDataOptions = {
  * Lightweight server-data fetch for a screen/feature.
  * Keeps loading/error/data local — do not dump results into Zustand.
  */
-export function useRemoteData<T>(
-  load: () => Promise<T>,
-  options: UseRemoteDataOptions = {},
-) {
+export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
   const { enabled = true } = options
   const [state, setState] = useState<RemoteState<T>>({ status: 'idle' })
   const loadRef = useRef(load)

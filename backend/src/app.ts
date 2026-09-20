@@ -3,7 +3,7 @@ import express from 'express'
 import helmet from 'helmet'
 import type { Pool } from 'pg'
 
-import { type AppConfig,loadConfig } from './config/index.js'
+import { type AppConfig, loadConfig } from './config/index.js'
 import { errorHandler, notFoundHandler } from './errors/error.middleware.js'
 import { createApiRateLimiter } from './middleware/rate-limit.js'
 import { requestContext } from './middleware/request-context.js'

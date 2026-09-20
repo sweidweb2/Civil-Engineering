@@ -1,116 +1,105 @@
 # Decision — Formatting & Linting
 
-**Status:** LOCKED (tooling to install next)  
-**Date:** 2026-09-18  
+**Status:** LOCKED (installed)  
+**Date:** 2026-09-20  
 **Applies to:** entire monorepo (`civil-web/`, `civil-mobile/`, `backend/`)
 
 ---
 
 ## Decision
 
-Use one shared quality toolchain at the **repo root**:
+Use one shared quality toolchain at the **repo root**, with per-app ESLint/TypeScript configs:
 
-| Tool                    | Role                                                                   |
-| ----------------------- | ---------------------------------------------------------------------- |
-| **EditorConfig**        | Baseline editor settings (already at root)                             |
-| **Prettier**            | Code formatting                                                        |
-| **ESLint**              | Lint / static checks (per-app configs allowed, orchestrated from root) |
-| **TypeScript `strict`** | Required in every app `tsconfig`                                       |
-| **Husky**               | Git hooks                                                              |
-| **lint-staged**         | Run format/lint only on staged files at commit                         |
+| Tool                                 | Role                                                       |
+| ------------------------------------ | ---------------------------------------------------------- |
+| **EditorConfig**                     | Baseline editor settings (root `.editorconfig`)            |
+| **Prettier**                         | Sole code formatter (root `.prettierrc`)                   |
+| **ESLint**                           | Per-app flat configs; orchestrated via root `npm run lint` |
+| **TypeScript `strict`**              | Required in every app `tsconfig`                           |
+| **eslint-plugin-simple-import-sort** | Import / export organization                               |
+| **Husky**                            | Git hooks                                                  |
+| **lint-staged**                      | Format + lint staged files on commit                       |
 
-Root scripts (to be added when installed):
+Root scripts:
 
 ```bash
-npm run format      # Prettier write
-npm run lint        # ESLint (all apps / workspaces)
-npm run typecheck   # tsc -b / per-app typecheck
+npm run format        # Prettier write
+npm run format:check  # Prettier check (CI)
+npm run lint          # ESLint all apps
+npm run typecheck     # tsc all apps
 ```
 
 ---
 
-## Target layout
+## Layout
 
 ```text
 Civil-Engineering-v1/
-├── civil-web/
-├── civil-mobile/
-├── backend/
-├── .editorconfig          # exists
-├── .prettierrc            # TODO
-├── .prettierignore        # TODO
-├── eslint.config.js       # TODO (or eslint.config.mjs + app overrides)
-├── package.json           # TODO root workspace scripts + husky/lint-staged
-├── .husky/                # TODO
-│   └── pre-commit
-└── .vscode/
-    └── settings.json      # TODO format-on-save for Cursor/VS Code
+├── package.json              # root scripts + husky/lint-staged deps
+├── lint-staged.config.mjs
+├── .prettierrc
+├── .prettierignore
+├── .editorconfig
+├── .husky/pre-commit         # → lint-staged
+├── .vscode/settings.json
+├── .vscode/extensions.json
+├── civil-web/eslint.config.js
+├── civil-mobile/eslint.config.js
+└── backend/eslint.config.js
 ```
-
-Apps keep their own `tsconfig` / local ESLint needs (Expo, Vite), but **Prettier + commit hooks + npm scripts live at root** so one command covers the monorepo.
 
 ---
 
-## Commit gate (required for everyone using local hooks)
+## Import organization (locked)
+
+`simple-import-sort` groups (all apps):
+
+1. Side-effect imports
+2. External packages (`node:`, `react`, `expo`, other `@?\\w`)
+3. Internal alias (`@/…`) — web/mobile
+4. Relative imports (`./`, `../`)
+
+Exports are also sorted. Autofix via `eslint --fix`.
+
+---
+
+## TypeScript strict
+
+| App                                                      | `strict` |
+| -------------------------------------------------------- | -------- |
+| `civil-web` (`tsconfig.app.json` / `tsconfig.node.json`) | `true`   |
+| `civil-mobile`                                           | `true`   |
+| `backend`                                                | `true`   |
+
+Do not weaken strict to silence errors. Backend TypeScript is pinned to **~6.x** so `typescript-eslint` works (TS 7 not supported yet by the plugin).
+
+Mobile typecheck excludes vendor `src/components/ui` (gluestack primitives) and Detox e2e specs.
+
+---
+
+## Commit gate
 
 ```text
 git commit
     ↓
 Husky pre-commit
     ↓
-lint-staged
-    ↓
-Prettier (staged files)
-    ↓
-ESLint (staged files)
+lint-staged (Prettier + app ESLint --fix on staged paths)
     ↓
 commit allowed / blocked
 ```
 
-- Bad formatting or lint errors on staged files → **commit blocked**.
-- Typecheck / tests / build run in **CI on PRs** (see Git branch strategy decision), not necessarily on every local commit (keeps commits fast).
+Typecheck / tests / build remain in **CI** (not every local commit).
 
 ---
 
-## Editor / Cursor setup
+## Rules locked
 
-Root `.vscode/settings.json` (recommended):
-
-- `editor.formatOnSave`: true
-- Default formatter: Prettier
-- ESLint validate: TypeScript / TSX
-- Optional: `editor.codeActionsOnSave` → `source.fixAll.eslint`
-
-Commit a shared `.vscode/extensions.json` recommending:
-
-- Prettier
-- ESLint
-
-So Cursor/VS Code formats while developing; Husky catches misses at commit.
-
----
-
-## Rules locked with this decision
-
-1. Do not invent a second formatter (no competing style guides per app).
-2. TypeScript **strict** stays on — do not weaken to silence errors.
-3. Do not bypass Husky with `--no-verify` unless the **repo owner** explicitly allows an emergency exception.
-4. Fix root cause of lint errors; do not mass-disable rules without discussion.
-5. `format` / `lint` / `typecheck` must pass in CI before merge to `dev` or `main` (see branch strategy).
-
----
-
-## Implementation checklist
-
-- [ ] Root `package.json` (workspaces or script orchestration)
-- [ ] Install Prettier + ESLint + Husky + lint-staged
-- [ ] Add `.prettierrc` / `.prettierignore`
-- [ ] Add root ESLint flat config + app overrides as needed
-- [ ] Enable `strict` in all app `tsconfig`s
-- [ ] Scripts: `format`, `lint`, `typecheck`
-- [ ] Husky `pre-commit` → lint-staged
-- [ ] `.vscode/settings.json` + `extensions.json`
-- [ ] Document commands in root README / Contributing
+1. One formatter: Prettier only.
+2. TypeScript **strict** stays on.
+3. Do not bypass Husky with `--no-verify` unless the **repo owner** allows an emergency exception.
+4. Fix lint root causes; do not mass-disable rules without discussion.
+5. `format:check` / `lint` / `typecheck` must pass in CI before merge to `dev` or `main`.
 
 ---
 

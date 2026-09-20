@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
-import Animated, { Easing,Keyframe } from 'react-native-reanimated'
+import Animated, { Easing, Keyframe } from 'react-native-reanimated'
 
 import classes from './animated-icon.module.css'
 const DURATION = 300

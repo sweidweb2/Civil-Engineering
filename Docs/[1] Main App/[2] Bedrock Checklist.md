@@ -473,16 +473,17 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ## 19. Code Quality Foundation
 
-- [ ] TypeScript strict mode
-- [ ] ESLint
-- [ ] Prettier
-- [ ] Import organization rules
+- [x] TypeScript strict mode — web / mobile / backend
+- [x] ESLint — per-app flat configs; root `npm run lint`
+- [x] Prettier — root config + `format` / `format:check`; Husky + lint-staged
+- [x] Import organization rules — `eslint-plugin-simple-import-sort`
 - [x] Naming conventions (files / folders / vars / functions / components)
 - [x] No `any` unless justified
 - [x] No duplicate logic / giant files / premature abstraction
 - [x] No dead code / unused deps / utils dumping ground
 
-> Note: Vite web template includes ESLint locally; not standardized across monorepo yet.
+> Decision: [`Docs/[3] Decisions/[1] Formatting & Linting.md`](../[3]%20Decisions/[1]%20Formatting%20%26%20Linting.md)  
+> Commands (repo root): `npm run format` · `npm run format:check` · `npm run lint` · `npm run typecheck`
 
 ---
 
@@ -545,11 +546,13 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 - [ ] Application logs
 - [ ] Request logs
-- [ ] Error tracking
+- [x] Error tracking — `error_logs` table + SUPER inbox (`GET /api/v1/error-logs`); persists unexpected/5xx only (not every 400)
 - [ ] DB / Redis monitoring
-- [ ] Host metrics (CPU / RAM / disk / uptime)
-- [ ] Health / readiness / liveness endpoints
+- [x] Host metrics (CPU / RAM / disk / uptime) — use VPS provider panel/alerts
+- [x] Health / readiness / liveness endpoints — `/api/v1/health`, `/api/v1/health/db`
 - [ ] Alerts
+
+> Also: `activity_logs` audit table + SUPER list UI (`/super/activity`). Structured stdout request/app logs still TBD. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only).
 
 ---
 

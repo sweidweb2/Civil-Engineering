@@ -1,5 +1,6 @@
 import type { AppConfig } from '../../config/index.js'
 import { conflict, unauthorized } from '../../errors/app-error.js'
+import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
 import type { LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
 import type { RoleName } from './auth.schema.js'
@@ -42,7 +43,11 @@ function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {
   }
 }
 
-export function createAuthService(repository: AuthRepository, config: AppConfig): AuthService {
+export function createAuthService(
+  repository: AuthRepository,
+  config: AppConfig,
+  logging?: LoggingService,
+): AuthService {
   return {
     async register(input) {
       const existing = await repository.findByEmail(input.email)
@@ -59,6 +64,17 @@ export function createAuthService(repository: AuthRepository, config: AppConfig)
         lastName: input.lastName,
       })
 
+      try {
+        await logging?.recordActivity({
+          userId: user.id,
+          action: 'auth.register',
+          entity: 'user',
+          entityId: user.id,
+        })
+      } catch (error) {
+        console.error('[auth] failed to write register activity', error)
+      }
+
       return {
         user: toUserDto(user),
         tokens: issueTokens(config, user),
@@ -74,6 +90,17 @@ export function createAuthService(repository: AuthRepository, config: AppConfig)
       const ok = await verifyPassword(input.password, user.passwordHash)
       if (!ok) {
         throw unauthorized('Invalid email or password')
+      }
+
+      try {
+        await logging?.recordActivity({
+          userId: user.id,
+          action: 'auth.login',
+          entity: 'user',
+          entityId: user.id,
+        })
+      } catch (error) {
+        console.error('[auth] failed to write login activity', error)
       }
 
       return {
@@ -98,8 +125,25 @@ export function createAuthService(repository: AuthRepository, config: AppConfig)
       return issueTokens(config, user)
     },
 
-    async logout() {
-      // JWT-only refresh for now — client discards tokens. Server revocation TBD.
+    async logout(input) {
+      let userId: string | undefined
+      try {
+        const payload = verifyRefreshToken(config, input.refreshToken)
+        userId = payload.sub
+      } catch {
+        // Client still discards tokens; logging is best-effort.
+      }
+
+      try {
+        await logging?.recordActivity({
+          userId: userId ?? null,
+          action: 'auth.logout',
+          entity: 'user',
+          entityId: userId ?? null,
+        })
+      } catch (error) {
+        console.error('[auth] failed to write logout activity', error)
+      }
     },
   }
 }

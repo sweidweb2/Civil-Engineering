@@ -1,4 +1,4 @@
-import { expect,test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('web e2e (auth smoke)', () => {
   test('login page is the entry experience', async ({ page }) => {

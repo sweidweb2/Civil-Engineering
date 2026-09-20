@@ -3,7 +3,7 @@ import React from 'react'
 import { Text, View, ViewStyle } from 'react-native'
 import { createTooltip } from '@gluestack-ui/core/tooltip/creator'
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
-import { tva , withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
 import { AnimatePresence, Motion, MotionComponentProps } from '@legendapp/motion'
 import { withUniwind } from 'uniwind'
 

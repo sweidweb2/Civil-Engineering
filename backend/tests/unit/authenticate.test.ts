@@ -1,6 +1,6 @@
 import express from 'express'
 import request from 'supertest'
-import { beforeAll,describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { createApp } from '../../src/app.js'
 import { errorHandler } from '../../src/errors/error.middleware.js'

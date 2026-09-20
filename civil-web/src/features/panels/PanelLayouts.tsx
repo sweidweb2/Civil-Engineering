@@ -1,0 +1,18 @@
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+
+import { ADMIN_NAV, PanelShell, PROVIDER_NAV, SUPER_NAV } from './PanelShell'
+
+export function SuperPanelLayout() {
+  useDocumentTitle('Super panel')
+  return <PanelShell title="Super panel" nav={SUPER_NAV} />
+}
+
+export function AdminPanelLayout() {
+  useDocumentTitle('Admin panel')
+  return <PanelShell title="Admin panel" nav={ADMIN_NAV} />
+}
+
+export function ProviderPanelLayout() {
+  useDocumentTitle('Provider panel')
+  return <PanelShell title="Provider panel" nav={PROVIDER_NAV} />
+}

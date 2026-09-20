@@ -1,6 +1,6 @@
 import React from 'react'
-import { createIcon , PrimitiveIcon, Svg } from '@gluestack-ui/core/icon/creator'
-import { tva , VariantProps } from '@gluestack-ui/utils/nativewind-utils'
+import { createIcon, PrimitiveIcon, Svg } from '@gluestack-ui/core/icon/creator'
+import { tva, VariantProps } from '@gluestack-ui/utils/nativewind-utils'
 
 export const UIIcon = createIcon({
   Root: PrimitiveIcon,
@@ -178,7 +178,7 @@ ArrowDownIcon.displayName = 'ArrowDownIcon'
 ArrowRightIcon.displayName = 'ArrowRightIcon'
 ArrowLeftIcon.displayName = 'ArrowLeftIcon'
 
-export { ArrowDownIcon, ArrowLeftIcon,ArrowRightIcon, ArrowUpIcon }
+export { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon }
 
 const AtSignIcon = createIcon({
   Root: Svg,
@@ -289,7 +289,7 @@ const CheckCircleIcon = createIcon({
 CheckIcon.displayName = 'CheckIcon'
 CheckCircleIcon.displayName = 'CheckCircleIcon'
 
-export { CheckCircleIcon,CheckIcon }
+export { CheckCircleIcon, CheckIcon }
 
 const ChevronUpIcon = createIcon({
   Root: Svg,
@@ -456,7 +456,7 @@ const CloseCircleIcon = createIcon({
 CloseIcon.displayName = 'CloseIcon'
 CloseCircleIcon.displayName = 'CloseCircleIcon'
 
-export { CloseCircleIcon,CloseIcon }
+export { CloseCircleIcon, CloseIcon }
 
 const CopyIcon = createIcon({
   Root: Svg,
@@ -758,7 +758,7 @@ const ExternalLinkIcon = createIcon({
 })
 
 ExternalLinkIcon.displayName = 'ExternalLinkIcon'
-export { ExternalLinkIcon,LinkIcon }
+export { ExternalLinkIcon, LinkIcon }
 
 const LoaderIcon = createIcon({
   Root: Svg,
@@ -996,7 +996,7 @@ const Repeat1Icon = createIcon({
 })
 
 Repeat1Icon.displayName = 'Repeat1Icon'
-export { Repeat1Icon,RepeatIcon }
+export { Repeat1Icon, RepeatIcon }
 
 const SearchIcon = createIcon({
   Root: Svg,

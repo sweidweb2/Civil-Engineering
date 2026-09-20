@@ -16,17 +16,26 @@ export function ensureTestDatabaseUrl(): string {
   return process.env.DATABASE_URL
 }
 
-export function migrateTestDatabase(): void {
+let migratePromise: Promise<void> | null = null
+
+export async function migrateTestDatabase(): Promise<void> {
   ensureTestDatabaseUrl()
-  execSync('npx prisma migrate deploy', {
-    cwd: backendRoot,
-    env: process.env,
-    stdio: 'pipe',
-  })
+  if (!migratePromise) {
+    migratePromise = Promise.resolve().then(() => {
+      execSync('npx prisma migrate deploy', {
+        cwd: backendRoot,
+        env: process.env,
+        stdio: 'pipe',
+      })
+    })
+  }
+  await migratePromise
 }
 
 export async function clearUsers(): Promise<void> {
   const prisma = getPrisma()
+  await prisma.activityLog.deleteMany()
+  await prisma.errorLog.deleteMany()
   await prisma.user.deleteMany()
 }
 

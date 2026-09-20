@@ -9,6 +9,7 @@ import { createHealthController } from '../modules/health/health.controller.js'
 import { createHealthRepository } from '../modules/health/health.repository.js'
 import { createHealthRoutes } from '../modules/health/health.routes.js'
 import { createHealthService } from '../modules/health/health.service.js'
+import { createLoggingModule } from '../modules/logging/index.js'
 import { createMaterialsModule } from '../modules/materials/index.js'
 import { createProjectsModule } from '../modules/projects/index.js'
 import { createUsersModule } from '../modules/users/index.js'
@@ -29,6 +30,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
 
   router.use('/health', createHealthRoutes(healthController))
   router.use('/auth', createAuthModule(config))
+  router.use(createLoggingModule())
   router.use('/users', createUsersModule())
   router.use('/projects', createProjectsModule())
   router.use('/workers', createWorkersModule())

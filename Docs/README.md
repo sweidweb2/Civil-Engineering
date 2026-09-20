@@ -7,7 +7,7 @@ This `docs/` tree is the **index** — short entry points that point at those so
 | -------------------------------- | ----------------------------- | ----------------------------------------------------------------------- |
 | [architecture/](./architecture/) | System shape, layers, clients | `Docs/[1] Main App/[1] Tech Stack.md`, `.cursor/rules/project-core.mdc` |
 | [api/](./api/)                   | REST `/api/v1` conventions    | Tech Stack + `project-core` API sections + backend modules              |
-| [database/](./database/)         | PostgreSQL + Prisma           | Tech Stack, Prisma schema, `backend.mdc`                                |
+| [database/](./database/)         | PostgreSQL + Prisma           | Tech Stack, Prisma schema, `Docs/[4] Database/`, `backend.mdc`          |
 | [deployment/](./deployment/)     | Docker, Nginx, VPS            | `Docs/[3] Decisions/[4] Docker & Infrastructure.md`, `docker.mdc`       |
 | [development/](./development/)   | Local setup, contributing     | Root `README.md`, `Docs/[1] Main App/[3] Contributing.md`               |
 | [decisions/](./decisions/)       | ADRs / locked choices         | `Docs/[3] Decisions/`                                                   |

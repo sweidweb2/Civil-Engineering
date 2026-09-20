@@ -26,12 +26,7 @@ export default defineConfig([
       'simple-import-sort/imports': [
         'error',
         {
-          groups: [
-            ['^\\u0000'],
-            ['^node:', '^react$', '^react-dom', '^@?\\w'],
-            ['^@/'],
-            ['^\\.'],
-          ],
+          groups: [['^\\u0000'], ['^node:', '^react$', '^react-dom', '^@?\\w'], ['^@/'], ['^\\.']],
         },
       ],
       'simple-import-sort/exports': 'error',
@@ -41,9 +36,9 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/ui/**/*.{ts,tsx}'],
+    files: ['src/components/ui/**/*.{ts,tsx}', 'src/features/panels/**/*.{ts,tsx}'],
     rules: {
-      // shadcn/ui co-exports variants helpers with components
+      // shadcn/ui + panel shells co-export helpers with components
       'react-refresh/only-export-components': 'off',
     },
   },

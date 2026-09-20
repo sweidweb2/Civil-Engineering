@@ -4,7 +4,7 @@ import { Text, View } from 'react-native'
 import { createFormControl } from '@gluestack-ui/core/form-control/creator'
 import { UIIcon } from '@gluestack-ui/core/icon/creator'
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
-import { tva , withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
 import { withUniwind } from 'uniwind'
 
 const SCOPE = 'FORM_CONTROL'

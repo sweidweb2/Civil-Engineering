@@ -5,11 +5,7 @@ export type RemoteLoading = { status: 'loading' }
 export type RemoteSuccess<T> = { status: 'success'; data: T }
 export type RemoteError = { status: 'error'; error: unknown }
 
-export type RemoteState<T> =
-  | RemoteIdle
-  | RemoteLoading
-  | RemoteSuccess<T>
-  | RemoteError
+export type RemoteState<T> = RemoteIdle | RemoteLoading | RemoteSuccess<T> | RemoteError
 
 type UseRemoteDataOptions = {
   /** When false, skip the initial fetch. Default true. */
@@ -21,10 +17,7 @@ type UseRemoteDataOptions = {
  * Keeps loading/error/data local — do not dump results into Zustand.
  * A dedicated cache library (e.g. TanStack Query) stays TBD until needed.
  */
-export function useRemoteData<T>(
-  load: () => Promise<T>,
-  options: UseRemoteDataOptions = {},
-) {
+export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
   const { enabled = true } = options
   const [state, setState] = useState<RemoteState<T>>({ status: 'idle' })
   const loadRef = useRef(load)
@@ -54,5 +47,6 @@ export function useRemoteData<T>(
     isLoading: state.status === 'loading' || state.status === 'idle',
     isError: state.status === 'error',
     isSuccess: state.status === 'success',
+    error: state.status === 'error' ? state.error : undefined,
   }
 }

@@ -1,6 +1,6 @@
 'use client'
-import React, { useEffect, useMemo,useRef } from 'react'
-import { FlatList, Platform,Pressable, Text, View } from 'react-native'
+import React, { useEffect, useMemo, useRef } from 'react'
+import { FlatList, Platform, Pressable, Text, View } from 'react-native'
 import { UIIcon } from '@gluestack-ui/core/icon/creator'
 import { createTabs, TabsContext } from '@gluestack-ui/core/tabs/creator'
 import {

@@ -30,14 +30,15 @@ enum UserStatus {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
+  id           String        @id @default(cuid())
+  email        String        @unique
   passwordHash String
-  role         Role       @default(CLIENT)
-  status       UserStatus @default(ACTIVE)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  role         Role          @default(CLIENT)
+  status       UserStatus    @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   profile      Profile?
+  activityLogs ActivityLog[]
 
   @@map("users")
 }
@@ -60,6 +61,43 @@ model Profile {
 // =============================================================================
 // auth — RefreshToken / AuthSession (TBD — refresh is JWT-only for now)
 // =============================================================================
+
+// =============================================================================
+// logging — activity audit + unexpected error inbox (SUPER panel)
+// =============================================================================
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  meta      Json?
+  ip        String?
+  requestId String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("activity_logs")
+}
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  requestId String?
+  userId    String?
+  code      String?
+  message   String
+  stack     String?
+  path      String?
+  method    String?
+  status    Int?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("error_logs")
+}
 
 // =============================================================================
 // projects — Project (TBD)

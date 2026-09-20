@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { describe, expect,it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { createApp } from '../../src/app.js'
 import { loadConfig } from '../../src/config/index.js'

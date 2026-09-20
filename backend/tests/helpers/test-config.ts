@@ -1,4 +1,4 @@
-import { type AppConfig,loadConfig } from '../../src/config/index.js'
+import { type AppConfig, loadConfig } from '../../src/config/index.js'
 
 export const TEST_JWT_ACCESS_SECRET = 'test-access-secret-at-least-32-characters'
 export const TEST_JWT_REFRESH_SECRET = 'test-refresh-secret-at-least-32-characters'

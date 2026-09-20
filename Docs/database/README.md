@@ -5,6 +5,7 @@
 - [`Docs/[1] Main App/[1] Tech Stack.md`](../../Docs/[1]%20Main%20App/[1]%20Tech%20Stack.md) — PostgreSQL + Prisma
 - [`.cursor/rules/project-core.mdc`](../../.cursor/rules/project-core.mdc) / [`backend.mdc`](../../.cursor/rules/backend.mdc) — repository-only Prisma
 - Schema: `backend/prisma/schema.prisma`
+- DBML mirror: `Docs/[4] Database/schema.dbml`
 - Config: `backend/prisma.config.ts`
 - Client: `backend/src/database/`
 

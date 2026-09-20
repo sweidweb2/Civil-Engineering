@@ -1,4 +1,4 @@
-import React, { createContext, useContext,useMemo } from 'react'
+import React, { createContext, useContext, useMemo } from 'react'
 import { Text, View } from 'react-native'
 import {
   Caption as ExpoTCaption,
@@ -140,4 +140,4 @@ TableRow.displayName = 'TableRow'
 TableData.displayName = 'TableData'
 TableCaption.displayName = 'TableCaption'
 
-export { Table, TableBody, TableCaption,TableData, TableFooter, TableHead, TableHeader, TableRow }
+export { Table, TableBody, TableCaption, TableData, TableFooter, TableHead, TableHeader, TableRow }

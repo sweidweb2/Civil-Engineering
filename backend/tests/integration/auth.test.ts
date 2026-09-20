@@ -17,9 +17,9 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
     DATABASE_URL: process.env.DATABASE_URL,
   })
 
-  beforeAll(() => {
-    migrateTestDatabase()
-  })
+  beforeAll(async () => {
+    await migrateTestDatabase()
+  }, 60_000)
 
   beforeEach(async () => {
     await clearUsers()

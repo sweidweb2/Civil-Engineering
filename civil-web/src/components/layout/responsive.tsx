@@ -57,5 +57,5 @@ function ResponsiveRow({ children, className }: FlexProps) {
   )
 }
 
-export { ResponsiveRow,Show }
-export type { FlexProps,ShowProps }
+export { ResponsiveRow, Show }
+export type { FlexProps, ShowProps }

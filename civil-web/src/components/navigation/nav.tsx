@@ -77,4 +77,4 @@ function Nav({ items, orientation = 'vertical', className }: NavProps) {
 }
 
 export { Nav }
-export type { NavItem,NavProps }
+export type { NavItem, NavProps }

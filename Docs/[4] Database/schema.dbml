@@ -1,0 +1,93 @@
+// Civil Engineering — PostgreSQL schema (DBML)
+// Mirrors backend/prisma/schema.prisma (source of truth for migrations).
+// Domains still TBD: auth sessions, projects, workers, materials, expenses.
+
+Enum Role {
+  SUPER
+  ADMIN
+  PROVIDER
+  WORKER
+  MANAGER
+  CLIENT
+}
+
+Enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+Table users {
+  id            String     [pk, default: `cuid()`]
+  email         String     [unique, not null]
+  passwordHash  String     [not null, note: 'bcrypt/argon hash — never plaintext']
+  role          Role       [not null, default: 'CLIENT']
+  status        UserStatus [not null, default: 'ACTIVE']
+  createdAt     DateTime   [not null, default: `now()`]
+  updatedAt     DateTime   [not null, note: 'auto @updatedAt']
+
+  Note: 'users domain — account identity + credentials'
+}
+
+Table profiles {
+  id           String   [pk, default: `cuid()`]
+  userId       String   [unique, not null]
+  firstName    String
+  lastName     String
+  displayName  String
+  phone        String
+  avatarUrl    String
+  createdAt    DateTime [not null, default: `now()`]
+  updatedAt    DateTime [not null, note: 'auto @updatedAt']
+
+  Note: '1:1 profile for User'
+}
+
+Table activity_logs {
+  id         String   [pk, default: `cuid()`]
+  userId     String
+  action     String   [not null]
+  entity     String
+  entityId   String
+  meta       Json
+  ip         String
+  requestId  String
+  createdAt  DateTime [not null, default: `now()`]
+
+  Note: 'audit trail for SUPER panel / ops'
+}
+
+Table error_logs {
+  id         String   [pk, default: `cuid()`]
+  requestId  String
+  userId     String
+  code       String
+  message    String   [not null]
+  stack      String
+  path       String
+  method     String
+  status     Int
+  createdAt  DateTime [not null, default: `now()`]
+
+  Note: 'unexpected error inbox — no FK to users (may be anonymous)'
+}
+
+Ref: profiles.userId > users.id [delete: cascade]
+
+Ref: activity_logs.userId > users.id [delete: set null]
+
+Indexes users {
+  email [unique]
+}
+
+Indexes profiles {
+  userId [unique]
+}
+
+Indexes activity_logs {
+  createdAt
+  (userId, createdAt)
+}
+
+Indexes error_logs {
+  createdAt
+}

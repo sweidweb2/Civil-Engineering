@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 
 import { InlineSpinner } from '@/components/feedback/async-state'
+import { homePathForRole } from '@/lib/homePath'
 import { useAuthStore } from '@/stores/authStore'
 
 type GuestOnlyProps = {
@@ -9,8 +10,8 @@ type GuestOnlyProps = {
   redirectTo?: string
 }
 
-/** Auth screens — send signed-in users home (or redirectTo). */
-export function GuestOnly({ children, redirectTo = '/' }: GuestOnlyProps) {
+/** Auth screens — send signed-in users to role home (or redirectTo). */
+export function GuestOnly({ children, redirectTo }: GuestOnlyProps) {
   const user = useAuthStore((s) => s.user)
   const isHydrated = useAuthStore((s) => s.isHydrated)
 
@@ -23,7 +24,7 @@ export function GuestOnly({ children, redirectTo = '/' }: GuestOnlyProps) {
   }
 
   if (user) {
-    return <Navigate to={redirectTo} replace />
+    return <Navigate to={redirectTo ?? homePathForRole(user.role)} replace />
   }
 
   return children

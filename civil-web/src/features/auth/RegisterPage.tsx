@@ -1,4 +1,4 @@
-import { type FormEvent,useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -7,7 +7,7 @@ import { Field, FieldError, FieldGroup, FieldLabel, Form } from '@/components/fo
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { type FieldErrors,parseForm } from '@/lib/form'
+import { type FieldErrors, parseForm } from '@/lib/form'
 import { toastApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 

@@ -1,4 +1,4 @@
-import { beforeEach,describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AuthRepository, AuthUserRecord } from '../../src/modules/auth/auth.repository.js'
 import { createAuthService } from '../../src/modules/auth/auth.service.js'

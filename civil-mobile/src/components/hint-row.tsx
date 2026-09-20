@@ -1,4 +1,4 @@
-import { StyleSheet,View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import type { ReactNode } from 'react'
 
 import { Spacing } from '@/constants/theme'

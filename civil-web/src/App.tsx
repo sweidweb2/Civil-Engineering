@@ -1,12 +1,19 @@
-import { Header } from "@/components/layout/header"
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+
+import { LoginPage } from '@/features/auth/LoginPage'
+import { RegisterPage } from '@/features/auth/RegisterPage'
+import { HomePage } from '@/features/home/HomePage'
 
 function App() {
   return (
-    <div className="min-h-svh bg-background">
-      <Header>
-        <h1 className="text-base font-semibold text-foreground">Home</h1>
-      </Header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

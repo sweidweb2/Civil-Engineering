@@ -10,9 +10,10 @@ const baseEnvSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   DATABASE_URL: z.string().min(1).optional(),
-  // Reserved for auth foundation (optional until JWT is wired)
   JWT_ACCESS_SECRET: z.string().min(1).optional(),
   JWT_REFRESH_SECRET: z.string().min(1).optional(),
+  JWT_ACCESS_EXPIRES_IN: z.string().min(1).default('15m'),
+  JWT_REFRESH_EXPIRES_IN: z.string().min(1).default('7d'),
 })
 
 export type AppConfig = {
@@ -23,6 +24,8 @@ export type AppConfig = {
   databaseUrl?: string
   jwtAccessSecret?: string
   jwtRefreshSecret?: string
+  jwtAccessExpiresIn: string
+  jwtRefreshExpiresIn: string
 }
 
 function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): string[] {
@@ -73,5 +76,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     databaseUrl: data.DATABASE_URL,
     jwtAccessSecret: data.JWT_ACCESS_SECRET,
     jwtRefreshSecret: data.JWT_REFRESH_SECRET,
+    jwtAccessExpiresIn: data.JWT_ACCESS_EXPIRES_IN,
+    jwtRefreshExpiresIn: data.JWT_REFRESH_EXPIRES_IN,
+  }
+}
+
+export function requireJwtSecrets(config: AppConfig): {
+  accessSecret: string
+  refreshSecret: string
+} {
+  if (!config.jwtAccessSecret || !config.jwtRefreshSecret) {
+    throw new Error(
+      'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are required for authentication'
+    )
+  }
+  return {
+    accessSecret: config.jwtAccessSecret,
+    refreshSecret: config.jwtRefreshSecret,
   }
 }

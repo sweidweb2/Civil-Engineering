@@ -7,17 +7,14 @@ export const authDomain = {
   entities: [
     {
       name: 'RefreshToken',
-      description: 'Persisted refresh credential bound to a user session.',
-    },
-    {
-      name: 'AuthSession',
-      description: 'Logical login session metadata (device/client hints, expiry).',
+      description:
+        'TBD persisted refresh credential. Current implementation uses signed JWT refresh tokens only (no DB table yet).',
     },
   ],
   valueObjects: [
     {
       name: 'AccessTokenClaims',
-      description: 'Short-lived JWT claims (sub, roles, exp).',
+      description: 'Short-lived JWT claims (sub, role, typ, exp).',
     },
     {
       name: 'PasswordHash',
@@ -29,7 +26,6 @@ export const authDomain = {
     'login',
     'refreshTokens',
     'logout',
-    'logoutAllSessions',
   ],
   relationships: [
     'References User by userId (users module owns User profile).',

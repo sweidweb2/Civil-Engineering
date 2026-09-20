@@ -11,10 +11,11 @@ RUN npm ci
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json prisma.config.ts ./
+COPY prisma ./prisma
 COPY src ./src
-# Host tsconfig also includes tests; image build compiles src only.
-RUN printf '%s\n' '{"extends":"./tsconfig.json","include":["src/**/*"]}' > tsconfig.docker.json \
+RUN npx prisma generate \
+  && printf '%s\n' '{"extends":"./tsconfig.json","include":["src/**/*"]}' > tsconfig.docker.json \
   && npx tsc -p tsconfig.docker.json \
   && npm prune --omit=dev
 

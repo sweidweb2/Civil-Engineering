@@ -72,7 +72,8 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Per domain: external access rules defined
 - [x] Rule locked: domain owns its business logic and data access
 
-> Note: Domains are **API/domain stubs only** — no Postgres schema, tables, or Prisma yet (schema still being designed). Repositories must not assume real persistence. List endpoints may return `[]`; mutations return `501 NOT_IMPLEMENTED`. Entity/VO shapes in `*.types.ts` / `*.domain.ts` are provisional until the DB schema is locked. Exact enums/role sets remain TBD where marked.
+> Note: Domains are mostly API stubs. **User + Profile** Prisma models are live for auth. Other domains still provisional until their tables land.
+
 
 ---
 
@@ -99,7 +100,8 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Seed process defined (if needed)
 - [x] Rule locked: migrations are versioned; no manual prod replay as source of truth
 
-> Note: Prisma 7 + `@prisma/adapter-pg` installed. Schema file organized by domain sections; **no models yet** (schema still being designed). Seed is a no-op stub. Run `prisma generate` / migrate after models land.
+> Note: Prisma 7 + `@prisma/adapter-pg`. Models: `User`, `Profile` (+ `Role`, `UserStatus`). Migration `users_and_profiles` applied. Other domains TBD.
+
 
 ---
 
@@ -124,25 +126,25 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Authentication
 
-- [ ] JWT access tokens
-- [ ] Refresh tokens
-- [ ] Token rotation / revocation
+- [x] JWT access tokens
+- [x] Refresh tokens
+- [ ] Token rotation / revocation (client logout only for now; server revocation TBD)
 - [x] Token expiration values set
-- [ ] Password hashing
-- [ ] Login / logout
+- [x] Password hashing (bcrypt)
+- [x] Login / logout
 - [ ] Password reset (if in scope)
 - [ ] Email verification (if in scope)
-- [ ] Session / account management rules
+- [x] Session / account management rules (JWT session; public register → CLIENT)
 
 ### Authorization
 
-- [ ] Roles / permissions model
+- [x] Roles / permissions model (`SUPER` `ADMIN` `PROVIDER` `WORKER` `MANAGER` `CLIENT`)
 - [ ] Resource ownership checks
 - [ ] Admin rules
-- [ ] API auth middleware
+- [x] API auth middleware (`authenticate` verifies Bearer access JWT)
 - [x] Frontend permission handling approach
 
-> Note: JWT + refresh locked in Tech Stack; env JWT placeholders exist; no auth code yet.
+> Note: `users` + `profiles` tables migrated. Auth routes: `/api/v1/auth/register|login|refresh|logout`. Web + mobile show login/register first, then home.
 
 ---
 
@@ -171,12 +173,12 @@ Track foundation work only. Check items when done. Do not expand into essays her
 ## 9. Frontend Foundation (React Web)
 
 - [x] React + TypeScript + Vite ready
-- [ ] Routing setup
-- [ ] Feature-based `src/features/` structure
-- [ ] Shared `components/`
+- [x] Routing setup
+- [x] Feature-based `src/features/` structure
+- [x] Shared `components/`
 - [ ] Shared `hooks/`
-- [ ] `services/` API layer
-- [ ] Client state approach (Zustand)
+- [x] `services/` API layer
+- [x] Client state approach (Zustand)
 - [ ] Server-state approach decided
 - [ ] Forms + Zod validation approach
 - [ ] Loading / error UI patterns
@@ -194,9 +196,9 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Navigation setup
 - [ ] Feature-based `src/features/` structure
 - [ ] Screens / components / hooks layout
-- [ ] `services/` API layer
-- [ ] Secure token storage
-- [ ] Client state approach (Zustand)
+- [x] `services/` API layer
+- [x] Secure token storage (`expo-secure-store`)
+- [x] Client state approach (Zustand)
 - [ ] Forms + validation approach
 - [ ] Loading / error handling
   - [ ] Inline loading / error + retry on screens (failed fetches)

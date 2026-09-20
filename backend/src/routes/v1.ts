@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import type { Pool } from 'pg'
 
+import type { AppConfig } from '../config/index.js'
+import { loadConfig } from '../config/index.js'
 import { createAuthModule } from '../modules/auth/index.js'
 import { createExpensesModule } from '../modules/expenses/index.js'
 import { createHealthController } from '../modules/health/health.controller.js'
@@ -14,17 +16,19 @@ import { createWorkersModule } from '../modules/workers/index.js'
 
 export type V1Deps = {
   pool?: Pool
+  config?: AppConfig
 }
 
 export function createV1Router(deps: V1Deps = {}): Router {
   const router = Router()
+  const config = deps.config ?? loadConfig()
 
   const healthRepository = createHealthRepository(deps.pool)
   const healthService = createHealthService(healthRepository)
   const healthController = createHealthController(healthService)
 
   router.use('/health', createHealthRoutes(healthController))
-  router.use('/auth', createAuthModule())
+  router.use('/auth', createAuthModule(config))
   router.use('/users', createUsersModule())
   router.use('/projects', createProjectsModule())
   router.use('/workers', createWorkersModule())

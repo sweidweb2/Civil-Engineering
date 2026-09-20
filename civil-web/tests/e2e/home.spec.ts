@@ -1,16 +1,15 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('web e2e (smoke)', () => {
-  test('home page shows Get started', async ({ page }) => {
+test.describe('web e2e (auth smoke)', () => {
+  test('login page is the entry experience', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Get started' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
-  test('counter increments', async ({ page }) => {
-    await page.goto('/')
-    const button = page.getByRole('button', { name: /Count is/i })
-    await expect(button).toHaveText('Count is 0')
-    await button.click()
-    await expect(button).toHaveText('Count is 1')
+  test('can open register from login', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByRole('link', { name: 'Register' }).click()
+    await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible()
   })
 })

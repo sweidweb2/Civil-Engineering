@@ -29,7 +29,7 @@ export function createApp(deps: AppDeps = {}) {
   )
   app.use(express.json())
 
-  app.use('/api/v1', createV1Router({ pool: deps.pool }))
+  app.use('/api/v1', createV1Router({ pool: deps.pool, config }))
 
   app.use(notFoundHandler)
   app.use(errorHandler)

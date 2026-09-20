@@ -1,11 +1,9 @@
 /**
  * Seed entry for Prisma (`prisma db seed` / migrate seed).
- * No-op until domain models exist — do not invent sample rows against an unfinished schema.
+ * No sample users by default — register via API or add seeds intentionally.
  */
 async function main() {
-  console.info(
-    '[prisma seed] Skipped — no models yet. Add seed data after the schema is locked.'
-  )
+  console.info('[prisma seed] No seed rows — create accounts via /api/v1/auth/register')
 }
 
 main().catch((error) => {

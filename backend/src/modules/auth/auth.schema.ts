@@ -1,13 +1,25 @@
 import { z } from 'zod'
 
+export const roleSchema = z.enum([
+  'SUPER',
+  'ADMIN',
+  'PROVIDER',
+  'WORKER',
+  'MANAGER',
+  'CLIENT',
+])
+
+export type RoleName = z.infer<typeof roleSchema>
+
 export const registerBodySchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform((value) => value.trim().toLowerCase()),
   password: z.string().min(8).max(128),
-  name: z.string().min(1).max(120).optional(),
+  firstName: z.string().min(1).max(80).optional(),
+  lastName: z.string().min(1).max(80).optional(),
 })
 
 export const loginBodySchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform((value) => value.trim().toLowerCase()),
   password: z.string().min(1).max(128),
 })
 

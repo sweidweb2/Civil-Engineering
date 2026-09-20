@@ -7,13 +7,18 @@ export const usersDomain = {
   entities: [
     {
       name: 'User',
-      description: 'Account profile: identity, contact, status.',
+      description: 'Account: email, password hash, role, status.',
+    },
+    {
+      name: 'Profile',
+      description: 'Display/contact fields linked 1:1 to User.',
     },
   ],
   valueObjects: [
     {
       name: 'UserRole',
-      description: 'Application role (e.g. project_manager, worker) — exact set TBD.',
+      description:
+        'SUPER | ADMIN | PROVIDER | WORKER | MANAGER | CLIENT — public register defaults to CLIENT.',
     },
     {
       name: 'EmailAddress',

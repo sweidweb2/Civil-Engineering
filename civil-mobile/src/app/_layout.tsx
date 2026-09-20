@@ -5,6 +5,8 @@ import { Stack } from 'expo-router'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+// Bind auth session → API refresh before any feature requests
+import '@/stores/authStore'
 
 function PushNotificationsBridge() {
   usePushNotifications()

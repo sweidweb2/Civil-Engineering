@@ -1,6 +1,7 @@
 /**
  * colors.ts — semantic palette for light mode (shared with web).
- * Dark mode remains TBD.
+ * Source of truth for brand tokens. Wired into `civil-mobile/global.css`
+ * (Uniwind light theme RGB channels). Dark mode remains TBD.
  */
 
 export const colors = {

@@ -16,6 +16,12 @@ Enum UserStatus {
   INACTIVE
 }
 
+Enum DevicePlatform {
+  IOS
+  ANDROID
+  UNKNOWN
+}
+
 Table users {
   id            String     [pk, default: `cuid()`]
   email         String     [unique, not null]
@@ -40,6 +46,17 @@ Table profiles {
   updatedAt    DateTime [not null, note: 'auto @updatedAt']
 
   Note: '1:1 profile for User'
+}
+
+Table device_tokens {
+  id         String         [pk, default: `cuid()`]
+  userId     String         [not null]
+  token      String         [unique, not null]
+  platform   DevicePlatform [not null, default: 'UNKNOWN']
+  createdAt  DateTime       [not null, default: `now()`]
+  updatedAt  DateTime       [not null, note: 'auto @updatedAt']
+
+  Note: 'Expo push tokens — mobile notification bedrock'
 }
 
 Table activity_logs {
@@ -73,6 +90,8 @@ Table error_logs {
 
 Ref: profiles.userId > users.id [delete: cascade]
 
+Ref: device_tokens.userId > users.id [delete: cascade]
+
 Ref: activity_logs.userId > users.id [delete: set null]
 
 Indexes users {
@@ -81,6 +100,11 @@ Indexes users {
 
 Indexes profiles {
   userId [unique]
+}
+
+Indexes device_tokens {
+  token [unique]
+  userId
 }
 
 Indexes activity_logs {

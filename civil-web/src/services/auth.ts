@@ -1,4 +1,4 @@
-import { apiRequest } from './api'
+import { apiRequest, refreshTokens, type AuthTokens } from './api'
 
 export type AuthRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
 
@@ -13,10 +13,7 @@ export type AuthUser = {
   } | null
 }
 
-export type AuthTokens = {
-  accessToken: string
-  refreshToken: string
-}
+export type { AuthTokens }
 
 export type AuthResponse = {
   user: AuthUser
@@ -27,6 +24,7 @@ export function login(email: string, password: string) {
   return apiRequest<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+    skipAuthRefresh: true,
   })
 }
 
@@ -39,12 +37,18 @@ export function register(input: {
   return apiRequest<AuthResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify(input),
+    skipAuthRefresh: true,
   })
+}
+
+export function refresh(refreshToken: string) {
+  return refreshTokens(refreshToken)
 }
 
 export function logout(refreshToken: string) {
   return apiRequest<void>('/auth/logout', {
     method: 'POST',
     body: JSON.stringify({ refreshToken }),
+    skipAuthRefresh: true,
   })
 }

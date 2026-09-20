@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+import { bindAuthSession } from '@/services/api'
 import type { AuthTokens, AuthUser } from '@/services/auth'
 import * as authApi from '@/services/auth'
 
@@ -9,6 +10,8 @@ type AuthState = {
   tokens: AuthTokens | null
   isHydrated: boolean
   setHydrated: (value: boolean) => void
+  setTokens: (tokens: AuthTokens) => void
+  clearSession: () => void
   login: (email: string, password: string) => Promise<void>
   register: (input: {
     email: string
@@ -30,6 +33,8 @@ export const useAuthStore = create<AuthState>()(
       tokens: null,
       isHydrated: false,
       setHydrated: (value) => set({ isHydrated: value }),
+      setTokens: (tokens) => set({ tokens }),
+      clearSession: () => set({ user: null, tokens: null }),
       async login(email, password) {
         const result = await authApi.login(email, password)
         set({ user: result.user, tokens: result.tokens })
@@ -64,6 +69,13 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 )
+
+bindAuthSession({
+  getAccessToken: () => useAuthStore.getState().tokens?.accessToken,
+  getRefreshToken: () => useAuthStore.getState().tokens?.refreshToken,
+  setTokens: (tokens) => useAuthStore.getState().setTokens(tokens),
+  clearSession: () => useAuthStore.getState().clearSession(),
+})
 
 if (typeof window !== 'undefined') {
   queueMicrotask(() => {

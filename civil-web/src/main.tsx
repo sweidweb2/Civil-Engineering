@@ -6,6 +6,8 @@ import { ThemeProvider } from 'next-themes'
 
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+// Bind auth session → API refresh before any feature requests
+import '@/stores/authStore'
 
 import App from './App.tsx'
 

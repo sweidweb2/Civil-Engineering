@@ -2,7 +2,7 @@
 
 Track foundation work only. Check items when done. Do not expand into essays here.
 
-**Last reviewed:** 2026-09-18 — progress marked against the current repo (docs/rules vs implemented code).
+**Last reviewed:** 2026-09-20 — hygiene pass (client refresh, theme wiring, checklist/DBML, mobile env).
 
 ---
 
@@ -99,7 +99,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Seed process defined (if needed)
 - [x] Rule locked: migrations are versioned; no manual prod replay as source of truth
 
-> Note: Prisma 7 + `@prisma/adapter-pg`. Models: `User`, `Profile` (+ `Role`, `UserStatus`). Migration `users_and_profiles` applied. Other domains TBD.
+> Note: Prisma 7 + `@prisma/adapter-pg`. Live models: `User`, `Profile`, `DeviceToken`, `ActivityLog`, `ErrorLog`, `File`. Migration set: users/profiles, activity/error logs, device_tokens, files. Product domains (projects/workers/materials/expenses) TBD.
 
 ---
 
@@ -132,6 +132,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Token expiration values set
 - [x] Password hashing (bcrypt)
 - [x] Login / logout
+- [x] Client silent refresh on 401 (web + mobile `apiRequest` + `bindAuthSession`)
 - [ ] Password reset (if in scope)
 - [ ] Email verification (if in scope)
 - [x] Session / account management rules (JWT session; public register → CLIENT)
@@ -144,7 +145,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] API auth middleware (`authenticate` verifies Bearer access JWT; `authorize(...roles)` for vertical gates)
 - [x] Frontend permission handling approach (`RequireAuth` / `RequireRole` / `Can` / `usePermissions` — UX only)
 
-> Note: Authz is **role + ownership**, not RBAC permissions. `users` + `profiles` migrated. Auth routes: `/api/v1/auth/register|login|refresh|logout`. Web + mobile show login/register first, then home.
+> Note: Authz is **role + ownership**, not RBAC permissions. `users` + `profiles` migrated. Auth routes: `/api/v1/auth/register|login|refresh|logout`. Web + mobile: login/register first, then home. Clients auto-refresh on 401 via centralized `apiRequest` + session bridge (`bindAuthSession`).
 
 ---
 
@@ -256,7 +257,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Web breakpoints — `sm` 640 → `2xl` 1536
 - [x] Web z-index layers — dropdown → tooltip
 
-> Note: Light-mode tokens filled in `civil-web/src/theme/` and `civil-mobile/src/theme/`. Dark mode still TBD.
+> Note: Light-mode tokens filled in `civil-web/src/theme/` and `civil-mobile/src/theme/`, and wired into live styles (`civil-web/src/index.css`, `civil-mobile/global.css`). Dark mode still TBD.
 
 ---
 
@@ -385,16 +386,16 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] `backend/.env.staging`
 - [x] `backend/.env.production`
 - [x] `backend/.env.example`
-- [x] `civil-web/.env`
-- [x] `civil-web/.env.staging`
-- [x] `civil-web/.env.production`
-- [x] `civil-web/.env.example`
-- [x] `civil-mobile/.env`
-- [x] `civil-mobile/.env.staging`
-- [x] `civil-mobile/.env.production`
-- [x] `civil-mobile/.env.example`
+- [x] `civil-web/.env` — local only (gitignored); copy from `.env.example`
+- [x] `civil-web/.env.staging` — local only (gitignored)
+- [x] `civil-web/.env.production` — local only (gitignored)
+- [x] `civil-web/.env.example` — committed template
+- [x] `civil-mobile/.env` — local only (gitignored); copy from `.env.example`
+- [x] `civil-mobile/.env.staging` — local only (gitignored); placeholders for EAS/staging
+- [x] `civil-mobile/.env.production` — local only (gitignored); placeholders for EAS/prod
+- [x] `civil-mobile/.env.example` — committed template
 - [x] Dev / staging / prod environments defined
-- [x] Secret policy defined (no secrets in Git)
+- [x] Secret policy defined (no secrets in Git — only `*.env.example` committed)
 - [x] Public prefix rules: `VITE_*` / `EXPO_PUBLIC_*`
 - [x] Config module (backend) loads env centrally
 - [x] Env validation (Zod in `backend/src/config`) — CORS key: `CORS_ORIGINS`
@@ -411,16 +412,16 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Cache TTL policy — always set TTL (helpers default 120s)
 - [x] Cache invalidation strategy — `del` + list version bump
 - [x] What not to cache defined
-- [x] Queue library chosen — **BullMQ** when first durable async job needs it
-- [x] Job structure defined — `jobs/` enqueue seam + `jobs/workers/`
-- [x] Retry / backoff rules
-- [x] Failed-job handling — bounded retries + failed set / log (no silent drop)
-- [x] Idempotency rules
-- [x] Workers layout (`jobs/` + `jobs/workers/`)
+- [x] Queue library chosen — **BullMQ** when first durable async job needs it (not installed yet)
+- [x] Job structure defined — `jobs/` sync enqueue seam + `jobs/workers/` placeholder
+- [ ] Retry / backoff rules — policy in Redis.md; implement with BullMQ workers
+- [ ] Failed-job handling — policy in Redis.md; implement with BullMQ workers
+- [x] Idempotency rules — documented (sync notify/delete seams today)
+- [ ] BullMQ workers runtime — `jobs/workers/` empty until first durable async job
 - [x] Queue monitoring approach — `/api/v1/health/redis` now; BullMQ board later
 - [x] Rule locked: Redis is not miscellaneous storage
 
-> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — **backend only** (web/mobile never connect). Compose: `redis:7-alpine`. Client: `ioredis` + cache helpers.
+> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — **backend only** (web/mobile never connect). Compose: `redis:7-alpine`. Client: `ioredis` + cache helpers. Domain cache callers + BullMQ still deferred.
 
 ---
 
@@ -598,16 +599,16 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 ## 26. Final Bedrock Structure
 
 - [x] `Docs/` numbered tree (`[1] Main App`, `[2] Prompts`, `[3] Decisions`, `[4] Database`)
-- [ ] `civil-web/src/` feature + theme + services layout
+- [x] `civil-web/src/` feature + theme + services layout
 - [x] `civil-mobile/src/` feature + theme + services + navigation layout
-- [ ] `backend/src/modules/` + middleware / config / database / jobs
+- [x] `backend/src/modules/` + middleware / config / database / jobs
 - [x] `backend/prisma/` schema + migrations
 - [x] Root `docker-compose.yml` + `docker-compose.staging.yml` + `docker-compose.production.yml`
 - [x] `civil-web/Dockerfile` + `.dockerignore`
 - [x] `backend/Dockerfile` + `.dockerignore`
 - [ ] `infrastructure/nginx/` (when ready — do not create empty)
 - [ ] `infrastructure/docker/` (when ready — do not create empty)
-- [ ] `.github/workflows/` (when ready)
+- [x] `.github/workflows/ci.yml` — quality + tests + build (Docker build / CD later)
 - [x] Rule locked: do not create every folder/abstraction before features
 - [x] Order locked: boundaries → infra you need → standards → design system → feature development
 - [x] Docker layout decision locked (`Docs/[3] Decisions/[4] Docker & Infrastructure.md`)

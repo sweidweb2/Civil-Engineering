@@ -1,5 +1,8 @@
 /**
  * colors.ts — semantic palette for light mode.
+ * Source of truth for brand tokens. Wired into:
+ * - web: `civil-web/src/index.css` (:root)
+ * - mobile: `civil-mobile/global.css` (Uniwind light theme)
  * Dark mode remains TBD.
  */
 

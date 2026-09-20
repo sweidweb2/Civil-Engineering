@@ -2,17 +2,19 @@ import 'dotenv/config'
 
 import { createApp } from './app.js'
 import { loadConfig } from './config/index.js'
+import { getLogger } from './logging/index.js'
 import { closeRedis } from './redis/index.js'
 
 const config = loadConfig()
+const logger = getLogger()
 const app = createApp({ config })
 
 const server = app.listen(config.port, () => {
-  console.info(`API listening on http://localhost:${config.port}`)
+  logger.info({ port: config.port }, 'API listening')
 })
 
 function shutdown(signal: string) {
-  console.info(`${signal} received, shutting down`)
+  logger.info({ signal }, 'shutting down')
   server.close(() => {
     void closeRedis().finally(() => {
       process.exit(0)

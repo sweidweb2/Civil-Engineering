@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express'
 import { ZodError } from 'zod'
 
+import { getLogger } from '../logging/index.js'
 import { getLoggingService } from '../modules/logging/index.js'
 import { AppError } from './app-error.js'
 import { ErrorCodes } from './error-codes.js'
@@ -17,6 +18,8 @@ function shouldPersistError(err: unknown, status: number): boolean {
 }
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  const log = getLogger().child({ requestId: req.requestId })
+
   if (err instanceof AppError) {
     if (shouldPersistError(err, err.status)) {
       getLoggingService().recordErrorSafe({
@@ -62,7 +65,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return
   }
 
-  console.error(err)
+  log.error({ err }, 'unhandled error')
 
   const message = err instanceof Error ? err.message : 'Internal server error'
   const stack = err instanceof Error ? err.stack : undefined

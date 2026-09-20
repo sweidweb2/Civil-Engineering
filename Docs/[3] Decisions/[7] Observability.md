@@ -1,6 +1,6 @@
 # Decision — Observability
 
-**Status:** LOCKED (approach); runtime logger / access middleware still to install  
+**Status:** LOCKED + runtime implemented (Pino app/access logs; health probes incl. Redis)  
 **Date:** 2026-09-20  
 **Applies to:** `backend/` ops, Docker / VPS; not client apps as the log authority
 
@@ -72,7 +72,7 @@ That stays searchable if you later attach a log platform.
 
 **Never log:** passwords, JWTs, refresh tokens, payment secrets, full PII dumps.
 
-**Locked choice:** **Pino** for application logging (install when implementing §23 Application logs).
+**Locked choice:** **Pino** for application logging (`backend/src/logging/`, `LOG_LEVEL` env).
 
 ---
 
@@ -142,12 +142,13 @@ Monitoring / provider tools
 health & performance
 ```
 
-App-side health probes (already started):
+App-side health probes:
 
 - `GET /api/v1/health`
 - `GET /api/v1/health/db`
+- `GET /api/v1/health/redis` (requires `REDIS_URL`)
 
-Redis probe when Redis is adopted.
+Deep Postgres/Redis performance stays on the **VPS / provider panel** — not app CRUD tables.
 
 ---
 
@@ -194,20 +195,20 @@ You do **not** build a full logging/monitoring product inside the civil app.
 
 ## Bedrock implementation target (simple)
 
-**Backend (when wiring §23)**
+**Backend**
 
-- [ ] Pino application logger
-- [ ] Request / access logging middleware
-- [x] Health endpoints (`/api/v1/health`, `/api/v1/health/db`)
+- [x] Pino application logger (`backend/src/logging/`)
+- [x] Request / access logging middleware (`pino-http`, skips `/api/v1/health*`)
+- [x] Health endpoints (`/api/v1/health`, `/db`, `/redis`)
 - [x] Curated `error_logs` + `activity_logs` (not general log storage)
-- [ ] No secrets in logs
+- [x] No secrets in logs (Pino `redact` paths + serializers without bodies)
 
 **Docker / VPS**
 
 - [x] Host metrics via provider panel
-- [ ] Docker logs as the log sink
-- [ ] Postgres health/performance via provider / later tooling
-- [ ] Redis monitoring once Redis is added
+- [x] Docker logs as the log sink (API logs JSON to stdout; `docker logs` / Compose)
+- [x] Postgres health via `/api/v1/health/db` + provider tooling for deeper metrics
+- [x] Redis monitoring via `/api/v1/health/redis` + provider tooling for deeper metrics
 
 **Later**
 

@@ -1,5 +1,6 @@
 import type { AppConfig } from '../../config/index.js'
 import { conflict, unauthorized } from '../../errors/app-error.js'
+import { getLogger } from '../../logging/index.js'
 import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
 import type { LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
@@ -72,7 +73,7 @@ export function createAuthService(
           entityId: user.id,
         })
       } catch (error) {
-        console.error('[auth] failed to write register activity', error)
+        getLogger().error({ err: error }, 'failed to write register activity')
       }
 
       return {
@@ -100,7 +101,7 @@ export function createAuthService(
           entityId: user.id,
         })
       } catch (error) {
-        console.error('[auth] failed to write login activity', error)
+        getLogger().error({ err: error }, 'failed to write login activity')
       }
 
       return {
@@ -142,7 +143,7 @@ export function createAuthService(
           entityId: userId ?? null,
         })
       } catch (error) {
-        console.error('[auth] failed to write logout activity', error)
+        getLogger().error({ err: error }, 'failed to write logout activity')
       }
     },
   }

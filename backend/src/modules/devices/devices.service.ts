@@ -1,4 +1,5 @@
 import { unauthorized } from '../../errors/app-error.js'
+import { getLogger } from '../../logging/index.js'
 import { sendExpoPush } from './devices.expo-push.js'
 import type { DevicesRepository } from './devices.repository.js'
 import type { RegisterDeviceBody, UnregisterDeviceBody } from './devices.schema.js'
@@ -50,10 +51,13 @@ export function createDevicesService(
           await repository.deleteByTokens(result.invalidTokens)
         }
       } catch (error) {
-        console.error('[devices.notifyUser] push failed', {
-          userId,
-          message: error instanceof Error ? error.message : String(error),
-        })
+        getLogger().error(
+          {
+            userId,
+            message: error instanceof Error ? error.message : String(error),
+          },
+          'devices.notifyUser push failed',
+        )
       }
     },
   }

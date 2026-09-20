@@ -1,3 +1,4 @@
+import { getLogger } from '../../logging/index.js'
 import type { PaginationQuery } from '../_shared/pagination.schema.js'
 import type {
   CreateActivityInput,
@@ -34,7 +35,7 @@ export function createLoggingService(repository: LoggingRepository): LoggingServ
 
     recordActivitySafe(input) {
       void repository.createActivity(input).catch((error) => {
-        console.error('[logging] failed to write activity', error)
+        getLogger().error({ err: error }, 'failed to write activity')
       })
     },
 
@@ -44,7 +45,7 @@ export function createLoggingService(repository: LoggingRepository): LoggingServ
           ? `${input.stack.slice(0, MAX_STACK_LENGTH)}…`
           : input.stack
       void repository.createError({ ...input, stack: stack ?? null }).catch((error) => {
-        console.error('[logging] failed to write error log', error)
+        getLogger().error({ err: error }, 'failed to write error log')
       })
     },
 

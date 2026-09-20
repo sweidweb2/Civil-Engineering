@@ -48,12 +48,12 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Domain models / Prisma models placement defined
 - [x] Middleware folder (auth, authz, request context)
 - [x] Central error handling
-- [ ] Logging setup
+- [x] Logging setup — Pino + `pino-http` access logs (see §23)
 - [x] Config module
 - [x] API response conventions defined
 - [x] Per-layer allowed / not-allowed rules written
 
-> Note: App factory + `server.ts`, `/api/v1` + health sample module (full layers), config, middleware stubs, typed `AppError` + error middleware. Remaining in §3: logging setup.
+> Note: App factory + `server.ts`, `/api/v1` + health sample module (full layers), config, middleware stubs, typed `AppError` + error middleware. Logging: Pino + access middleware (see §23).
 
 ---
 
@@ -548,16 +548,16 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 ## 23. Observability
 
-- [ ] Application logs — Pino → stdout (see decision)
-- [ ] Request logs — access middleware → stdout (see decision)
+- [x] Application logs — Pino → stdout (`backend/src/logging/`, `LOG_LEVEL`)
+- [x] Request logs — `pino-http` access middleware → stdout (skips `/api/v1/health*`)
 - [x] Error tracking — `error_logs` table + SUPER inbox (`GET /api/v1/error-logs`); persists unexpected/5xx only (not every 400)
-- [ ] DB / Redis monitoring — provider / infra tools (not CRUD tables)
+- [x] DB / Redis monitoring — health probes + VPS/provider tools (not CRUD tables); `/api/v1/health/db`, `/api/v1/health/redis`
 - [x] Host metrics (CPU / RAM / disk / uptime) — use VPS provider panel/alerts
-- [x] Health / readiness / liveness endpoints — `/api/v1/health`, `/api/v1/health/db`
-- [ ] Alerts — VPS/health-based for now; richer channels later
+- [x] Health / readiness / liveness endpoints — `/api/v1/health`, `/db`, `/redis`
+- [x] Alerts — VPS provider panel + health probes for now; richer channels later
 
 > Decision: [`Docs/[3] Decisions/[7] Observability.md`](../[3]%20Decisions/[7]%20Observability.md)  
-> Also: `activity_logs` audit + SUPER UI (`/super/activity`). High-volume logs stay off PostgreSQL. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only).
+> Also: `activity_logs` audit + SUPER UI (`/super/activity`). High-volume logs stay off PostgreSQL. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only). Docker/Compose: API JSON logs on stdout (`docker logs`).
 
 ---
 

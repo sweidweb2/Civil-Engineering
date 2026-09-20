@@ -21,6 +21,9 @@ const baseEnvSchema = z.object({
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
   REDIS_URL: z.string().min(1).optional(),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .default('info'),
 })
 
 export type AppConfig = {
@@ -40,6 +43,7 @@ export type AppConfig = {
   authRateLimitWindowMs: number
   authRateLimitMax: number
   expoAccessToken?: string
+  logLevel: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent'
 }
 
 function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): string[] {
@@ -99,6 +103,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authRateLimitWindowMs: data.AUTH_RATE_LIMIT_WINDOW_MS,
     authRateLimitMax: data.AUTH_RATE_LIMIT_MAX,
     expoAccessToken: data.EXPO_ACCESS_TOKEN,
+    logLevel: data.LOG_LEVEL,
   }
 }
 

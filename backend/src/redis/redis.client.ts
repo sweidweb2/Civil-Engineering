@@ -1,6 +1,7 @@
 import { Redis } from 'ioredis'
 
 import type { AppConfig } from '../config/index.js'
+import { getLogger } from '../logging/index.js'
 
 let client: Redis | null = null
 
@@ -21,7 +22,7 @@ export function getRedis(config: AppConfig): Redis | null {
     })
 
     redis.on('error', (err) => {
-      console.error('[redis] connection error', err.message)
+      getLogger().error({ err: err.message }, 'redis connection error')
     })
 
     client = redis

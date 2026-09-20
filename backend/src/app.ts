@@ -7,6 +7,7 @@ import { type AppConfig, loadConfig } from './config/index.js'
 import { errorHandler, notFoundHandler } from './errors/error.middleware.js'
 import { createApiRateLimiter } from './middleware/rate-limit.js'
 import { requestContext } from './middleware/request-context.js'
+import { createRequestLogger } from './middleware/request-logger.js'
 import { createV1Router } from './routes/v1.js'
 
 export type AppDeps = {
@@ -23,6 +24,7 @@ export function createApp(deps: AppDeps = {}) {
   }
 
   app.use(requestContext)
+  app.use(createRequestLogger())
   app.use(helmet())
   app.use(
     cors({

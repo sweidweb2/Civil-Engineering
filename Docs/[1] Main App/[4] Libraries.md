@@ -166,6 +166,14 @@ cd backend && npm i helmet
 cd backend && npm i express-rate-limit
 ```
 
+**Pino** + **pino-http** — installed (application + HTTP access logs → stdout)
+
+```bash
+cd backend && npm i pino pino-http
+```
+
+Config: `LOG_LEVEL` · module: `backend/src/logging/` · middleware: `request-logger.ts`
+
 **Prisma** — installed (ORM for PostgreSQL; repository-only Client)
 
 ```bash

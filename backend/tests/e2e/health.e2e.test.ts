@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import { Pool } from 'pg'
 import { createApp } from '../../src/app.js'
+import { loadConfig } from '../../src/config/index.js'
 
 /**
  * Backend E2E against real Test PostgreSQL.
@@ -13,12 +14,19 @@ const DATABASE_URL =
   process.env.DATABASE_URL ??
   'postgresql://postgres:postgres@127.0.0.1:55432/civil_test'
 
+const config = loadConfig({
+  NODE_ENV: 'test',
+  PORT: '3000',
+  CORS_ORIGINS: 'http://localhost:5173',
+  TRUST_PROXY: 'false',
+  DATABASE_URL,
+})
+
 describe('backend e2e (postgres)', () => {
   let pool: Pool
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: DATABASE_URL })
-    // Fail fast if Test Postgres is down
     await pool.query('SELECT 1')
   })
 
@@ -31,16 +39,16 @@ describe('backend e2e (postgres)', () => {
     expect(result.rows[0]?.n).toBe(1)
   })
 
-  it('GET /health works', async () => {
-    const app = createApp({ pool })
-    const res = await request(app).get('/health')
+  it('GET /api/v1/health works', async () => {
+    const app = createApp({ config, pool })
+    const res = await request(app).get('/api/v1/health')
     expect(res.status).toBe(200)
     expect(res.body).toEqual({ ok: true })
   })
 
-  it('GET /health/db talks to Postgres', async () => {
-    const app = createApp({ pool })
-    const res = await request(app).get('/health/db')
+  it('GET /api/v1/health/db talks to Postgres', async () => {
+    const app = createApp({ config, pool })
+    const res = await request(app).get('/api/v1/health/db')
     expect(res.status).toBe(200)
     expect(res.body).toEqual({ ok: true, db: true })
   })

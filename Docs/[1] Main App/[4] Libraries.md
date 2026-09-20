@@ -142,6 +142,12 @@ cd backend && npm i -D vitest typescript tsx @types/node @types/express @types/c
 cd backend && npm i -D supertest @types/supertest
 ```
 
+**Zod** — installed (request validation / DTOs; backend authority)
+
+```bash
+cd backend && npm i zod
+```
+
 **Test PostgreSQL**
 
 - Docker (preferred in CI): `docker-compose.test.yml` on port **5433**
@@ -163,6 +169,9 @@ backend/tests/e2e/          ✅ (health.e2e.test.ts)
 ### Scripts
 
 ```bash
+npm run dev                 # tsx watch → src/server.ts
+npm run build               # tsc → dist/
+npm run start               # node dist/src/server.js
 npm run test:unit
 npm run test:integration
 npm run test:db:up          # Docker Postgres (optional if embedded works)

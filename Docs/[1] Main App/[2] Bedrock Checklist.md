@@ -41,19 +41,19 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ## 3. Backend Foundation
 
-- [ ] Express + TypeScript bootstrapped
-- [ ] Application bootstrap / HTTP server setup
-- [ ] Folder layout: routes → controllers → services → repositories
+- [x] Express + TypeScript bootstrapped
+- [x] Application bootstrap / HTTP server setup
+- [x] Folder layout: routes → controllers → services → repositories
 - [x] DTOs / Zod schemas placement defined
 - [x] Domain models / Prisma models placement defined
-- [ ] Middleware folder (auth, authz, request context)
-- [ ] Central error handling
+- [x] Middleware folder (auth, authz, request context)
+- [x] Central error handling
 - [ ] Logging setup
-- [ ] Config module
+- [x] Config module
 - [x] API response conventions defined
 - [x] Per-layer allowed / not-allowed rules written
 
-> Note: `express` + `dotenv` + `cors` installed; no `backend/src`, no TypeScript app bootstrap yet.
+> Note: App factory + `server.ts`, `/api/v1` + health sample module (full layers), config, middleware stubs, typed `AppError` + error middleware. Remaining in §3: logging setup.
 
 ---
 
@@ -157,10 +157,10 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Errors
 
-- [ ] Custom error types / classes
+- [x] Custom error types / classes
 - [x] Stable error codes
 - [x] HTTP status mapping
-- [ ] Central error middleware
+- [x] Central error middleware
 - [x] Validation / auth / authz / not-found / business / internal cases covered
 - [x] Production error sanitization (no stacks to clients)
 
@@ -178,6 +178,10 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [ ] Server-state approach decided
 - [ ] Forms + Zod validation approach
 - [ ] Loading / error UI patterns
+  - [ ] Inline loading / error states per feature (not one global spinner)
+  - [ ] Toast for non-blocking API / mutation failures
+  - [ ] Customized error pages (web-only): 404, unexpected/500, React error-boundary fallback
+  - [ ] Rule locked: full-page error routes are for `civil-web` only
 - [ ] Auth + UI permission handling
 
 ---
@@ -193,6 +197,12 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [ ] Client state approach (Zustand)
 - [ ] Forms + validation approach
 - [ ] Loading / error handling
+  - [ ] Inline loading / error + retry on screens (failed fetches)
+  - [ ] Toast for quick / non-blocking API failures
+  - [ ] Alert for blocking failures when confirmation is required
+  - [ ] Navigate back / to login for missing resource or auth failures
+  - [ ] Optional single global crash fallback screen (not a set of error routes)
+  - [ ] Rule locked: no dedicated 404/500-style error pages on mobile — toast / inline / navigate instead
 - [ ] Deep linking (if in scope)
 - [ ] Notifications (if in scope)
 - [x] Dev / preview / prod env config

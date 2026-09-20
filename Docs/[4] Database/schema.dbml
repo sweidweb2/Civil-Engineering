@@ -91,3 +91,43 @@ Indexes activity_logs {
 Indexes error_logs {
   createdAt
 }
+
+Enum FileStatus {
+  PENDING
+  READY
+  DELETED
+}
+
+Enum FileEntityType {
+  PROJECT
+  USER
+  EXPENSE
+  MATERIAL
+  WORKER
+}
+
+Table files {
+  id            String         [pk, default: `cuid()`]
+  key           String         [unique, not null, note: 'full R2 object key — store as-is']
+  bucket        String         [not null]
+  mime          String         [not null]
+  size          Int
+  originalName  String         [not null]
+  status        FileStatus     [not null, default: 'PENDING']
+  uploadedById  String         [not null]
+  entityType    FileEntityType [not null]
+  entityId      String         [not null]
+  createdAt     DateTime       [not null, default: `now()`]
+  updatedAt     DateTime       [not null, note: 'auto @updatedAt']
+
+  Note: 'files domain — metadata only; blob in Cloudflare R2 civil-bucket'
+}
+
+Ref: files.uploadedById > users.id [delete: cascade]
+
+Indexes files {
+  key [unique]
+  (entityType, entityId)
+  uploadedById
+  status
+}

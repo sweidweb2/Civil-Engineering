@@ -9,7 +9,7 @@
 | **Backend**       | Express + TypeScript      |
 | **Database**      | PostgreSQL + Prisma       |
 | **Cache / Queue** | Redis                     |
-| **Storage**       | TBD                       |
+| **Storage**       | Cloudflare R2 (S3 API)    |
 | **Deployment**    | Nginx + Dockerization     |
 
 ---
@@ -327,7 +327,6 @@ The backend is the single entry point for business logic, authorization, and dat
 
 The following points are **not yet locked**:
 
-- **Storage provider/implementation**
 - Detailed DDD domain boundaries
 - Exact production Docker topology (which optional services run on the VPS)
 - Exact Nginx / TLS / domain wiring (`infrastructure/nginx/` when ready)

@@ -37,7 +37,7 @@ describe('Zod request validation', () => {
   })
 
   it('rejects invalid params with 400 VALIDATION_ERROR', async () => {
-    const res = await request(app).get('/api/v1/users/%20')
+    const res = await request(app).get('/api/v1/expenses/%20')
 
     expect(res.status).toBe(400)
     expect(res.body).toMatchObject({

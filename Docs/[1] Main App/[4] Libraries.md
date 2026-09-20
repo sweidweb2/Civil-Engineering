@@ -193,6 +193,16 @@ npm run prisma:studio
 npm run prisma:seed
 ```
 
+**Cloudflare R2 (S3 API)** — installed (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`)
+
+```bash
+cd backend && npm i @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+```
+
+- Decision: `Docs/[3] Decisions/[10] Storage (Cloudflare R2).md`
+- Adapter: `backend/src/storage/` · domain: `backend/src/modules/files/`
+- Clients: web `browser-image-compression` + `services/files.ts`; mobile `expo-image-manipulator` + `services/files.ts`
+
 **Test PostgreSQL**
 
 - Docker (preferred in CI): `docker-compose.test.yml` on port **5433**

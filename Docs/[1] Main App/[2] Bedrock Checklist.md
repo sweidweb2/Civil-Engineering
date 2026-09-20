@@ -426,15 +426,16 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ## 16. Storage Foundation
 
-- [ ] Storage provider chosen (still TBD until locked)
-- [ ] Bucket / folder / object key convention
-- [x] Upload authorization flow
-- [x] Presigned URL flow
-- [x] File metadata in Postgres
-- [x] File validation (size / MIME)
-- [x] Access control
-- [ ] Deletion / CDN / backups (as needed)
+- [x] Storage provider chosen — **Cloudflare R2** (`Docs/[3] Decisions/[10] Storage (Cloudflare R2).md`)
+- [x] Bucket / folder / object key convention — `civil-bucket`, `{env}/{entity}/{entityId}/{yyyy}/{mm}/{fileId}-{safeOriginalName}`
+- [x] Upload authorization flow — presign → PENDING → PUT → complete → READY
+- [x] Presigned URL flow — short-lived PUT/GET; no public URLs for private docs
+- [x] File metadata in Postgres — `File` model
+- [x] File validation (size / MIME) — allowlist + max bytes; HeadObject on complete
+- [x] Access control — entity ownership/role before any URL
+- [x] Deletion — soft-delete + enqueue R2 hard-delete; CDN / versioning backups deferred
 - [x] Rule locked: do not proxy large uploads through Express by default
+- [x] Client image optimize pipeline before upload (web + mobile)
 
 ---
 

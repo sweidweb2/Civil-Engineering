@@ -40,6 +40,7 @@ model User {
   profile      Profile?
   activityLogs ActivityLog[]
   deviceTokens DeviceToken[]
+  files        File[]
 
   @@map("users")
 }
@@ -121,6 +122,45 @@ model ErrorLog {
 
   @@index([createdAt])
   @@map("error_logs")
+}
+
+// =============================================================================
+// files — object metadata (blob in Cloudflare R2)
+// =============================================================================
+
+enum FileStatus {
+  PENDING
+  READY
+  DELETED
+}
+
+enum FileEntityType {
+  PROJECT
+  USER
+  EXPENSE
+  MATERIAL
+  WORKER
+}
+
+model File {
+  id           String         @id @default(cuid())
+  key          String         @unique
+  bucket       String
+  mime         String
+  size         Int?
+  originalName String
+  status       FileStatus     @default(PENDING)
+  uploadedById String
+  entityType   FileEntityType
+  entityId     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  uploadedBy   User           @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([uploadedById])
+  @@index([status])
+  @@map("files")
 }
 
 // =============================================================================

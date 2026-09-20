@@ -24,7 +24,30 @@ const baseEnvSchema = z.object({
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
+  STORAGE_PROVIDER: z.enum(['r2']).optional(),
+  STORAGE_ENDPOINT: z.string().min(1).optional(),
+  STORAGE_BUCKET: z.string().min(1).optional(),
+  STORAGE_REGION: z.string().min(1).default('auto'),
+  STORAGE_ACCESS_KEY: z.string().min(1).optional(),
+  STORAGE_SECRET_KEY: z.string().min(1).optional(),
+  STORAGE_PUBLIC_BASE_URL: z.string().min(1).optional(),
+  STORAGE_UPLOAD_URL_TTL_SEC: z.coerce.number().int().positive().default(600),
+  STORAGE_DOWNLOAD_URL_TTL_SEC: z.coerce.number().int().positive().default(600),
+  STORAGE_MAX_BYTES: z.coerce.number().int().positive().default(25_000_000),
 })
+
+export type StorageConfig = {
+  provider: 'r2'
+  endpoint: string
+  bucket: string
+  region: string
+  accessKey: string
+  secretKey: string
+  publicBaseUrl?: string
+  uploadUrlTtlSec: number
+  downloadUrlTtlSec: number
+  maxBytes: number
+}
 
 export type AppConfig = {
   env: z.infer<typeof nodeEnvSchema>
@@ -44,6 +67,11 @@ export type AppConfig = {
   authRateLimitMax: number
   expoAccessToken?: string
   logLevel: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent'
+  storage?: StorageConfig
+  /** Max upload bytes even when storage credentials are not fully configured */
+  storageMaxBytes: number
+  storageUploadUrlTtlSec: number
+  storageDownloadUrlTtlSec: number
 }
 
 function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): string[] {
@@ -69,6 +97,44 @@ function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): strin
   }
 
   return value
+}
+
+function parseStorage(data: z.infer<typeof baseEnvSchema>): StorageConfig | undefined {
+  const hasAny =
+    data.STORAGE_PROVIDER ||
+    data.STORAGE_ENDPOINT ||
+    data.STORAGE_BUCKET ||
+    data.STORAGE_ACCESS_KEY ||
+    data.STORAGE_SECRET_KEY
+
+  if (!hasAny) {
+    return undefined
+  }
+
+  if (
+    data.STORAGE_PROVIDER !== 'r2' ||
+    !data.STORAGE_ENDPOINT ||
+    !data.STORAGE_BUCKET ||
+    !data.STORAGE_ACCESS_KEY ||
+    !data.STORAGE_SECRET_KEY
+  ) {
+    throw new Error(
+      'Storage config incomplete: require STORAGE_PROVIDER=r2, STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY',
+    )
+  }
+
+  return {
+    provider: 'r2',
+    endpoint: data.STORAGE_ENDPOINT,
+    bucket: data.STORAGE_BUCKET,
+    region: data.STORAGE_REGION,
+    accessKey: data.STORAGE_ACCESS_KEY,
+    secretKey: data.STORAGE_SECRET_KEY,
+    publicBaseUrl: data.STORAGE_PUBLIC_BASE_URL,
+    uploadUrlTtlSec: data.STORAGE_UPLOAD_URL_TTL_SEC,
+    downloadUrlTtlSec: data.STORAGE_DOWNLOAD_URL_TTL_SEC,
+    maxBytes: data.STORAGE_MAX_BYTES,
+  }
 }
 
 /**
@@ -104,6 +170,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authRateLimitMax: data.AUTH_RATE_LIMIT_MAX,
     expoAccessToken: data.EXPO_ACCESS_TOKEN,
     logLevel: data.LOG_LEVEL,
+    storage: parseStorage(data),
+    storageMaxBytes: data.STORAGE_MAX_BYTES,
+    storageUploadUrlTtlSec: data.STORAGE_UPLOAD_URL_TTL_SEC,
+    storageDownloadUrlTtlSec: data.STORAGE_DOWNLOAD_URL_TTL_SEC,
   }
 }
 
@@ -118,4 +188,11 @@ export function requireJwtSecrets(config: AppConfig): {
     accessSecret: config.jwtAccessSecret,
     refreshSecret: config.jwtRefreshSecret,
   }
+}
+
+export function requireStorageConfig(config: AppConfig): StorageConfig {
+  if (!config.storage) {
+    throw new Error('Storage is not configured (STORAGE_* env vars required)')
+  }
+  return config.storage
 }

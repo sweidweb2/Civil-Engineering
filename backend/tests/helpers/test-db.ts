@@ -34,8 +34,10 @@ export async function migrateTestDatabase(): Promise<void> {
 
 export async function clearUsers(): Promise<void> {
   const prisma = getPrisma()
+  await prisma.file.deleteMany()
   await prisma.activityLog.deleteMany()
   await prisma.errorLog.deleteMany()
+  await prisma.deviceToken.deleteMany()
   await prisma.user.deleteMany()
 }
 

@@ -31,7 +31,8 @@ Both clients talk to the same versioned REST API only. Never let web/mobile touc
 - Deploy: Docker + Nginx reverse proxy (Hostinger VPS)
 - Docker layout: app Dockerfiles in `civil-web/` + `backend/`; Compose at repo root; no mobile production Dockerfile; `infrastructure/` only when Nginx/config is real — see `Docs/[3] Decisions/[4] Docker & Infrastructure.md`
 
-Still open (do not invent as locked): storage provider, exact domain boundaries, exact production Docker topology / monitoring.
+Still open (do not invent as locked): exact domain boundaries, exact production Docker topology / monitoring.  
+Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage (Cloudflare R2).md`.
 
 ## Project architecture & principles
 
@@ -239,7 +240,7 @@ Still open (do not invent as locked): storage provider, exact domain boundaries,
 
 ## Storage / file handling
 
-- **Storage abstraction**: access files behind a storage interface/service — do not hardcode a vendor in controllers (provider still TBD)
+- **Storage abstraction**: access files behind a storage interface/service — Cloudflare R2 via S3 client; do not import AWS SDK in controllers
 - **Upload/download flow**: client → API (authz + validation) → storage; downloads via controlled URL or proxy — never open DB/filesystem from the client
 - **Presigned URLs**: prefer short-lived signed upload/download URLs when using object storage; scope path and content type
 - **File metadata**: persist metadata in Postgres (owner, mime, size, key, entity link); blob stays in storage

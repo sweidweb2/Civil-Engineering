@@ -6,6 +6,7 @@ import { loadConfig } from '../config/index.js'
 import { createAuthModule } from '../modules/auth/index.js'
 import { createDevicesModule } from '../modules/devices/index.js'
 import { createExpensesModule } from '../modules/expenses/index.js'
+import { createFilesModule } from '../modules/files/index.js'
 import { createHealthController } from '../modules/health/health.controller.js'
 import { createHealthRepository } from '../modules/health/health.repository.js'
 import { createHealthRoutes } from '../modules/health/health.routes.js'
@@ -15,10 +16,12 @@ import { createMaterialsModule } from '../modules/materials/index.js'
 import { createProjectsModule } from '../modules/projects/index.js'
 import { createUsersModule } from '../modules/users/index.js'
 import { createWorkersModule } from '../modules/workers/index.js'
+import type { StorageService } from '../storage/index.js'
 
 export type V1Deps = {
   pool?: Pool
   config?: AppConfig
+  storage?: StorageService
 }
 
 export function createV1Router(deps: V1Deps = {}): Router {
@@ -32,6 +35,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use('/health', createHealthRoutes(healthController))
   router.use('/auth', createAuthModule(config))
   router.use('/devices', createDevicesModule())
+  router.use('/files', createFilesModule({ config, storage: deps.storage }))
   router.use(createLoggingModule())
   router.use('/users', createUsersModule())
   router.use('/projects', createProjectsModule())

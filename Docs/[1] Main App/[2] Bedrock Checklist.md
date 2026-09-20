@@ -246,106 +246,106 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Web (`civil-web`)
 
-- **Component library:** [shadcn/ui](https://ui.shadcn.com/)
-- **Directory structure:**
-  - `civil-web/src/components/ui/`
-  - `civil-web/src/components/layout/`
-  - `civil-web/src/components/forms/`
-  - `civil-web/src/components/feedback/`
-  - `civil-web/src/components/navigation/`
-- **Essential components to scaffold (import/customize as needed):**
-  - Button
-  - Input
-  - Textarea
-  - Select
-  - Checkbox
-  - Radio Group
-  - Switch
-  - Label
-  - Form
-  - Dialog
-  - Alert Dialog
-  - Dropdown Menu
-  - Popover
-  - Tooltip
-  - Card
-  - Table
-  - Pagination
-  - Tabs
-  - Badge
-  - Alert
-  - Toast / Sonner
-  - Skeleton
-  - Separator
-  - Avatar
-  - Calendar / Date Picker
-- **Layout/application components:**
-  - App layout
-  - Header
-  - Sidebar
-  - Navigation
-  - Page container
-  - Page header
-  - Responsive layout primitives
-- **Rules:**
-  - Use shadcn/ui primitives where suitable; do not reimplement available primitives.
-  - Customize shadcn/ui only when project-specific changes are needed.
-  - Build new components only when gaps exist in the library.
-  - Do not import the full shadcn/ui catalog up front; add incrementally as needed.
-  - All components should remain reusable and domain-agnostic.
+- [x] Component library chosen: [shadcn/ui](https://ui.shadcn.com/)
+- [x] Directory structure defined
+  - [x] `civil-web/src/components/ui/`
+  - [x] `civil-web/src/components/layout/`
+  - [x] `civil-web/src/components/forms/`
+  - [x] `civil-web/src/components/feedback/`
+  - [x] `civil-web/src/components/navigation/`
+- [x] Scaffold essential UI components (import/customize as needed):
+  - [x] Button
+  - [x] Input
+  - [x] Textarea
+  - [x] Select
+  - [x] Checkbox
+  - [x] Radio Group
+  - [x] Switch
+  - [x] Label
+  - [x] Form
+  - [x] Dialog
+  - [x] Alert Dialog
+  - [x] Dropdown Menu
+  - [x] Popover
+  - [x] Tooltip
+  - [x] Card
+  - [x] Table
+  - [x] Pagination
+  - [x] Tabs
+  - [x] Badge
+  - [x] Alert
+  - [x] Toast / Sonner
+  - [x] Skeleton
+  - [x] Separator
+  - [x] Avatar
+  - [x] Calendar / Date Picker
+- [x] Scaffold layout/application components:
+  - [x] App layout
+  - [x] Header
+  - [x] Sidebar
+  - [x] Navigation
+  - [x] Page container
+  - [x] Page header
+  - [x] Responsive layout primitives
+- [x] Follow component rules:
+  - [x] Use shadcn/ui primitives where suitable; do not reimplement available primitives
+  - [x] Customize shadcn/ui only for project-specific changes
+  - [x] Build new components only when gaps exist in the library
+  - [x] Add components incrementally, not the full catalog up front
+  - [x] Keep components reusable and domain-agnostic
 
 ---
 
 ### Mobile (`civil-mobile`)
 
-- **Component library:** [gluestack-ui](https://gluestack.io/)
-- **Directory structure:**
-  - `civil-mobile/src/components/ui/`
-  - `civil-mobile/src/components/layout/`
-  - `civil-mobile/src/components/forms/`
-  - `civil-mobile/src/components/feedback/`
-  - `civil-mobile/src/components/navigation/`
-- **Essential components to scaffold (import/customize as needed):**
-  - Button
-  - Input
-  - Textarea
-  - Select
-  - Checkbox
-  - Radio
-  - Switch
-  - Form
-  - Modal
-  - Alert Dialog
-  - Actionsheet
-  - Menu
-  - Popover
-  - Tooltip
-  - Card
-  - Table / List representation (where appropriate)
-  - Tabs
-  - Badge
-  - Alert
-  - Toast
-  - Spinner
-  - Skeleton
-  - Divider
-  - Avatar
-  - Icon
-- **Layout/application components:**
-  - App layout
-  - Header
-  - Screen container
-  - Page/section header
-  - Bottom navigation (where required)
-  - Navigation components
-  - Responsive/adaptive layout primitives (where required)
-- **Rules:**
-  - Use gluestack-ui primitives instead of rebuilding existing components.
-  - Customize only when project-specific design or behavior is necessary.
-  - Only build custom components if gluestack-ui does not provide a suitable option.
-  - Do not import the entire component catalog up front; add only as needed.
-  - Keep components domain-independent and reusable.
-  - Encapsulate mobile-specific UI logic within mobile codebase only.
+- [x] Component library chosen: [gluestack-ui](https://gluestack.io/)
+- [x] Directory structure defined
+  - [x] `civil-mobile/src/components/ui/`
+  - [x] `civil-mobile/src/components/layout/`
+  - [x] `civil-mobile/src/components/forms/`
+  - [x] `civil-mobile/src/components/feedback/`
+  - [x] `civil-mobile/src/components/navigation/`
+- [x] Scaffold essential UI components (import/customize as needed):
+  - [x] Button
+  - [x] Input
+  - [x] Textarea
+  - [x] Select
+  - [x] Checkbox
+  - [x] Radio
+  - [x] Switch
+  - [x] Form
+  - [x] Modal
+  - [x] Alert Dialog
+  - [x] Actionsheet
+  - [x] Menu
+  - [x] Popover
+  - [x] Tooltip
+  - [x] Card
+  - [x] Table / List representation (as appropriate)
+  - [x] Tabs
+  - [x] Badge
+  - [x] Alert
+  - [x] Toast
+  - [x] Spinner
+  - [x] Skeleton
+  - [x] Divider
+  - [x] Avatar
+  - [x] Icon
+- [x] Scaffold layout/application components:
+  - [x] App layout
+  - [x] Header
+  - [x] Screen container
+  - [x] Page/section header
+  - [x] Bottom navigation (where required)
+  - [x] Navigation components
+  - [x] Responsive/adaptive layout primitives (where required)
+- [x] Follow component rules:
+  - [x] Use gluestack-ui primitives where suitable
+  - [x] Customize only for project-specific design or behavior
+  - [x] Build custom components only if gluestack-ui has no suitable option
+  - [x] Add components incrementally, not the full catalog up front
+  - [x] Components remain domain-independent and reusable
+  - [x] Encapsulate mobile-specific UI logic within mobile codebase only
 
 
 ## 13. State / Data Foundation

@@ -15,8 +15,10 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-    
-    "baseUrl": ".", 
+
+    /* Silence TS 6 deprecation until path-alias migration is settled */
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },

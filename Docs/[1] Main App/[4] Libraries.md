@@ -85,7 +85,7 @@ npm i -D tailwindcss
 
 Config: `civil-mobile/gluestack-ui.config.json` · Metro: `civil-mobile/metro.config.js` · CSS: `civil-mobile/global.css` · Provider: `civil-mobile/src/components/ui/gluestack-ui-provider/`
 
-> Note: Official CLI Windows support is still WIP; this repo used the UniWind manual package path + starter-kit provider wiring. Add more components later with `npx gluestack-ui@latest add <name> -y` when the CLI works, or copy from the [UniWind Expo starter](https://github.com/gluestack/gluestack-ui/tree/main/apps/starter-kit-expo-uniwind).
+> Note: Official CLI Windows support is still WIP; this repo used the UniWind manual package path + starter-kit provider wiring. Essential checklist components were copied from the [UniWind Expo starter](https://github.com/gluestack/gluestack-ui/tree/main/apps/starter-kit-expo-uniwind/components/ui) into `src/components/ui/`. Prefer `npx gluestack-ui@latest add <name> -y` when the CLI works on your OS.
 
 ### Testing
 

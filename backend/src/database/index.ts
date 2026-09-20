@@ -1,5 +1,7 @@
 /**
- * Prisma client will live here once Database foundation is implemented.
- * Repositories must import the shared client from this module — not create their own.
+ * Persistence is intentionally empty until the DB schema is locked.
+ *
+ * Do not add Prisma Client, raw `pg` pools for domain data, or table assumptions here yet.
+ * When Database foundation lands: export a shared Prisma client; repositories import only from here.
  */
 export {}

@@ -1,0 +1,33 @@
+import { Router } from 'express'
+
+import { validate } from '../../middleware/validate.js'
+import type { ExpensesController } from './expenses.controller.js'
+import {
+  createExpenseBodySchema,
+  expenseIdParamsSchema,
+  updateExpenseBodySchema,
+} from './expenses.schema.js'
+
+export function createExpensesRoutes(controller: ExpensesController): Router {
+  const router = Router()
+
+  router.get('/', controller.list)
+  router.get(
+    '/:id',
+    validate({ params: expenseIdParamsSchema }),
+    controller.getById
+  )
+  router.post('/', validate({ body: createExpenseBodySchema }), controller.create)
+  router.patch(
+    '/:id',
+    validate({ params: expenseIdParamsSchema, body: updateExpenseBodySchema }),
+    controller.update
+  )
+  router.delete(
+    '/:id',
+    validate({ params: expenseIdParamsSchema }),
+    controller.remove
+  )
+
+  return router
+}

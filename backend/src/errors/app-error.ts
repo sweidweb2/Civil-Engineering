@@ -58,6 +58,14 @@ export function serviceUnavailable(
   return new AppError(code, message, 503)
 }
 
+export function notImplemented(feature: string): AppError {
+  return new AppError(
+    ErrorCodes.NOT_IMPLEMENTED,
+    `${feature} is not implemented yet`,
+    501
+  )
+}
+
 export function internalError(
   message = 'Internal server error'
 ): AppError {

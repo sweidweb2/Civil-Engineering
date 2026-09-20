@@ -60,17 +60,19 @@ Track foundation work only. Check items when done. Do not expand into essays her
 ## 4. DDD / Domain Foundation
 
 - [x] Initial domains identified (auth, users, projects, workers, materials, expenses, …)
-- [ ] `backend/src/modules/<domain>/` structure created for first domains
-- [ ] Per domain: responsibility defined
-- [ ] Per domain: entities defined
-- [ ] Per domain: value objects defined (if needed)
-- [ ] Per domain: use cases defined
-- [ ] Per domain: repository defined
-- [ ] Per domain: controller / service defined
-- [ ] Per domain: validation schemas defined
-- [ ] Per domain: relationships defined
-- [ ] Per domain: external access rules defined
+- [x] `backend/src/modules/<domain>/` structure created for first domains
+- [x] Per domain: responsibility defined
+- [x] Per domain: entities defined
+- [x] Per domain: value objects defined (if needed)
+- [x] Per domain: use cases defined
+- [x] Per domain: repository defined
+- [x] Per domain: controller / service defined
+- [x] Per domain: validation schemas defined
+- [x] Per domain: relationships defined
+- [x] Per domain: external access rules defined
 - [x] Rule locked: domain owns its business logic and data access
+
+> Note: Domains are **API/domain stubs only** — no Postgres schema, tables, or Prisma yet (schema still being designed). Repositories must not assume real persistence. List endpoints may return `[]`; mutations return `501 NOT_IMPLEMENTED`. Entity/VO shapes in `*.types.ts` / `*.domain.ts` are provisional until the DB schema is locked. Exact enums/role sets remain TBD where marked.
 
 ---
 

@@ -11,3 +11,4 @@ export function createProjectsModule() {
 }
 
 export { projectsDomain } from './projects.domain.js'
+export type { ProjectsService } from './projects.service.js'

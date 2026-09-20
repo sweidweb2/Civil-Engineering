@@ -116,7 +116,9 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Sorting / searching convention
 - [x] Nested resource rules
 - [x] Authn / authz on API defined
-- [ ] API docs approach chosen (OpenAPI / Swagger)
+- [x] API docs approach chosen — **OpenAPI 3.x** (spec is the contract; UI viewer TBD e.g. Swagger UI / Scalar)
+
+> Spec lives under `Docs/api/` (and/or generated from backend later). Swagger UI is a viewer, not a competing standard.
 
 ---
 
@@ -136,13 +138,13 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Authorization
 
-- [x] Roles / permissions model (`SUPER` `ADMIN` `PROVIDER` `WORKER` `MANAGER` `CLIENT`)
-- [ ] Resource ownership checks
-- [ ] Admin rules
-- [x] API auth middleware (`authenticate` verifies Bearer access JWT)
-- [x] Frontend permission handling approach
+- [x] Roles model (`SUPER` `ADMIN` `PROVIDER` `WORKER` `MANAGER` `CLIENT`) — role gates only; **no** permission-matrix RBAC
+- [x] Resource ownership checks (`backend/src/authz/` — `assertOwner` / `assertOwnerOrAdmin` / `assertSelfOrAdmin`; projects `assertAccessible`)
+- [x] Admin rules (`ADMIN_ROLES` = SUPER+ADMIN ownership bypass; SUPER-only logs; admin-only user list/create/deactivate)
+- [x] API auth middleware (`authenticate` verifies Bearer access JWT; `authorize(...roles)` for vertical gates)
+- [x] Frontend permission handling approach (`RequireAuth` / `RequireRole` / `Can` / `usePermissions` — UX only)
 
-> Note: `users` + `profiles` tables migrated. Auth routes: `/api/v1/auth/register|login|refresh|logout`. Web + mobile show login/register first, then home.
+> Note: Authz is **role + ownership**, not RBAC permissions. `users` + `profiles` migrated. Auth routes: `/api/v1/auth/register|login|refresh|logout`. Web + mobile show login/register first, then home.
 
 ---
 
@@ -467,7 +469,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Test DB / fixtures strategy
 - [x] CI runs tests
 
-> Stack + scripts live: `Docs/[3] Decisions/[3] CI & Testing.md`, `.github/workflows/ci.yml`. Backend: Vitest unit (auth/health/tokens/authenticate) + integration (health/validation/auth API) + e2e (health/auth vs Test Postgres). Web: Vitest unit + Playwright auth smoke. Mobile: Jest `parseForm` unit. Authz resource checks still thin until protected domain routes land.
+> Stack + scripts live: `Docs/[3] Decisions/[3] CI & Testing.md`, `.github/workflows/ci.yml`. Backend: Vitest unit (auth/health/tokens/authenticate/authorize/authz ownership) + integration (health/validation/auth API) + e2e (health/auth vs Test Postgres). Web: Vitest unit + Playwright auth smoke. Mobile: Jest `parseForm` unit.
 
 ---
 

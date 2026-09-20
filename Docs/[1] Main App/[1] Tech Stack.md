@@ -224,7 +224,7 @@ Refresh Token
 API Requests
 ```
 
-Authorization (roles/permissions) is managed separately as required.
+Authorization uses **role gates + resource ownership** (not a permission-matrix RBAC). See `Docs/[3] Decisions/[6] Security Foundation.md`.
 
 ---
 

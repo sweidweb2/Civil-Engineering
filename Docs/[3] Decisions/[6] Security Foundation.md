@@ -31,10 +31,26 @@ TLS cert issuance / domain wiring remains infra TBD (`infrastructure/nginx/` whe
 | Auth rate limit  | Stricter on `/api/v1/auth/*` — `AUTH_RATE_LIMIT_*` (default 20 / 15m)        |
 | Password hashing | `bcrypt` cost **12** (`auth.tokens.ts`)                                      |
 | Input validation | Zod via `validate` middleware                                                |
-| Authn / authz    | JWT middleware + service-level checks                                        |
+| Authn / authz    | JWT middleware + **role gates** + **service ownership** (no permission-matrix RBAC) |
 | SQL              | Prisma only (parameterized)                                                  |
 
 429 responses use `{ code: "RATE_LIMITED", message: "Too many requests" }`.
+
+---
+
+## Authorization model (locked — not RBAC permissions)
+
+This app uses **roles + ownership**, not a permission-matrix RBAC (`resource:action` ACL).
+
+| Layer | Mechanism | Purpose |
+| --- | --- | --- |
+| **Authenticate** | `authenticate` Bearer JWT → `req.user` | Who is calling |
+| **Role gate** | `authorize(...roles)` on routes | Vertical: e.g. SUPER-only logs, ADMIN list users |
+| **Ownership** | `assertOwner` / `assertOwnerOrAdmin` / `assertSelfOrAdmin` in services | Horizontal: own resource vs another user’s |
+| **Admin rules** | `ADMIN_ROLES` = `SUPER` \| `ADMIN` | Admins bypass ownership where used; SUPER-only for platform ops (error/activity logs). Role changes / user deactivate are admin-only |
+| **Frontend** | `RequireRole` / `Can` / `usePermissions` | UX only — never the security boundary |
+
+Helpers live in `backend/src/authz/`. Domain modules call ownership checks in **services** after loading the resource (e.g. `projects.assertAccessible`).
 
 ---
 

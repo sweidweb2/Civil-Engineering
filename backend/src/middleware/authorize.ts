@@ -1,11 +1,14 @@
 import type { RequestHandler } from 'express'
 
+import { hasAnyRole } from '../authz/roles.js'
 import { forbidden, unauthorized } from '../errors/app-error.js'
+import type { RoleName } from '../modules/auth/auth.schema.js'
 
 /**
- * RBAC stub. Enforce roles in Auth foundation; default deny when auth is present but roles mismatch.
+ * Role gate (vertical authz). Default deny when authenticated but role mismatches.
+ * Not permission-matrix RBAC — pass explicit roles only (e.g. `authorize('SUPER')`).
  */
-export function authorize(...allowedRoles: string[]): RequestHandler {
+export function authorize(...allowedRoles: RoleName[]): RequestHandler {
   return (req, _res, next) => {
     if (allowedRoles.length === 0) {
       next()
@@ -17,8 +20,7 @@ export function authorize(...allowedRoles: string[]): RequestHandler {
       return
     }
 
-    const hasRole = allowedRoles.some((role) => req.user?.roles.includes(role))
-    if (!hasRole) {
+    if (!hasAnyRole(req.user.roles, allowedRoles)) {
       next(forbidden())
       return
     }

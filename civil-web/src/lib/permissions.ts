@@ -2,7 +2,7 @@ import type { AuthRole } from '@/services/auth'
 
 /**
  * Frontend role checks are UX only — never a security boundary.
- * Backend authz must still enforce every sensitive action.
+ * Backend uses role gates + ownership (not permission-matrix RBAC).
  */
 
 export function hasRole(

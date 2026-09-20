@@ -377,20 +377,23 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] `backend/.env`
 - [x] `backend/.env.staging`
 - [x] `backend/.env.production`
-- [ ] `backend/.env.example`
+- [x] `backend/.env.example`
 - [x] `civil-web/.env`
 - [x] `civil-web/.env.staging`
 - [x] `civil-web/.env.production`
-- [ ] `civil-web/.env.example`
+- [x] `civil-web/.env.example`
 - [x] `civil-mobile/.env`
 - [x] `civil-mobile/.env.staging`
 - [x] `civil-mobile/.env.production`
-- [ ] `civil-mobile/.env.example`
+- [x] `civil-mobile/.env.example`
 - [x] Dev / staging / prod environments defined
 - [x] Secret policy defined (no secrets in Git)
 - [x] Public prefix rules: `VITE_*` / `EXPO_PUBLIC_*`
-- [ ] Config module (backend) loads env centrally
-- [ ] Env validation (optional but recommended)
+- [x] Config module (backend) loads env centrally
+- [x] Env validation (Zod in `backend/src/config`) — CORS key: `CORS_ORIGINS`
+- [x] Local `DATABASE_URL` aligned with Compose Postgres (`127.0.0.1` / db `civil`)
+- [x] Staging/prod Compose overrides `DATABASE_URL` host to `postgres`
+- [x] Redis env optional / skipped until Redis is wired
 
 ---
 
@@ -486,8 +489,9 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] `civil-web/Dockerfile` + `.dockerignore`
 - [x] `backend/Dockerfile` + `.dockerignore`
 - [x] Rule locked: no production Dockerfile for `civil-mobile/`
-- [x] `docker-compose.yml` (dev)
-- [x] `docker-compose.production.yml`
+- [x] `docker-compose.yml` (dev — Postgres only)
+- [x] `docker-compose.staging.yml` (Postgres + API + web; no Redis yet)
+- [x] `docker-compose.production.yml` (Postgres + API + web; no Redis yet)
 - [x] Services planned: Nginx (when ready), web, API, Postgres, Redis (+ worker if needed)
 - [x] Container networking (Compose network)
 - [x] Volumes (Postgres required)
@@ -590,7 +594,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [ ] `civil-mobile/src/` feature + theme + services + navigation layout
 - [ ] `backend/src/modules/` + middleware / config / database / jobs
 - [x] `backend/prisma/` schema + migrations
-- [x] Root `docker-compose.yml` + `docker-compose.production.yml`
+- [x] Root `docker-compose.yml` + `docker-compose.staging.yml` + `docker-compose.production.yml`
 - [x] `civil-web/Dockerfile` + `.dockerignore`
 - [x] `backend/Dockerfile` + `.dockerignore`
 - [ ] `infrastructure/nginx/` (when ready — do not create empty)

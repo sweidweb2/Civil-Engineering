@@ -80,30 +80,25 @@ Compose files live at the monorepo root:
 ```text
 Civil-Engineering-v1/
 ├── docker-compose.yml
-└── docker-compose.production.yml
+├── docker-compose.staging.yml
+├── docker-compose.production.yml
 ```
 
 #### `docker-compose.yml`
 
-Local development. **Default for now: Postgres only.**
+Local development. **Default: Postgres only.**
 
-May orchestrate later (commented until needed):
+Run API + web with npm on the host. Redis is skipped until wired.
 
-```text
-Web (civil-web)     — optional locally; normally `npm run dev`
-Backend (api)       — optional locally; normally `npm run dev`
-PostgreSQL          — default local Docker service
-Redis               — skipped until the app uses it
-Worker              — only when jobs need a separate process
-```
+#### `docker-compose.staging.yml` / `docker-compose.production.yml`
 
-Only include services that are actually needed. Prefer Compose for Postgres when developing against a real database; run API + web on the host with npm until you need containerized builds.
+Deploy-oriented stacks: **Postgres + API + web** (no Redis yet).
 
-Related (tests only, not production): `backend/docker-compose.test.yml` for CI / integration Postgres.
+- `env_file`: `backend/.env.staging` or `backend/.env.production`
+- Compose **overrides** `DATABASE_URL` to use host `postgres` (Docker DNS)
+- Local `backend/.env` keeps `127.0.0.1` for `npm run dev`
 
-#### `docker-compose.production.yml`
-
-Production overrides / stack for Hostinger VPS. May orchestrate the same service set. Exact production topology stays **configurable** — do not over-engineer before real deploy requirements are known.
+Related (tests only): `backend/docker-compose.test.yml`.
 
 ### Infrastructure folder
 

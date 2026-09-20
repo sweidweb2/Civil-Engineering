@@ -79,6 +79,7 @@ Civil-Engineering-v1/
 ├── Docs/               # Architecture, checklists, prompts, decisions
 ├── .cursor/rules/      # Cursor / AI project rules
 ├── docker-compose.yml
+├── docker-compose.staging.yml
 ├── docker-compose.production.yml
 ├── .editorconfig
 ├── .gitignore
@@ -140,26 +141,37 @@ Then open in Expo Go / simulator. Set `EXPO_PUBLIC_API_BASE_URL` to your machine
 
 Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md` · rules: `.cursor/rules/docker.mdc`
 
-**Local day-to-day:** only **Postgres** in Docker. Run API and web with npm on your machine. Redis is skipped until the app actually uses it.
+### Can I run without Docker?
+
+Yes. `cd backend && npm run dev` and `cd civil-web && npm run dev` start on your machine **without any containers**.
+
+- **Web** always works without Docker.
+- **API** boots without Docker; anything that needs the database needs Postgres running (`docker compose up -d`).
+
+### Local (day-to-day)
 
 ```bash
-docker compose up -d          # starts Postgres only
-# then:
-cd backend && npm run dev
-cd civil-web && npm run dev
+docker compose up -d          # Postgres only
+cd backend && npm run dev     # uses backend/.env → DATABASE_URL @ 127.0.0.1
+cd civil-web && npm run dev   # uses civil-web/.env → API at localhost:3000
 ```
 
-**Why Dockerfiles still exist for web + API:** packaging for the real server later (same app, same environment). You do **not** need those containers while coding locally.
+`backend/.env` is aligned with Compose defaults (`postgres` / `postgres` / `civil` on port `5432`). Redis is skipped for now.
 
-**Later on the VPS (when ready):** Nginx + web image + API image + Postgres (+ Redis when wired). Uncomment optional services in `docker-compose.yml` / production override as needed.
+### Staging / production Compose
 
-**Mobile:** not a Docker service (Play / App Store).
-
-Production-style override (after api/web/redis are enabled in Compose again):
+Replace `CHANGE_ME` secrets in the matching env files first. Compose loads those files and **overrides** `DATABASE_URL` so the API talks to the `postgres` service (not localhost).
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+# Staging
+docker compose -f docker-compose.staging.yml up -d --build
+
+# Production (set POSTGRES_USER / POSTGRES_PASSWORD in the host env)
+docker compose -f docker-compose.production.yml up -d --build
 ```
+
+**Mobile:** not a Docker service (Play / App Store).  
+**Nginx:** add `infrastructure/nginx/` when ready (sole public entry).
 
 ## Deployment
 

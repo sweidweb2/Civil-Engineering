@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const nodeEnvSchema = z.enum(['development', 'test', 'production'])
+const nodeEnvSchema = z.enum(['development', 'test', 'staging', 'production'])
 
 const baseEnvSchema = z.object({
   NODE_ENV: nodeEnvSchema.default('development'),
@@ -28,9 +28,9 @@ export type AppConfig = {
 function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): string[] {
   const fallback = 'http://localhost:5173,http://localhost:8081'
 
-  if (env === 'production') {
+  if (env === 'production' || env === 'staging') {
     if (!raw || raw.trim().length === 0) {
-      throw new Error('CORS_ORIGINS is required when NODE_ENV=production')
+      throw new Error('CORS_ORIGINS is required when NODE_ENV is staging or production')
     }
   }
 

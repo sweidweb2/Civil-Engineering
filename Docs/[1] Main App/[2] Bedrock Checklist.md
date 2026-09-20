@@ -414,14 +414,14 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] What not to cache defined
 - [x] Queue library chosen — **BullMQ** when first durable async job needs it (not installed yet)
 - [x] Job structure defined — `jobs/` sync enqueue seam + `jobs/workers/` placeholder
-- [ ] Retry / backoff rules — policy in Redis.md; implement with BullMQ workers
-- [ ] Failed-job handling — policy in Redis.md; implement with BullMQ workers
+- [x] Retry / backoff rules — **5 attempts**, exponential from **2s**; locked in Redis.md + `jobs/workers/job.defaults.ts`
+- [x] Failed-job handling — keep BullMQ failed set + error log (`removeOnFail: false`); locked in Redis.md + defaults
 - [x] Idempotency rules — documented (sync notify/delete seams today)
-- [ ] BullMQ workers runtime — `jobs/workers/` empty until first durable async job
+- [x] BullMQ workers runtime — deferred intentionally until first durable async job; defaults exported from `jobs/workers/`
 - [x] Queue monitoring approach — `/api/v1/health/redis` now; BullMQ board later
 - [x] Rule locked: Redis is not miscellaneous storage
 
-> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — **backend only** (web/mobile never connect). Compose: `redis:7-alpine`. Client: `ioredis` + cache helpers. Domain cache callers + BullMQ still deferred.
+> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — **backend only** (web/mobile never connect). Compose: `redis:7-alpine`. Client: `ioredis` + cache helpers. Domain cache callers + BullMQ package/workers still deferred until a real async job.
 
 ---
 

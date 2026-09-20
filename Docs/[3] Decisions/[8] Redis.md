@@ -1,6 +1,6 @@
 # Decision — Redis / Cache / Queue
 
-**Status:** LOCKED (client + Compose); BullMQ workers when first real async job needs them  
+**Status:** LOCKED (client + Compose + retry/failed-job policy); BullMQ package/workers when first real async job needs them  
 **Date:** 2026-09-20  
 **Applies to:** `backend/` only
 
@@ -81,10 +81,13 @@ Postgres remains source of truth.
 | Item | Decision |
 | --- | --- |
 | Layout | `backend/src/jobs/` — enqueue wrappers; workers when BullMQ is wired |
-| Seam today | `enqueueNotifyUser` may still call sync delivery until a queue is justified |
-| Retry / backoff | Bounded retries with exponential backoff (BullMQ defaults + caps) |
-| Failed jobs | Log permanently failed; dead-letter / BullMQ failed set — no silent drop |
+| Seam today | `enqueueNotifyUser` / `enqueueDeleteStorageObject` may still run sync until a queue is justified |
+| Defaults module | `backend/src/jobs/workers/job.defaults.ts` — shared options for first BullMQ Queue |
+| Retry / backoff | **5 attempts** (1 try + 4 retries); **exponential** backoff, initial delay **2s** (2→4→8→16s) |
+| Failed jobs | Keep in BullMQ **failed set** (`removeOnFail: false`); **log error** with job name, id, idempotencyKey, reason — no silent drop; manual redrive / board later |
+| Completed trim | `removeOnComplete: { count: 1000 }` — short debug retention only |
 | Idempotency | Job payloads + idempotency keys where side effects are unsafe to repeat |
+| Runtime | **Deferred** — do not install/run BullMQ until the first durable async job needs it |
 | Monitoring | Redis `PING` via health; BullMQ metrics/UI later |
 
 ---

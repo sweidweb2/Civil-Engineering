@@ -4,6 +4,7 @@
  * Decision: Docs/[3] Decisions/[8] Redis.md
  * - Queue library when needed: BullMQ
  * - Layout: enqueue wrappers here; workers in jobs/workers/ when wired
+ * - Retry / failed-job defaults: jobs/workers/job.defaults.ts
  * - Today: push notify may still run sync via enqueueNotifyUser
  * - Storage object delete runs sync until BullMQ (Docs/[3] Decisions/[10] Storage)
  */

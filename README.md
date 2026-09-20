@@ -88,8 +88,7 @@ Civil-Engineering-v1/
 │       ├── config/
 │       ├── database/
 │       └── jobs/
-├── Docs/               # Architecture, checklists, prompts, decisions (source of truth)
-├── docs/               # Thin index → Docs/ + .cursor/rules (Bedrock paths)
+├── Docs/               # Numbered docs: Main App, Prompts, Decisions, Database
 ├── .cursor/rules/      # Cursor / AI project rules
 ├── docker-compose.yml
 ├── docker-compose.staging.yml
@@ -169,7 +168,7 @@ cd backend && npm run dev     # uses backend/.env → DATABASE_URL @ 127.0.0.1
 cd civil-web && npm run dev   # uses civil-web/.env → API at localhost:3000
 ```
 
-`backend/.env` is aligned with Compose defaults (`postgres` / `postgres` / `civil` on port `5432`). Redis is skipped for now.
+`backend/.env` is aligned with Compose defaults (`postgres` / `postgres` / `civil` on port `5432`). Redis: `REDIS_URL=redis://127.0.0.1:6379` (Compose service `civil-redis`).
 
 ### Staging / production Compose
 

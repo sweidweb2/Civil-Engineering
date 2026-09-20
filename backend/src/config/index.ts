@@ -19,6 +19,8 @@ const baseEnvSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
+  EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+  REDIS_URL: z.string().min(1).optional(),
 })
 
 export type AppConfig = {
@@ -27,6 +29,7 @@ export type AppConfig = {
   corsOrigins: string[]
   trustProxy: boolean
   databaseUrl?: string
+  redisUrl?: string
   jwtAccessSecret?: string
   jwtRefreshSecret?: string
   jwtAccessExpiresIn: string
@@ -36,6 +39,7 @@ export type AppConfig = {
   rateLimitMax: number
   authRateLimitWindowMs: number
   authRateLimitMax: number
+  expoAccessToken?: string
 }
 
 function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): string[] {
@@ -84,6 +88,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: parseCorsOrigins(env.CORS_ORIGINS, data.NODE_ENV),
     trustProxy: data.TRUST_PROXY,
     databaseUrl: data.DATABASE_URL,
+    redisUrl: data.REDIS_URL,
     jwtAccessSecret: data.JWT_ACCESS_SECRET,
     jwtRefreshSecret: data.JWT_REFRESH_SECRET,
     jwtAccessExpiresIn: data.JWT_ACCESS_EXPIRES_IN,
@@ -93,6 +98,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     rateLimitMax: data.RATE_LIMIT_MAX,
     authRateLimitWindowMs: data.AUTH_RATE_LIMIT_WINDOW_MS,
     authRateLimitMax: data.AUTH_RATE_LIMIT_MAX,
+    expoAccessToken: data.EXPO_ACCESS_TOKEN,
   }
 }
 

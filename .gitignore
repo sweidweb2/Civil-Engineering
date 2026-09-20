@@ -30,6 +30,11 @@ lerna-debug.log*
 *.mobileprovision
 *.jks
 
+# Local credential notes under Docs (README only may be committed)
+Docs/[1] Main App/[5] Credentials/**
+!Docs/[1] Main App/[5] Credentials/README.md
+!Docs/[1] Main App/[5] Credentials/.gitignore
+
 # OS
 .DS_Store
 Thumbs.db

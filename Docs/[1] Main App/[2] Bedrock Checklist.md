@@ -118,7 +118,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Authn / authz on API defined
 - [x] API docs approach chosen — **OpenAPI 3.x** (spec is the contract; UI viewer TBD e.g. Swagger UI / Scalar)
 
-> Spec lives under `Docs/api/` (and/or generated from backend later). Swagger UI is a viewer, not a competing standard.
+> Spec approach: [`Docs/[3] Decisions/[9] API Docs (OpenAPI).md`](../[3]%20Decisions/[9]%20API%20Docs%20(OpenAPI).md). Swagger UI is a viewer, not a competing standard.
 
 ---
 
@@ -212,7 +212,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
   - [x] Optional single global crash fallback screen (not a set of error routes) — `ErrorBoundary`
   - [x] Rule locked: no dedicated 404/500-style error pages on mobile — toast / inline / navigate instead
 - [x] Deep linking (if in scope) — Expo Router + `scheme: civilmobile` in `app.json`; custom link map TBD with features
-- [ ] Notifications (if in scope) — deferred; not in bedrock scope yet
+- [x] Notifications (if in scope) — Expo Push bedrock: `DeviceToken` + `POST/DELETE /api/v1/devices`, sync `notifyUser` / `enqueueNotifyUser`, mobile `expo-notifications` register + tap→`data.path`/`data.url`; inbox / Redis queue / domain events deferred
 - [x] Dev / preview / prod env config
 
 > Note: Routes under `src/app/` stay thin; screens live in `src/features/<feature>/`. No mobile error-page catalog (web-only).
@@ -400,25 +400,27 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Env validation (Zod in `backend/src/config`) — CORS key: `CORS_ORIGINS`
 - [x] Local `DATABASE_URL` aligned with Compose Postgres (`127.0.0.1` / db `civil`)
 - [x] Staging/prod Compose overrides `DATABASE_URL` host to `postgres`
-- [x] Redis env optional / skipped until Redis is wired
+- [x] Redis env optional / skipped until Redis is wired → **wired**: `REDIS_URL` + Compose `redis` service
 
 ---
 
 ## 15. Redis / Queue Foundation
 
 - [x] Redis role decided (cache / queue / both)
-- [x] Cache key convention
-- [x] Cache TTL policy
-- [x] Cache invalidation strategy
+- [x] Cache key convention — `civil:` prefix (`redis.keys.ts`)
+- [x] Cache TTL policy — always set TTL (helpers default 120s)
+- [x] Cache invalidation strategy — `del` + list version bump
 - [x] What not to cache defined
-- [ ] Queue library chosen (when needed)
-- [ ] Job structure defined
+- [x] Queue library chosen — **BullMQ** when first durable async job needs it
+- [x] Job structure defined — `jobs/` enqueue seam + `jobs/workers/`
 - [x] Retry / backoff rules
-- [ ] Failed-job handling
+- [x] Failed-job handling — bounded retries + failed set / log (no silent drop)
 - [x] Idempotency rules
-- [ ] Workers layout (`jobs/`)
-- [ ] Queue monitoring approach
+- [x] Workers layout (`jobs/` + `jobs/workers/`)
+- [x] Queue monitoring approach — `/api/v1/health/redis` now; BullMQ board later
 - [x] Rule locked: Redis is not miscellaneous storage
+
+> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — **backend only** (web/mobile never connect). Compose: `redis:7-alpine`. Client: `ioredis` + cache helpers.
 
 ---
 
@@ -498,8 +500,8 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] `backend/Dockerfile` + `.dockerignore`
 - [x] Rule locked: no production Dockerfile for `civil-mobile/`
 - [x] `docker-compose.yml` (dev — Postgres only)
-- [x] `docker-compose.staging.yml` (Postgres + API + web; no Redis yet)
-- [x] `docker-compose.production.yml` (Postgres + API + web; no Redis yet)
+- [x] `docker-compose.staging.yml` (Postgres + Redis + API + web)
+- [x] `docker-compose.production.yml` (Postgres + Redis + API + web)
 - [x] Services planned: Nginx (when ready), web, API, Postgres, Redis (+ worker if needed)
 - [x] Container networking (Compose network)
 - [x] Volumes (Postgres required)
@@ -546,39 +548,34 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 ## 23. Observability
 
-- [ ] Application logs
-- [ ] Request logs
+- [ ] Application logs — Pino → stdout (see decision)
+- [ ] Request logs — access middleware → stdout (see decision)
 - [x] Error tracking — `error_logs` table + SUPER inbox (`GET /api/v1/error-logs`); persists unexpected/5xx only (not every 400)
-- [ ] DB / Redis monitoring
+- [ ] DB / Redis monitoring — provider / infra tools (not CRUD tables)
 - [x] Host metrics (CPU / RAM / disk / uptime) — use VPS provider panel/alerts
 - [x] Health / readiness / liveness endpoints — `/api/v1/health`, `/api/v1/health/db`
-- [ ] Alerts
+- [ ] Alerts — VPS/health-based for now; richer channels later
 
-> Also: `activity_logs` audit table + SUPER list UI (`/super/activity`). Structured stdout request/app logs still TBD. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only).
+> Decision: [`Docs/[3] Decisions/[7] Observability.md`](../[3]%20Decisions/[7]%20Observability.md)  
+> Also: `activity_logs` audit + SUPER UI (`/super/activity`). High-volume logs stay off PostgreSQL. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only).
 
 ---
 
 ## 24. Documentation Foundation
 
-- [x] `docs/architecture/`
-- [x] `docs/api/`
-- [x] `docs/database/`
-- [x] `docs/deployment/`
-- [x] `docs/development/`
-- [x] `docs/decisions/`
-- [x] Architecture documented
+- [x] Architecture documented (`Docs/[1] Main App/[1] Tech Stack.md`, `.cursor/rules/`)
 - [x] Folder conventions documented
-- [x] API conventions documented
-- [x] Database conventions documented
+- [x] API conventions documented (`Docs/[3] Decisions/[9] API Docs (OpenAPI).md`)
+- [x] Database conventions documented (`Docs/[4] Database/`)
 - [x] Auth documented
 - [x] Env vars documented
 - [x] Local setup documented
-- [x] Deployment / Docker documented
-- [x] Code rules documented
-- [x] Key decisions recorded
+- [x] Deployment / Docker documented (`Docs/[3] Decisions/[4] Docker & Infrastructure.md`)
+- [x] Code rules documented (`.cursor/rules/`)
+- [x] Key decisions recorded (`Docs/[3] Decisions/`)
 - [x] Docs kept in sync with code
 
-> Note: `docs/` is an **index** (README map per topic). Long-form truth stays in `Docs/[1] Main App/`, `Docs/[3] Decisions/`, and `.cursor/rules/`. Sync rule: update sources first, then checklist / index links — see `docs/README.md`.
+> Note: Source of truth is numbered `Docs/[1]…[4]/` and `.cursor/rules/` — no separate index/pointer folders.
 
 ---
 
@@ -599,7 +596,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 ## 26. Final Bedrock Structure
 
-- [x] `docs/` tree in place (as needed)
+- [x] `Docs/` numbered tree (`[1] Main App`, `[2] Prompts`, `[3] Decisions`, `[4] Database`)
 - [ ] `civil-web/src/` feature + theme + services layout
 - [x] `civil-mobile/src/` feature + theme + services + navigation layout
 - [ ] `backend/src/modules/` + middleware / config / database / jobs

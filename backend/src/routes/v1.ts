@@ -4,6 +4,7 @@ import type { Pool } from 'pg'
 import type { AppConfig } from '../config/index.js'
 import { loadConfig } from '../config/index.js'
 import { createAuthModule } from '../modules/auth/index.js'
+import { createDevicesModule } from '../modules/devices/index.js'
 import { createExpensesModule } from '../modules/expenses/index.js'
 import { createHealthController } from '../modules/health/health.controller.js'
 import { createHealthRepository } from '../modules/health/health.repository.js'
@@ -25,11 +26,12 @@ export function createV1Router(deps: V1Deps = {}): Router {
   const config = deps.config ?? loadConfig()
 
   const healthRepository = createHealthRepository(deps.pool)
-  const healthService = createHealthService(healthRepository)
+  const healthService = createHealthService(healthRepository, config)
   const healthController = createHealthController(healthService)
 
   router.use('/health', createHealthRoutes(healthController))
   router.use('/auth', createAuthModule(config))
+  router.use('/devices', createDevicesModule())
   router.use(createLoggingModule())
   router.use('/users', createUsersModule())
   router.use('/projects', createProjectsModule())

@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import type { AuthTokens, AuthUser } from '@/services/auth'
 import * as authApi from '@/services/auth'
+import { unregisterPushForUser } from '@/services/notifications'
 
 import { authStorage } from './authStorage'
 
@@ -41,8 +42,10 @@ export const useAuthStore = create<AuthState>()(
         set({ user: result.user, tokens: result.tokens })
       },
       async logout() {
+        const accessToken = get().tokens?.accessToken
         const refreshToken = get().tokens?.refreshToken
         try {
+          await unregisterPushForUser(accessToken)
           if (refreshToken) {
             await authApi.logout(refreshToken)
           }

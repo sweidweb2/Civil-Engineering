@@ -88,11 +88,11 @@ Civil-Engineering-v1/
 
 Local development. **Default: Postgres only.**
 
-Run API + web with npm on the host. Redis is skipped until wired.
+Run API + web with npm on the host. Local Compose starts **Postgres + Redis**.
 
 #### `docker-compose.staging.yml` / `docker-compose.production.yml`
 
-Deploy-oriented stacks: **Postgres + API + web** (no Redis yet).
+Deploy-oriented stacks: **Postgres + Redis + API + web**.
 
 - `env_file`: `backend/.env.staging` or `backend/.env.production`
 - Compose **overrides** `DATABASE_URL` to use host `postgres` (Docker DNS)

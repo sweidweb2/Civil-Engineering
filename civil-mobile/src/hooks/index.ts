@@ -6,3 +6,4 @@ export type {
   RemoteSuccess,
 } from './useRemoteData'
 export { useRemoteData } from './useRemoteData'
+export { usePushNotifications } from './usePushNotifications'

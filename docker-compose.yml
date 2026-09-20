@@ -2,8 +2,8 @@
 # Decision: Docs/[3] Decisions/[4] Docker & Infrastructure.md
 # Do not commit secrets; override via env_file / host environment.
 #
-# For day-to-day coding: start Postgres only, run API + web with npm on your machine.
-# Redis / containerized API / web are optional later (commented below).
+# For day-to-day coding: start Postgres + Redis, run API + web with npm on your machine.
+# Containerized API / web are optional later (commented below).
 
 name: civil-engineering
 
@@ -27,20 +27,21 @@ services:
     networks:
       - civil_net
 
+  # Redis — cache / queue for the API only (not web/mobile clients)
+  redis:
+    image: redis:7-alpine
+    container_name: civil-redis
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - civil_net
+
   # --- Optional later (uncomment when needed) ---
-  #
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: civil-redis
-  #   ports:
-  #     - '${REDIS_PORT:-6379}:6379'
-  #   healthcheck:
-  #     test: ['CMD', 'redis-cli', 'ping']
-  #     interval: 5s
-  #     timeout: 3s
-  #     retries: 10
-  #   networks:
-  #     - civil_net
   #
   # api:   # usually run with: cd backend && npm run dev
   #   build:
@@ -53,10 +54,13 @@ services:
   #     TRUST_PROXY: 'false'
   #     CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080}
   #     DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/civil}
+  #     REDIS_URL: ${REDIS_URL:-redis://redis:6379}
   #   ports:
   #     - '${API_PORT:-3000}:3000'
   #   depends_on:
   #     postgres:
+  #       condition: service_healthy
+  #     redis:
   #       condition: service_healthy
   #   networks:
   #     - civil_net

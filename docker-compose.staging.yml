@@ -3,7 +3,6 @@
 #   docker compose -f docker-compose.staging.yml up -d --build
 #
 # Loads secrets/config from backend/.env.staging (replace CHANGE_ME values first).
-# Redis is skipped for now.
 # Nginx edge config still TBD (infrastructure/nginx/).
 
 name: civil-engineering-staging
@@ -27,6 +26,18 @@ services:
     networks:
       - civil_staging_net
 
+  redis:
+    image: redis:7-alpine
+    container_name: civil-staging-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - civil_staging_net
+
   api:
     build:
       context: ./backend
@@ -36,11 +47,14 @@ services:
     env_file:
       - ./backend/.env.staging
     environment:
-      # Inside Docker, DB host is the Compose service name — not localhost
+      # Inside Docker, DB/Redis hosts are Compose service names — not localhost
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-civil}
+      REDIS_URL: redis://redis:6379
       TRUST_PROXY: 'true'
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - civil_staging_net

@@ -112,7 +112,16 @@ E2E according to PR policy
 | PR → **`main`**   | **Run E2E for affected apps** (and all apps if broader/shared change).                   |
 | Owner direct push | No PR CI; prefer PR for anything that needs E2E confidence.                              |
 
-Unit + integration + format/lint/typecheck/build still run on PRs to **both** `dev` and `main` for affected apps.
+Unit + integration + format/lint/typecheck/build run on push/PR to **both** `dev` and `main` with the **same** workflow (`.github/workflows/ci.yml`). Path filters decide which app jobs run.
+
+### Deploy (deferred)
+
+| Branch | After CI green |
+| --- | --- |
+| `dev` | Auto-deploy **staging** VPS (not implemented yet) |
+| `main` | Auto-deploy **production** VPS (not implemented yet) |
+
+Do not add CD jobs until Hostinger / Nginx / secrets are ready. Branch roles: see [Git Branch Strategy](./[2]%20Git%20Branch%20Strategy.md) (`play` → `dev` → `main`).
 
 ---
 

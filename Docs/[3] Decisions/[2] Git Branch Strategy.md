@@ -1,174 +1,188 @@
 # Decision — Git Branch Strategy
 
-**Status:** LOCKED (enforce on GitHub/GitLab when remote exists)  
-**Date:** 2026-09-18  
+**Status:** LOCKED  
+**Date:** 2026-09-20  
 **Applies to:** entire repository
 
 ---
 
 ## Decision
 
-| Branch                              | Environment | Purpose                                       |
-| ----------------------------------- | ----------- | --------------------------------------------- |
-| **`main`**                          | Production  | Always deployable prod code                   |
-| **`dev`**                           | Staging     | Integration branch; staging deploys from here |
-| **`feat/*`, `fix/*`, `chore/*`, …** | Local / PR  | Short-lived work branches                     |
+| Branch | Environment | Purpose |
+| --- | --- | --- |
+| **`play`** | Daily development | Long-lived playground — day-to-day coding happens here |
+| **`dev`** | Staging | Integration / staging deploys from here |
+| **`main`** | Production | Always deployable prod code |
+| **`feat/*`, `fix/*`, `chore/*`, …** | Local / PR | Optional short-lived topic branches (usually from `play`) |
 
-Workflow:
+### Environments ↔ branches
+
+| Branch | App env files / Compose | Deploy target (later) |
+| --- | --- | --- |
+| `play` | Local `.env` + `docker-compose.yml` | None (local only) |
+| `dev` | `.env.staging` + `docker-compose.staging.yml` | Staging VPS (auto after CI — TBD) |
+| `main` | `.env.production` + `docker-compose.production.yml` | Production VPS (auto after CI — TBD) |
+
+---
+
+## Workflow
 
 ```text
-Create issue/task
+Daily work on play
        ↓
-Create branch from dev (prefer) — or from main for hotfixes
+(optional) feat/fix/chore from play → PR into play
        ↓
-Develop + commit (Husky → lint-staged)
+PR: play → dev
        ↓
-Push
+CI must pass (same suite as main)
        ↓
-Pull Request → target branch
+Merge → staging (deploy later: auto after CI on dev)
        ↓
-CI must pass
-  ├── lint
-  ├── typecheck
-  ├── tests
-  └── build
+PR: dev → main
        ↓
-Review (repo owner merges)
+CI must pass (same suite)
        ↓
-Merge → delete branch
+Merge → production (deploy later: auto after CI on main)
 ```
 
 Promotion path:
 
 ```text
-feat/fix/chore/...  ──PR──►  dev  (staging)
-                              │
-                         ──PR──►  main (production)
+play  (daily development)
+  │
+  └──PR──►  dev   (staging)
+              │
+              └──PR──►  main  (production)
 ```
 
-Hotfix (prod-only emergency): branch from `main` → PR into `main` → also merge/backport into `dev` so staging does not drift.
+Hotfix (prod-only emergency): branch from `main` → PR into `main` → also merge/backport into `dev` **and** `play` so nothing drifts.
 
 ---
 
-## Branch naming
+## Branch naming (topic branches)
 
 Aligned with [Contributing](../[1]%20Main%20App/[3]%20Contributing.md):
 
-| Prefix      | Use                    |
-| ----------- | ---------------------- |
-| `feat/`     | Feature                |
-| `fix/`      | Bug fix                |
-| `chore/`    | Tooling, deps, cleanup |
-| `docs/`     | Docs only              |
-| `refactor/` | No behavior change     |
-| `test/`     | Tests only             |
+| Prefix | Use |
+| --- | --- |
+| `feat/` | Feature |
+| `fix/` | Bug fix |
+| `chore/` | Tooling, deps, cleanup |
+| `docs/` | Docs only |
+| `refactor/` | No behavior change |
+| `test/` | Tests only |
 
 Examples: `feat/backend-auth-login`, `fix/web-pagination`, `chore/docker`.
+
+Prefer branching topic work from **`play`**. Solo daily commits may land directly on `play`.
 
 ---
 
 ## Protection rules (remote)
 
-Configure on the host (GitHub/GitLab):
+Configure on GitHub:
 
-### `main` and `dev`
+### `main` and `dev` (protected)
 
-| Rule                        | Setting                                           |
-| --------------------------- | ------------------------------------------------- |
-| Direct pushes               | **Disabled** for normal contributors              |
-| Pull request required       | **Yes**                                           |
-| Required approvals          | **Yes — repo owner reviews and merges**           |
-| Required status checks (CI) | **Yes** — lint, typecheck, tests, build must pass |
-| Conversations resolved      | Recommended                                       |
-| Delete branch on merge      | **Yes** (enable auto-delete)                      |
+| Rule | Setting |
+| --- | --- |
+| Direct pushes | **Disabled** for normal contributors |
+| Pull request required | **Yes** |
+| Required approvals | **Yes — repo owner reviews and merges** |
+| Required status checks (CI) | **Yes** — same CI suite on both branches |
+| Delete branch on merge | **Yes** for topic branches (not for `play`) |
+
+### `play` (daily)
+
+| Rule | Setting |
+| --- | --- |
+| Direct pushes | **Allowed** for owner (daily development) |
+| PR required | Optional — use for topic branches into `play` if desired |
+| CI on push | Optional / not required — **CI is mandatory when merging into `dev` or `main`** |
 
 ### Merge strategy
 
-| Merge into                | Strategy                                                                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev` ← feature/fix/chore | **Squash and merge** (clean history on `dev`)                                                                                               |
-| `main` ← `dev` (release)  | **Merge commit** (keeps a clear release boundary) _or_ squash if you prefer a flatter `main` — default: **merge commit** for `dev` → `main` |
-| Hotfix → `main`           | Squash or merge commit; then sync to `dev`                                                                                                  |
+| Merge into | Strategy |
+| --- | --- |
+| `play` ← topic branches | Squash (optional) |
+| `dev` ← `play` | **Squash** or merge commit — prefer squash for a clean staging line |
+| `main` ← `dev` (release) | **Merge commit** (clear release boundary) |
+| Hotfix → `main` | Squash or merge; then sync `dev` + `play` |
 
 ---
 
 ## Can the owner push directly to `dev` and `main`?
 
-**Yes.** As repo owner/admin you **may** push directly when needed.
+**Yes**, via protection bypass, sparingly (emergency / bootstrap). Prefer PR even as owner.
 
-### How (GitHub example)
-
-On branch protection for `main` and `dev`:
-
-1. Require PRs + required CI checks for everyone.
-2. Enable **“Allow specified actors to bypass required pull requests”** (or equivalent) and add **your owner account**,  
-   **or** use admin bypass if your plan exposes “Do not enforce for administrators”.
-
-### Policy for owner bypass
-
-Use direct push only for:
-
-- Emergency hotfixes
-- Repo bootstrap / protection setup
-- Trivial doc/chore fixes when a full PR is pure overhead
-
-Prefer a PR even as owner for anything non-trivial — CI still runs on PRs and review history stays clear.
-
-**Contributors** never get bypass: always branch → PR → CI → owner merge.
+**Contributors** never bypass: always PR → CI → owner merge into `dev` / `main`.
 
 ---
 
-## CI on every PR to `dev` or `main`
+## CI (locked)
 
-Required checks (once workflows exist):
+Same workflow for **`dev` and `main`**: push **or** pull request runs the identical suite (path-filtered apps).
 
-- [ ] `lint`
-- [ ] `typecheck`
-- [ ] `tests`
-- [ ] `build` (apps touched / full monorepo as configured)
+Source: `.github/workflows/ci.yml`
 
-No merge to `dev` or `main` while checks are red (except owner emergency bypass).
+| Trigger | Branches |
+| --- | --- |
+| `push` | `dev`, `main` |
+| `pull_request` | targeting `dev` or `main` |
+
+Checks (affected / shared paths):
+
+- Format · Lint · Typecheck  
+- App unit tests (+ backend integration)  
+- App builds  
+- Dependency audit (critical gate)  
+
+E2E remains gated by `CI_RUN_E2E` (still off). When enabled, E2E policy in [CI & Testing](./[3]%20CI%20%26%20Testing.md) still applies.
+
+**Deploy (skip for now — document only):**
+
+| After CI green on | Future action |
+| --- | --- |
+| `dev` | Auto-deploy staging VPS |
+| `main` | Auto-deploy production VPS |
+
+Do not add deploy jobs until Nginx / secrets / Hostinger wiring are ready.
 
 ---
 
-## Local + remote workflow summary
+## Local + remote summary
 
 ```text
-dev / main (protected)
-        ▲
-        │ PR + CI + owner merge
-        │
-feat/*  fix/*  chore/*  docs/*  ...
-        ▲
-        │ commits (Husky + lint-staged)
-        │
-    developer machine
+main (production)  ◄── PR + CI ──  dev (staging)  ◄── PR + CI ──  play (daily)
+                                                                      ▲
+                                                         feat/fix/chore (optional)
 ```
 
-Owner optional path:
+Owner optional bypass:
 
 ```text
-owner machine ──direct push──► dev or main
-                 (bypass allowed; use sparingly)
+owner ──direct push──► play (normal)
+owner ──bypass──► dev or main (sparingly)
 ```
 
 ---
 
 ## Implementation checklist
 
-- [ ] Create `main` and `dev` on remote
-- [ ] Set default branch (recommend `dev` for day-to-day PRs, or `main` — pick one and document in README; **recommendation: default = `dev`**)
-- [ ] Protect `main` and `dev` (PR required, CI required, owner bypass enabled)
-- [ ] Require owner approval / owner-only merge
-- [ ] Enable auto-delete of head branches after merge
-- [ ] Add GitHub Actions (or GitLab CI) for lint / typecheck / tests / build
-  - Scaffold: `.github/workflows/ci.yml` + [CI & Testing](./[3]%20CI%20%26%20Testing.md)
-- [ ] Update Contributing + README with this flow
+- [x] Create `main`, `dev`, and `play` (local + push when remote exists)
+- [x] Document default daily branch = **`play`**
+- [ ] Protect `main` and `dev` on GitHub (PR + CI + owner bypass)
+- [x] CI: same suite for `dev` and `main` (`.github/workflows/ci.yml`)
+- [ ] CD: staging deploy on green `dev` (later)
+- [ ] CD: production deploy on green `main` (later)
+- [x] Contributing + README aligned
 
 ---
 
 ## Related
 
 - [Contributing](../[1]%20Main%20App/[3]%20Contributing.md)
+- [CI & Testing](./[3]%20CI%20%26%20Testing.md)
 - [Formatting & Linting](./[1]%20Formatting%20%26%20Linting.md)
+- [Docker & Infrastructure](./[4]%20Docker%20%26%20Infrastructure.md)
 - [Bedrock Checklist](../[1]%20Main%20App/[2]%20Bedrock%20Checklist.md) §1 / §21

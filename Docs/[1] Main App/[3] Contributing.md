@@ -54,11 +54,13 @@ Work in the smallest relevant app. Do not cross-wire clients into the database.
 
 Locked in [Git Branch Strategy](../[3]%20Decisions/[2]%20Git%20Branch%20Strategy.md):
 
+- **`play`** → daily development (work here day-to-day)
+- **`dev`** → staging
 - **`main`** → production
-- **`dev`** → staging / integration
-- Short-lived `feat/*`, `fix/*`, `chore/*`, … → PR into `dev`, then promote `dev` → `main`
-- PRs required; **CI must pass**; **repo owner merges**
-- **Owner may push directly** to `dev`/`main` via protection bypass (use sparingly)
+- Promote: **`play` → `dev` → `main`** via PRs (same CI on `dev` and `main`)
+- Optional short-lived `feat/*`, `fix/*`, `chore/*`, … from `play`
+- PRs into `dev` / `main` required; **CI must pass**; **repo owner merges**
+- **Owner may push directly** to `play` freely; to `dev`/`main` only via protection bypass (sparingly)
 
 ### Branch naming
 
@@ -80,7 +82,15 @@ docs/contributing-guide
 chore/root-editorconfig
 ```
 
-Branch from `dev` for normal work (from `main` only for prod hotfixes). Delete the branch after merge.
+Branch topic work from **`play`**. Promote with PR `play` → `dev`, then `dev` → `main`. Hotfixes from `main` only; backport to `dev` and `play`.
+
+### Env alignment
+
+| Branch | Local / deploy env |
+| --- | --- |
+| `play` | `.env` + `docker-compose.yml` |
+| `dev` | `.env.staging` + `docker-compose.staging.yml` (staging VPS later) |
+| `main` | `.env.production` + `docker-compose.production.yml` (prod VPS later) |
 
 ## Commit conventions
 

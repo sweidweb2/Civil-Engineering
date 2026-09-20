@@ -1,6 +1,8 @@
 # CI — quality, tests, builds (change-detected)
 #
 # Decision: Docs/[3] Decisions/[3] CI & Testing.md
+# Same suite on push/PR to `dev` (staging) and `main` (production).
+# Branches: play (daily) → dev (staging) → main (prod). CD deploy jobs: later.
 # E2E is DISABLED in CI for now — flip CI_RUN_E2E to "true" when ready.
 
 name: CI

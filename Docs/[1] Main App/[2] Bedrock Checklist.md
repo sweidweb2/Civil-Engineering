@@ -19,7 +19,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Project naming conventions defined
 
 > Formatting/linting **decided** in `Docs/[3] Decisions/[1] Formatting & Linting.md` (Prettier + ESLint + strict TS + Husky/lint-staged). Root install/config still TODO.  
-> Branch strategy **decided** in `Docs/[3] Decisions/[2] Git Branch Strategy.md` (`main` + `dev` + PRs + CI). Remote protection still TODO.
+> Branch strategy **locked** in `Docs/[3] Decisions/[2] Git Branch Strategy.md`: **`play`** (daily) → **`dev`** (staging) → **`main`** (production). Same CI on `dev` and `main`. Remote protection + auto-deploy still TODO.
 
 ---
 
@@ -516,7 +516,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 ## 21. CI/CD Foundation
 
-- [ ] Remote repo on GitHub / GitLab
+- [x] Remote repo on GitHub / GitLab
 - [x] CI: install
 - [x] CI: typecheck
 - [x] CI: lint
@@ -524,11 +524,11 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] CI: build
 - [ ] CI: Docker build (when ready)
 - [ ] CI: migration checks (when ready)
-- [ ] Deploy to staging
-- [ ] Deploy to production
+- [ ] Deploy to staging — auto after CI green on **`dev`** (later)
+- [ ] Deploy to production — auto after CI green on **`main`** (later)
 - [ ] Rollback approach
 
-> Workflow runs change detection + quality + per-app jobs (incl. backend migrate + JWT env for auth tests).
+> Workflow: same suite on push/PR to **`dev` and `main`**. Branches: `play` (daily) → `dev` (staging) → `main` (prod). CD jobs not wired yet.
 
 ---
 

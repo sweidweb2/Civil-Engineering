@@ -99,7 +99,7 @@ Typecheck / tests / build remain in **CI** (not every local commit).
 2. TypeScript **strict** stays on.
 3. Do not bypass Husky with `--no-verify` unless the **repo owner** allows an emergency exception.
 4. Fix lint root causes; do not mass-disable rules without discussion.
-5. `format:check` / `lint` / `typecheck` must pass in CI before merge to `dev` or `main`.
+5. `format:check` / `lint` / `typecheck` must pass in CI before merge to `dev` or `main` (same suite on both).
 
 ---
 

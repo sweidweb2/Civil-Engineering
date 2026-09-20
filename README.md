@@ -22,6 +22,18 @@ React Native─┘                        │
 
 Source of truth for locked decisions: `Docs/[1] Main App/[1] Tech Stack.md` (and related docs).
 
+## Branches
+
+| Branch | Role | Env |
+| --- | --- | --- |
+| **`play`** | Daily development — work here | Local `.env` / `docker-compose.yml` |
+| **`dev`** | Staging | `.env.staging` / `docker-compose.staging.yml` |
+| **`main`** | Production | `.env.production` / `docker-compose.production.yml` |
+
+Promote with PRs: **`play` → `dev` → `main`**. CI is the **same** on push/PR to `dev` and `main`. Auto-deploy (staging on `dev`, prod on `main`) comes later.
+
+Details: `Docs/[3] Decisions/[2] Git Branch Strategy.md`
+
 ## Applications
 
 | App     | Path            | Role                                       |

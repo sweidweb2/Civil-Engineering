@@ -148,6 +148,18 @@ cd backend && npm i -D supertest @types/supertest
 cd backend && npm i zod
 ```
 
+**Helmet** — installed (HTTP security headers)
+
+```bash
+cd backend && npm i helmet
+```
+
+**express-rate-limit** — installed (API + auth rate limiting)
+
+```bash
+cd backend && npm i express-rate-limit
+```
+
 **Prisma** — installed (ORM for PostgreSQL; repository-only Client)
 
 ```bash

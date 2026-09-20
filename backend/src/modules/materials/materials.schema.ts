@@ -1,8 +1,12 @@
 import { z } from 'zod'
 
+import { paginationQuerySchema } from '../_shared/pagination.schema.js'
+
 export const materialIdParamsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().trim().min(1),
 })
+
+export const listMaterialsQuerySchema = paginationQuerySchema
 
 export const createMaterialBodySchema = z.object({
   name: z.string().min(1).max(200),
@@ -28,6 +32,7 @@ export const stockMovementBodySchema = z.object({
   note: z.string().max(500).optional(),
 })
 
+export type ListMaterialsQuery = z.infer<typeof listMaterialsQuerySchema>
 export type CreateMaterialBody = z.infer<typeof createMaterialBodySchema>
 export type UpdateMaterialBody = z.infer<typeof updateMaterialBodySchema>
 export type StockMovementBody = z.infer<typeof stockMovementBodySchema>

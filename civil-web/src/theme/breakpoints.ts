@@ -1,27 +1,14 @@
 /**
- * breakpoints.ts — responsive breakpoints (WEB ONLY).
- *
- * Conceptual tiers:
- * - mobile
- * - tablet
- * - desktop
- * - largeDesktop
- *
- * Common token names (map to px later):
- * - sm
- * - md
- * - lg
- * - xl
- *
- * Use these for media queries / layout switches so breakpoints
- * stay consistent across the web app.
+ * breakpoints.ts — responsive breakpoints (web only, px min-width).
+ * Aligns with common Tailwind / ops-dashboard tiers.
  */
 
 export const breakpoints = {
-  // sm: 640,   // mobile → tablet
-  // md: 768,   // tablet
-  // lg: 1024,  // desktop
-  // xl: 1280,  // largeDesktop
-} as const;
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+  '2xl': 1536,
+} as const
 
-export type BreakpointToken = keyof typeof breakpoints;
+export type BreakpointToken = keyof typeof breakpoints

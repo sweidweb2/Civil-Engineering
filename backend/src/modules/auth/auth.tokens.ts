@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
 import type { SignOptions } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 
 import type { AppConfig } from '../../config/index.js'
 import { requireJwtSecrets } from '../../config/index.js'
@@ -24,29 +24,18 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, BCRYPT_ROUNDS)
 }
 
-export async function verifyPassword(
-  password: string,
-  passwordHash: string
-): Promise<boolean> {
+export async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
   return bcrypt.compare(password, passwordHash)
 }
 
-export function signAccessToken(
-  config: AppConfig,
-  userId: string,
-  role: RoleName
-): string {
+export function signAccessToken(config: AppConfig, userId: string, role: RoleName): string {
   const { accessSecret } = requireJwtSecrets(config)
   const options: SignOptions = { expiresIn: config.jwtAccessExpiresIn as SignOptions['expiresIn'] }
   const payload: AccessTokenPayload = { sub: userId, role, typ: 'access' }
   return jwt.sign(payload, accessSecret, options)
 }
 
-export function signRefreshToken(
-  config: AppConfig,
-  userId: string,
-  role: RoleName
-): string {
+export function signRefreshToken(config: AppConfig, userId: string, role: RoleName): string {
   const { refreshSecret } = requireJwtSecrets(config)
   const options: SignOptions = {
     expiresIn: config.jwtRefreshExpiresIn as SignOptions['expiresIn'],
@@ -55,10 +44,7 @@ export function signRefreshToken(
   return jwt.sign(payload, refreshSecret, options)
 }
 
-export function verifyAccessToken(
-  config: AppConfig,
-  token: string
-): AccessTokenPayload {
+export function verifyAccessToken(config: AppConfig, token: string): AccessTokenPayload {
   const { accessSecret } = requireJwtSecrets(config)
   const decoded = jwt.verify(token, accessSecret)
   if (typeof decoded !== 'object' || decoded === null) {
@@ -71,10 +57,7 @@ export function verifyAccessToken(
   return payload
 }
 
-export function verifyRefreshToken(
-  config: AppConfig,
-  token: string
-): RefreshTokenPayload {
+export function verifyRefreshToken(config: AppConfig, token: string): RefreshTokenPayload {
   const { refreshSecret } = requireJwtSecrets(config)
   const decoded = jwt.verify(token, refreshSecret)
   if (typeof decoded !== 'object' || decoded === null) {

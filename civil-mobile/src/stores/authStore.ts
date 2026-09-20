@@ -1,37 +1,10 @@
-import * as SecureStore from 'expo-secure-store'
-import { Platform } from 'react-native'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import type { AuthTokens, AuthUser } from '@/services/auth'
 import * as authApi from '@/services/auth'
 
-const memoryStore = new Map<string, string>()
-
-const secureStorage = {
-  getItem: async (name: string) => {
-    if (Platform.OS === 'web') {
-      return memoryStore.get(name) ?? localStorage.getItem(name)
-    }
-    return SecureStore.getItemAsync(name)
-  },
-  setItem: async (name: string, value: string) => {
-    if (Platform.OS === 'web') {
-      memoryStore.set(name, value)
-      localStorage.setItem(name, value)
-      return
-    }
-    await SecureStore.setItemAsync(name, value)
-  },
-  removeItem: async (name: string) => {
-    if (Platform.OS === 'web') {
-      memoryStore.delete(name)
-      localStorage.removeItem(name)
-      return
-    }
-    await SecureStore.deleteItemAsync(name)
-  },
-}
+import { authStorage } from './authStorage'
 
 type AuthState = {
   user: AuthUser | null
@@ -48,6 +21,10 @@ type AuthState = {
   logout: () => Promise<void>
 }
 
+/**
+ * Client auth session only — not an API cache.
+ * Persist key + SecureStore: Docs/[3] Decisions/[5] Client State (Zustand).md
+ */
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -76,14 +53,29 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'civil-mobile-auth',
-      storage: createJSONStorage(() => secureStorage),
+      storage: createJSONStorage(() => authStorage),
       partialize: (state) => ({
         user: state.user,
         tokens: state.tokens,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true)
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          console.warn('auth rehydrate failed', error)
+        }
+        // Always clear the gate — including SSR / empty storage / errors
+        useAuthStore.setState({ isHydrated: true })
       },
-    }
-  )
+    },
+  ),
 )
+
+// SSR / first paint safety: never leave the spinner forever
+if (typeof window !== 'undefined') {
+  queueMicrotask(() => {
+    if (!useAuthStore.getState().isHydrated) {
+      useAuthStore.setState({ isHydrated: true })
+    }
+  })
+} else {
+  useAuthStore.setState({ isHydrated: true })
+}

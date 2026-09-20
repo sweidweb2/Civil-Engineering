@@ -1,0 +1,21 @@
+{
+  "name": "civil-engineering",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Civil Engineering monorepo — web, mobile, backend",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "npm run lint --prefix civil-web && npm run lint --prefix civil-mobile && npm run lint --prefix backend",
+    "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix civil-mobile && npm run typecheck --prefix backend",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -12,15 +12,10 @@ export type MaterialsService = {
   getMaterialById: (id: string) => Promise<Material>
   createMaterial: (input: CreateMaterialBody) => Promise<Material>
   updateMaterial: (id: string, input: UpdateMaterialBody) => Promise<Material>
-  recordStockMovement: (
-    materialId: string,
-    input: StockMovementBody
-  ) => Promise<StockMovement>
+  recordStockMovement: (materialId: string, input: StockMovementBody) => Promise<StockMovement>
 }
 
-export function createMaterialsService(
-  repository: MaterialsRepository
-): MaterialsService {
+export function createMaterialsService(repository: MaterialsRepository): MaterialsService {
   return {
     async listMaterials() {
       return repository.findMany()

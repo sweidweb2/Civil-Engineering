@@ -1,5 +1,5 @@
-import type { ReactNode } from "react"
-import { cn } from "cn"
+import { cn } from 'cn'
+import type { ReactNode } from 'react'
 
 type AppLayoutProps = {
   header?: ReactNode
@@ -12,7 +12,7 @@ function AppLayout({ header, sidebar, children, className }: AppLayoutProps) {
   return (
     <div
       data-slot="app-layout"
-      className={cn("flex min-h-svh w-full flex-col bg-background", className)}
+      className={cn('flex min-h-svh w-full flex-col bg-background', className)}
     >
       {header}
       <div className="flex min-h-0 flex-1">

@@ -8,11 +8,11 @@
 
 ## Decision
 
-| Branch | Environment | Purpose |
-| --- | --- | --- |
-| **`main`** | Production | Always deployable prod code |
-| **`dev`** | Staging | Integration branch; staging deploys from here |
-| **`feat/*`, `fix/*`, `chore/*`, …** | Local / PR | Short-lived work branches |
+| Branch                              | Environment | Purpose                                       |
+| ----------------------------------- | ----------- | --------------------------------------------- |
+| **`main`**                          | Production  | Always deployable prod code                   |
+| **`dev`**                           | Staging     | Integration branch; staging deploys from here |
+| **`feat/*`, `fix/*`, `chore/*`, …** | Local / PR  | Short-lived work branches                     |
 
 Workflow:
 
@@ -54,14 +54,14 @@ Hotfix (prod-only emergency): branch from `main` → PR into `main` → also mer
 
 Aligned with [Contributing](../[1]%20Main%20App/[3]%20Contributing.md):
 
-| Prefix | Use |
-| --- | --- |
-| `feat/` | Feature |
-| `fix/` | Bug fix |
-| `chore/` | Tooling, deps, cleanup |
-| `docs/` | Docs only |
-| `refactor/` | No behavior change |
-| `test/` | Tests only |
+| Prefix      | Use                    |
+| ----------- | ---------------------- |
+| `feat/`     | Feature                |
+| `fix/`      | Bug fix                |
+| `chore/`    | Tooling, deps, cleanup |
+| `docs/`     | Docs only              |
+| `refactor/` | No behavior change     |
+| `test/`     | Tests only             |
 
 Examples: `feat/backend-auth-login`, `fix/web-pagination`, `chore/docker`.
 
@@ -73,22 +73,22 @@ Configure on the host (GitHub/GitLab):
 
 ### `main` and `dev`
 
-| Rule | Setting |
-| --- | --- |
-| Direct pushes | **Disabled** for normal contributors |
-| Pull request required | **Yes** |
-| Required approvals | **Yes — repo owner reviews and merges** |
+| Rule                        | Setting                                           |
+| --------------------------- | ------------------------------------------------- |
+| Direct pushes               | **Disabled** for normal contributors              |
+| Pull request required       | **Yes**                                           |
+| Required approvals          | **Yes — repo owner reviews and merges**           |
 | Required status checks (CI) | **Yes** — lint, typecheck, tests, build must pass |
-| Conversations resolved | Recommended |
-| Delete branch on merge | **Yes** (enable auto-delete) |
+| Conversations resolved      | Recommended                                       |
+| Delete branch on merge      | **Yes** (enable auto-delete)                      |
 
 ### Merge strategy
 
-| Merge into | Strategy |
-| --- | --- |
-| `dev` ← feature/fix/chore | **Squash and merge** (clean history on `dev`) |
-| `main` ← `dev` (release) | **Merge commit** (keeps a clear release boundary) *or* squash if you prefer a flatter `main` — default: **merge commit** for `dev` → `main` |
-| Hotfix → `main` | Squash or merge commit; then sync to `dev` |
+| Merge into                | Strategy                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev` ← feature/fix/chore | **Squash and merge** (clean history on `dev`)                                                                                               |
+| `main` ← `dev` (release)  | **Merge commit** (keeps a clear release boundary) _or_ squash if you prefer a flatter `main` — default: **merge commit** for `dev` → `main` |
+| Hotfix → `main`           | Squash or merge commit; then sync to `dev`                                                                                                  |
 
 ---
 
@@ -108,9 +108,9 @@ On branch protection for `main` and `dev`:
 
 Use direct push only for:
 
-- Emergency hotfixes  
-- Repo bootstrap / protection setup  
-- Trivial doc/chore fixes when a full PR is pure overhead  
+- Emergency hotfixes
+- Repo bootstrap / protection setup
+- Trivial doc/chore fixes when a full PR is pure overhead
 
 Prefer a PR even as owner for anything non-trivial — CI still runs on PRs and review history stays clear.
 

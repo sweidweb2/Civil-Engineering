@@ -11,9 +11,7 @@ export type ExpensesService = {
   deleteExpense: (id: string) => Promise<void>
 }
 
-export function createExpensesService(
-  repository: ExpensesRepository
-): ExpensesService {
+export function createExpensesService(repository: ExpensesRepository): ExpensesService {
   return {
     async listExpenses(projectId) {
       return repository.findMany(projectId)

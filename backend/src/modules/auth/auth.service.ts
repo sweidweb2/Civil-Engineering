@@ -1,12 +1,8 @@
 import type { AppConfig } from '../../config/index.js'
-import {
-  conflict,
-  unauthorized,
-} from '../../errors/app-error.js'
+import { conflict, unauthorized } from '../../errors/app-error.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
 import type { LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
 import type { RoleName } from './auth.schema.js'
-import type { AuthTokens, AuthUserDto, LoginResult } from './auth.types.js'
 import {
   hashPassword,
   signAccessToken,
@@ -14,6 +10,7 @@ import {
   verifyPassword,
   verifyRefreshToken,
 } from './auth.tokens.js'
+import type { AuthTokens, AuthUserDto, LoginResult } from './auth.types.js'
 
 export type AuthService = {
   register: (input: RegisterBody) => Promise<LoginResult>
@@ -45,10 +42,7 @@ function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {
   }
 }
 
-export function createAuthService(
-  repository: AuthRepository,
-  config: AppConfig
-): AuthService {
+export function createAuthService(repository: AuthRepository, config: AppConfig): AuthService {
   return {
     async register(input) {
       const existing = await repository.findByEmail(input.email)

@@ -1,9 +1,4 @@
-export type ProjectStatus =
-  | 'draft'
-  | 'active'
-  | 'on_hold'
-  | 'completed'
-  | 'archived'
+export type ProjectStatus = 'draft' | 'active' | 'on_hold' | 'completed' | 'archived'
 
 export type Project = {
   id: string

@@ -14,8 +14,7 @@ module.exports = {
       type: 'android.apk',
       // Built after `npx expo prebuild` + assembleDebug — path may change
       binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
-      build:
-        'cd android && .\\gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug',
+      build: 'cd android && .\\gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug',
       reversePorts: [8081],
     },
   },

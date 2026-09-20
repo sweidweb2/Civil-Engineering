@@ -1,8 +1,4 @@
-import type {
-  AssignWorkerBody,
-  CreateWorkerBody,
-  UpdateWorkerBody,
-} from './workers.schema.js'
+import type { AssignWorkerBody, CreateWorkerBody, UpdateWorkerBody } from './workers.schema.js'
 import type { ProjectAssignment, Worker } from './workers.types.js'
 
 export type WorkersRepository = {
@@ -10,10 +6,7 @@ export type WorkersRepository = {
   findById: (id: string) => Promise<Worker | null>
   create: (input: CreateWorkerBody) => Promise<Worker>
   update: (id: string, input: UpdateWorkerBody) => Promise<Worker>
-  assign: (
-    workerId: string,
-    input: AssignWorkerBody
-  ) => Promise<ProjectAssignment>
+  assign: (workerId: string, input: AssignWorkerBody) => Promise<ProjectAssignment>
 }
 
 export function createWorkersRepository(): WorkersRepository {

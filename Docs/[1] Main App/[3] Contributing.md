@@ -13,15 +13,15 @@ If a change would alter stack, layers, API shape, or module boundaries — **ask
 
 ## Repository layout
 
-| Path | Own |
-| --- | --- |
-| `civil-web/` | React web client |
-| `civil-mobile/` | React Native (Expo) client |
-| `backend/` | Express API + Prisma + jobs |
-| `docker-compose*.yml` | Root Compose (local / production) |
-| `Docs/` | Architecture, checklists, prompts, decisions |
-| `.cursor/rules/` | AI / coding rules |
-| `infrastructure/` | Optional — Nginx / extra Docker only when real |
+| Path                  | Own                                            |
+| --------------------- | ---------------------------------------------- |
+| `civil-web/`          | React web client                               |
+| `civil-mobile/`       | React Native (Expo) client                     |
+| `backend/`            | Express API + Prisma + jobs                    |
+| `docker-compose*.yml` | Root Compose (local / production)              |
+| `Docs/`               | Architecture, checklists, prompts, decisions   |
+| `.cursor/rules/`      | AI / coding rules                              |
+| `infrastructure/`     | Optional — Nginx / extra Docker only when real |
 
 Work in the smallest relevant app. Do not cross-wire clients into the database.
 
@@ -33,7 +33,7 @@ Work in the smallest relevant app. Do not cross-wire clients into the database.
 - Repositories — **data access only**; no business orchestration.
 - Web / mobile — **REST `/api/v1` only**; never Postgres, Redis, or Prisma.
 - Validation: **Zod** on the backend (security); frontend Zod is UX only.
-- Client state: **Zustand** for UI/client state — not an API cache.
+- Client state: **Zustand** for UI/client state — not an API cache. Conventions: [`Docs/[3] Decisions/[5] Client State (Zustand).md`](<../[3]%20Decisions/[5]%20Client%20State%20(Zustand).md>).
 - Theme tokens live in `src/theme/` — not one-off magic numbers in components.
 - Do not introduce microservices, new major libraries, or parallel “god” folders without discussion.
 
@@ -54,22 +54,22 @@ Work in the smallest relevant app. Do not cross-wire clients into the database.
 
 Locked in [Git Branch Strategy](../[3]%20Decisions/[2]%20Git%20Branch%20Strategy.md):
 
-- **`main`** → production  
-- **`dev`** → staging / integration  
-- Short-lived `feat/*`, `fix/*`, `chore/*`, … → PR into `dev`, then promote `dev` → `main`  
-- PRs required; **CI must pass**; **repo owner merges**  
+- **`main`** → production
+- **`dev`** → staging / integration
+- Short-lived `feat/*`, `fix/*`, `chore/*`, … → PR into `dev`, then promote `dev` → `main`
+- PRs required; **CI must pass**; **repo owner merges**
 - **Owner may push directly** to `dev`/`main` via protection bypass (use sparingly)
 
 ### Branch naming
 
-| Prefix | Use |
-| --- | --- |
-| `feat/` | New feature |
-| `fix/` | Bug fix |
-| `chore/` | Tooling, deps, cleanup |
-| `docs/` | Documentation only |
+| Prefix      | Use                                       |
+| ----------- | ----------------------------------------- |
+| `feat/`     | New feature                               |
+| `fix/`      | Bug fix                                   |
+| `chore/`    | Tooling, deps, cleanup                    |
+| `docs/`     | Documentation only                        |
 | `refactor/` | Internal restructure (no behavior change) |
-| `test/` | Tests only |
+| `test/`     | Tests only                                |
 
 Examples:
 
@@ -152,14 +152,14 @@ Relevant places: `Docs/[1] Main App/`, root `README.md`, and `.cursor/rules/` wh
 
 ## Quick “do / don’t”
 
-| Do | Don’t |
-| --- | --- |
-| Follow existing module/feature layout | Invent a parallel structure |
-| Ask before architecture changes | Quietly switch stack or layers |
-| Keep PRs focused | Mix refactor + feature + formatting |
-| Validate & authorize on the backend | Trust the UI for security |
-| Reuse theme tokens & shared UI | Hardcode one-off spacing/colors everywhere |
-| Explain architectural diffs in the PR | Leave undocumented contract breaks |
+| Do                                    | Don’t                                      |
+| ------------------------------------- | ------------------------------------------ |
+| Follow existing module/feature layout | Invent a parallel structure                |
+| Ask before architecture changes       | Quietly switch stack or layers             |
+| Keep PRs focused                      | Mix refactor + feature + formatting        |
+| Validate & authorize on the backend   | Trust the UI for security                  |
+| Reuse theme tokens & shared UI        | Hardcode one-off spacing/colors everywhere |
+| Explain architectural diffs in the PR | Leave undocumented contract breaks         |
 
 ## Related docs
 

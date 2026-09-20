@@ -11,9 +11,7 @@ export type ProjectsService = {
   archiveProject: (id: string) => Promise<Project>
 }
 
-export function createProjectsService(
-  repository: ProjectsRepository
-): ProjectsService {
+export function createProjectsService(repository: ProjectsRepository): ProjectsService {
   return {
     async listProjects() {
       return repository.findMany()

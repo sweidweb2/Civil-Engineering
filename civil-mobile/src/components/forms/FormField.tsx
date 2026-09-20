@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'
 
 import {
   FormControl,
@@ -10,20 +10,20 @@ import {
   FormControlLabel,
   FormControlLabelAstrick,
   FormControlLabelText,
-} from '@/components/ui/form-control';
-import { AlertCircleIcon } from '@/components/ui/icon';
+} from '@/components/ui/form-control'
+import { AlertCircleIcon } from '@/components/ui/icon'
 
 type FormFieldProps = {
-  label?: string;
-  helperText?: string;
-  errorText?: string;
-  isRequired?: boolean;
-  isInvalid?: boolean;
-  isDisabled?: boolean;
-  isReadOnly?: boolean;
-  children: React.ReactNode;
-  className?: string;
-};
+  label?: string
+  helperText?: string
+  errorText?: string
+  isRequired?: boolean
+  isInvalid?: boolean
+  isDisabled?: boolean
+  isReadOnly?: boolean
+  children: React.ReactNode
+  className?: string
+}
 
 /**
  * Thin FormControl composition for labeled fields.
@@ -40,7 +40,7 @@ export function FormField({
   children,
   className,
 }: FormFieldProps) {
-  const showError = Boolean(isInvalid && errorText);
+  const showError = Boolean(isInvalid && errorText)
 
   return (
     <FormControl
@@ -70,7 +70,7 @@ export function FormField({
         </FormControlHelper>
       ) : null}
     </FormControl>
-  );
+  )
 }
 
 export {
@@ -83,4 +83,4 @@ export {
   FormControlLabel,
   FormControlLabelAstrick,
   FormControlLabelText,
-};
+}

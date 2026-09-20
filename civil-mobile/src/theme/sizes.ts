@@ -1,26 +1,23 @@
 /**
- * sizes.ts — reusable global dimensions.
- *
- * Prepare only shared layout/control sizes, e.g.:
- * - header
- * - buttonHeight
- * - inputHeight
- * - icon (or iconSm / iconMd / iconLg)
- * - avatar
- * - hitSlop / min tap target
- *
- * Do NOT put every component’s one-off size here.
- * Only global / reusable dimensions belong in this file.
- * (No sidebar / maxContentWidth required on mobile unless you reuse them.)
+ * sizes.ts — reusable layout / control dimensions (mobile, px).
+ * Touch targets follow ~44pt minimum where practical.
  */
 
 export const sizes = {
-  // header: 56,
-  // buttonHeight: 44,
-  // inputHeight: 44,
-  // icon: 24,
-  // avatar: 40,
-  // hitSlop: 8,
-} as const;
+  header: 56,
+  buttonHeight: 44,
+  buttonHeightSm: 36,
+  buttonHeightLg: 48,
+  inputHeight: 44,
+  iconSm: 16,
+  icon: 24,
+  iconLg: 28,
+  avatarSm: 32,
+  avatar: 40,
+  avatarLg: 56,
+  hitSlop: 8,
+  tabBar: 56,
+  maxContentWidth: 720,
+} as const
 
-export type SizeToken = keyof typeof sizes;
+export type SizeToken = keyof typeof sizes

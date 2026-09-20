@@ -10,9 +10,7 @@ export type WorkersController = {
   assign: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
-export function createWorkersController(
-  service: WorkersService
-): WorkersController {
+export function createWorkersController(service: WorkersService): WorkersController {
   return {
     async list(_req, res, next) {
       try {
@@ -40,10 +38,7 @@ export function createWorkersController(
     },
     async update(req, res, next) {
       try {
-        const worker = await service.updateWorker(
-          String(req.params.id),
-          req.body
-        )
+        const worker = await service.updateWorker(String(req.params.id), req.body)
         res.status(200).json(worker)
       } catch (error) {
         next(error)
@@ -51,10 +46,7 @@ export function createWorkersController(
     },
     async assign(req, res, next) {
       try {
-        const assignment = await service.assignWorkerToProject(
-          String(req.params.id),
-          req.body
-        )
+        const assignment = await service.assignWorkerToProject(String(req.params.id), req.body)
         res.status(201).json(assignment)
       } catch (error) {
         next(error)

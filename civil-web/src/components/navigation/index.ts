@@ -1,2 +1,2 @@
-export { Nav } from "./nav"
-export type { NavProps, NavItem } from "./nav"
+export type { NavItem,NavProps } from './nav'
+export { Nav } from './nav'

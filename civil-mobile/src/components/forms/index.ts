@@ -1,4 +1,4 @@
-export { FormField } from './FormField';
+export { FormField } from './FormField'
 export {
   FormControl,
   FormControlError,
@@ -9,4 +9,4 @@ export {
   FormControlLabel,
   FormControlLabelAstrick,
   FormControlLabelText,
-} from './FormField';
+} from './FormField'

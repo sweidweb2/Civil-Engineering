@@ -21,12 +21,7 @@ export const authDomain = {
       description: 'Hashed password material — never plaintext.',
     },
   ],
-  useCases: [
-    'register',
-    'login',
-    'refreshTokens',
-    'logout',
-  ],
+  useCases: ['register', 'login', 'refreshTokens', 'logout'],
   relationships: [
     'References User by userId (users module owns User profile).',
     'Issues tokens consumed by API authenticate middleware.',

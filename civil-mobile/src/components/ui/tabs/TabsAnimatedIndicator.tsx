@@ -1,31 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
+import { Platform } from 'react-native'
+import type { LayoutData } from '@gluestack-ui/core/tabs/creator'
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
   Easing,
   SharedValue,
-} from 'react-native-reanimated';
-import type { LayoutData } from '@gluestack-ui/core/tabs/creator';
-import { tabsAnimationConfig } from './animation-config';
-import { Platform } from 'react-native';
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated'
+
+import { tabsAnimationConfig } from './animation-config'
 
 interface TabsAnimatedIndicatorProps {
-  selectedKey: any;
-  orientation: 'horizontal' | 'vertical';
-  triggerLayouts: Map<any, LayoutData>;
-  scrollOffset?: number;
-  animatedScrollOffset?: SharedValue<number>;
-  className?: string;
-  style?: any;
+  selectedKey: any
+  orientation: 'horizontal' | 'vertical'
+  triggerLayouts: Map<any, LayoutData>
+  scrollOffset?: number
+  animatedScrollOffset?: SharedValue<number>
+  className?: string
+  style?: any
 }
-const isWeb = Platform.OS === 'web';
+const isWeb = Platform.OS === 'web'
 
-export const TabsAnimatedIndicator = React.forwardRef<
-  any,
-  TabsAnimatedIndicatorProps
->(
+export const TabsAnimatedIndicator = React.forwardRef<any, TabsAnimatedIndicatorProps>(
   (
     {
       selectedKey,
@@ -36,33 +34,31 @@ export const TabsAnimatedIndicator = React.forwardRef<
       className,
       style,
     },
-    ref
+    ref,
   ) => {
-    const animatedX = useSharedValue(0);
-    const animatedY = useSharedValue(0);
-    const animatedWidth = useSharedValue(0);
-    const animatedHeight = useSharedValue(0);
-    const [hasLayout, setHasLayout] = useState(false);
+    const animatedX = useSharedValue(0)
+    const animatedY = useSharedValue(0)
+    const animatedWidth = useSharedValue(0)
+    const animatedHeight = useSharedValue(0)
+    const [hasLayout, setHasLayout] = useState(false)
     // Create a shared value for scroll offset to use in worklet
-    const scrollOffsetShared = useSharedValue(scrollOffset);
+    const scrollOffsetShared = useSharedValue(scrollOffset)
 
     // Update scroll offset shared value when scrollOffset changes
     useEffect(() => {
       if (!animatedScrollOffset) {
-        scrollOffsetShared.value = scrollOffset;
+        scrollOffsetShared.value = scrollOffset
       }
-    }, [scrollOffset, scrollOffsetShared, animatedScrollOffset]);
+    }, [scrollOffset, scrollOffsetShared, animatedScrollOffset])
 
     useEffect(() => {
       if (selectedKey && triggerLayouts.has(selectedKey)) {
-        const layout = triggerLayouts.get(selectedKey);
+        const layout = triggerLayouts.get(selectedKey)
 
         if (layout && layout.width > 0) {
           // Determine if this is the first time we're setting values
-          const isFirstRender = !hasLayout;
-          const duration = isFirstRender
-            ? 0
-            : tabsAnimationConfig.indicatorDuration;
+          const isFirstRender = !hasLayout
+          const duration = isFirstRender ? 0 : tabsAnimationConfig.indicatorDuration
 
           // Store the absolute x position (not adjusted for scroll)
           animatedX.value = withDelay(
@@ -70,23 +66,23 @@ export const TabsAnimatedIndicator = React.forwardRef<
             withTiming(layout.x, {
               duration: duration,
               easing: Easing.ease,
-            })
-          );
+            }),
+          )
           animatedY.value = withTiming(layout.y, {
             duration: duration,
             easing: Easing.ease,
-          });
+          })
           animatedWidth.value = withTiming(layout.width, {
             duration: duration,
             easing: Easing.ease,
-          });
+          })
           animatedHeight.value = withTiming(layout.height, {
             duration: duration,
             easing: Easing.ease,
-          });
+          })
 
           if (!hasLayout) {
-            setHasLayout(true);
+            setHasLayout(true)
           }
         }
       }
@@ -98,18 +94,17 @@ export const TabsAnimatedIndicator = React.forwardRef<
       animatedY,
       animatedWidth,
       animatedHeight,
-    ]);
+    ])
 
     const animatedStyle = useAnimatedStyle(() => {
-      'worklet';
+      'worklet'
 
       const scrollOffsetValue = animatedScrollOffset
         ? animatedScrollOffset.value
-        : scrollOffsetShared.value;
+        : scrollOffsetShared.value
 
-      const xPos = orientation === 'horizontal'
-        ? animatedX.value - scrollOffsetValue
-        : animatedX.value;
+      const xPos =
+        orientation === 'horizontal' ? animatedX.value - scrollOffsetValue : animatedX.value
 
       // Web: react-native-reanimated does not reliably flush the transform
       // array to a CSS transform string, so use left/top instead.
@@ -120,7 +115,7 @@ export const TabsAnimatedIndicator = React.forwardRef<
           top: animatedY.value,
           width: animatedWidth.value,
           height: animatedHeight.value,
-        };
+        }
       }
 
       return {
@@ -130,12 +125,12 @@ export const TabsAnimatedIndicator = React.forwardRef<
         ],
         width: animatedWidth.value,
         height: animatedHeight.value,
-      };
-    }, [orientation, animatedX, animatedY, animatedWidth, animatedHeight]);
+      }
+    }, [orientation, animatedX, animatedY, animatedWidth, animatedHeight])
 
     // Don't render indicator until we have valid layout data
     if (!hasLayout) {
-      return null;
+      return null
     }
 
     return (
@@ -151,8 +146,8 @@ export const TabsAnimatedIndicator = React.forwardRef<
           },
         ]}
       />
-    );
-  }
-);
+    )
+  },
+)
 
-TabsAnimatedIndicator.displayName = 'TabsAnimatedIndicator';
+TabsAnimatedIndicator.displayName = 'TabsAnimatedIndicator'

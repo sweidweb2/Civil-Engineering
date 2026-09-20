@@ -1,7 +1,13 @@
 import { z } from 'zod'
 
+import { paginationQuerySchema } from '../_shared/pagination.schema.js'
+
 export const expenseIdParamsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().trim().min(1),
+})
+
+export const listExpensesQuerySchema = paginationQuerySchema.extend({
+  projectId: z.string().min(1).optional(),
 })
 
 export const createExpenseBodySchema = z.object({
@@ -27,5 +33,6 @@ export const updateExpenseBodySchema = z
     message: 'At least one field is required',
   })
 
+export type ListExpensesQuery = z.infer<typeof listExpensesQuerySchema>
 export type CreateExpenseBody = z.infer<typeof createExpenseBodySchema>
 export type UpdateExpenseBody = z.infer<typeof updateExpenseBodySchema>

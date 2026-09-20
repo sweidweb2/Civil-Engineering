@@ -1,6 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
-  'http://localhost:3000/api/v1'
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:3000/api/v1'
 
 export type ApiErrorBody = {
   error?: {
@@ -24,7 +23,7 @@ export class ApiError extends Error {
 
 export async function apiRequest<T>(
   path: string,
-  options: RequestInit & { accessToken?: string | null } = {}
+  options: RequestInit & { accessToken?: string | null } = {},
 ): Promise<T> {
   const { accessToken, headers, ...rest } = options
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -43,8 +42,7 @@ export async function apiRequest<T>(
   const data = (await response.json().catch(() => ({}))) as ApiErrorBody & T
 
   if (!response.ok) {
-    const message =
-      data.error?.message || data.message || `Request failed (${response.status})`
+    const message = data.error?.message || data.message || `Request failed (${response.status})`
     throw new ApiError(response.status, message, data.error?.code)
   }
 

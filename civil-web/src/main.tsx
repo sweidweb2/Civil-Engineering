@@ -1,13 +1,15 @@
-import { StrictMode } from "react"
-import { createRoot } from "react-dom/client"
-import { ThemeProvider } from "next-themes"
+import './index.css'
 
-import { Toaster } from "@/components/ui/sonner"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import App from "./App.tsx"
-import "./index.css"
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { ThemeProvider } from 'next-themes'
 
-createRoot(document.getElementById("root")!).render(
+import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
       <TooltipProvider>
@@ -15,5 +17,5 @@ createRoot(document.getElementById("root")!).render(
         <Toaster />
       </TooltipProvider>
     </ThemeProvider>
-  </StrictMode>
+  </StrictMode>,
 )

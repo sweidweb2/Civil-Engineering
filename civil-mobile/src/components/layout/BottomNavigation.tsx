@@ -1,23 +1,23 @@
-import React from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { HStack } from '@/components/ui/hstack';
-import { Pressable } from '@/components/ui/pressable';
-import { Text } from '@/components/ui/text';
-import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack'
+import { Pressable } from '@/components/ui/pressable'
+import { Text } from '@/components/ui/text'
+import { VStack } from '@/components/ui/vstack'
 
 export type BottomNavItem = {
-  key: string;
-  label: string;
-  icon?: React.ReactNode;
-  isActive?: boolean;
-  onPress?: () => void;
-};
+  key: string
+  label: string
+  icon?: React.ReactNode
+  isActive?: boolean
+  onPress?: () => void
+}
 
 type BottomNavigationProps = {
-  items: BottomNavItem[];
-  className?: string;
-};
+  items: BottomNavItem[]
+  className?: string
+}
 
 /**
  * Domain-agnostic bottom tab chrome.
@@ -25,7 +25,7 @@ type BottomNavigationProps = {
  * use this for secondary / feature-local bottom bars.
  */
 export function BottomNavigation({ items, className }: BottomNavigationProps) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets()
 
   return (
     <HStack
@@ -44,9 +44,7 @@ export function BottomNavigation({ items, className }: BottomNavigationProps) {
             {item.icon}
             <Text
               size="xs"
-              className={
-                item.isActive ? 'text-primary font-medium' : 'text-muted-foreground'
-              }
+              className={item.isActive ? 'text-primary font-medium' : 'text-muted-foreground'}
             >
               {item.label}
             </Text>
@@ -54,5 +52,5 @@ export function BottomNavigation({ items, className }: BottomNavigationProps) {
         </Pressable>
       ))}
     </HStack>
-  );
+  )
 }

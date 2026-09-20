@@ -1,25 +1,20 @@
 import { HardHat } from 'lucide-react'
-import { Navigate } from 'react-router-dom'
 
+import { Can } from '@/components/auth'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useAuthStore } from '@/stores/authStore'
 
 export function HomePage() {
+  useDocumentTitle('Home')
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const isHydrated = useAuthStore((s) => s.isHydrated)
-
-  if (!isHydrated) {
-    return (
-      <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
-        Loading…
-      </div>
-    )
-  }
+  const { isStaff } = usePermissions()
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return null
   }
 
   const name =
@@ -32,9 +27,14 @@ export function HomePage() {
       <Header>
         <div className="flex w-full items-center justify-between gap-3">
           <h1 className="text-base font-semibold text-foreground">Home</h1>
-          <Button type="button" variant="outline" size="sm" onClick={() => void logout()}>
-            Log out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Can roles={['SUPER', 'ADMIN']}>
+              <span className="text-xs text-muted-foreground">Admin tools</span>
+            </Can>
+            <Button type="button" variant="outline" size="sm" onClick={() => void logout()}>
+              Log out
+            </Button>
+          </div>
         </div>
       </Header>
 
@@ -44,8 +44,8 @@ export function HomePage() {
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">Welcome, {name}</h2>
         <p className="text-muted-foreground">
-          You are signed in as <span className="font-medium text-foreground">{user.role}</span>.
-          This is your home base for Civil Engineering.
+          You are signed in as <span className="font-medium text-foreground">{user.role}</span>
+          {isStaff ? ' (staff)' : ''}. This is your home base for Civil Engineering.
         </p>
       </main>
     </div>

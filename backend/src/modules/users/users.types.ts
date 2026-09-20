@@ -1,12 +1,6 @@
 export type UserStatus = 'ACTIVE' | 'INACTIVE'
 
-export type UserRole =
-  | 'SUPER'
-  | 'ADMIN'
-  | 'PROVIDER'
-  | 'WORKER'
-  | 'MANAGER'
-  | 'CLIENT'
+export type UserRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
 
 export type UserProfile = {
   firstName: string | null

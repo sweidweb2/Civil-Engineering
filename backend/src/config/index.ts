@@ -14,6 +14,11 @@ const baseEnvSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1).optional(),
   JWT_ACCESS_EXPIRES_IN: z.string().min(1).default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().min(1).default('7d'),
+  JSON_BODY_LIMIT: z.string().min(1).default('100kb'),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 })
 
 export type AppConfig = {
@@ -26,6 +31,11 @@ export type AppConfig = {
   jwtRefreshSecret?: string
   jwtAccessExpiresIn: string
   jwtRefreshExpiresIn: string
+  jsonBodyLimit: string
+  rateLimitWindowMs: number
+  rateLimitMax: number
+  authRateLimitWindowMs: number
+  authRateLimitMax: number
 }
 
 function parseCorsOrigins(raw: string | undefined, env: AppConfig['env']): string[] {
@@ -78,6 +88,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     jwtRefreshSecret: data.JWT_REFRESH_SECRET,
     jwtAccessExpiresIn: data.JWT_ACCESS_EXPIRES_IN,
     jwtRefreshExpiresIn: data.JWT_REFRESH_EXPIRES_IN,
+    jsonBodyLimit: data.JSON_BODY_LIMIT,
+    rateLimitWindowMs: data.RATE_LIMIT_WINDOW_MS,
+    rateLimitMax: data.RATE_LIMIT_MAX,
+    authRateLimitWindowMs: data.AUTH_RATE_LIMIT_WINDOW_MS,
+    authRateLimitMax: data.AUTH_RATE_LIMIT_MAX,
   }
 }
 
@@ -86,9 +101,7 @@ export function requireJwtSecrets(config: AppConfig): {
   refreshSecret: string
 } {
   if (!config.jwtAccessSecret || !config.jwtRefreshSecret) {
-    throw new Error(
-      'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are required for authentication'
-    )
+    throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are required for authentication')
   }
   return {
     accessSecret: config.jwtAccessSecret,

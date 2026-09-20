@@ -1,17 +1,17 @@
-import React from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Box } from '@/components/ui/box';
+import { Box } from '@/components/ui/box'
 
 type AppLayoutProps = {
-  children: React.ReactNode;
-  className?: string;
+  children: React.ReactNode
+  className?: string
   /** When false, skips top safe-area padding (e.g. under a custom header). */
   edges?: {
-    top?: boolean;
-    bottom?: boolean;
-  };
-};
+    top?: boolean
+    bottom?: boolean
+  }
+}
 
 /**
  * Root application chrome: flex fill + safe-area padding.
@@ -22,7 +22,7 @@ export function AppLayout({
   className,
   edges = { top: true, bottom: true },
 }: AppLayoutProps) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets()
 
   return (
     <Box
@@ -34,5 +34,5 @@ export function AppLayout({
     >
       {children}
     </Box>
-  );
+  )
 }

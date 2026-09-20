@@ -10,9 +10,7 @@ export type ProjectsController = {
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
-export function createProjectsController(
-  service: ProjectsService
-): ProjectsController {
+export function createProjectsController(service: ProjectsService): ProjectsController {
   return {
     async list(_req, res, next) {
       try {
@@ -41,10 +39,7 @@ export function createProjectsController(
     },
     async update(req, res, next) {
       try {
-        const project = await service.updateProject(
-          String(req.params.id),
-          req.body
-        )
+        const project = await service.updateProject(String(req.params.id), req.body)
         res.status(200).json(project)
       } catch (error) {
         next(error)

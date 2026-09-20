@@ -8,11 +8,11 @@
 
 Repo paths (actual):
 
-| Logical app | Folder |
-| --- | --- |
-| Web | `civil-web/` |
-| Mobile | `civil-mobile/` |
-| Backend | `backend/` |
+| Logical app | Folder          |
+| ----------- | --------------- |
+| Web         | `civil-web/`    |
+| Mobile      | `civil-mobile/` |
+| Backend     | `backend/`      |
 
 ---
 

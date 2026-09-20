@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import request from 'supertest'
 import { Pool } from 'pg'
+import request from 'supertest'
+import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+
 import { createApp } from '../../src/app.js'
 import { loadConfig } from '../../src/config/index.js'
 
@@ -11,8 +12,7 @@ import { loadConfig } from '../../src/config/index.js'
  * Docker compose URL: postgresql://postgres:postgres@127.0.0.1:5433/civil_test
  */
 const DATABASE_URL =
-  process.env.DATABASE_URL ??
-  'postgresql://postgres:postgres@127.0.0.1:55432/civil_test'
+  process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55432/civil_test'
 
 const config = loadConfig({
   NODE_ENV: 'test',

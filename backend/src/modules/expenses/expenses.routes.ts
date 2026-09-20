@@ -5,29 +5,22 @@ import type { ExpensesController } from './expenses.controller.js'
 import {
   createExpenseBodySchema,
   expenseIdParamsSchema,
+  listExpensesQuerySchema,
   updateExpenseBodySchema,
 } from './expenses.schema.js'
 
 export function createExpensesRoutes(controller: ExpensesController): Router {
   const router = Router()
 
-  router.get('/', controller.list)
-  router.get(
-    '/:id',
-    validate({ params: expenseIdParamsSchema }),
-    controller.getById
-  )
+  router.get('/', validate({ query: listExpensesQuerySchema }), controller.list)
+  router.get('/:id', validate({ params: expenseIdParamsSchema }), controller.getById)
   router.post('/', validate({ body: createExpenseBodySchema }), controller.create)
   router.patch(
     '/:id',
     validate({ params: expenseIdParamsSchema, body: updateExpenseBodySchema }),
-    controller.update
+    controller.update,
   )
-  router.delete(
-    '/:id',
-    validate({ params: expenseIdParamsSchema }),
-    controller.remove
-  )
+  router.delete('/:id', validate({ params: expenseIdParamsSchema }), controller.remove)
 
   return router
 }

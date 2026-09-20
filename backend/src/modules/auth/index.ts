@@ -9,7 +9,7 @@ export function createAuthModule(config: AppConfig = loadConfig()) {
   const repository = createAuthRepository()
   const service = createAuthService(repository, config)
   const controller = createAuthController(service)
-  return createAuthRoutes(controller)
+  return createAuthRoutes(controller, config)
 }
 
 export { authDomain } from './auth.domain.js'

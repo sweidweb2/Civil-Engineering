@@ -8,23 +8,23 @@
  * Web includes breakpoints + zIndex; mobile does not.
  */
 
-export * from './colors';
-export * from './spacing';
-export * from './typography';
-export * from './radius';
-export * from './shadows';
-export * from './sizes';
-export * from './breakpoints';
-export * from './zIndex';
+export * from './breakpoints'
+export * from './colors'
+export * from './radius'
+export * from './shadows'
+export * from './sizes'
+export * from './spacing'
+export * from './typography'
+export * from './zIndex'
 
-import { colors } from './colors';
-import { spacing } from './spacing';
-import { typography } from './typography';
-import { radius } from './radius';
-import { shadows } from './shadows';
-import { sizes } from './sizes';
-import { breakpoints } from './breakpoints';
-import { zIndex } from './zIndex';
+import { breakpoints } from './breakpoints'
+import { colors } from './colors'
+import { radius } from './radius'
+import { shadows } from './shadows'
+import { sizes } from './sizes'
+import { spacing } from './spacing'
+import { typography } from './typography'
+import { zIndex } from './zIndex'
 
 export const theme = {
   colors,
@@ -35,6 +35,6 @@ export const theme = {
   sizes,
   breakpoints,
   zIndex,
-} as const;
+} as const
 
-export type Theme = typeof theme;
+export type Theme = typeof theme

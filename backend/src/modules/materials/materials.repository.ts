@@ -10,10 +10,7 @@ export type MaterialsRepository = {
   findById: (id: string) => Promise<Material | null>
   create: (input: CreateMaterialBody) => Promise<Material>
   update: (id: string, input: UpdateMaterialBody) => Promise<Material>
-  recordMovement: (
-    materialId: string,
-    input: StockMovementBody
-  ) => Promise<StockMovement>
+  recordMovement: (materialId: string, input: StockMovementBody) => Promise<StockMovement>
 }
 
 export function createMaterialsRepository(): MaterialsRepository {

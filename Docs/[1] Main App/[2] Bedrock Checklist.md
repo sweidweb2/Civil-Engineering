@@ -74,7 +74,6 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 > Note: Domains are mostly API stubs. **User + Profile** Prisma models are live for auth. Other domains still provisional until their tables land.
 
-
 ---
 
 ## 5. Database Foundation
@@ -101,7 +100,6 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Rule locked: migrations are versioned; no manual prod replay as source of truth
 
 > Note: Prisma 7 + `@prisma/adapter-pg`. Models: `User`, `Profile` (+ `Role`, `UserStatus`). Migration `users_and_profiles` applied. Other domains TBD.
-
 
 ---
 
@@ -152,12 +150,14 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Validation (Zod)
 
-- [ ] Body validation
-- [ ] Query validation
-- [ ] Params validation
+- [x] Body validation
+- [x] Query validation
+- [x] Params validation
 - [x] Backend validation mandatory
 - [x] Frontend validation for UX only
 - [x] Shared validation strategy documented
+
+> Note: `validate({ body | query | params })` middleware on domain routes. Shared `paginationQuerySchema` for list queries. Invalid input → `400 VALIDATION_ERROR`.
 
 ### Errors
 
@@ -176,17 +176,19 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Routing setup
 - [x] Feature-based `src/features/` structure
 - [x] Shared `components/`
-- [ ] Shared `hooks/`
+- [x] Shared `hooks/` (`useRemoteData`, `usePermissions`, `useMediaQuery`, `useDocumentTitle`)
 - [x] `services/` API layer
 - [x] Client state approach (Zustand)
-- [ ] Server-state approach decided
-- [ ] Forms + Zod validation approach
-- [ ] Loading / error UI patterns
-  - [ ] Inline loading / error states per feature (not one global spinner)
-  - [ ] Toast for non-blocking API / mutation failures
-  - [ ] Customized error pages (web-only): 404, unexpected/500, React error-boundary fallback
-  - [ ] Rule locked: full-page error routes are for `civil-web` only
-- [ ] Auth + UI permission handling
+- [x] Server-state approach decided — fetch via `services/` + local/`useRemoteData` per feature; Zustand is not an API cache; dedicated cache lib (e.g. TanStack Query) deferred until needed
+- [x] Forms + Zod validation approach — feature `*.schema.ts` + `parseForm` + Field primitives (no react-hook-form); frontend Zod = UX only
+- [x] Loading / error UI patterns
+  - [x] Inline loading / error states per feature (not one global spinner) — `AsyncState` / `InlineSpinner`
+  - [x] Toast for non-blocking API / mutation failures — Sonner + `toastApiError`
+  - [x] Customized error pages (web-only): 404, unexpected/500, React error-boundary fallback
+  - [x] Rule locked: full-page error routes are for `civil-web` only
+- [x] Auth + UI permission handling — `RequireAuth` / `GuestOnly` / `RequireRole` / `Can` + `usePermissions` (UX only; backend authz is authority)
+
+> Note: Error routes (`*` → 404, `/500`, `ErrorBoundary`) live in `civil-web` only. Mobile uses inline / toast / navigate instead.
 
 ---
 
@@ -194,24 +196,24 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 - [x] React Native + TypeScript + Expo ready
 - [x] Navigation setup
-- [ ] Feature-based `src/features/` structure
-- [ ] Screens / components / hooks layout
+- [x] Feature-based `src/features/` structure
+- [x] Screens / components / hooks layout
 - [x] `services/` API layer
 - [x] Secure token storage (`expo-secure-store`)
 - [x] Client state approach (Zustand)
-- [ ] Forms + validation approach
-- [ ] Loading / error handling
-  - [ ] Inline loading / error + retry on screens (failed fetches)
-  - [ ] Toast for quick / non-blocking API failures
-  - [ ] Alert for blocking failures when confirmation is required
-  - [ ] Navigate back / to login for missing resource or auth failures
-  - [ ] Optional single global crash fallback screen (not a set of error routes)
-  - [ ] Rule locked: no dedicated 404/500-style error pages on mobile — toast / inline / navigate instead
-- [ ] Deep linking (if in scope)
-- [ ] Notifications (if in scope)
+- [x] Forms + validation approach — feature `*.schema.ts` + `parseForm` + `FormField` (frontend Zod = UX only)
+- [x] Loading / error handling
+  - [x] Inline loading / error + retry on screens (failed fetches) — `AsyncState` + `useRemoteData`
+  - [x] Toast for quick / non-blocking API failures — `useToastApiError`
+  - [x] Alert for blocking failures when confirmation is required — `showBlockingAlert` / `showApiAlert`
+  - [x] Navigate back / to login for missing resource or auth failures — `handleAuthFailure` (401/403 → logout + `/login`)
+  - [x] Optional single global crash fallback screen (not a set of error routes) — `ErrorBoundary`
+  - [x] Rule locked: no dedicated 404/500-style error pages on mobile — toast / inline / navigate instead
+- [x] Deep linking (if in scope) — Expo Router + `scheme: civilmobile` in `app.json`; custom link map TBD with features
+- [ ] Notifications (if in scope) — deferred; not in bedrock scope yet
 - [x] Dev / preview / prod env config
 
-> Note: Expo Router template navigation exists; feature folders / API layer not created yet.
+> Note: Routes under `src/app/` stay thin; screens live in `src/features/<feature>/`. No mobile error-page catalog (web-only).
 
 ---
 
@@ -242,17 +244,17 @@ Track foundation work only. Check items when done. Do not expand into essays her
 ### Tokens to fill
 
 - [x] Brand colors (`primary` `#2FA084`, `secondary` `#6FCF97` — light mode, web + mobile)
-- [ ] Semantic colors (success / warning / error / info / disabled) — `success` filled; rest TBD
-- [x] Background / surface / text / border (light mode, web + mobile)
-- [ ] Spacing scale
-- [ ] Typography + semantic text styles
-- [ ] Radius scale
-- [ ] Shadow scale
-- [ ] Global sizes
-- [ ] Web breakpoints
-- [ ] Web z-index layers
+- [x] Semantic colors (success / warning / error / info / disabled) — light mode, web + mobile
+- [x] Background / surface / text / border (light mode, web + mobile) — surface `#FFFFFF`, muted text + softer border
+- [x] Spacing scale — 4px base (`none`…`3xl`)
+- [x] Typography + semantic text styles — Geist (web) / System (mobile); h1–h3, body, caption, label, button
+- [x] Radius scale — `none`…`full`
+- [x] Shadow scale — `none`…`xl` (CSS web / RN elevation mobile)
+- [x] Global sizes — header, controls, icons, avatars, content widths
+- [x] Web breakpoints — `sm` 640 → `2xl` 1536
+- [x] Web z-index layers — dropdown → tooltip
 
-> Note: light brand + surface tokens filled in `colors.ts` (web + mobile). Dark mode and remaining scales still empty/commented.
+> Note: Light-mode tokens filled in `civil-web/src/theme/` and `civil-mobile/src/theme/`. Dark mode still TBD.
 
 ---
 
@@ -361,16 +363,17 @@ Track foundation work only. Check items when done. Do not expand into essays her
   - [x] Components remain domain-independent and reusable
   - [x] Encapsulate mobile-specific UI logic within mobile codebase only
 
-
 ## 13. State / Data Foundation
 
-- [ ] Zustand adopted for client / UI state
+- [x] Zustand adopted for client / UI state — `useAuthStore` on web + mobile
 - [x] What belongs in Zustand defined
 - [x] What must NOT go in Zustand defined
-- [ ] Store structure / naming defined
-- [ ] Persistence rules defined (if any)
-- [ ] Server-state tool chosen (e.g. TanStack Query) or deferred intentionally
+- [x] Store structure / naming defined — `<domain>Store.ts` / `use<Domain>Store` / `civil-<app>-<domain>` keys
+- [x] Persistence rules defined — default off; auth session only (`user`+`tokens`); web `localStorage`, mobile SecureStore; always `partialize` + `isHydrated` gate
+- [x] Server-state tool chosen (e.g. TanStack Query) or deferred intentionally — deferred; use `services/` + `useRemoteData` / local feature state until a cache lib is justified
 - [x] Rule locked: Zustand ≠ API cache / database
+
+> Decision: [`Docs/[3] Decisions/[5] Client State (Zustand).md`](<../[3]%20Decisions/[5]%20Client%20State%20(Zustand).md>)
 
 ---
 
@@ -433,38 +436,38 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ## 17. Security Foundation
 
-- [ ] HTTPS
+- [x] HTTPS — TLS at Nginx edge only; Express internal HTTP + `TRUST_PROXY` in staging/prod
 - [x] CORS allowlist
-- [ ] Security headers (Helmet)
-- [x] Rate limiting
-- [ ] Request size limiting
+- [x] Security headers (Helmet)
+- [x] Rate limiting — general API + stricter `/auth/*` (`express-rate-limit`)
+- [x] Request size limiting — `express.json({ limit: JSON_BODY_LIMIT })` default `100kb`
 - [x] Input validation on backend
 - [x] Authn + authz enforced server-side
-- [ ] Password hashing
+- [x] Password hashing — bcrypt cost 12
 - [x] Access / refresh token security
 - [x] Secure cookie / secure mobile token storage
 - [x] Secrets management
 - [x] SQL injection prevention (Prisma / parameterized)
 - [x] File-upload security
 - [x] No sensitive data in logs
-- [ ] Dependency audit process
-- [ ] Production security config reviewed
+- [x] Dependency audit process — `audit:deps` (high) + CI `audit:deps:ci` (critical gate)
+- [x] Production security config reviewed — pre-deploy checklist in Security decision
 
-> Note: many security items are **rules/conventions locked**, not runtime middleware yet.
+> Decision: [`Docs/[3] Decisions/[6] Security Foundation.md`](../[3]%20Decisions/[6]%20Security%20Foundation.md)
 
 ---
 
 ## 18. Testing Foundation
 
 - [x] Unit test approach
-- [ ] Service tests
-- [ ] Repository / integration tests
-- [ ] API tests (incl. auth / authz)
-- [ ] E2E tests (web; mobile as needed)
-- [ ] Test DB / fixtures strategy
-- [ ] CI runs tests
+- [x] Service tests
+- [x] Repository / integration tests
+- [x] API tests (incl. auth / authz)
+- [x] E2E tests (web; mobile as needed)
+- [x] Test DB / fixtures strategy
+- [x] CI runs tests
 
-> Locked stack + CI scaffold: `Docs/[3] Decisions/[3] CI & Testing.md`, libraries in `Docs/[1] Main App/[4] Libraries.md`, workflow `.github/workflows/ci.yml`. Packages/scripts not installed yet.
+> Stack + scripts live: `Docs/[3] Decisions/[3] CI & Testing.md`, `.github/workflows/ci.yml`. Backend: Vitest unit (auth/health/tokens/authenticate) + integration (health/validation/auth API) + e2e (health/auth vs Test Postgres). Web: Vitest unit + Playwright auth smoke. Mobile: Jest `parseForm` unit. Authz resource checks still thin until protected domain routes land.
 
 ---
 
@@ -524,7 +527,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [ ] Deploy to production
 - [ ] Rollback approach
 
-> Workflow scaffold exists (change detection + quality + per-app jobs). Will stay soft/TODO until scripts & libs are installed.
+> Workflow runs change detection + quality + per-app jobs (incl. backend migrate + JWT env for auth tests).
 
 ---
 
@@ -552,12 +555,12 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 ## 24. Documentation Foundation
 
-- [ ] `docs/architecture/`
-- [ ] `docs/api/`
-- [ ] `docs/database/`
-- [ ] `docs/deployment/`
-- [ ] `docs/development/`
-- [ ] `docs/decisions/`
+- [x] `docs/architecture/`
+- [x] `docs/api/`
+- [x] `docs/database/`
+- [x] `docs/deployment/`
+- [x] `docs/development/`
+- [x] `docs/decisions/`
 - [x] Architecture documented
 - [x] Folder conventions documented
 - [x] API conventions documented
@@ -568,9 +571,9 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] Deployment / Docker documented
 - [x] Code rules documented
 - [x] Key decisions recorded
-- [ ] Docs kept in sync with code
+- [x] Docs kept in sync with code
 
-> Note: content lives under `Docs/[1] Main App/` + `Docs/[2] Prompts/` + `.cursor/rules/` (not the `docs/architecture/` tree yet).
+> Note: `docs/` is an **index** (README map per topic). Long-form truth stays in `Docs/[1] Main App/`, `Docs/[3] Decisions/`, and `.cursor/rules/`. Sync rule: update sources first, then checklist / index links — see `docs/README.md`.
 
 ---
 
@@ -593,7 +596,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 - [x] `docs/` tree in place (as needed)
 - [ ] `civil-web/src/` feature + theme + services layout
-- [ ] `civil-mobile/src/` feature + theme + services + navigation layout
+- [x] `civil-mobile/src/` feature + theme + services + navigation layout
 - [ ] `backend/src/modules/` + middleware / config / database / jobs
 - [x] `backend/prisma/` schema + migrations
 - [x] Root `docker-compose.yml` + `docker-compose.staging.yml` + `docker-compose.production.yml`

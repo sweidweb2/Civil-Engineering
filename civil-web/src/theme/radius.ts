@@ -1,25 +1,15 @@
 /**
- * radius.ts — border-radius system.
- *
- * Prepare:
- * - none
- * - sm
- * - md
- * - lg
- * - xl
- * - full
- *
- * So components don't randomly use 7px, 13px, 18px, etc.
- * Pick tokens that match your visual language and reuse them.
+ * radius.ts — border-radius scale (px). Matches modest control radius used in shadcn (~10px base).
  */
 
 export const radius = {
-  // none: 0,
-  // sm: 4,
-  // md: 8,
-  // lg: 12,
-  // xl: 16,
-  // full: 9999,
-} as const;
+  none: 0,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  '2xl': 20,
+  full: 9999,
+} as const
 
-export type RadiusToken = keyof typeof radius;
+export type RadiusToken = keyof typeof radius

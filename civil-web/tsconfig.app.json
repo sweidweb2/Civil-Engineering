@@ -16,6 +16,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Type checking */
+    "strict": true,
+
     /* Silence TS 6 deprecation until path-alias migration is settled */
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",

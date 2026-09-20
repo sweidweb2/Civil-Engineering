@@ -1,12 +1,6 @@
 import { apiRequest } from './api'
 
-export type AuthRole =
-  | 'SUPER'
-  | 'ADMIN'
-  | 'PROVIDER'
-  | 'WORKER'
-  | 'MANAGER'
-  | 'CLIENT'
+export type AuthRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
 
 export type AuthUser = {
   id: string

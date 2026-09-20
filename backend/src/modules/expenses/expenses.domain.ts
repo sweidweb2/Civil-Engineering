@@ -20,13 +20,7 @@ export const expensesDomain = {
       description: 'labor | materials | equipment | other — exact set TBD.',
     },
   ],
-  useCases: [
-    'listExpenses',
-    'getExpenseById',
-    'createExpense',
-    'updateExpense',
-    'deleteExpense',
-  ],
+  useCases: ['listExpenses', 'getExpenseById', 'createExpense', 'updateExpense', 'deleteExpense'],
   relationships: [
     'Expense.projectId → Project (projects).',
     'Expense.createdBy → User (users).',

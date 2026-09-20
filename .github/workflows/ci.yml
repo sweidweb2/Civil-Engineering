@@ -18,7 +18,7 @@ concurrency:
 
 env:
   # Set to "true" later to enable Playwright / Detox / backend e2e in CI
-  CI_RUN_E2E: "false"
+  CI_RUN_E2E: 'false'
 
 jobs:
   changes:
@@ -148,6 +148,11 @@ jobs:
           cache: npm
           cache-dependency-path: civil-web/package-lock.json
       - run: npm ci
+      - name: Dependency audit (critical gate)
+        run: npm run audit:deps:ci
+      - name: Dependency audit (high — report)
+        continue-on-error: true
+        run: npm run audit:deps
       - name: Unit tests (Vitest)
         run: |
           if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
@@ -180,6 +185,11 @@ jobs:
           cache: npm
           cache-dependency-path: civil-mobile/package-lock.json
       - run: npm ci
+      - name: Dependency audit (critical gate)
+        run: npm run audit:deps:ci
+      - name: Dependency audit (high — report)
+        continue-on-error: true
+        run: npm run audit:deps
       - name: Unit tests (Jest + RNTL)
         run: |
           if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
@@ -216,6 +226,8 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/civil_test?schema=public
+      JWT_ACCESS_SECRET: test-access-secret-at-least-32-characters
+      JWT_REFRESH_SECRET: test-refresh-secret-at-least-32-characters
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -224,6 +236,15 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Dependency audit (critical gate)
+        run: npm run audit:deps:ci
+      - name: Dependency audit (high — report)
+        continue-on-error: true
+        run: npm run audit:deps
+      - name: Prisma generate + migrate test DB
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
       - name: Unit tests (Vitest)
         run: |
           if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi

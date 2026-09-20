@@ -19,6 +19,10 @@ type AuthState = {
   logout: () => Promise<void>
 }
 
+/**
+ * Client auth session only — not an API cache.
+ * Persist key + partialize: Docs/[3] Decisions/[5] Client State (Zustand).md
+ */
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -51,9 +55,20 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         tokens: state.tokens,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true)
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          console.warn('auth rehydrate failed', error)
+        }
+        useAuthStore.setState({ isHydrated: true })
       },
-    }
-  )
+    },
+  ),
 )
+
+if (typeof window !== 'undefined') {
+  queueMicrotask(() => {
+    if (!useAuthStore.getState().isHydrated) {
+      useAuthStore.setState({ isHydrated: true })
+    }
+  })
+}

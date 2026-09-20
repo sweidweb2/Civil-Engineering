@@ -24,27 +24,27 @@ Source of truth for locked decisions: `Docs/[1] Main App/[1] Tech Stack.md` (and
 
 ## Applications
 
-| App | Path | Role |
-| --- | --- | --- |
-| Web | `civil-web/` | React + TypeScript (Vite) browser clients |
-| Mobile | `civil-mobile/` | React Native + TypeScript (Expo) |
-| Backend | `backend/` | Express + TypeScript API, auth, jobs, data |
+| App     | Path            | Role                                       |
+| ------- | --------------- | ------------------------------------------ |
+| Web     | `civil-web/`    | React + TypeScript (Vite) browser clients  |
+| Mobile  | `civil-mobile/` | React Native + TypeScript (Expo)           |
+| Backend | `backend/`      | Express + TypeScript API, auth, jobs, data |
 
 ## Tech stack
 
-| Area | Choice |
-| --- | --- |
-| Web | React + TypeScript + Vite |
-| Mobile | React Native + TypeScript + Expo |
-| Backend | Express + TypeScript |
-| Database | PostgreSQL + Prisma |
-| Cache / queue | Redis |
-| Storage | TBD |
-| API | REST `/api/v1` |
-| Auth | JWT + refresh tokens |
-| Validation | Zod |
-| Client state | Zustand |
-| Deploy | Docker + Nginx on Hostinger VPS |
+| Area          | Choice                           |
+| ------------- | -------------------------------- |
+| Web           | React + TypeScript + Vite        |
+| Mobile        | React Native + TypeScript + Expo |
+| Backend       | Express + TypeScript             |
+| Database      | PostgreSQL + Prisma              |
+| Cache / queue | Redis                            |
+| Storage       | TBD                              |
+| API           | REST `/api/v1`                   |
+| Auth          | JWT + refresh tokens             |
+| Validation    | Zod                              |
+| Client state  | Zustand                          |
+| Deploy        | Docker + Nginx on Hostinger VPS  |
 
 ## Project structure
 
@@ -76,7 +76,8 @@ Civil-Engineering-v1/
 │       ├── config/
 │       ├── database/
 │       └── jobs/
-├── Docs/               # Architecture, checklists, prompts, decisions
+├── Docs/               # Architecture, checklists, prompts, decisions (source of truth)
+├── docs/               # Thin index → Docs/ + .cursor/rules (Bedrock paths)
 ├── .cursor/rules/      # Cursor / AI project rules
 ├── docker-compose.yml
 ├── docker-compose.staging.yml
@@ -92,11 +93,11 @@ Optional later: `infrastructure/nginx/` and `infrastructure/docker/` when real N
 
 Each app has its own env files (do **not** commit real secrets):
 
-| App | Files |
-| --- | --- |
+| App     | Files                                             |
+| ------- | ------------------------------------------------- |
 | Backend | `backend/.env`, `.env.staging`, `.env.production` |
-| Web | `civil-web/.env` (`VITE_*`) |
-| Mobile | `civil-mobile/.env` (`EXPO_PUBLIC_*`) |
+| Web     | `civil-web/.env` (`VITE_*`)                       |
+| Mobile  | `civil-mobile/.env` (`EXPO_PUBLIC_*`)             |
 
 1. Copy or edit the local `.env` in each app.
 2. Replace placeholders (`CHANGE_ME`, `example.com`, DB passwords).
@@ -183,13 +184,13 @@ docker compose -f docker-compose.production.yml up -d --build
 
 ## Documentation
 
-| Doc | Purpose |
-| --- | --- |
-| `Docs/[1] Main App/[1] Tech Stack.md` | Locked technical decisions |
-| `Docs/[1] Main App/[2] Bedrock Checklist.md` | Foundation checklist |
-| `Docs/[3] Decisions/` | Locked decisions (format/lint, git, CI, Docker, …) |
-| `Docs/[2] Prompts/` | Master AI / agent prompts |
-| `.cursor/rules/` | Always-on and scoped coding rules |
+| Doc                                          | Purpose                                            |
+| -------------------------------------------- | -------------------------------------------------- |
+| `Docs/[1] Main App/[1] Tech Stack.md`        | Locked technical decisions                         |
+| `Docs/[1] Main App/[2] Bedrock Checklist.md` | Foundation checklist                               |
+| `Docs/[3] Decisions/`                        | Locked decisions (format/lint, git, CI, Docker, …) |
+| `Docs/[2] Prompts/`                          | Master AI / agent prompts                          |
+| `.cursor/rules/`                             | Always-on and scoped coding rules                  |
 
 ## Principles (short)
 

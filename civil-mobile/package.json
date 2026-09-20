@@ -46,6 +46,9 @@
     "@types/react": "~19.2.2",
     "detox": "^20.51.4",
     "detox-cli": "^20.51.4",
+    "eslint": "9.39.5",
+    "eslint-config-expo": "^57.0.2",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
     "jest-circus": "^30.5.1",
     "react-test-renderer": "^19.2.3",
     "tailwindcss": "^4.3.3",
@@ -57,11 +60,14 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
     "test:e2e": "detox test --configuration android.emu.debug",
-    "test:e2e:build": "detox build --configuration android.emu.debug"
+    "test:e2e:build": "detox build --configuration android.emu.debug",
+    "audit:deps": "npm audit --audit-level=high",
+    "audit:deps:ci": "npm audit --audit-level=critical"
   },
   "private": true
 }

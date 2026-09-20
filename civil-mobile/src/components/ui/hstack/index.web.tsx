@@ -1,26 +1,27 @@
-import React from 'react';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { hstackStyle } from './styles';
+import React from 'react'
+import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
 
-type IHStackProps = React.ComponentPropsWithoutRef<'div'> &
-  VariantProps<typeof hstackStyle>;
+import { hstackStyle } from './styles'
 
-const HStack = React.forwardRef<React.ComponentRef<'div'>, IHStackProps>(
-  function HStack({ className, space, reversed, ...props }, ref) {
-    return (
-      <div
-        className={hstackStyle({
-          space,
-          reversed: reversed as boolean,
-          class: className,
-        })}
-        {...props}
-        ref={ref}
-      />
-    );
-  }
-);
+type IHStackProps = React.ComponentPropsWithoutRef<'div'> & VariantProps<typeof hstackStyle>
 
-HStack.displayName = 'HStack';
+const HStack = React.forwardRef<React.ComponentRef<'div'>, IHStackProps>(function HStack(
+  { className, space, reversed, ...props },
+  ref,
+) {
+  return (
+    <div
+      className={hstackStyle({
+        space,
+        reversed: reversed as boolean,
+        class: className,
+      })}
+      {...props}
+      ref={ref}
+    />
+  )
+})
 
-export { HStack };
+HStack.displayName = 'HStack'
+
+export { HStack }

@@ -6,11 +6,11 @@
 
 Repo paths (actual):
 
-| Logical app | Folder |
-| --- | --- |
-| Web | `civil-web/` |
-| Mobile | `civil-mobile/` |
-| Backend | `backend/` |
+| Logical app | Folder          |
+| ----------- | --------------- |
+| Web         | `civil-web/`    |
+| Mobile      | `civil-mobile/` |
+| Backend     | `backend/`      |
 
 ---
 
@@ -18,38 +18,38 @@ Repo paths (actual):
 
 ### Web (`civil-web/`)
 
-| Concern | Choice |
-| --- | --- |
-| Unit | **Vitest** + **React Testing Library** |
-| E2E | **Playwright** |
-| Layout | `civil-web/tests/unit/`, `civil-web/tests/e2e/` |
+| Concern | Choice                                          |
+| ------- | ----------------------------------------------- |
+| Unit    | **Vitest** + **React Testing Library**          |
+| E2E     | **Playwright**                                  |
+| Layout  | `civil-web/tests/unit/`, `civil-web/tests/e2e/` |
 
 ### Mobile (`civil-mobile/`)
 
-| Concern | Choice |
-| --- | --- |
-| Unit | **Jest** + **React Native Testing Library** |
-| E2E | **Detox** |
-| Layout | `civil-mobile/tests/unit/`, `civil-mobile/tests/e2e/` |
+| Concern | Choice                                                |
+| ------- | ----------------------------------------------------- |
+| Unit    | **Jest** + **React Native Testing Library**           |
+| E2E     | **Detox**                                             |
+| Layout  | `civil-mobile/tests/unit/`, `civil-mobile/tests/e2e/` |
 
 ### Backend (`backend/`)
 
-| Concern | Choice |
-| --- | --- |
-| Unit | **Vitest** |
-| HTTP / API | **Supertest** |
-| DB | **Test PostgreSQL** (isolated DB / container in CI) |
-| Layout | `backend/tests/unit/`, `backend/tests/integration/`, `backend/tests/e2e/` |
+| Concern    | Choice                                                                    |
+| ---------- | ------------------------------------------------------------------------- |
+| Unit       | **Vitest**                                                                |
+| HTTP / API | **Supertest**                                                             |
+| DB         | **Test PostgreSQL** (isolated DB / container in CI)                       |
+| Layout     | `backend/tests/unit/`, `backend/tests/integration/`, `backend/tests/e2e/` |
 
 ---
 
 ## Test levels
 
-| Level | Meaning | Where |
-| --- | --- | --- |
-| **Unit** | Pure logic, components, services with mocks | all apps |
-| **Integration** | Modules + real collaborators (e.g. API + test DB) | backend primarily |
-| **E2E** | Full user/API flows | web Playwright, mobile Detox, backend API e2e |
+| Level           | Meaning                                           | Where                                         |
+| --------------- | ------------------------------------------------- | --------------------------------------------- |
+| **Unit**        | Pure logic, components, services with mocks       | all apps                                      |
+| **Integration** | Modules + real collaborators (e.g. API + test DB) | backend primarily                             |
+| **E2E**         | Full user/API flows                               | web Playwright, mobile Detox, backend API e2e |
 
 ### Feature testing
 
@@ -60,9 +60,9 @@ Repo paths (actual):
 
 ## Global quality checks (every relevant CI run)
 
-1. **Format check** (Prettier `--check`)  
-2. **ESLint**  
-3. **TypeScript typecheck**  
+1. **Format check** (Prettier `--check`)
+2. **ESLint**
+3. **TypeScript typecheck**
 
 See [Formatting & Linting](./[1]%20Formatting%20%26%20Linting.md).
 
@@ -70,11 +70,11 @@ See [Formatting & Linting](./[1]%20Formatting%20%26%20Linting.md).
 
 ## Change detection
 
-| Changed paths | Run |
-| --- | --- |
-| `civil-web/**` | Web quality + web unit (+ web e2e per policy) + web build |
-| `civil-mobile/**` | Mobile quality + mobile unit (+ mobile e2e per policy) |
-| `backend/**` | Backend quality + backend unit/integration (+ backend e2e per policy) + backend build |
+| Changed paths         | Run                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `civil-web/**`        | Web quality + web unit (+ web e2e per policy) + web build                                         |
+| `civil-mobile/**`     | Mobile quality + mobile unit (+ mobile e2e per policy)                                            |
+| `backend/**`          | Backend quality + backend unit/integration (+ backend e2e per policy) + backend build             |
 | Shared / root / infra | **Broader checks** — format/lint/typecheck across repo + tests/builds for **all** apps that exist |
 
 Shared / broader triggers include (non-exhaustive):
@@ -106,11 +106,11 @@ E2E according to PR policy
 
 ### E2E PR policy (locked)
 
-| Target branch | E2E |
-| --- | --- |
-| PR → **`dev`** | **Skip by default.** Run only if label `e2e` is present (or manual `workflow_dispatch`). |
-| PR → **`main`** | **Run E2E for affected apps** (and all apps if broader/shared change). |
-| Owner direct push | No PR CI; prefer PR for anything that needs E2E confidence. |
+| Target branch     | E2E                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| PR → **`dev`**    | **Skip by default.** Run only if label `e2e` is present (or manual `workflow_dispatch`). |
+| PR → **`main`**   | **Run E2E for affected apps** (and all apps if broader/shared change).                   |
+| Owner direct push | No PR CI; prefer PR for anything that needs E2E confidence.                              |
 
 Unit + integration + format/lint/typecheck/build still run on PRs to **both** `dev` and `main` for affected apps.
 

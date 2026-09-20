@@ -10,14 +10,14 @@
 
 Use one shared quality toolchain at the **repo root**:
 
-| Tool | Role |
-| --- | --- |
-| **EditorConfig** | Baseline editor settings (already at root) |
-| **Prettier** | Code formatting |
-| **ESLint** | Lint / static checks (per-app configs allowed, orchestrated from root) |
-| **TypeScript `strict`** | Required in every app `tsconfig` |
-| **Husky** | Git hooks |
-| **lint-staged** | Run format/lint only on staged files at commit |
+| Tool                    | Role                                                                   |
+| ----------------------- | ---------------------------------------------------------------------- |
+| **EditorConfig**        | Baseline editor settings (already at root)                             |
+| **Prettier**            | Code formatting                                                        |
+| **ESLint**              | Lint / static checks (per-app configs allowed, orchestrated from root) |
+| **TypeScript `strict`** | Required in every app `tsconfig`                                       |
+| **Husky**               | Git hooks                                                              |
+| **lint-staged**         | Run format/lint only on staged files at commit                         |
 
 Root scripts (to be added when installed):
 
@@ -76,15 +76,15 @@ commit allowed / blocked
 
 Root `.vscode/settings.json` (recommended):
 
-- `editor.formatOnSave`: true  
-- Default formatter: Prettier  
-- ESLint validate: TypeScript / TSX  
+- `editor.formatOnSave`: true
+- Default formatter: Prettier
+- ESLint validate: TypeScript / TSX
 - Optional: `editor.codeActionsOnSave` → `source.fixAll.eslint`
 
 Commit a shared `.vscode/extensions.json` recommending:
 
-- Prettier  
-- ESLint  
+- Prettier
+- ESLint
 
 So Cursor/VS Code formats while developing; Husky catches misses at commit.
 

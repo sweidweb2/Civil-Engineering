@@ -1,10 +1,6 @@
 import { notFound, notImplemented } from '../../errors/app-error.js'
 import type { WorkersRepository } from './workers.repository.js'
-import type {
-  AssignWorkerBody,
-  CreateWorkerBody,
-  UpdateWorkerBody,
-} from './workers.schema.js'
+import type { AssignWorkerBody, CreateWorkerBody, UpdateWorkerBody } from './workers.schema.js'
 import type { ProjectAssignment, Worker } from './workers.types.js'
 
 export type WorkersService = {
@@ -12,19 +8,11 @@ export type WorkersService = {
   getWorkerById: (id: string) => Promise<Worker>
   createWorker: (input: CreateWorkerBody) => Promise<Worker>
   updateWorker: (id: string, input: UpdateWorkerBody) => Promise<Worker>
-  assignWorkerToProject: (
-    workerId: string,
-    input: AssignWorkerBody
-  ) => Promise<ProjectAssignment>
-  unassignWorkerFromProject: (
-    workerId: string,
-    projectId: string
-  ) => Promise<void>
+  assignWorkerToProject: (workerId: string, input: AssignWorkerBody) => Promise<ProjectAssignment>
+  unassignWorkerFromProject: (workerId: string, projectId: string) => Promise<void>
 }
 
-export function createWorkersService(
-  repository: WorkersRepository
-): WorkersService {
+export function createWorkersService(repository: WorkersRepository): WorkersService {
   return {
     async listWorkers() {
       return repository.findMany()

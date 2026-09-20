@@ -16,13 +16,7 @@ export const projectsDomain = {
       description: 'draft | active | on_hold | completed | archived',
     },
   ],
-  useCases: [
-    'listProjects',
-    'getProjectById',
-    'createProject',
-    'updateProject',
-    'archiveProject',
-  ],
+  useCases: ['listProjects', 'getProjectById', 'createProject', 'updateProject', 'archiveProject'],
   relationships: [
     'Project.ownerId → User (users).',
     'Expenses/materials/workers reference projectId (owned by those modules).',

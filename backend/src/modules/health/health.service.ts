@@ -1,7 +1,7 @@
+import { serviceUnavailable } from '../../errors/app-error.js'
+import { ErrorCodes } from '../../errors/error-codes.js'
 import type { HealthRepository } from './health.repository.js'
 import type { HealthDbStatus, HealthStatus } from './health.types.js'
-import { ErrorCodes } from '../../errors/error-codes.js'
-import { serviceUnavailable } from '../../errors/app-error.js'
 
 export type HealthService = {
   getHealth: () => HealthStatus
@@ -17,10 +17,7 @@ export function createHealthService(repository: HealthRepository): HealthService
     async getDbHealth() {
       const ok = await repository.ping()
       if (!ok) {
-        throw serviceUnavailable(
-          ErrorCodes.DB_UNAVAILABLE,
-          'Database is unavailable'
-        )
+        throw serviceUnavailable(ErrorCodes.DB_UNAVAILABLE, 'Database is unavailable')
       }
       return { ok: true, db: true }
     },

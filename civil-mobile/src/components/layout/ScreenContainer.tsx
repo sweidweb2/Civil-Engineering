@@ -1,16 +1,16 @@
-import React from 'react';
-import { ScrollView, type ScrollViewProps } from 'react-native';
+import React from 'react'
+import { ScrollView, type ScrollViewProps } from 'react-native'
 
-import { Box } from '@/components/ui/box';
+import { Box } from '@/components/ui/box'
 
 type ScreenContainerProps = {
-  children: React.ReactNode;
-  className?: string;
-  contentClassName?: string;
+  children: React.ReactNode
+  className?: string
+  contentClassName?: string
   /** When true, wraps children in a ScrollView. */
-  scroll?: boolean;
-  scrollProps?: Omit<ScrollViewProps, 'children' | 'contentContainerStyle'>;
-};
+  scroll?: boolean
+  scrollProps?: Omit<ScrollViewProps, 'children' | 'contentContainerStyle'>
+}
 
 /**
  * Standard screen body with horizontal padding.
@@ -32,14 +32,12 @@ export function ScreenContainer({
       >
         <Box className={`px-4 py-4 ${contentClassName ?? ''}`}>{children}</Box>
       </ScrollView>
-    );
+    )
   }
 
   return (
-    <Box
-      className={`flex-1 bg-background px-4 py-4 ${className ?? ''} ${contentClassName ?? ''}`}
-    >
+    <Box className={`flex-1 bg-background px-4 py-4 ${className ?? ''} ${contentClassName ?? ''}`}>
       {children}
     </Box>
-  );
+  )
 }

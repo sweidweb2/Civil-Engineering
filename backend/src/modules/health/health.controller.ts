@@ -1,14 +1,10 @@
-import type { Request, Response, NextFunction } from 'express'
+import type { NextFunction,Request, Response } from 'express'
 
 import type { HealthService } from './health.service.js'
 
 export type HealthController = {
   getHealth: (req: Request, res: Response, next: NextFunction) => void
-  getDbHealth: (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => Promise<void>
+  getDbHealth: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
 export function createHealthController(service: HealthService): HealthController {

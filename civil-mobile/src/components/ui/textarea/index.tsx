@@ -1,19 +1,15 @@
-'use client';
-import React from 'react';
-import { createTextarea } from '@gluestack-ui/core/textarea/creator';
-import { View, TextInput } from 'react-native';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import {
-  withStyleContext,
-  useStyleContext,
-} from '@gluestack-ui/utils/nativewind-utils';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
+'use client'
+import React from 'react'
+import { TextInput,View } from 'react-native'
+import { createTextarea } from '@gluestack-ui/core/textarea/creator'
+import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
+import { tva , useStyleContext,withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
 
-const SCOPE = 'TEXTAREA';
+const SCOPE = 'TEXTAREA'
 const UITextarea = createTextarea({
   Root: withStyleContext(View, SCOPE),
   Input: TextInput,
-});
+})
 
 const textareaStyle = tva({
   base: 'w-full h-[100px] border border-border  dark:bg-input/30 rounded data-[hover=true]:border-border/80 data-[focus=true]:border-primary/80 data-[focus=true]:data-[hover=true]:border-primary/80 data-[disabled=true]:opacity-40 data-[disabled=true]:bg-background/90 data-[disabled=true]:data-[hover=true]:border-border/80',
@@ -30,7 +26,7 @@ const textareaStyle = tva({
       xl: '',
     },
   },
-});
+})
 
 const textareaInputStyle = tva({
   base: 'p-2 web:outline-0 web:outline-none flex-1 text-foreground placeholder:text-foreground/60 web:cursor-text web:data-[disabled=true]:cursor-not-allowed',
@@ -42,36 +38,31 @@ const textareaInputStyle = tva({
       xl: 'text-xl',
     },
   },
-});
+})
 
-type ITextareaProps = React.ComponentProps<typeof UITextarea> &
-  VariantProps<typeof textareaStyle>;
+type ITextareaProps = React.ComponentProps<typeof UITextarea> & VariantProps<typeof textareaStyle>
 
-const Textarea = React.forwardRef<
-  React.ComponentRef<typeof UITextarea>,
-  ITextareaProps
->(function Textarea(
-  { className, variant = 'default', size = 'md', ...props },
-  ref
-) {
-  return (
-    <UITextarea
-      ref={ref}
-      {...props}
-      className={textareaStyle({ variant, class: className })}
-      context={{ size }}
-    />
-  );
-});
+const Textarea = React.forwardRef<React.ComponentRef<typeof UITextarea>, ITextareaProps>(
+  function Textarea({ className, variant = 'default', size = 'md', ...props }, ref) {
+    return (
+      <UITextarea
+        ref={ref}
+        {...props}
+        className={textareaStyle({ variant, class: className })}
+        context={{ size }}
+      />
+    )
+  },
+)
 
 type ITextareaInputProps = React.ComponentProps<typeof UITextarea.Input> &
-  VariantProps<typeof textareaInputStyle>;
+  VariantProps<typeof textareaInputStyle>
 
 const TextareaInput = React.forwardRef<
   React.ComponentRef<typeof UITextarea.Input>,
   ITextareaInputProps
 >(function TextareaInput({ className, ...props }, ref) {
-  const { size: parentSize } = useStyleContext(SCOPE);
+  const { size: parentSize } = useStyleContext(SCOPE)
 
   return (
     <UITextarea.Input
@@ -85,10 +76,10 @@ const TextareaInput = React.forwardRef<
         class: className,
       })}
     />
-  );
-});
+  )
+})
 
-Textarea.displayName = 'Textarea';
-TextareaInput.displayName = 'TextareaInput';
+Textarea.displayName = 'Textarea'
+TextareaInput.displayName = 'TextareaInput'
 
-export { Textarea, TextareaInput };
+export { Textarea, TextareaInput }

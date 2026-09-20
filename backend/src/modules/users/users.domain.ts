@@ -25,13 +25,7 @@ export const usersDomain = {
       description: 'Normalized unique email.',
     },
   ],
-  useCases: [
-    'listUsers',
-    'getUserById',
-    'createUser',
-    'updateUser',
-    'deactivateUser',
-  ],
+  useCases: ['listUsers', 'getUserById', 'createUser', 'updateUser', 'deactivateUser'],
   relationships: [
     'Referenced by auth (userId), projects (ownerId), workers (optional link), expenses (createdBy).',
   ],

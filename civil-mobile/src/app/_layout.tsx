@@ -1,12 +1,16 @@
+import '../../global.css'
+
 import { Stack } from 'expo-router'
 
+import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
-import '../../global.css'
 
 export default function RootLayout() {
   return (
     <GluestackUIProvider mode="light">
-      <Stack screenOptions={{ headerShown: false }} />
+      <ErrorBoundary>
+        <Stack screenOptions={{ headerShown: false }} />
+      </ErrorBoundary>
     </GluestackUIProvider>
   )
 }

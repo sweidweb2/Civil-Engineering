@@ -7,16 +7,10 @@ export type MaterialsController = {
   getById: (req: Request, res: Response, next: NextFunction) => Promise<void>
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>
-  recordMovement: (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => Promise<void>
+  recordMovement: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
-export function createMaterialsController(
-  service: MaterialsService
-): MaterialsController {
+export function createMaterialsController(service: MaterialsService): MaterialsController {
   return {
     async list(_req, res, next) {
       try {
@@ -44,10 +38,7 @@ export function createMaterialsController(
     },
     async update(req, res, next) {
       try {
-        const material = await service.updateMaterial(
-          String(req.params.id),
-          req.body
-        )
+        const material = await service.updateMaterial(String(req.params.id), req.body)
         res.status(200).json(material)
       } catch (error) {
         next(error)
@@ -55,10 +46,7 @@ export function createMaterialsController(
     },
     async recordMovement(req, res, next) {
       try {
-        const movement = await service.recordStockMovement(
-          String(req.params.id),
-          req.body
-        )
+        const movement = await service.recordStockMovement(String(req.params.id), req.body)
         res.status(201).json(movement)
       } catch (error) {
         next(error)

@@ -1,28 +1,22 @@
-import React from 'react';
+import React from 'react'
 
-import { Box } from '@/components/ui/box';
-import { HStack } from '@/components/ui/hstack';
-import { Heading } from '@/components/ui/heading';
-import { Text } from '@/components/ui/text';
+import { Box } from '@/components/ui/box'
+import { Heading } from '@/components/ui/heading'
+import { HStack } from '@/components/ui/hstack'
+import { Text } from '@/components/ui/text'
 
 type HeaderProps = {
-  title: string;
-  subtitle?: string;
-  leftSlot?: React.ReactNode;
-  rightSlot?: React.ReactNode;
-  className?: string;
-};
+  title: string
+  subtitle?: string
+  leftSlot?: React.ReactNode
+  rightSlot?: React.ReactNode
+  className?: string
+}
 
 /**
  * App / screen header bar. Keep actions domain-agnostic via slots.
  */
-export function Header({
-  title,
-  subtitle,
-  leftSlot,
-  rightSlot,
-  className,
-}: HeaderProps) {
+export function Header({ title, subtitle, leftSlot, rightSlot, className }: HeaderProps) {
   return (
     <HStack
       className={`items-center justify-between border-b border-border bg-background px-4 py-3 ${className ?? ''}`}
@@ -47,5 +41,5 @@ export function Header({
         </HStack>
       ) : null}
     </HStack>
-  );
+  )
 }

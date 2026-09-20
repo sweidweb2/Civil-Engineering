@@ -1,9 +1,11 @@
 import cors from 'cors'
 import express from 'express'
+import helmet from 'helmet'
 import type { Pool } from 'pg'
 
-import { loadConfig, type AppConfig } from './config/index.js'
+import { type AppConfig,loadConfig } from './config/index.js'
 import { errorHandler, notFoundHandler } from './errors/error.middleware.js'
+import { createApiRateLimiter } from './middleware/rate-limit.js'
 import { requestContext } from './middleware/request-context.js'
 import { createV1Router } from './routes/v1.js'
 
@@ -21,13 +23,15 @@ export function createApp(deps: AppDeps = {}) {
   }
 
   app.use(requestContext)
+  app.use(helmet())
   app.use(
     cors({
       origin: config.corsOrigins,
       credentials: true,
-    })
+    }),
   )
-  app.use(express.json())
+  app.use(express.json({ limit: config.jsonBodyLimit }))
+  app.use(createApiRateLimiter(config))
 
   app.use('/api/v1', createV1Router({ pool: deps.pool, config }))
 

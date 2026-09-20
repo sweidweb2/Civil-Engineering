@@ -1,8 +1,12 @@
 import { z } from 'zod'
 
+import { paginationQuerySchema } from '../_shared/pagination.schema.js'
+
 export const userIdParamsSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().trim().min(1),
 })
+
+export const listUsersQuerySchema = paginationQuerySchema
 
 export const createUserBodySchema = z.object({
   email: z.string().email(),
@@ -20,5 +24,6 @@ export const updateUserBodySchema = z
     message: 'At least one field is required',
   })
 
+export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>
 export type CreateUserBody = z.infer<typeof createUserBodySchema>
 export type UpdateUserBody = z.infer<typeof updateUserBodySchema>

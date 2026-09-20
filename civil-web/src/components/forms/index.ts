@@ -1,5 +1,4 @@
 export {
-  Form,
   Field,
   FieldContent,
   FieldDescription,
@@ -10,7 +9,7 @@ export {
   FieldSeparator,
   FieldSet,
   FieldTitle,
-} from "./form"
-
-export { DatePicker } from "@/components/ui/date-picker"
-export type { DatePickerProps } from "@/components/ui/date-picker"
+  Form,
+} from './form'
+export type { DatePickerProps } from '@/components/ui/date-picker'
+export { DatePicker } from '@/components/ui/date-picker'

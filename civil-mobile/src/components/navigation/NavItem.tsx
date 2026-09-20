@@ -1,28 +1,22 @@
-import React from 'react';
+import React from 'react'
 
-import { Pressable } from '@/components/ui/pressable';
-import { Text } from '@/components/ui/text';
-import { HStack } from '@/components/ui/hstack';
+import { HStack } from '@/components/ui/hstack'
+import { Pressable } from '@/components/ui/pressable'
+import { Text } from '@/components/ui/text'
 
 type NavItemProps = {
-  label: string;
-  icon?: React.ReactNode;
-  isActive?: boolean;
-  onPress?: () => void;
-  className?: string;
-};
+  label: string
+  icon?: React.ReactNode
+  isActive?: boolean
+  onPress?: () => void
+  className?: string
+}
 
 /**
  * Domain-agnostic nav row / link chrome.
  * Wire routing (Expo Router) at the call site.
  */
-export function NavItem({
-  label,
-  icon,
-  isActive,
-  onPress,
-  className,
-}: NavItemProps) {
+export function NavItem({ label, icon, isActive, onPress, className }: NavItemProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -32,14 +26,10 @@ export function NavItem({
     >
       <HStack className="items-center" space="sm">
         {icon}
-        <Text
-          className={
-            isActive ? 'text-accent-foreground font-medium' : 'text-foreground'
-          }
-        >
+        <Text className={isActive ? 'text-accent-foreground font-medium' : 'text-foreground'}>
           {label}
         </Text>
       </HStack>
     </Pressable>
-  );
+  )
 }

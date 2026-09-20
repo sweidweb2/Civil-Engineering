@@ -1,24 +1,6 @@
 /**
- * colors.ts — everything related to color.
- *
- * Prepare a palette for:
- * - primary
- * - secondary
- * - background
- * - surface
- * - text
- * - border
- * - success
- * - warning
- * - error
- * - info
- * - disabled
- *
- * Ideally support light + dark modes (e.g. colors.light / colors.dark,
- * or parallel tokens consumed by a theme provider).
- *
- * Fill real values later; keep semantic names stable so components
- * never hardcode raw hex in UI code.
+ * colors.ts — semantic palette for light mode.
+ * Dark mode remains TBD.
  */
 
 export const colors = {
@@ -26,28 +8,17 @@ export const colors = {
     primary: '#2FA084',
     secondary: '#6FCF97',
     background: '#EEEEEE',
-    surface: '#EEEEEE',
+    surface: '#FFFFFF',
     text: '#1F6F5F',
-    border: '#2FA084',
-    success: '#6FCF97',
-    // warning: '',
-    // error: '',
-    // info: '',
-    // disabled: '',
+    textMuted: '#5A7A72',
+    border: '#B7D4CC',
+    success: '#2F9E71',
+    warning: '#D97706',
+    error: '#DC2626',
+    info: '#2563EB',
+    disabled: '#9CA3AF',
   },
-  // dark: {
-  //   primary: '',
-  //   secondary: '',
-  //   background: '',
-  //   surface: '',
-  //   text: '',
-  //   border: '',
-  //   success: '',
-  //   warning: '',
-  //   error: '',
-  //   info: '',
-  //   disabled: '',
-  // },
-} as const;
+  // dark: { … } — TBD
+} as const
 
-export type ColorToken = keyof typeof colors.light;
+export type ColorToken = keyof typeof colors.light

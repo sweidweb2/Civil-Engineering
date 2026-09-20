@@ -1,5 +1,5 @@
-import type { Role, UserStatus } from '../../generated/prisma/client.js'
 import { prisma } from '../../database/prisma.js'
+import type { Role, UserStatus } from '../../generated/prisma/client.js'
 
 export type AuthUserRecord = {
   id: string
@@ -53,8 +53,7 @@ export function createAuthRepository(): AuthRepository {
     },
 
     async createUserWithProfile(input) {
-      const displayName =
-        [input.firstName, input.lastName].filter(Boolean).join(' ') || null
+      const displayName = [input.firstName, input.lastName].filter(Boolean).join(' ') || null
 
       return prisma.user.create({
         data: {

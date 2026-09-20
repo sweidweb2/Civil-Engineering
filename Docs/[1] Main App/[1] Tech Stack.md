@@ -3,7 +3,7 @@
 ## 1. Technology Stack
 
 | Area              | Decision                  |
-| ----------------- | ------------------------ |
+| ----------------- | ------------------------- |
 | **Web**           | React + TypeScript        |
 | **Mobile**        | React Native + TypeScript |
 | **Backend**       | Express + TypeScript      |
@@ -53,7 +53,7 @@
               ▼                ▼                ▼
          PostgreSQL          Redis           Storage
           + Prisma
-              
+
                     ▲
                     │ REST API
                     │
@@ -90,21 +90,25 @@ PostgreSQL
 #### Responsibilities
 
 **Controller**
+
 - Handles HTTP requests/responses
 - Receives input
 - Calls the appropriate service
 - Returns the API response
 
 **Service**
+
 - Contains business logic
 - Applies application rules
 - Coordinates operations
 
 **Repository**
+
 - Handles data access
 - Communicates with Prisma/database
 
 **Prisma**
+
 - ORM / database access layer
 
 ---
@@ -284,14 +288,14 @@ Nginx is the reverse proxy and entry point for the deployed application.
 
 Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`
 
-| Artifact | Location |
-| --- | --- |
-| Web Dockerfile + `.dockerignore` | `civil-web/` |
-| Backend Dockerfile + `.dockerignore` | `backend/` |
-| Mobile production Dockerfile | none (Play / App Store) |
-| Local Compose | root `docker-compose.yml` |
-| Production Compose | root `docker-compose.production.yml` |
-| `infrastructure/` | optional — create when Nginx / extra Docker infra is real |
+| Artifact                             | Location                                                  |
+| ------------------------------------ | --------------------------------------------------------- |
+| Web Dockerfile + `.dockerignore`     | `civil-web/`                                              |
+| Backend Dockerfile + `.dockerignore` | `backend/`                                                |
+| Mobile production Dockerfile         | none (Play / App Store)                                   |
+| Local Compose                        | root `docker-compose.yml`                                 |
+| Production Compose                   | root `docker-compose.production.yml`                      |
+| `infrastructure/`                    | optional — create when Nginx / extra Docker infra is real |
 
 Compose may orchestrate web, API, PostgreSQL, Redis, and an optional worker. Exact production topology remains flexible.
 

@@ -27,8 +27,7 @@ async function canConnect(url: string) {
  */
 export async function setup() {
   const url =
-    process.env.DATABASE_URL ??
-    `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`
+    process.env.DATABASE_URL ?? `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`
 
   if (process.env.SKIP_EMBEDDED_PG === '1') {
     process.env.DATABASE_URL = url

@@ -27,6 +27,20 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return
   }
 
+  // express.json / body-parser size limit
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'type' in err &&
+    (err as { type?: string }).type === 'entity.too.large'
+  ) {
+    res.status(413).json({
+      code: ErrorCodes.VALIDATION_ERROR,
+      message: 'Request body too large',
+    })
+    return
+  }
+
   console.error(err)
 
   res.status(500).json({

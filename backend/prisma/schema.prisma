@@ -1,6 +1,6 @@
 // Civil Engineering API — PostgreSQL schema (Prisma ORM v7)
 //
- // Domain models are intentionally empty while the DB schema is being designed.
+// Domain models are intentionally empty while the DB schema is being designed.
 // Add models under the matching domain section. Repositories only may use Prisma Client.
 //
 // Generator output: src/generated/prisma (imported from src/database only)

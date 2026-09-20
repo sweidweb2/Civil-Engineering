@@ -140,34 +140,27 @@ Then open in Expo Go / simulator. Set `EXPO_PUBLIC_API_BASE_URL` to your machine
 
 Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md` · rules: `.cursor/rules/docker.mdc`
 
-Target stack on the VPS:
-
-- **Nginx** — sole public entry (TLS + reverse proxy + web static) when `infrastructure/nginx/` is added
-- **Web** — `civil-web` image (Vite build)
-- **API** — Express container (internal network only in production)
-- **PostgreSQL** — named volume
-- **Redis** — cache / queue
-- **Mobile** — not a Docker service (Play / App Store)
-
-Local (Postgres + Redis + API + web):
+**Local day-to-day:** only **Postgres** in Docker. Run API and web with npm on your machine. Redis is skipped until the app actually uses it.
 
 ```bash
-docker compose up -d
+docker compose up -d          # starts Postgres only
+# then:
+cd backend && npm run dev
+cd civil-web && npm run dev
 ```
 
-Production-style override:
+**Why Dockerfiles still exist for web + API:** packaging for the real server later (same app, same environment). You do **not** need those containers while coding locally.
+
+**Later on the VPS (when ready):** Nginx + web image + API image + Postgres (+ Redis when wired). Uncomment optional services in `docker-compose.yml` / production override as needed.
+
+**Mobile:** not a Docker service (Play / App Store).
+
+Production-style override (after api/web/redis are enabled in Compose again):
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
 ```
 
-Data-only local (run Node apps on the host):
-
-```bash
-docker compose up -d postgres redis
-```
-
-Do not commit secrets into Compose or Dockerfiles — use host / Hostinger env.
 ## Deployment
 
 - **Host:** Hostinger VPS

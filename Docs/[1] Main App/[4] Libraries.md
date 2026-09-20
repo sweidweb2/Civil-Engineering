@@ -148,6 +148,25 @@ cd backend && npm i -D supertest @types/supertest
 cd backend && npm i zod
 ```
 
+**Prisma** — installed (ORM for PostgreSQL; repository-only Client)
+
+```bash
+cd backend && npm i @prisma/client @prisma/adapter-pg && npm i -D prisma
+```
+
+- Schema: `backend/prisma/schema.prisma` (domain sections; models TBD)
+- Config: `backend/prisma.config.ts` (`DATABASE_URL`)
+- Client: `backend/src/database/` → generated under `src/generated/prisma/`
+- Seed stub: `backend/prisma/seed.ts` (no-op until models exist)
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate:dev
+npm run prisma:migrate:deploy
+npm run prisma:studio
+npm run prisma:seed
+```
+
 **Test PostgreSQL**
 
 - Docker (preferred in CI): `docker-compose.test.yml` on port **5433**
@@ -170,8 +189,10 @@ backend/tests/e2e/          ✅ (health.e2e.test.ts)
 
 ```bash
 npm run dev                 # tsx watch → src/server.ts
-npm run build               # tsc → dist/
+npm run build               # prisma generate + tsc → dist/
 npm run start               # node dist/src/server.js
+npm run prisma:generate
+npm run prisma:migrate:dev
 npm run test:unit
 npm run test:integration
 npm run test:db:up          # Docker Postgres (optional if embedded works)

@@ -85,17 +85,19 @@ Civil-Engineering-v1/
 
 #### `docker-compose.yml`
 
-Local development. May orchestrate:
+Local development. **Default for now: Postgres only.**
+
+May orchestrate later (commented until needed):
 
 ```text
-Web (civil-web)
-Backend (api)
-PostgreSQL
-Redis
-Worker (only when jobs need a separate process)
+Web (civil-web)     — optional locally; normally `npm run dev`
+Backend (api)       — optional locally; normally `npm run dev`
+PostgreSQL          — default local Docker service
+Redis               — skipped until the app uses it
+Worker              — only when jobs need a separate process
 ```
 
-Only include services that are actually needed. Prefer Compose for Postgres/Redis when developing against real services; app containers are optional if you run Node on the host.
+Only include services that are actually needed. Prefer Compose for Postgres when developing against a real database; run API + web on the host with npm until you need containerized builds.
 
 Related (tests only, not production): `backend/docker-compose.test.yml` for CI / integration Postgres.
 

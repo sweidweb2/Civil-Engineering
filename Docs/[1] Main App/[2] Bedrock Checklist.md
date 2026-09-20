@@ -91,15 +91,15 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Prisma
 
-- [ ] Prisma setup
-- [ ] Schema organization
+- [x] Prisma setup
+- [x] Schema organization
 - [x] Prisma Client usage rules (repository-only)
 - [x] Local / staging / prod DB envs configured
 - [x] Migration process defined
-- [ ] Seed process defined (if needed)
+- [x] Seed process defined (if needed)
 - [x] Rule locked: migrations are versioned; no manual prod replay as source of truth
 
-> Note: env placeholders exist; Prisma package/schema not installed yet.
+> Note: Prisma 7 + `@prisma/adapter-pg` installed. Schema file organized by domain sections; **no models yet** (schema still being designed). Seed is a no-op stub. Run `prisma generate` / migrate after models land.
 
 ---
 
@@ -589,7 +589,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [ ] `civil-web/src/` feature + theme + services layout
 - [ ] `civil-mobile/src/` feature + theme + services + navigation layout
 - [ ] `backend/src/modules/` + middleware / config / database / jobs
-- [ ] `backend/prisma/` schema + migrations
+- [x] `backend/prisma/` schema + migrations
 - [x] Root `docker-compose.yml` + `docker-compose.production.yml`
 - [x] `civil-web/Dockerfile` + `.dockerignore`
 - [x] `backend/Dockerfile` + `.dockerignore`

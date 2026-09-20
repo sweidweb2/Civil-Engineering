@@ -1,6 +1,9 @@
 # Local development Compose — monorepo root.
 # Decision: Docs/[3] Decisions/[4] Docker & Infrastructure.md
 # Do not commit secrets; override via env_file / host environment.
+#
+# For day-to-day coding: start Postgres only, run API + web with npm on your machine.
+# Redis / containerized API / web are optional later (commented below).
 
 name: civil-engineering
 
@@ -28,65 +31,51 @@ services:
     networks:
       - civil_net
 
-  redis:
-    image: redis:7-alpine
-    container_name: civil-redis
-    ports:
-      - '${REDIS_PORT:-6379}:6379'
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - civil_net
-
-  api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: civil-api
-    environment:
-      NODE_ENV: development
-      PORT: 3000
-      TRUST_PROXY: 'false'
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/civil}
-      # REDIS_URL reserved until Redis client is wired
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-    ports:
-      - '${API_PORT:-3000}:3000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - civil_net
-
-  web:
-    build:
-      context: ./civil-web
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api/v1}
-    container_name: civil-web
-    ports:
-      - '${WEB_PORT:-8080}:80'
-    depends_on:
-      - api
-    networks:
-      - civil_net
-
-  # worker:
-  #   Uncomment when a separate worker process is required.
+  # --- Optional later (uncomment when needed) ---
+  #
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: civil-redis
+  #   ports:
+  #     - '${REDIS_PORT:-6379}:6379'
+  #   healthcheck:
+  #     test: ['CMD', 'redis-cli', 'ping']
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #   networks:
+  #     - civil_net
+  #
+  # api:   # usually run with: cd backend && npm run dev
   #   build:
   #     context: ./backend
   #     dockerfile: Dockerfile
-  #   command: ['node', 'dist/src/jobs/worker.js']
+  #   container_name: civil-api
+  #   environment:
+  #     NODE_ENV: development
+  #     PORT: 3000
+  #     TRUST_PROXY: 'false'
+  #     CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080}
+  #     DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/civil}
+  #   ports:
+  #     - '${API_PORT:-3000}:3000'
   #   depends_on:
-  #     - redis
-  #     - postgres
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - civil_net
+  #
+  # web:   # usually run with: cd civil-web && npm run dev
+  #   build:
+  #     context: ./civil-web
+  #     dockerfile: Dockerfile
+  #     args:
+  #       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api/v1}
+  #   container_name: civil-web
+  #   ports:
+  #     - '${WEB_PORT:-8080}:80'
+  #   depends_on:
+  #     - api
   #   networks:
   #     - civil_net
 

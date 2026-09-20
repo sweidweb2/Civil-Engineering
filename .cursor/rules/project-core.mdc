@@ -29,8 +29,9 @@ Both clients talk to the same versioned REST API only. Never let web/mobile touc
 - Clients: feature-based folders + Zustand (UI/client state only)
 - Validation: Zod on clients (UX) and backend (security) — frontend Zod is not a security boundary
 - Deploy: Docker + Nginx reverse proxy (Hostinger VPS)
+- Docker layout: app Dockerfiles in `civil-web/` + `backend/`; Compose at repo root; no mobile production Dockerfile; `infrastructure/` only when Nginx/config is real — see `Docs/[3] Decisions/[4] Docker & Infrastructure.md`
 
-Still open (do not invent as locked): storage provider, exact domain boundaries, Docker layout details.
+Still open (do not invent as locked): storage provider, exact domain boundaries, exact production Docker topology / monitoring.
 
 ## Project architecture & principles
 

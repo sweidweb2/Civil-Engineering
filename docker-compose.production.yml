@@ -1,0 +1,45 @@
+# Production overrides for Hostinger VPS.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+#
+# Exact topology (Nginx edge, worker, resource limits) stays configurable.
+# Add infrastructure/nginx/ when real Nginx config is ready — Nginx is the sole public entry.
+# Do not commit secrets; inject via Hostinger env / untracked .env / secrets store.
+
+services:
+  postgres:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-civil}
+
+  redis:
+    restart: unless-stopped
+    ports: !reset []
+
+  api:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      TRUST_PROXY: 'true'
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+
+  web:
+    restart: unless-stopped
+    # Interim: publish web until infrastructure/nginx is the sole public entry.
+    # Prefer binding only via Nginx (80/443) once that config exists.
+    ports: !override
+      - '${WEB_PUBLISH_PORT:-80}:80'
+    build:
+      context: ./civil-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}

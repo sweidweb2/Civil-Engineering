@@ -270,14 +270,30 @@ Hostinger VPS
       ▼
    Docker
       │
-      ├── Nginx
+      ├── Nginx          (sole public entry — when configured)
+      ├── Web            (Vite static / civil-web image)
       ├── Express API
       ├── PostgreSQL
       ├── Redis
-      └── Other required services
+      └── Other required services (e.g. worker — only if needed)
 ```
 
 Nginx is the reverse proxy and entry point for the deployed application.
+
+### Docker layout (locked)
+
+Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`
+
+| Artifact | Location |
+| --- | --- |
+| Web Dockerfile + `.dockerignore` | `civil-web/` |
+| Backend Dockerfile + `.dockerignore` | `backend/` |
+| Mobile production Dockerfile | none (Play / App Store) |
+| Local Compose | root `docker-compose.yml` |
+| Production Compose | root `docker-compose.production.yml` |
+| `infrastructure/` | optional — create when Nginx / extra Docker infra is real |
+
+Compose may orchestrate web, API, PostgreSQL, Redis, and an optional worker. Exact production topology remains flexible.
 
 ---
 
@@ -309,7 +325,10 @@ The following points are **not yet locked**:
 
 - **Storage provider/implementation**
 - Detailed DDD domain boundaries
-- Exact Docker service structure
-- Some infrastructure/security choices (to be decided during implementation)
+- Exact production Docker topology (which optional services run on the VPS)
+- Exact Nginx / TLS / domain wiring (`infrastructure/nginx/` when ready)
+- Some infrastructure/security / monitoring choices (to be decided during implementation)
+
+Docker **file layout** (where Dockerfiles and Compose live) is locked — see §11 and the Docker decision doc.
 
 All other listed items above are the **locked technical baseline** for the project.

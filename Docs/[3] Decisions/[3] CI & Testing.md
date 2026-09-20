@@ -82,9 +82,10 @@ Shared / broader triggers include (non-exhaustive):
 - Root `package.json`, lockfiles, Prettier/ESLint/tsconfig
 - `.github/**`
 - `Docs/**` only → docs-only job (quality optional; skip app tests unless desired)
-- `infrastructure/**`, Docker/Nginx, compose files
+- `infrastructure/**` (when present), root `docker-compose*.yml`, app `Dockerfile`s / Nginx config
 - `.cursor/rules/**` → treat as shared (at least format/lint/typecheck; full suite if rules imply contract changes — default **broader**)
 
+Docker layout decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`.
 ---
 
 ## CI / PR pipeline

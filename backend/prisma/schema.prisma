@@ -1,0 +1,39 @@
+// Civil Engineering API — PostgreSQL schema (Prisma ORM v7)
+//
+ // Domain models are intentionally empty while the DB schema is being designed.
+// Add models under the matching domain section. Repositories only may use Prisma Client.
+//
+// Generator output: src/generated/prisma (imported from src/database only)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// auth — RefreshToken, AuthSession (TBD)
+// =============================================================================
+
+// =============================================================================
+// users — User (TBD)
+// =============================================================================
+
+// =============================================================================
+// projects — Project (TBD)
+// =============================================================================
+
+// =============================================================================
+// workers — Worker, ProjectAssignment (TBD)
+// =============================================================================
+
+// =============================================================================
+// materials — Material, StockMovement (TBD)
+// =============================================================================
+
+// =============================================================================
+// expenses — Expense (TBD)
+// =============================================================================

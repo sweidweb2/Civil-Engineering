@@ -51,13 +51,15 @@ Source of truth for locked decisions: `Docs/[1] Main App/[1] Tech Stack.md` (and
 ```text
 Civil-Engineering-v1/
 ├── civil-web/          # React web app
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   └── src/
 │       ├── features/
 │       ├── components/
 │       ├── theme/
 │       ├── hooks/
 │       └── services/
-├── civil-mobile/       # React Native (Expo) app
+├── civil-mobile/       # React Native (Expo) — no production Dockerfile
 │   └── src/
 │       ├── features/
 │       ├── components/
@@ -66,20 +68,24 @@ Civil-Engineering-v1/
 │       ├── hooks/
 │       └── services/
 ├── backend/            # Express API
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   └── src/
 │       ├── modules/    # DDD domains (auth, users, projects, …)
 │       ├── middleware/
 │       ├── config/
 │       ├── database/
 │       └── jobs/
-├── Docs/               # Architecture, checklists, prompts
+├── Docs/               # Architecture, checklists, prompts, decisions
 ├── .cursor/rules/      # Cursor / AI project rules
+├── docker-compose.yml
+├── docker-compose.production.yml
 ├── .editorconfig
 ├── .gitignore
 └── README.md
 ```
 
-Optional later: `infrastructure/` (Nginx, Docker), root `docker-compose*.yml`, and smaller READMEs inside each app if they grow complex.
+Optional later: `infrastructure/nginx/` and `infrastructure/docker/` when real Nginx / extra Docker config is needed (do not create empty).
 
 ## Environment setup
 
@@ -132,23 +138,36 @@ Then open in Expo Go / simulator. Set `EXPO_PUBLIC_API_BASE_URL` to your machine
 
 ## Docker setup
 
+Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md` · rules: `.cursor/rules/docker.mdc`
+
 Target stack on the VPS:
 
-- **Nginx** — sole public entry (TLS + reverse proxy + web static)
-- **API** — Express container (internal network only)
+- **Nginx** — sole public entry (TLS + reverse proxy + web static) when `infrastructure/nginx/` is added
+- **Web** — `civil-web` image (Vite build)
+- **API** — Express container (internal network only in production)
 - **PostgreSQL** — named volume
 - **Redis** — cache / queue
+- **Mobile** — not a Docker service (Play / App Store)
 
-Compose files and Dockerfiles are planned at the repo root / `infrastructure/` (see Bedrock checklist). Until they exist, run services locally or add Compose following `.cursor/rules/docker.mdc`.
-
-Typical shape (when added):
+Local (Postgres + Redis + API + web):
 
 ```bash
 docker compose up -d
-# production override example:
+```
+
+Production-style override:
+
+```bash
 docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
 ```
 
+Data-only local (run Node apps on the host):
+
+```bash
+docker compose up -d postgres redis
+```
+
+Do not commit secrets into Compose or Dockerfiles — use host / Hostinger env.
 ## Deployment
 
 - **Host:** Hostinger VPS
@@ -163,6 +182,7 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
 | --- | --- |
 | `Docs/[1] Main App/[1] Tech Stack.md` | Locked technical decisions |
 | `Docs/[1] Main App/[2] Bedrock Checklist.md` | Foundation checklist |
+| `Docs/[3] Decisions/` | Locked decisions (format/lint, git, CI, Docker, …) |
 | `Docs/[2] Prompts/` | Master AI / agent prompts |
 | `.cursor/rules/` | Always-on and scoped coding rules |
 

@@ -18,8 +18,10 @@ If a change would alter stack, layers, API shape, or module boundaries — **ask
 | `civil-web/` | React web client |
 | `civil-mobile/` | React Native (Expo) client |
 | `backend/` | Express API + Prisma + jobs |
-| `Docs/` | Architecture, checklists, prompts |
+| `docker-compose*.yml` | Root Compose (local / production) |
+| `Docs/` | Architecture, checklists, prompts, decisions |
 | `.cursor/rules/` | AI / coding rules |
+| `infrastructure/` | Optional — Nginx / extra Docker only when real |
 
 Work in the smallest relevant app. Do not cross-wire clients into the database.
 
@@ -166,6 +168,7 @@ Relevant places: `Docs/[1] Main App/`, root `README.md`, and `.cursor/rules/` wh
 - [Formatting & Linting](../[3]%20Decisions/[1]%20Formatting%20%26%20Linting.md)
 - [Git Branch Strategy](../[3]%20Decisions/[2]%20Git%20Branch%20Strategy.md)
 - [CI & Testing](../[3]%20Decisions/[3]%20CI%20%26%20Testing.md)
+- [Docker & Infrastructure](../[3]%20Decisions/[4]%20Docker%20%26%20Infrastructure.md)
 - [Libraries](./[4]%20Libraries.md)
 - Root [README](../../README.md)
 - `.cursor/rules/project-core.mdc`

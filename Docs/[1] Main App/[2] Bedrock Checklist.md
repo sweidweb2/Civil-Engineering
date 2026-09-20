@@ -480,21 +480,27 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ## 20. Docker / Deployment Foundation
 
-- [ ] Dockerfile(s)
-- [ ] `.dockerignore`
-- [ ] `docker-compose.yml` (dev)
-- [ ] `docker-compose.production.yml` (or override)
-- [x] Services: Nginx, API, Postgres, Redis (+ worker if needed)
-- [x] Container networking
+Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisions/[4]%20Docker%20%26%20Infrastructure.md)
+
+- [x] Docker strategy locked (local + production; Compose at root; no mobile prod Dockerfile)
+- [x] `civil-web/Dockerfile` + `.dockerignore`
+- [x] `backend/Dockerfile` + `.dockerignore`
+- [x] Rule locked: no production Dockerfile for `civil-mobile/`
+- [x] `docker-compose.yml` (dev)
+- [x] `docker-compose.production.yml`
+- [x] Services planned: Nginx (when ready), web, API, Postgres, Redis (+ worker if needed)
+- [x] Container networking (Compose network)
 - [x] Volumes (Postgres required)
-- [x] Health checks
-- [x] Restart / resource / logging policy
-- [x] Secrets injection
-- [x] Nginx reverse proxy
+- [x] Health checks (Compose + Dockerfiles)
+- [x] Restart / resource / logging policy (documented; production restart in override)
+- [x] Secrets injection (env / host — not baked into images)
+- [x] Nginx reverse proxy (rule locked; config folder when ready)
 - [ ] SSL / domains / firewall / backups
 - [x] Rule locked: Nginx is sole public entry
+- [ ] `infrastructure/nginx/` (create when Nginx config is real — not empty)
+- [ ] `infrastructure/docker/` (only if needed beyond root Compose)
 
-> Note: Docker/Nginx items above are **documented in rules/README**, not implemented as Compose/files yet.
+> Note: Scaffold Dockerfiles + Compose exist. Edge Nginx config and hardened VPS wiring remain TODO.
 
 ---
 
@@ -584,9 +590,12 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [ ] `civil-mobile/src/` feature + theme + services + navigation layout
 - [ ] `backend/src/modules/` + middleware / config / database / jobs
 - [ ] `backend/prisma/` schema + migrations
-- [ ] `infrastructure/nginx/` (when ready)
-- [ ] `infrastructure/docker/` (when ready)
+- [x] Root `docker-compose.yml` + `docker-compose.production.yml`
+- [x] `civil-web/Dockerfile` + `.dockerignore`
+- [x] `backend/Dockerfile` + `.dockerignore`
+- [ ] `infrastructure/nginx/` (when ready — do not create empty)
+- [ ] `infrastructure/docker/` (when ready — do not create empty)
 - [ ] `.github/workflows/` (when ready)
-- [ ] Root compose files (when ready)
 - [x] Rule locked: do not create every folder/abstraction before features
 - [x] Order locked: boundaries → infra you need → standards → design system → feature development
+- [x] Docker layout decision locked (`Docs/[3] Decisions/[4] Docker & Infrastructure.md`)

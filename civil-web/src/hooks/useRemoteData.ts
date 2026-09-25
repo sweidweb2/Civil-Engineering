@@ -39,7 +39,7 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   useEffect(() => {
     if (!enabled) return
     void refetch()
-  }, [enabled, refetch])
+  }, [enabled, refetch, load])
 
   return {
     ...state,

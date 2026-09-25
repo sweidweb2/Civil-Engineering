@@ -27,7 +27,7 @@ export const usersDomain = {
   ],
   useCases: ['listUsers', 'getUserById', 'createUser', 'updateUser', 'deactivateUser'],
   relationships: [
-    'Referenced by auth (userId), projects (ownerId), workers (optional link), expenses (createdBy).',
+    'Referenced by auth (userId), projects (ownerId), workers (optional link), expenses (createdBy), providers (ownerUserId).',
   ],
   externalAccessRules: [
     'Other modules read users only via public users service (e.g. getById), never user.repository.',

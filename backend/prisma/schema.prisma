@@ -43,6 +43,7 @@ model User {
   activityLogs ActivityLog[]
   deviceTokens DeviceToken[]
   files        File[]
+  provider     Provider?
 
   @@map("users")
 }
@@ -163,6 +164,41 @@ model File {
   @@index([uploadedById])
   @@index([status])
   @@map("files")
+}
+
+// =============================================================================
+// providers — one provider company per owner user
+// =============================================================================
+
+enum ProviderStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+model Provider {
+  id          String         @id @default(cuid())
+  ownerUserId String         @unique
+  name        String
+  description String?
+  logoUrl     String?
+  phone       String?
+  whatsapp    String?
+  email       String?
+  website     String?
+  address     String?
+  city        String?
+  country     String?
+  lat         Float?
+  lng         Float?
+  status      ProviderStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  owner       User           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([city, country])
+  @@map("providers")
 }
 
 // =============================================================================

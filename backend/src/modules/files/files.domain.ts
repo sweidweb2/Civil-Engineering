@@ -18,7 +18,7 @@ export const filesDomain = {
     },
     {
       name: 'FileEntityType',
-      description: 'PROJECT | USER | EXPENSE | MATERIAL | WORKER',
+      description: 'PROJECT | USER | EXPENSE | MATERIAL | WORKER | LISTING',
     },
   ],
   useCases: ['presignUpload', 'completeUpload', 'getDownloadUrl', 'softDeleteFile'],

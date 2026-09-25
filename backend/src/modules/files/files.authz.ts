@@ -23,6 +23,7 @@ export async function assertCanAttachToEntity(
     case 'EXPENSE':
     case 'MATERIAL':
     case 'WORKER':
+    case 'LISTING':
       throw notImplemented(`files.entityAuthz.${entityType}`)
     default:
       throw forbidden('Unknown file entity type')

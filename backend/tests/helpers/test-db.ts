@@ -38,6 +38,10 @@ export async function clearUsers(): Promise<void> {
   await prisma.activityLog.deleteMany()
   await prisma.errorLog.deleteMany()
   await prisma.deviceToken.deleteMany()
+  await prisma.listingOffer.deleteMany()
+  await prisma.listingVariation.deleteMany()
+  await prisma.listing.deleteMany()
+  await prisma.category.deleteMany()
   await prisma.provider.deleteMany()
   await prisma.user.deleteMany()
 }

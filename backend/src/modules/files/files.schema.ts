@@ -6,6 +6,7 @@ export const fileEntityTypeSchema = z.enum([
   'EXPENSE',
   'MATERIAL',
   'WORKER',
+  'LISTING',
 ])
 
 export const ALLOWED_FILE_MIMES = [

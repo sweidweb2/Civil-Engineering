@@ -15,7 +15,7 @@ type ErrorPageShellProps = {
 export function ErrorPageShell({ title, description, code, actions }: ErrorPageShellProps) {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-4 text-center">
-      <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-muted/40">
+      <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-card">
         <HardHat className="size-7 text-foreground" aria-hidden />
       </div>
       {code ? (

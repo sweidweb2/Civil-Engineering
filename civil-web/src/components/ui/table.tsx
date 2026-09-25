@@ -1,12 +1,18 @@
 import * as React from 'react'
 import { cn } from 'cn'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+function Table({
+  className,
+  startIndex = 0,
+  style,
+  ...props
+}: React.ComponentProps<'table'> & { startIndex?: number }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div data-slot="table-container" className="relative w-full min-w-0 overflow-x-auto">
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}
+        style={{ '--table-index-start': startIndex, ...style } as React.CSSProperties}
         {...props}
       />
     </div>
@@ -37,12 +43,19 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
+function TableRow({
+  className,
+  clickable = false,
+  ...props
+}: React.ComponentProps<'tr'> & { clickable?: boolean }) {
   return (
     <tr
       data-slot="table-row"
+      data-clickable={clickable ? 'true' : undefined}
+      tabIndex={clickable ? 0 : undefined}
       className={cn(
         'border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
+        clickable && 'cursor-pointer hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
         className,
       )}
       {...props}

@@ -1,7 +1,11 @@
+import { AlertTriangle, FileWarning } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 import { AsyncState } from '@/components/feedback/async-state'
-import { Button } from '@/components/ui/button'
+import { DataPanel } from '@/components/layout/data-panel'
+import { PageHeader } from '@/components/layout/page-header'
+import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
+import { TablePager } from '@/components/layout/table-pager'
 import {
   Table,
   TableBody,
@@ -14,6 +18,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { type ErrorLogItem, listErrorLogs } from '@/services/logging'
 
+const PAGE_LIMIT = 20
+
 function formatWhen(iso: string) {
   try {
     return new Date(iso).toLocaleString()
@@ -25,22 +31,25 @@ function formatWhen(iso: string) {
 export function ErrorLogsPage() {
   useDocumentTitle('Error logs')
   const [page, setPage] = useState(1)
-  const limit = 20
 
-  const load = useCallback(() => listErrorLogs(page, limit), [page])
+  const load = useCallback(() => listErrorLogs(page, PAGE_LIMIT), [page])
   const remote = useRemoteData(load)
 
   const rows: ErrorLogItem[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
-  const totalPages = Math.max(1, Math.ceil(total / limit))
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT))
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Error logs</h1>
-        <p className="text-sm text-muted-foreground">
-          Unexpected / 5xx failures persisted for SUPER review.
-        </p>
+    <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader
+        className="mb-0"
+        title="Error logs"
+        description="Unexpected / 5xx failures persisted for SUPER review."
+      />
+
+      <div className={STAT_GRID_CLASS}>
+        <StatCard icon={AlertTriangle} label="Errors" value={total} />
+        <StatCard icon={FileWarning} label="This page" value={rows.length} />
       </div>
 
       <AsyncState
@@ -48,8 +57,12 @@ export function ErrorLogsPage() {
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
       >
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <Table>
+        <DataPanel
+          footer={
+            <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          }
+        >
+          <Table startIndex={(page - 1) * PAGE_LIMIT}>
             <TableHeader>
               <TableRow>
                 <TableHead>When</TableHead>
@@ -84,33 +97,7 @@ export function ErrorLogsPage() {
               )}
             </TableBody>
           </Table>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({total} total)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        </DataPanel>
       </AsyncState>
     </div>
   )

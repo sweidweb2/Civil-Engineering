@@ -35,6 +35,8 @@ model User {
   passwordHash String
   role         Role          @default(CLIENT)
   status       UserStatus    @default(ACTIVE)
+  /// Admin verification page — marketplace visibility for workers (and reuse for other roles).
+  isVerified   Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   profile      Profile?

@@ -6,6 +6,7 @@ export type AuthUser = {
   id: string
   email: string
   role: AuthRole
+  isVerified: boolean
   profile: {
     firstName: string | null
     lastName: string | null

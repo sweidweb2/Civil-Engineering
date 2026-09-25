@@ -15,6 +15,7 @@ export type AuthUserDto = {
   id: string
   email: string
   role: RoleName
+  isVerified: boolean
   profile: AuthProfileDto | null
 }
 

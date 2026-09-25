@@ -26,6 +26,7 @@ function toUserDto(user: AuthUserRecord): AuthUserDto {
     id: user.id,
     email: user.email,
     role: user.role as RoleName,
+    isVerified: user.isVerified,
     profile: user.profile
       ? {
           firstName: user.profile.firstName,

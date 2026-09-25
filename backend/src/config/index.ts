@@ -137,11 +137,22 @@ function parseStorage(data: z.infer<typeof baseEnvSchema>): StorageConfig | unde
   }
 }
 
+/** dotenv often sets optional keys to "" — treat those as unset. */
+function omitEmptyEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const next: NodeJS.ProcessEnv = { ...env }
+  for (const [key, value] of Object.entries(next)) {
+    if (value === '') {
+      delete next[key]
+    }
+  }
+  return next
+}
+
 /**
  * Load and validate env once. Call from server entry / createApp — not from domain code.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = baseEnvSchema.safeParse(env)
+  const parsed = baseEnvSchema.safeParse(omitEmptyEnv(env))
 
   if (!parsed.success) {
     const details = parsed.error.issues

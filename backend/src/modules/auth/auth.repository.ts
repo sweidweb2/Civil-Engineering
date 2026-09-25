@@ -7,6 +7,7 @@ export type AuthUserRecord = {
   passwordHash: string
   role: Role
   status: UserStatus
+  isVerified: boolean
   profile: {
     firstName: string | null
     lastName: string | null

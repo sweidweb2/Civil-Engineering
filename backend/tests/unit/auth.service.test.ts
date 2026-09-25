@@ -24,6 +24,7 @@ function makeUser(overrides: Partial<AuthUserRecord> = {}): AuthUserRecord {
     passwordHash: 'hash:secret123',
     role: 'CLIENT',
     status: 'ACTIVE',
+    isVerified: false,
     profile: {
       firstName: 'Ada',
       lastName: 'Lovelace',
@@ -59,6 +60,7 @@ describe('auth.service', () => {
 
     expect(result.user.email).toBe('user@example.com')
     expect(result.user.role).toBe('CLIENT')
+    expect(result.user.isVerified).toBe(false)
     expect(result.tokens).toEqual({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',

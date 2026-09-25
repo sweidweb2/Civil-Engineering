@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/layout/page-header'
+import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -11,14 +13,17 @@ export function PanelHomePage({ title, description }: PanelHomeProps) {
   const user = useAuthStore((s) => s.user)
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-3">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="text-muted-foreground">{description}</p>
+    <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader className="mb-0" title={title} description={description} />
       {user ? (
-        <p className="text-sm text-muted-foreground">
-          Signed in as <span className="font-medium text-foreground">{user.email}</span> (
-          {user.role})
-        </p>
+        <Card size="sm" className="min-w-0">
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Signed in as <span className="font-medium text-foreground">{user.email}</span> (
+              {user.role})
+            </p>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   )

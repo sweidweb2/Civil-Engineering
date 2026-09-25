@@ -15,6 +15,7 @@ export type User = {
   email: string
   role: UserRole
   status: UserStatus
+  isVerified: boolean
   profile: UserProfile | null
   createdAt: string
   updatedAt: string

@@ -9,6 +9,20 @@ import { UnexpectedErrorPage } from '@/features/errors/UnexpectedErrorPage'
 import { HomePage } from '@/features/home/HomePage'
 import { ActivityLogsPage } from '@/features/panels/ActivityLogsPage'
 import { ErrorLogsPage } from '@/features/panels/ErrorLogsPage'
+import { AdminAnalyticsPage } from '@/features/admin/AdminAnalyticsPage'
+import { DirectoryPage } from '@/features/admin/DirectoryPage'
+import { ManageCategoriesPage } from '@/features/admin/ManageCategoriesPage'
+import { ManageProjectsPage } from '@/features/admin/ManageProjectsPage'
+import { ManageProvidersPage } from '@/features/admin/ManageProvidersPage'
+import { ManageReviewsPage } from '@/features/admin/ManageReviewsPage'
+import { ProjectDetailsPage } from '@/features/admin/ProjectDetailsPage'
+import { MarketDetailsPage } from '@/features/admin/MarketDetailsPage'
+import { RegistrationApprovalsPage } from '@/features/admin/RegistrationApprovalsPage'
+import { SettingsPage } from '@/features/admin/SettingsPage'
+import { UserDetailsPage } from '@/features/admin/UserDetailsPage'
+import { UsersPage } from '@/features/admin/UsersPage'
+import { WorkerVerificationPage } from '@/features/admin/WorkerVerificationPage'
+import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 import { PanelHomePage } from '@/features/panels/PanelHomePage'
 import {
   AdminPanelLayout,
@@ -65,12 +79,16 @@ function App() {
               element={
                 <PanelHomePage
                   title="Super home"
-                  description="Platform oversight — activity and error logs."
+                  description="Platform oversight — users, activity, errors, and settings."
                 />
               }
             />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="users/:userId" element={<UserDetailsPage />} />
             <Route path="activity" element={<ActivityLogsPage />} />
             <Route path="errors" element={<ErrorLogsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           <Route
@@ -83,12 +101,20 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route
-              index
-              element={
-                <PanelHomePage title="Admin home" description="Admin tools will land here." />
-              }
-            />
+            <Route index element={<AdminAnalyticsPage />} />
+            <Route path="approvals" element={<RegistrationApprovalsPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="users/:userId" element={<UserDetailsPage />} />
+            <Route path="verification" element={<WorkerVerificationPage />} />
+            <Route path="providers" element={<ManageProvidersPage />} />
+            <Route path="providers/:providerId" element={<MarketDetailsPage />} />
+            <Route path="projects" element={<ManageProjectsPage />} />
+            <Route path="projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="directory" element={<DirectoryPage />} />
+            <Route path="reviews" element={<ManageReviewsPage />} />
+            <Route path="categories" element={<ManageCategoriesPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           <Route
@@ -107,6 +133,7 @@ function App() {
                 <PanelHomePage title="PM home" description="Project manager tools will land here." />
               }
             />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
           <Route
@@ -125,6 +152,7 @@ function App() {
                 <PanelHomePage title="Provider home" description="Provider tools will land here." />
               }
             />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

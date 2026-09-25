@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { GuestOnly } from '@/components/auth'
 import { Field, FieldError, FieldGroup, FieldLabel, Form } from '@/components/forms'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { type FieldErrors, parseForm } from '@/lib/form'
@@ -54,7 +55,9 @@ export function RegisterPage() {
   return (
     <GuestOnly>
       <div className="flex min-h-svh items-center justify-center bg-background px-4">
-        <Form onSubmit={onSubmit} className="w-full max-w-sm gap-4" noValidate>
+        <Card className="w-full max-w-sm">
+          <CardContent>
+        <Form onSubmit={onSubmit} className="gap-4" noValidate>
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
             <p className="text-sm text-muted-foreground">
@@ -130,6 +133,8 @@ export function RegisterPage() {
             </Link>
           </p>
         </Form>
+          </CardContent>
+        </Card>
       </div>
     </GuestOnly>
   )

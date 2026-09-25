@@ -15,3 +15,12 @@ export function homePathForRole(role: AuthRole | null | undefined): string {
       return '/'
   }
 }
+
+/** Portal prefix from the current path (`/admin`, `/super`, …). */
+export function portalBaseFromPath(pathname: string): string {
+  if (pathname.startsWith('/super')) return '/super'
+  if (pathname.startsWith('/pm')) return '/pm'
+  if (pathname.startsWith('/provider')) return '/provider'
+  if (pathname.startsWith('/admin')) return '/admin'
+  return '/admin'
+}

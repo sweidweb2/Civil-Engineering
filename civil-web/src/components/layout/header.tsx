@@ -13,7 +13,7 @@ function Header({ leading, children, trailing, className }: HeaderProps) {
     <header
       data-slot="header"
       className={cn(
-        'sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4',
+        'sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4',
         className,
       )}
     >

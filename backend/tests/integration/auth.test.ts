@@ -44,6 +44,7 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
     expect(register.body.user).toMatchObject({
       email: 'ada@example.com',
       role: 'CLIENT',
+      isVerified: false,
       profile: {
         firstName: 'Ada',
         lastName: 'Lovelace',

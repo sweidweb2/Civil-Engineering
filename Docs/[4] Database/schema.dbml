@@ -28,6 +28,7 @@ Table users {
   passwordHash  String     [not null, note: 'bcrypt/argon hash — never plaintext']
   role          Role       [not null, default: 'CLIENT']
   status        UserStatus [not null, default: 'ACTIVE']
+  isVerified    Boolean    [not null, default: false, note: 'Admin verification page — worker marketplace visibility']
   createdAt     DateTime   [not null, default: `now()`]
   updatedAt     DateTime   [not null, note: 'auto @updatedAt']
 

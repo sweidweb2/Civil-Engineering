@@ -12,6 +12,7 @@ import { ErrorLogsPage } from '@/features/panels/ErrorLogsPage'
 import { PanelHomePage } from '@/features/panels/PanelHomePage'
 import {
   AdminPanelLayout,
+  PmPanelLayout,
   ProviderPanelLayout,
   SuperPanelLayout,
 } from '@/features/panels/PanelLayouts'
@@ -20,7 +21,7 @@ import type { AuthRole } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
 
 function hasPanel(role: AuthRole | null | undefined): boolean {
-  return role === 'SUPER' || role === 'ADMIN' || role === 'PROVIDER'
+  return role === 'SUPER' || role === 'ADMIN' || role === 'MANAGER' || role === 'PROVIDER'
 }
 
 /** Signed-in `/` — panel roles go to their shell; others stay on client home. */
@@ -86,6 +87,24 @@ function App() {
               index
               element={
                 <PanelHomePage title="Admin home" description="Admin tools will land here." />
+              }
+            />
+          </Route>
+
+          <Route
+            path="/pm"
+            element={
+              <RequireAuth>
+                <RequireRole roles={['MANAGER']} fallbackTo="/">
+                  <PmPanelLayout />
+                </RequireRole>
+              </RequireAuth>
+            }
+          >
+            <Route
+              index
+              element={
+                <PanelHomePage title="PM home" description="Project manager tools will land here." />
               }
             />
           </Route>

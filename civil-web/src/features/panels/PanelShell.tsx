@@ -117,6 +117,8 @@ export const SUPER_NAV: PanelNavItem[] = [
 
 export const ADMIN_NAV: PanelNavItem[] = [{ to: '/admin', label: 'Home', icon: Home, end: true }]
 
+export const PM_NAV: PanelNavItem[] = [{ to: '/pm', label: 'Home', icon: Home, end: true }]
+
 export const PROVIDER_NAV: PanelNavItem[] = [
   { to: '/provider', label: 'Home', icon: Home, end: true },
 ]

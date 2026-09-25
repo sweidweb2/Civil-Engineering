@@ -6,6 +6,7 @@ describe('homePathForRole', () => {
   it('routes panel roles to their shells', () => {
     expect(homePathForRole('SUPER')).toBe('/super')
     expect(homePathForRole('ADMIN')).toBe('/admin')
+    expect(homePathForRole('MANAGER')).toBe('/pm')
     expect(homePathForRole('PROVIDER')).toBe('/provider')
     expect(homePathForRole('CLIENT')).toBe('/')
   })

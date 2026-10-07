@@ -11,7 +11,7 @@ export const listProjectsQuerySchema = paginationQuerySchema
 // Minimal create - just essential info
 export const createProjectBodySchema = z.object({
   name: z
-    .string({ required_error: 'Project name is required' })
+    .string()
     .trim()
     .min(1, 'Project name is required')
     .max(200, 'Project name must be at most 200 characters'),

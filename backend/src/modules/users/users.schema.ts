@@ -10,13 +10,13 @@ export const listUsersQuerySchema = paginationQuerySchema
 
 export const createUserBodySchema = z.object({
   email: z
-    .string({ required_error: 'Email is required' })
+    .string()
     .trim()
     .min(1, 'Email is required')
     .max(255, 'Email must be at most 255 characters')
     .email('Invalid email format'),
   password: z
-    .string({ required_error: 'Password is required' })
+    .string()
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password must be at most 100 characters'),
   role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).default('CLIENT'),

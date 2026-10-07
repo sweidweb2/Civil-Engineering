@@ -1,12 +1,15 @@
 import { Box, HardHat, Layers, Wrench } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { CardGridSkeleton, CivilCardMedia } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
 import { ToolbarCard } from './components/DataPanel'
@@ -28,12 +31,10 @@ function DirectoryCards({ items }: { items: DirectoryItem[] }) {
 
   return (
     <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {items.map((item) => (
-        <Card key={item.id} size="sm" className="min-w-0">
+      {items.map((item, index) => (
+        <Card key={item.id} size="sm" className="min-w-0 overflow-hidden pt-0">
+          <CivilCardMedia variant={index} />
           <CardHeader className="min-w-0">
-            <div className="mb-1 flex h-16 items-end rounded-lg bg-muted px-3 py-2">
-              <span className="text-xs capitalize text-muted-foreground">{item.kind}</span>
-            </div>
             <CardTitle className="truncate" title={item.name}>
               {ellipsis(item.name, 36)}
             </CardTitle>
@@ -57,9 +58,18 @@ export function DirectoryPage() {
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<DirectoryKind | 'all'>('all')
 
+  const load = useCallback(async () => {
+    // Mock latency so CardGridSkeleton is visible (replace when API is wired).
+    await new Promise((resolve) => window.setTimeout(resolve, 600))
+    return MOCK_DIRECTORY
+  }, [])
+  const remote = useRemoteData(load)
+
+  const catalog = remote.status === 'success' ? remote.data : []
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return MOCK_DIRECTORY.filter((item) => {
+    return catalog.filter((item) => {
       if (kind !== 'all' && item.kind !== kind) return false
       if (!q) return true
       return [item.name, item.category, item.location, item.source, item.kind]
@@ -67,7 +77,7 @@ export function DirectoryPage() {
         .toLowerCase()
         .includes(q)
     })
-  }, [kind, query])
+  }, [catalog, kind, query])
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -78,21 +88,21 @@ export function DirectoryPage() {
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Layers} label="Items" value={MOCK_DIRECTORY.length} />
+        <StatCard icon={Layers} label="Items" value={catalog.length} />
         <StatCard
           icon={Box}
           label="Materials"
-          value={MOCK_DIRECTORY.filter((item) => item.kind === 'material').length}
+          value={catalog.filter((item) => item.kind === 'material').length}
         />
         <StatCard
           icon={Wrench}
           label="Equipment"
-          value={MOCK_DIRECTORY.filter((item) => item.kind === 'equipment').length}
+          value={catalog.filter((item) => item.kind === 'equipment').length}
         />
         <StatCard
           icon={HardHat}
           label="Workers"
-          value={MOCK_DIRECTORY.filter((item) => item.kind === 'worker').length}
+          value={catalog.filter((item) => item.kind === 'worker').length}
         />
       </div>
 
@@ -122,7 +132,14 @@ export function DirectoryPage() {
           />
         </ToolbarCard>
         <TabsContent value={kind}>
-          <DirectoryCards items={visible} />
+          <AsyncState
+            isLoading={remote.isLoading}
+            error={remote.isError ? remote.error : undefined}
+            onRetry={() => void remote.refetch()}
+            loadingFallback={<CardGridSkeleton />}
+          >
+            <DirectoryCards items={visible} />
+          </AsyncState>
         </TabsContent>
       </Tabs>
     </div>

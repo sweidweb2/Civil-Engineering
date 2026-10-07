@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Image as ImageIcon, Star, Trash2, Upload, X 
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { GallerySkeleton } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,14 +130,7 @@ export function ProjectGallery({ projectId }: Props) {
   }
 
   if (remote.isLoading) {
-    return (
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle>Project Gallery</CardTitle>
-          <CardDescription>Loading images...</CardDescription>
-        </CardHeader>
-      </Card>
-    )
+    return <GallerySkeleton />
   }
 
   return (
@@ -188,7 +182,7 @@ export function ProjectGallery({ projectId }: Props) {
                     className="size-full object-cover transition-transform group-hover:scale-105"
                   />
                   {image.isMain && (
-                    <Badge className="absolute left-2 top-2 bg-yellow-500 text-white">
+                    <Badge className="absolute left-2 top-2">
                       <Star className="size-3" />
                       Main
                     </Badge>
@@ -280,7 +274,7 @@ export function ProjectGallery({ projectId }: Props) {
             />
             <div className="mt-4 flex items-center justify-center gap-2">
               {images[selectedImageIndex].isMain && (
-                <Badge className="bg-yellow-500 text-white">
+                <Badge>
                   <Star className="size-3" />
                   Main Image
                 </Badge>

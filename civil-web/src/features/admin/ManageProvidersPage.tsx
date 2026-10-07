@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { CardGridSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -95,6 +96,7 @@ export function ManageProvidersPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
+        loadingFallback={<CardGridSkeleton />}
       >
         <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {providers.length === 0 ? (

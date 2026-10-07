@@ -23,7 +23,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
   return {
     async list(req, res, next) {
       try {
-        const query = req.query as ListProjectsQuery
+        const query = req.query as unknown as ListProjectsQuery
         const result = await service.listProjects(query)
         res.status(200).json(result)
       } catch (error) {

@@ -21,3 +21,4 @@ src/
 - Zod for UX; backend is the security boundary
 - Zustand for client/UI state only
 - Shared UI in `components/`; feature UI stays in the feature
+- Page loading: shadcn `Skeleton` + presets in `components/feedback/skeletons` via `AsyncState` `loadingFallback` — see `web-skeletons` rule

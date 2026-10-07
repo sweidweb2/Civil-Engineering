@@ -1,0 +1,53 @@
+---
+description: Use shadcn Skeleton presets for civil-web loading states
+globs: civil-web/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# Web skeletons (`civil-web`)
+
+Use the shadcn `Skeleton` primitive and shared presets — do not add packages like `react-loading-skeleton`.
+
+## Source of truth
+
+- Primitive: `@/components/ui/skeleton` (shadcn)
+- Presets: `@/components/feedback/skeletons`
+- Wire via `AsyncState` `loadingFallback` (default is `ContentSkeleton`)
+
+## Preset map
+
+| Layout | Preset | Use when |
+| --- | --- | --- |
+| Generic | `ContentSkeleton` | Unknown / simple blocks |
+| Card grid | `CardGridSkeleton` | Project/provider/directory cards (includes `CardImageSkeleton`) |
+| Card image | `CardImageSkeleton` | Card media strip — isometric civil art (`/public/illustrations/skeleton-*.jpg`) + pulse |
+| Table | `TableSkeleton` | Logs, admin tables |
+| Detail form | `DetailSkeleton` | Multi-card detail pages |
+| Detail card | `DetailCardSkeleton` | Single key/value detail |
+| List | `ListSkeleton` | Notification inbox rows |
+| Gallery | `GallerySkeleton` | Image grids |
+
+## Rules
+
+```tsx
+// ❌ BAD — spinner or "Loading…" text for page data
+if (isLoading) return <p>Loading…</p>
+
+// ❌ BAD — ad-hoc skeleton markup in the page
+{isLoading && <div className="animate-pulse h-4 bg-muted" />}
+
+// ✅ GOOD — AsyncState + matching preset
+<AsyncState
+  isLoading={remote.isLoading}
+  error={remote.isError ? remote.error : undefined}
+  onRetry={() => void remote.refetch()}
+  loadingFallback={<TableSkeleton columns={5} />}
+>
+  {children}
+</AsyncState>
+```
+
+- Match the skeleton shape to the loaded UI (table → `TableSkeleton`, cards → `CardGridSkeleton`).
+- Prefer `InlineSpinner` only for brief auth/session hydration, not page content.
+- Keep `role="status"` / `aria-busy` on presets (already included).
+- Do not invent a new skeleton library; compose with `Skeleton` + presets.

@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { DetailCardSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -89,6 +90,7 @@ export function MarketDetailsPage() {
           setUpdated(null)
           void remote.refetch()
         }}
+        loadingFallback={<DetailCardSkeleton />}
       >
         {provider ? (
           <Card size="sm" className="min-w-0 gap-0 overflow-hidden py-0">

@@ -8,19 +8,40 @@ import type { Project } from '../../src/modules/projects/projects.types.js'
 const sample: Project = {
   id: 'p1',
   name: 'Site A',
-  status: 'active',
+  description: null,
+  code: null,
   ownerId: 'owner-1',
+  address: null,
+  city: null,
+  country: null,
+  startDate: null,
+  endDate: null,
+  actualStartDate: null,
+  actualEndDate: null,
+  status: 'IN_PROGRESS',
+  progress: 0,
+  budget: null,
+  currency: 'USD',
+  actualCost: null,
+  type: null,
+  isPublic: false,
+  tags: null,
+  attachments: null,
+  notes: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
+  archivedAt: null,
 }
 
 describe('projectsService.assertAccessible', () => {
   function serviceWith(project: Project | null) {
     const repository: ProjectsRepository = {
-      findMany: vi.fn(async () => []),
+      findMany: vi.fn(async () => ({ projects: [], total: 0 })),
       findById: vi.fn(async () => project),
+      findByCode: vi.fn(async () => null),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     }
     return createProjectsService(repository)
   }

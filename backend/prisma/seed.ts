@@ -1,5 +1,5 @@
 /**
- * Local/dev seed — example SUPER + ADMIN + PROVIDER accounts.
+ * Local/dev seed — example SUPER + ADMIN + MANAGER (PM) + PROVIDER accounts.
  * Passwords are intentional placeholders for local use only — never use in production.
  */
 import 'dotenv/config'
@@ -31,6 +31,13 @@ const SEED_USERS: Array<{
     role: 'ADMIN',
     firstName: 'Admin',
     lastName: 'User',
+  },
+  {
+    email: 'pm@example.com',
+    password: 'password',
+    role: 'MANAGER',
+    firstName: 'Project',
+    lastName: 'Manager',
   },
   {
     email: 'provider@example.com',

@@ -2,6 +2,7 @@ import { AlertTriangle, FileWarning } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import { DataPanel } from '@/components/layout/data-panel'
 import { PageHeader } from '@/components/layout/page-header'
 import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
@@ -56,6 +57,7 @@ export function ErrorLogsPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
+        loadingFallback={<TableSkeleton columns={5} />}
       >
         <DataPanel
           footer={

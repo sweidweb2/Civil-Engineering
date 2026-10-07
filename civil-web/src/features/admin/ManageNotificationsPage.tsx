@@ -12,6 +12,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -283,6 +284,7 @@ export function ManageNotificationsPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
+        loadingFallback={<TableSkeleton columns={6} />}
       >
         <Card>
           <CardHeader>

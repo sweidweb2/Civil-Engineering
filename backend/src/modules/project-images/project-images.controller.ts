@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express'
+import type { RequestHandler } from 'express'
 import multer from 'multer'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
@@ -18,12 +18,12 @@ const upload = multer({
 })
 
 export type ProjectImagesController = {
-  listProjectImages: (req: Request, res: Response) => Promise<void>
-  getProjectImage: (req: Request, res: Response) => Promise<void>
-  uploadProjectImage: (req: Request, res: Response) => Promise<void>
-  updateProjectImage: (req: Request, res: Response) => Promise<void>
-  deleteProjectImage: (req: Request, res: Response) => Promise<void>
-  reorderProjectImages: (req: Request, res: Response) => Promise<void>
+  listProjectImages: RequestHandler
+  getProjectImage: RequestHandler
+  uploadProjectImage: RequestHandler
+  updateProjectImage: RequestHandler
+  deleteProjectImage: RequestHandler
+  reorderProjectImages: RequestHandler
   uploadMiddleware: ReturnType<typeof upload.single>
 }
 
@@ -32,7 +32,7 @@ export type ProjectImagesControllerDeps = {
 }
 
 export function createProjectImagesController(
-  deps: ProjectImagesControllerDeps
+  deps: ProjectImagesControllerDeps,
 ): ProjectImagesController {
   const { service } = deps
 
@@ -42,16 +42,14 @@ export function createProjectImagesController(
     listProjectImages: wrap(async (req, res) => {
       await validateParams(req, { projectId: uuidSchema })
       const actor = parseAuthActor(req)
-      const { projectId } = req.params
-      const images = await service.listProjectImages(actor, projectId)
+      const images = await service.listProjectImages(actor, String(req.params.projectId))
       res.json({ data: images })
     }),
 
     getProjectImage: wrap(async (req, res) => {
       await validateParams(req, { imageId: uuidSchema })
       const actor = parseAuthActor(req)
-      const { imageId } = req.params
-      const image = await service.getProjectImage(actor, imageId)
+      const image = await service.getProjectImage(actor, String(req.params.imageId))
       res.json({ data: image })
     }),
 
@@ -59,14 +57,18 @@ export function createProjectImagesController(
       await validateParams(req, { projectId: uuidSchema })
       await validateBody(req, uploadProjectImageBodySchema)
       const actor = parseAuthActor(req)
-      const { projectId } = req.params
 
       if (!req.file) {
         res.status(400).json({ error: 'No image file provided' })
         return
       }
 
-      const image = await service.uploadProjectImage(actor, projectId, req.file, req.body)
+      const image = await service.uploadProjectImage(
+        actor,
+        String(req.params.projectId),
+        req.file,
+        req.body,
+      )
       res.status(201).json({ data: image })
     }),
 
@@ -74,16 +76,14 @@ export function createProjectImagesController(
       await validateParams(req, { imageId: uuidSchema })
       await validateBody(req, updateProjectImageBodySchema)
       const actor = parseAuthActor(req)
-      const { imageId } = req.params
-      const image = await service.updateProjectImage(actor, imageId, req.body)
+      const image = await service.updateProjectImage(actor, String(req.params.imageId), req.body)
       res.json({ data: image })
     }),
 
     deleteProjectImage: wrap(async (req, res) => {
       await validateParams(req, { imageId: uuidSchema })
       const actor = parseAuthActor(req)
-      const { imageId } = req.params
-      await service.deleteProjectImage(actor, imageId)
+      await service.deleteProjectImage(actor, String(req.params.imageId))
       res.status(204).send()
     }),
 
@@ -91,8 +91,11 @@ export function createProjectImagesController(
       await validateParams(req, { projectId: uuidSchema })
       await validateBody(req, reorderProjectImagesBodySchema)
       const actor = parseAuthActor(req)
-      const { projectId } = req.params
-      const images = await service.reorderProjectImages(actor, projectId, req.body)
+      const images = await service.reorderProjectImages(
+        actor,
+        String(req.params.projectId),
+        req.body,
+      )
       res.json({ data: images })
     }),
   }

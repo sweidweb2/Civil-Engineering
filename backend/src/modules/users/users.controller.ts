@@ -23,7 +23,7 @@ export function createUsersController(service: UsersService): UsersController {
   return {
     async list(req, res, next) {
       try {
-        const query = req.query as ListUsersQuery
+        const query = req.query as unknown as ListUsersQuery
         const result = await service.listUsers(query)
         res.status(200).json(result)
       } catch (error) {

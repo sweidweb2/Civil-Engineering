@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { CardGridSkeleton } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -304,6 +305,7 @@ export function ProjectsListPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
+        loadingFallback={<CardGridSkeleton />}
       >
         {projects.length === 0 ? (
           <Card>

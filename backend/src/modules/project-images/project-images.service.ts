@@ -1,22 +1,18 @@
 import { randomUUID } from 'node:crypto'
-import { unlink } from 'node:fs/promises'
-import path from 'node:path'
 
 import sharp from 'sharp'
 
 import type { AuthActor } from '../../auth/auth-actor.js'
 import type { AppConfig } from '../../config/index.js'
-import { badRequest, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { notFound, validationError } from '../../errors/app-error.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsService } from '../projects/projects.service.js'
-import type { ProjectImagesRepository } from './project-images.repository.js'
 import type {
-  ProjectImage,
-  ProjectImageWithUrl,
   ReorderProjectImagesBody,
   UpdateProjectImageBody,
   UploadProjectImageBody,
-} from './project-images.types.js'
+} from './project-images.schema.js'
+import type { ProjectImagesRepository, ProjectImageWithUrl } from './project-images.types.js'
 
 const MAX_IMAGES_PER_PROJECT = 15
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
@@ -56,10 +52,7 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
   const { repository, projectsService, storage, config } = deps
 
   async function assertProjectAccess(actor: AuthActor, projectId: string): Promise<void> {
-    const project = await projectsService.getProject(actor, projectId)
-    if (!project) {
-      throw notFound('Project not found', 'PROJECT_NOT_FOUND')
-    }
+    await projectsService.assertAccessible(projectId, actor)
   }
 
   async function getImageUrl(storagePath: string): Promise<string> {
@@ -123,25 +116,18 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
       await assertProjectAccess(actor, projectId)
 
       if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        throw badRequest(
-          'Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP',
-          'INVALID_FILE_TYPE'
-        )
+        throw validationError('Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP')
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw badRequest(
+        throw validationError(
           `File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`,
-          'FILE_TOO_LARGE'
         )
       }
 
       const currentCount = await repository.countByProjectId(projectId)
       if (currentCount >= MAX_IMAGES_PER_PROJECT) {
-        throw badRequest(
-          `Maximum ${MAX_IMAGES_PER_PROJECT} images per project`,
-          'MAX_IMAGES_EXCEEDED'
-        )
+        throw validationError(`Maximum ${MAX_IMAGES_PER_PROJECT} images per project`)
       }
 
       const imageId = randomUUID().replace(/-/g, '')

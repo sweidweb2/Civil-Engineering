@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { DetailSkeleton } from '@/components/feedback/skeletons'
 import { ProjectGallery } from '@/components/projects/ProjectGallery'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -131,6 +132,7 @@ export function ProjectDetailPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
+        loadingFallback={<DetailSkeleton />}
       >
         {project && (
           <div className="grid gap-6 md:grid-cols-2">

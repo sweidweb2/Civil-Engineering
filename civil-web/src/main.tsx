@@ -13,7 +13,13 @@ import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem={false}
+      themes={['light', 'colorful', 'dark']}
+      disableTransitionOnChange
+    >
       <TooltipProvider>
         <App />
         <Toaster />

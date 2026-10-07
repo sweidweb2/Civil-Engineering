@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -23,6 +24,7 @@ export function LoginPage() {
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof LoginValues>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -62,6 +64,7 @@ export function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
+                placeholder="you@example.com"
                 value={values.email}
                 aria-invalid={Boolean(fieldErrors.email) || undefined}
                 onChange={(e) => setValues((prev) => ({ ...prev, email: e.target.value }))}
@@ -71,14 +74,29 @@ export function LoginPage() {
 
             <Field data-invalid={Boolean(fieldErrors.password) || undefined}>
               <FieldLabel htmlFor="password">Password</FieldLabel>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={values.password}
-                aria-invalid={Boolean(fieldErrors.password) || undefined}
-                onChange={(e) => setValues((prev) => ({ ...prev, password: e.target.value }))}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={isPasswordVisible ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  value={values.password}
+                  aria-invalid={Boolean(fieldErrors.password) || undefined}
+                  className="pr-9"
+                  onChange={(e) => setValues((prev) => ({ ...prev, password: e.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                  aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+                  aria-pressed={isPasswordVisible}
+                  onClick={() => setIsPasswordVisible((prev) => !prev)}
+                >
+                  {isPasswordVisible ? <EyeOff /> : <Eye />}
+                </Button>
+              </div>
               <FieldError>{fieldErrors.password}</FieldError>
             </Field>
           </FieldGroup>

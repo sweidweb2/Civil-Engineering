@@ -11,6 +11,7 @@ import {
   Library,
   LogOut,
   Moon,
+  Palette,
   Settings,
   Star,
   Sun,
@@ -26,7 +27,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -86,8 +91,8 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const location = useLocation()
-  const { resolvedTheme, setTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const { theme, setTheme } = useTheme()
+  const activeTheme = theme === 'colorful' || theme === 'dark' ? theme : 'light'
 
   async function onLogout() {
     await logout()
@@ -129,7 +134,7 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
                       render={<NavLink to={item.to} end={item.end} />}
                       isActive={navIsActive(location.pathname, item)}
                       tooltip={item.label}
-                      className="rounded-lg data-active:bg-card data-active:text-primary data-active:hover:bg-card data-active:hover:text-primary"
+                      className="rounded-lg data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-active:hover:bg-sidebar-accent data-active:hover:text-sidebar-accent-foreground"
                     >
                       <item.icon />
                       <span>{item.label}</span>
@@ -164,13 +169,31 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
                   <AvatarFallback>{userInitials(user)}</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-40">
-                <DropdownMenuItem
-                  onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                >
-                  {isDark ? <Sun /> : <Moon />}
-                  {isDark ? 'Light theme' : 'Dark theme'}
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="min-w-44">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={activeTheme}
+                    onValueChange={(value) => {
+                      if (value === 'light' || value === 'colorful' || value === 'dark') {
+                        setTheme(value)
+                      }
+                    }}
+                  >
+                    <DropdownMenuRadioItem value="colorful">
+                      <Palette />
+                      Colorful
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="light">
+                      <Sun />
+                      Light
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="dark">
+                      <Moon />
+                      Dark
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => void onLogout()}>
                   <LogOut />

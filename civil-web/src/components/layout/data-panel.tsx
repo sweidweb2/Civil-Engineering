@@ -8,7 +8,7 @@ type DataPanelProps = {
   children: ReactNode
 }
 
-/** Shared 60% surface: filter + table + pager. */
+/** Shared 30% surface (card) on the 60% page canvas. */
 export function DataPanel({ toolbar, footer, children }: DataPanelProps) {
   return (
     <Card size="sm" className="min-w-0 gap-0 py-0">
@@ -23,7 +23,7 @@ export function RowActions({ children }: { children: ReactNode }) {
   return <div className="flex items-center justify-end gap-1">{children}</div>
 }
 
-/** Shared 60% surface for tabs / filters sitting on the page canvas. */
+/** Shared 30% surface for tabs / filters sitting on the 60% page canvas. */
 export function ToolbarCard({ children }: { children: ReactNode }) {
   return (
     <Card size="sm" className="min-w-0 py-3">

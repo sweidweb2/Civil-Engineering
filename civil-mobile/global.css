@@ -11,9 +11,9 @@
      • Web:    selector matches html.dark directly, no nesting issues
      • Native: ProcessorBuilder recognises :where(.dark) → theme-scoped vars  */
 @layer theme {
-  /* Brand RGB channels — source: src/theme/colors.ts (light) */
+  /* Brand RGB channels — 60-30-10 from src/theme/colors.ts (light) */
   :where(.light, .light *) {
-    --primary: 47 160 132;
+    --primary: 40 122 116;
     --primary-foreground: 255 255 255;
     --card: 255 255 255;
     --secondary: 232 238 236;
@@ -27,14 +27,14 @@
     --foreground: 26 42 39;
     --border: 213 222 220;
     --input: 213 222 220;
-    --ring: 47 160 132;
+    --ring: 40 122 116;
     --accent: 232 238 236;
     --accent-foreground: 26 42 39;
   }
 
   @media (prefers-color-scheme: light) {
     :root:not(:where(.light, .light *, .dark, .dark *)) {
-      --primary: 47 160 132;
+      --primary: 40 122 116;
       --primary-foreground: 255 255 255;
       --card: 255 255 255;
       --secondary: 232 238 236;
@@ -48,7 +48,7 @@
       --foreground: 26 42 39;
       --border: 213 222 220;
       --input: 213 222 220;
-      --ring: 47 160 132;
+      --ring: 40 122 116;
       --accent: 232 238 236;
       --accent-foreground: 26 42 39;
     }

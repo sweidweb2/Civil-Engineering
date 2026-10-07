@@ -15,6 +15,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
+import { ListSkeleton } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,17 +63,17 @@ function getTypeIcon(type: NotificationType) {
 function getTypeColor(type: NotificationType): string {
   switch (type) {
     case 'SUCCESS':
-      return 'text-green-600 bg-green-50'
+      return 'bg-success/10 text-success'
     case 'WARNING':
-      return 'text-yellow-600 bg-yellow-50'
+      return 'bg-warning/10 text-warning'
     case 'ERROR':
-      return 'text-red-600 bg-red-50'
+      return 'bg-destructive/10 text-destructive'
     case 'ANNOUNCEMENT':
-      return 'text-blue-600 bg-blue-50'
+      return 'bg-info/10 text-info'
     case 'SYSTEM':
-      return 'text-gray-600 bg-gray-50'
+      return 'bg-muted text-muted-foreground'
     default:
-      return 'text-primary bg-primary/10'
+      return 'bg-primary/10 text-primary'
   }
 }
 
@@ -187,6 +188,7 @@ export function NotificationsInboxPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
+        loadingFallback={<ListSkeleton />}
       >
         {filteredNotifications.length === 0 ? (
           <Card>

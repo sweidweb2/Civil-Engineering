@@ -3,8 +3,9 @@ import type { ReactNode } from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/services/api'
+
+import { ContentSkeleton } from './skeletons'
 
 type AsyncStateProps = {
   isLoading?: boolean
@@ -31,17 +32,7 @@ export function AsyncState({
   children,
 }: AsyncStateProps) {
   if (isLoading) {
-    return (
-      <>
-        {loadingFallback ?? (
-          <div className="flex flex-col gap-3" role="status" aria-busy="true" aria-label="Loading">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        )}
-      </>
-    )
+    return <>{loadingFallback ?? <ContentSkeleton />}</>
   }
 
   if (error) {

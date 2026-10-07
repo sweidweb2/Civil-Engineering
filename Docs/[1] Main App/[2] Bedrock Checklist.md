@@ -246,7 +246,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ### Tokens to fill
 
-- [x] Brand colors (`primary` `#2FA084`, `secondary` `#6FCF97` — light mode, web + mobile)
+- [x] Brand colors — **60-30-10**: 60% canvas `#EEEEEE`, 30% surfaces `#FFFFFF` / muted `#E8EEEC`, 10% accent primary `#287A74` (light mode, web + mobile). Mint `#6FCF97` is chart-only.
 - [x] Semantic colors (success / warning / error / info / disabled) — light mode, web + mobile
 - [x] Background / surface / text / border (light mode, web + mobile) — surface `#FFFFFF`, muted text + softer border
 - [x] Spacing scale — 4px base (`none`…`3xl`)
@@ -257,7 +257,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Web breakpoints — `sm` 640 → `2xl` 1536
 - [x] Web z-index layers — dropdown → tooltip
 
-> Note: Light-mode tokens filled in `civil-web/src/theme/` and `civil-mobile/src/theme/`, and wired into live styles (`civil-web/src/index.css`, `civil-mobile/global.css`). Dark mode still TBD.
+> Note: Light-mode tokens follow **60-30-10** in `civil-web/src/theme/` and `civil-mobile/src/theme/`, wired into `civil-web/src/index.css` and `civil-mobile/global.css`. Sidebar is a 30% surface (not a solid teal block). Dark mode still TBD for mobile.
 
 ---
 

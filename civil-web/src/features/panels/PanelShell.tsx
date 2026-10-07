@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Activity, AlertTriangle, Home, LogOut } from 'lucide-react'
+import { Activity, AlertTriangle, Home, LogOut, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
@@ -111,13 +111,14 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
 
 export const SUPER_NAV: PanelNavItem[] = [
   { to: '/super', label: 'Home', icon: Home, end: true },
+  { to: '/super/users', label: 'Users', icon: Users },
   { to: '/super/activity', label: 'Activity', icon: Activity },
   { to: '/super/errors', label: 'Errors', icon: AlertTriangle },
 ]
 
 export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin', label: 'Home', icon: Home, end: true },
-  { to: '/admin/users', label: 'Users', icon: Activity },
+  { to: '/admin/users', label: 'Users', icon: Users },
 ]
 
 export const PROVIDER_NAV: PanelNavItem[] = [

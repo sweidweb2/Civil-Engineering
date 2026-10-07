@@ -71,6 +71,9 @@ function App() {
                 />
               }
             />
+            <Route path="users" element={<UsersListPage />} />
+            <Route path="users/new" element={<NewUserPage />} />
+            <Route path="users/:id" element={<UserDetailPage />} />
             <Route path="activity" element={<ActivityLogsPage />} />
             <Route path="errors" element={<ErrorLogsPage />} />
           </Route>

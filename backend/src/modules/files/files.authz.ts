@@ -1,6 +1,6 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertSelfOrAdmin, isAdmin } from '../../authz/index.js'
-import { forbidden, notImplemented } from '../../errors/app-error.js'
+import { forbidden } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import type { FileEntityTypeName } from './files.schema.js'
 
@@ -24,7 +24,10 @@ export async function assertCanAttachToEntity(
     case 'MATERIAL':
     case 'WORKER':
     case 'LISTING':
-      throw notImplemented(`files.entityAuthz.${entityType}`)
+      throw forbidden(
+        `File attachments for ${entityType} are not supported yet`,
+        'FILE_ENTITY_UNSUPPORTED',
+      )
     default:
       throw forbidden('Unknown file entity type')
   }

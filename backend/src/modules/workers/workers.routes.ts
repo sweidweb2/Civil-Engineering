@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { authenticate } from '../../middleware/authenticate.js'
 import { validate } from '../../middleware/validate.js'
 import type { WorkersController } from './workers.controller.js'
 import {
@@ -12,6 +13,8 @@ import {
 
 export function createWorkersRoutes(controller: WorkersController): Router {
   const router = Router()
+
+  router.use(authenticate)
 
   router.get('/', validate({ query: listWorkersQuerySchema }), controller.list)
   router.get('/:id', validate({ params: workerIdParamsSchema }), controller.getById)

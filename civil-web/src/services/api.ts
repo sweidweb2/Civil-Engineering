@@ -1,4 +1,4 @@
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:3000/api/v1'
 
 export type ApiErrorBody = {
@@ -115,10 +115,11 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   }
 
   const execute = async (token: string | null) => {
+    const isFormData = typeof FormData !== 'undefined' && rest.body instanceof FormData
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },

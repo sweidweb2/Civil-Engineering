@@ -1,4 +1,4 @@
-import type { AuthActor } from '../../auth/auth-actor.js'
+import type { AuthActor } from '../../authz/index.js'
 import { forbidden, notFound, unauthorized } from '../../errors/app-error.js'
 import type {
   BroadcastNotificationBody,

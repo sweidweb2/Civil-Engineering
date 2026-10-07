@@ -1,5 +1,3 @@
-import { useAuthStore } from '@/stores/authStore'
-
 import { apiRequest } from './api'
 
 export type NotificationType =
@@ -60,36 +58,24 @@ export type UpdateNotificationInput = {
   isRead?: boolean
 }
 
-function accessToken() {
-  return useAuthStore.getState().tokens?.accessToken ?? null
-}
-
 export function listNotifications(page = 1, limit = 20, includeDeleted = false) {
   return apiRequest<PaginatedNotifications>(
     `/notifications?page=${page}&limit=${limit}&includeDeleted=${includeDeleted}`,
-    {
-      accessToken: accessToken(),
-    }
   )
 }
 
 export function getNotification(id: string) {
-  return apiRequest<{ data: Notification }>(`/notifications/${id}`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<{ data: Notification }>(`/notifications/${id}`)
 }
 
 export function getUnreadCount() {
-  return apiRequest<{ data: { count: number } }>('/notifications/unread-count', {
-    accessToken: accessToken(),
-  })
+  return apiRequest<{ data: { count: number } }>('/notifications/unread-count')
 }
 
 export function createNotification(input: CreateNotificationInput) {
   return apiRequest<{ data: Notification }>('/notifications', {
     method: 'POST',
     body: JSON.stringify(input),
-    accessToken: accessToken(),
   })
 }
 
@@ -97,7 +83,6 @@ export function broadcastNotification(input: BroadcastNotificationInput) {
   return apiRequest<{ data: { count: number } }>('/notifications/broadcast', {
     method: 'POST',
     body: JSON.stringify(input),
-    accessToken: accessToken(),
   })
 }
 
@@ -105,41 +90,35 @@ export function updateNotification(id: string, input: UpdateNotificationInput) {
   return apiRequest<{ data: Notification }>(`/notifications/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
-    accessToken: accessToken(),
   })
 }
 
 export function markAsRead(id: string) {
   return apiRequest<{ data: Notification }>(`/notifications/${id}/read`, {
     method: 'POST',
-    accessToken: accessToken(),
   })
 }
 
 export function markAsUnread(id: string) {
   return apiRequest<{ data: Notification }>(`/notifications/${id}/unread`, {
     method: 'POST',
-    accessToken: accessToken(),
   })
 }
 
 export function softDeleteNotification(id: string) {
   return apiRequest<{ data: Notification }>(`/notifications/${id}/soft`, {
     method: 'DELETE',
-    accessToken: accessToken(),
   })
 }
 
 export function hardDeleteNotification(id: string) {
   return apiRequest<void>(`/notifications/${id}/hard`, {
     method: 'DELETE',
-    accessToken: accessToken(),
   })
 }
 
 export function restoreNotification(id: string) {
   return apiRequest<{ data: Notification }>(`/notifications/${id}/restore`, {
     method: 'POST',
-    accessToken: accessToken(),
   })
 }

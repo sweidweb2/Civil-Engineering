@@ -172,7 +172,7 @@ export function ProviderFormDialog({
         mode === 'create'
           ? await createProvider(payload)
           : await updateProvider(providerId ?? '', payload)
-      onSaved(saved)
+      onSaved(saved.data)
       onOpenChange(false)
       toast.message(mode === 'create' ? 'Provider created' : 'Provider updated')
     } catch (error) {

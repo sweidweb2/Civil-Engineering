@@ -43,7 +43,7 @@ describe('projectsService.assertAccessible', () => {
       update: vi.fn(),
       delete: vi.fn(),
     }
-    return createProjectsService(repository)
+    return createProjectsService(repository, {})
   }
 
   it('returns the project for the owner', async () => {

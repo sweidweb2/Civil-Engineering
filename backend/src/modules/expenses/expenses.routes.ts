@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { authenticate } from '../../middleware/authenticate.js'
 import { validate } from '../../middleware/validate.js'
 import type { ExpensesController } from './expenses.controller.js'
 import {
@@ -11,6 +12,8 @@ import {
 
 export function createExpensesRoutes(controller: ExpensesController): Router {
   const router = Router()
+
+  router.use(authenticate)
 
   router.get('/', validate({ query: listExpensesQuerySchema }), controller.list)
   router.get('/:id', validate({ params: expenseIdParamsSchema }), controller.getById)

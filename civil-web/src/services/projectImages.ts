@@ -1,5 +1,3 @@
-import { useAuthStore } from '@/stores/authStore'
-
 import { apiRequest } from './api'
 
 export type ProjectImage = {
@@ -28,25 +26,17 @@ export type ReorderProjectImagesInput = {
   imageIds: string[]
 }
 
-function accessToken() {
-  return useAuthStore.getState().tokens?.accessToken ?? null
-}
-
 export function listProjectImages(projectId: string) {
-  return apiRequest<{ data: ProjectImage[] }>(`/project-images/projects/${projectId}/images`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<{ data: ProjectImage[] }>(`/project-images/projects/${projectId}/images`)
 }
 
 export function getProjectImage(imageId: string) {
-  return apiRequest<{ data: ProjectImage }>(`/project-images/images/${imageId}`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<{ data: ProjectImage }>(`/project-images/images/${imageId}`)
 }
 
 export async function uploadProjectImage(
   projectId: string,
-  input: UploadProjectImageInput
+  input: UploadProjectImageInput,
 ): Promise<{ data: ProjectImage }> {
   const formData = new FormData()
   formData.append('image', input.file)
@@ -57,38 +47,22 @@ export async function uploadProjectImage(
     formData.append('displayOrder', String(input.displayOrder))
   }
 
-  const token = accessToken()
-  const response = await fetch(
-    `${import.meta.env.VITE_API_BASE_URL}/project-images/projects/${projectId}/images`,
-    {
-      method: 'POST',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: formData,
-    }
-  )
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Upload failed' }))
-    throw new Error(error.error || 'Failed to upload image')
-  }
-
-  return response.json()
+  return apiRequest<{ data: ProjectImage }>(`/project-images/projects/${projectId}/images`, {
+    method: 'POST',
+    body: formData,
+  })
 }
 
 export function updateProjectImage(imageId: string, input: UpdateProjectImageInput) {
   return apiRequest<{ data: ProjectImage }>(`/project-images/images/${imageId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
-    accessToken: accessToken(),
   })
 }
 
 export function deleteProjectImage(imageId: string) {
   return apiRequest<void>(`/project-images/images/${imageId}`, {
     method: 'DELETE',
-    accessToken: accessToken(),
   })
 }
 
@@ -98,8 +72,7 @@ export function reorderProjectImages(projectId: string, input: ReorderProjectIma
     {
       method: 'POST',
       body: JSON.stringify(input),
-      accessToken: accessToken(),
-    }
+    },
   )
 }
 

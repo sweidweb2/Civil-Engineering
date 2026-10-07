@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import type { Prisma } from '../../generated/prisma/client.js'
 import type {
   CreateNotificationData,
   Notification,
@@ -7,7 +8,21 @@ import type {
   UpdateNotificationData,
 } from './notifications.types.js'
 
-function mapToNotification(row: any): Notification {
+type NotificationRow = Prisma.NotificationGetPayload<object>
+
+type NotificationWithSenderRow = Prisma.NotificationGetPayload<{
+  include: {
+    sender: {
+      select: {
+        id: true
+        email: true
+        role: true
+      }
+    }
+  }
+}>
+
+function mapToNotification(row: NotificationRow): Notification {
   return {
     id: row.id,
     senderId: row.senderId,
@@ -23,7 +38,7 @@ function mapToNotification(row: any): Notification {
   }
 }
 
-function mapToNotificationWithSender(row: any): NotificationWithSender {
+function mapToNotificationWithSender(row: NotificationWithSenderRow): NotificationWithSender {
   return {
     ...mapToNotification(row),
     sender: row.sender
@@ -43,7 +58,7 @@ export function createNotificationsRepository(): NotificationsRepository {
       const limit = query.limit ?? 20
       const skip = (page - 1) * limit
 
-      const where: any = {}
+      const where: Prisma.NotificationWhereInput = {}
       if (query.receiverId) {
         where.receiverId = query.receiverId
       }

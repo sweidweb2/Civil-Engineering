@@ -134,6 +134,7 @@ export function createProvidersRepository(): ProvidersRepository {
       const users = await prisma.user.findMany({
         where: { role: 'PROVIDER', status: 'ACTIVE', provider: { is: null } },
         orderBy: { email: 'asc' },
+        take: 100,
         select: ownerSelect,
       })
       return users.map((user) => ({

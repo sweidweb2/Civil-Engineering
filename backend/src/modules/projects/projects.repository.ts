@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import type { ProjectStatus, ProjectType } from '../../generated/prisma/client.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
-import type { Project } from './projects.types.js'
+import type { Project, ProjectListRow } from './projects.types.js'
 
 type CreateProjectInput = CreateProjectBody & {
   ownerId: string
@@ -10,7 +10,10 @@ type CreateProjectInput = CreateProjectBody & {
 type UpdateProjectInput = UpdateProjectBody
 
 export type ProjectsRepository = {
-  findMany: (query: ListProjectsQuery) => Promise<{ projects: Project[]; total: number }>
+  findMany: (
+    query: ListProjectsQuery,
+    ownerId?: string,
+  ) => Promise<{ projects: ProjectListRow[]; total: number }>
   findById: (id: string) => Promise<Project | null>
   findByCode: (code: string) => Promise<Project | null>
   create: (input: CreateProjectInput) => Promise<Project>
@@ -18,7 +21,33 @@ export type ProjectsRepository = {
   delete: (id: string) => Promise<void>
 }
 
-function mapToProject(project: any): Project {
+function mapToProject(project: {
+  id: string
+  name: string
+  description: string | null
+  code: string | null
+  ownerId: string
+  address: string | null
+  city: string | null
+  country: string | null
+  startDate: Date | null
+  endDate: Date | null
+  actualStartDate: Date | null
+  actualEndDate: Date | null
+  status: ProjectStatus
+  progress: number
+  budget: { toString(): string } | null
+  currency: string
+  actualCost: { toString(): string } | null
+  type: ProjectType | null
+  isPublic: boolean
+  tags: unknown
+  attachments: unknown
+  notes: string | null
+  createdAt: Date
+  updatedAt: Date
+  archivedAt: Date | null
+}): Project {
   return {
     id: project.id,
     name: project.name,
@@ -50,23 +79,37 @@ function mapToProject(project: any): Project {
 
 export function createProjectsRepository(): ProjectsRepository {
   return {
-    async findMany(query) {
+    async findMany(query, ownerId) {
       const page = query.page ?? 1
       const limit = query.limit ?? 20
       const skip = (page - 1) * limit
+      const where = {
+        archivedAt: null,
+        ...(ownerId ? { ownerId } : {}),
+      }
 
       const [projects, total] = await Promise.all([
         prisma.project.findMany({
           skip,
           take: limit,
-          where: { archivedAt: null },
+          where,
           orderBy: { createdAt: 'desc' },
+          include: {
+            images: {
+              where: { isMain: true },
+              take: 1,
+              select: { storagePath: true },
+            },
+          },
         }),
-        prisma.project.count({ where: { archivedAt: null } }),
+        prisma.project.count({ where }),
       ])
 
       return {
-        projects: projects.map(mapToProject),
+        projects: projects.map((project) => ({
+          ...mapToProject(project),
+          mainImageStoragePath: project.images[0]?.storagePath ?? null,
+        })),
         total,
       }
     },
@@ -100,18 +143,21 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async update(id, input) {
-      const updateData: any = {}
-      
+      const updateData: Record<string, unknown> = {}
+
       if (input.name !== undefined) updateData.name = input.name
       if (input.description !== undefined) updateData.description = input.description?.trim() || null
       if (input.code !== undefined) updateData.code = input.code?.trim() || null
       if (input.address !== undefined) updateData.address = input.address?.trim() || null
       if (input.city !== undefined) updateData.city = input.city?.trim() || null
       if (input.country !== undefined) updateData.country = input.country?.trim() || null
-      if (input.startDate !== undefined) updateData.startDate = input.startDate ? new Date(input.startDate) : null
+      if (input.startDate !== undefined)
+        updateData.startDate = input.startDate ? new Date(input.startDate) : null
       if (input.endDate !== undefined) updateData.endDate = input.endDate ? new Date(input.endDate) : null
-      if (input.actualStartDate !== undefined) updateData.actualStartDate = input.actualStartDate ? new Date(input.actualStartDate) : null
-      if (input.actualEndDate !== undefined) updateData.actualEndDate = input.actualEndDate ? new Date(input.actualEndDate) : null
+      if (input.actualStartDate !== undefined)
+        updateData.actualStartDate = input.actualStartDate ? new Date(input.actualStartDate) : null
+      if (input.actualEndDate !== undefined)
+        updateData.actualEndDate = input.actualEndDate ? new Date(input.actualEndDate) : null
       if (input.status !== undefined) updateData.status = input.status as ProjectStatus
       if (input.progress !== undefined) updateData.progress = input.progress
       if (input.budget !== undefined) updateData.budget = input.budget
@@ -129,7 +175,6 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async delete(id) {
-      // Soft delete
       await prisma.project.update({
         where: { id },
         data: { archivedAt: new Date() },

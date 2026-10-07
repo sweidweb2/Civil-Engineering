@@ -3,13 +3,6 @@ import multer from 'multer'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
-import { validateBody, validateParams } from '../../middleware/validate.js'
-import { uuidSchema } from '../../schemas/index.js'
-import {
-  reorderProjectImagesBodySchema,
-  updateProjectImageBodySchema,
-  uploadProjectImageBodySchema,
-} from './project-images.schema.js'
 import type { ProjectImagesService } from './project-images.service.js'
 
 const upload = multer({
@@ -40,22 +33,18 @@ export function createProjectImagesController(
     uploadMiddleware: upload.single('image'),
 
     listProjectImages: wrap(async (req, res) => {
-      await validateParams(req, { projectId: uuidSchema })
       const actor = parseAuthActor(req)
       const images = await service.listProjectImages(actor, String(req.params.projectId))
       res.json({ data: images })
     }),
 
     getProjectImage: wrap(async (req, res) => {
-      await validateParams(req, { imageId: uuidSchema })
       const actor = parseAuthActor(req)
       const image = await service.getProjectImage(actor, String(req.params.imageId))
       res.json({ data: image })
     }),
 
     uploadProjectImage: wrap(async (req, res) => {
-      await validateParams(req, { projectId: uuidSchema })
-      await validateBody(req, uploadProjectImageBodySchema)
       const actor = parseAuthActor(req)
 
       if (!req.file) {
@@ -73,23 +62,18 @@ export function createProjectImagesController(
     }),
 
     updateProjectImage: wrap(async (req, res) => {
-      await validateParams(req, { imageId: uuidSchema })
-      await validateBody(req, updateProjectImageBodySchema)
       const actor = parseAuthActor(req)
       const image = await service.updateProjectImage(actor, String(req.params.imageId), req.body)
       res.json({ data: image })
     }),
 
     deleteProjectImage: wrap(async (req, res) => {
-      await validateParams(req, { imageId: uuidSchema })
       const actor = parseAuthActor(req)
       await service.deleteProjectImage(actor, String(req.params.imageId))
       res.status(204).send()
     }),
 
     reorderProjectImages: wrap(async (req, res) => {
-      await validateParams(req, { projectId: uuidSchema })
-      await validateBody(req, reorderProjectImagesBodySchema)
       const actor = parseAuthActor(req)
       const images = await service.reorderProjectImages(
         actor,

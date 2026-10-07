@@ -95,7 +95,7 @@ describe.skipIf(!hasDb)('providers API (integration)', () => {
       })
 
     expect(created.status).toBe(201)
-    expect(created.body).toMatchObject({
+    expect(created.body.data).toMatchObject({
       name: 'Steel Works',
       ownerUserId: owner.id,
       status: 'PENDING',
@@ -113,12 +113,12 @@ describe.skipIf(!hasDb)('providers API (integration)', () => {
     expect(listed.body.data[0].name).toBe('Steel Works')
 
     const updated = await request(app)
-      .patch(`/api/v1/providers/${created.body.id}`)
+      .patch(`/api/v1/providers/${created.body.data.id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Steel Works LLC', status: 'APPROVED' })
 
     expect(updated.status).toBe(200)
-    expect(updated.body).toMatchObject({ name: 'Steel Works LLC', status: 'APPROVED' })
+    expect(updated.body.data).toMatchObject({ name: 'Steel Works LLC', status: 'APPROVED' })
   })
 
   it('lets the owner edit contact fields but not status', async () => {
@@ -135,14 +135,14 @@ describe.skipIf(!hasDb)('providers API (integration)', () => {
 
     const ownerToken = await login(app, owner.email)
     const patched = await request(app)
-      .patch(`/api/v1/providers/${created.body.id}`)
+      .patch(`/api/v1/providers/${created.body.data.id}`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ phone: '+961 01 555 020' })
     expect(patched.status).toBe(200)
-    expect(patched.body.phone).toBe('+961 01 555 020')
+    expect(patched.body.data.phone).toBe('+961 01 555 020')
 
     const blocked = await request(app)
-      .patch(`/api/v1/providers/${created.body.id}`)
+      .patch(`/api/v1/providers/${created.body.data.id}`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ status: 'APPROVED' })
     expect(blocked.status).toBe(403)

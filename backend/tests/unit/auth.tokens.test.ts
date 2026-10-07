@@ -38,6 +38,7 @@ describe('auth.tokens', () => {
       role: 'ADMIN',
       typ: 'refresh',
     })
+    expect(payload.jti).toBeTruthy()
   })
 
   it('rejects access token verified as refresh', () => {

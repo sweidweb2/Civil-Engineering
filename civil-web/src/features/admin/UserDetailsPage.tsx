@@ -1,5 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -19,27 +19,35 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
+import { ApiError } from '@/services/api'
+import { toastApiError } from '@/services/toast'
+import {
+  deactivateUser,
+  getUser,
+  updateUser,
+} from '@/services/users'
 
 import { UserFormDialog } from './components/UserFormDialog'
 import { formatWhen } from './lib/text'
-import { formFromUser, useUsersStore } from './usersStore'
+import { formFromUser, toAdminUserRow, type UserFormValues } from './usersStore'
 
 export function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
   const usersPath = `${portalBaseFromPath(location.pathname)}/users`
-  const user = useUsersStore((state) => state.items.find((row) => row.id === userId))
-  const updateUser = useUsersStore((state) => state.updateUser)
-  const removeUser = useUsersStore((state) => state.removeUser)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
-  const load = useCallback(() => loadMock(userId ?? ''), [userId])
+  const load = useCallback(async () => {
+    if (!userId) throw new Error('Missing user id')
+    const result = await getUser(userId)
+    return toAdminUserRow(result.data)
+  }, [userId])
   const remote = useRemoteData(load, { enabled: Boolean(userId) })
+  const user = remote.status === 'success' ? remote.data : undefined
 
   useDocumentTitle(user ? user.email : 'User details')
 
@@ -48,24 +56,55 @@ export function UserDetailsPage() {
     { label: user?.email ?? 'User details' },
   ]
 
-  const fields: Array<{ label: string; value: string }> | null = user
-    ? [
-        { label: 'Id', value: user.id },
-        { label: 'Email', value: user.email },
-        { label: 'Role', value: user.role },
-        { label: 'Status', value: user.status },
-        { label: 'Verified', value: user.isVerified ? 'Yes' : 'No' },
-        { label: 'User created', value: formatWhen(user.createdAt) },
-        { label: 'User updated', value: formatWhen(user.updatedAt) },
-        { label: 'First name', value: user.profile.firstName ?? '—' },
-        { label: 'Last name', value: user.profile.lastName ?? '—' },
-        { label: 'Display name', value: user.profile.displayName ?? '—' },
-        { label: 'Phone', value: user.profile.phone ?? '—' },
-        { label: 'Avatar', value: user.profile.avatarUrl ?? '—' },
-        { label: 'Profile created', value: formatWhen(user.profile.createdAt) },
-        { label: 'Profile updated', value: formatWhen(user.profile.updatedAt) },
-      ]
-    : null
+  const fields = useMemo(() => {
+    if (!user) return null
+    return [
+      { label: 'Id', value: user.id },
+      { label: 'Email', value: user.email },
+      { label: 'Role', value: user.role },
+      { label: 'Status', value: user.status },
+      { label: 'Verified', value: user.isVerified ? 'Yes' : 'No' },
+      { label: 'User created', value: formatWhen(user.createdAt) },
+      { label: 'User updated', value: formatWhen(user.updatedAt) },
+      { label: 'First name', value: user.profile.firstName ?? '—' },
+      { label: 'Last name', value: user.profile.lastName ?? '—' },
+      { label: 'Display name', value: user.profile.displayName ?? '—' },
+      { label: 'Phone', value: user.profile.phone ?? '—' },
+      { label: 'Avatar', value: user.profile.avatarUrl ?? '—' },
+      { label: 'Profile created', value: formatWhen(user.profile.createdAt) },
+      { label: 'Profile updated', value: formatWhen(user.profile.updatedAt) },
+    ]
+  }, [user])
+
+  async function onSave(values: UserFormValues): Promise<string | null> {
+    if (!user) return 'User not found'
+    try {
+      await updateUser(user.id, {
+        role: values.role,
+        status: values.status,
+        firstName: values.firstName.trim() || undefined,
+        lastName: values.lastName.trim() || undefined,
+        displayName: values.displayName.trim() || undefined,
+        phone: values.phone.trim() || undefined,
+      })
+      await remote.refetch()
+      return null
+    } catch (error) {
+      if (error instanceof ApiError) return error.message
+      return 'Could not update user'
+    }
+  }
+
+  async function onDeactivate() {
+    if (!user) return
+    try {
+      await deactivateUser(user.id)
+      toast.success('User deactivated')
+      navigate(usersPath, { replace: true })
+    } catch (error) {
+      toastApiError(error, 'Could not deactivate user')
+    }
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -88,7 +127,7 @@ export function UserDetailsPage() {
                 type="button"
                 variant="destructive"
                 size="icon-sm"
-                aria-label={`Delete ${user.email}`}
+                aria-label={`Deactivate ${user.email}`}
                 onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 />
@@ -107,7 +146,7 @@ export function UserDetailsPage() {
         {!user ? (
           <Card size="sm" className="min-w-0">
             <CardContent>
-              <p className="text-sm text-muted-foreground">No mock user matches this id.</p>
+              <p className="text-sm text-muted-foreground">User not found.</p>
             </CardContent>
           </Card>
         ) : (
@@ -135,28 +174,21 @@ export function UserDetailsPage() {
               mode="edit"
               initial={formFromUser(user)}
               onOpenChange={setEditOpen}
-              onSave={(values) => updateUser(user.id, values)}
+              onSave={onSave}
             />
 
             <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this user?</AlertDialogTitle>
+                  <AlertDialogTitle>Deactivate this user?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {user.email} will be removed from this UI list. Not persisted.
+                    {user.email} will be set to INACTIVE via the API.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={() => {
-                      removeUser(user.id)
-                      toast.message('User removed (UI only)')
-                      navigate(usersPath, { replace: true })
-                    }}
-                  >
-                    Delete
+                  <AlertDialogAction variant="destructive" onClick={() => void onDeactivate()}>
+                    Deactivate
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

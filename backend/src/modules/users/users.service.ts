@@ -77,7 +77,14 @@ export function createUsersService(repository: UsersRepository): UsersService {
     
     async updateUser(id, input, actor) {
       await assertAccessible(id, actor)
-      
+
+      const wantsPrivilegedChange =
+        input.role !== undefined || input.status !== undefined || input.isVerified !== undefined
+
+      if (wantsPrivilegedChange && !isAdmin(actor.roles)) {
+        throw forbidden('Only admins can change role, status, or verification')
+      }
+
       return repository.update(id, {
         role: input.role,
         status: input.status,

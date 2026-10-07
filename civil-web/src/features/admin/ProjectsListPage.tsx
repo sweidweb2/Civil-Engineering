@@ -52,7 +52,6 @@ import {
   createProject,
   archiveProject,
 } from '@/services/projects'
-import { listProjectImages } from '@/services/projectImages'
 
 function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
@@ -96,21 +95,8 @@ function formatDate(iso: string | null) {
 
 function ProjectCard({ project }: { project: Project }) {
   const navigate = useNavigate()
-  const [mainImageUrl, setMainImageUrl] = useState<string | null>(null)
   const Icon = getTypeIcon(project.type)
-
-  useEffect(() => {
-    listProjectImages(project.id)
-      .then((res) => {
-        const mainImage = res.data.find((img) => img.isMain)
-        if (mainImage) {
-          setMainImageUrl(mainImage.url)
-        }
-      })
-      .catch(() => {
-        // Silently fail if images can't be loaded
-      })
-  }, [project.id])
+  const mainImageUrl = project.mainImageUrl ?? null
 
   return (
     <Card

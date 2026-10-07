@@ -33,7 +33,7 @@ type UserFormDialogProps = {
   mode: 'create' | 'edit'
   initial?: UserFormValues
   onOpenChange: (open: boolean) => void
-  onSave: (values: UserFormValues) => string | null
+  onSave: (values: UserFormValues) => Promise<string | null> | string | null
 }
 
 function FieldLabel({
@@ -55,19 +55,25 @@ function FieldLabel({
 
 export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: UserFormDialogProps) {
   const [form, setForm] = useState<UserFormValues>(EMPTY_USER_FORM)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (open) setForm(initial ?? EMPTY_USER_FORM)
   }, [initial, open])
 
-  function submit() {
-    const error = onSave(form)
-    if (error) {
-      toast.error(error)
-      return
+  async function submit() {
+    setIsSaving(true)
+    try {
+      const error = await onSave(form)
+      if (error) {
+        toast.error(error)
+        return
+      }
+      onOpenChange(false)
+      toast.success(mode === 'create' ? 'User created' : 'User updated')
+    } finally {
+      setIsSaving(false)
     }
-    onOpenChange(false)
-    toast.message(mode === 'create' ? 'User created (UI only)' : 'User updated (UI only)')
   }
 
   return (
@@ -76,7 +82,9 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Create user' : 'Edit user'}</DialogTitle>
           <DialogDescription>
-            User and profile fields. passwordHash is never collected here.
+            {mode === 'create'
+              ? 'Creates a real account via the API. Password is required.'
+              : 'Updates role, status, and profile fields. Email cannot be changed here.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -88,9 +96,25 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
               maxLength={254}
               placeholder="name@example.com"
               value={form.email}
+              disabled={mode === 'edit'}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
             />
           </div>
+          {mode === 'create' ? (
+            <div className="grid gap-1.5">
+              <FieldLabel htmlFor="user-password" label="Password" restriction="required · min 8" />
+              <Input
+                id="user-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Enter a password"
+                value={form.password}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, password: event.target.value }))
+                }
+              />
+            </div>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <FieldLabel htmlFor="user-role" label="Role" restriction="required" />
@@ -176,31 +200,13 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
               onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
             />
           </div>
-          <div className="grid gap-1.5">
-            <FieldLabel htmlFor="user-avatar" label="Avatar" restriction="optional · image" />
-            <Input
-              id="user-avatar"
-              key={`${mode}-${open}-${initial?.email ?? 'new'}`}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                setForm((current) => ({ ...current, avatarUrl: file?.name ?? '' }))
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {form.avatarUrl
-                ? `Selected: ${form.avatarUrl}`
-                : 'Upload is stored later on the backend.'}
-            </p>
-          </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="button" onClick={submit}>
-            {mode === 'create' ? 'Create' : 'Save'}
+          <Button type="button" onClick={() => void submit()} disabled={isSaving}>
+            {isSaving ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,12 +1,14 @@
 import type { AppConfig } from '../../config/index.js'
 import { conflict, unauthorized } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
+import { cacheKeys, getRedis } from '../../redis/index.js'
 import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
 import type { LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
 import type { RoleName } from './auth.schema.js'
 import {
   hashPassword,
+  refreshTtlSeconds,
   signAccessToken,
   signRefreshToken,
   verifyPassword,
@@ -43,6 +45,30 @@ function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {
     accessToken: signAccessToken(config, user.id, role),
     refreshToken: signRefreshToken(config, user.id, role),
   }
+}
+
+/**
+ * When REDIS_URL is set, denylist refresh jtis on logout and reject them on refresh.
+ * Without Redis, logout remains best-effort (client discards tokens); staging/prod should set REDIS_URL.
+ */
+async function isRefreshDenied(config: AppConfig, jti: string): Promise<boolean> {
+  const redis = getRedis(config)
+  if (!redis) return false
+  const hit = await redis.get(cacheKeys.refreshDeny(jti))
+  return hit != null
+}
+
+async function denyRefreshToken(
+  config: AppConfig,
+  jti: string,
+  ttlSec: number,
+): Promise<void> {
+  const redis = getRedis(config)
+  if (!redis) {
+    // No Redis: cannot revoke server-side; client still clears local tokens.
+    return
+  }
+  await redis.set(cacheKeys.refreshDeny(jti), '1', 'EX', ttlSec)
 }
 
 export function createAuthService(
@@ -119,6 +145,10 @@ export function createAuthService(
         throw unauthorized('Invalid or expired refresh token')
       }
 
+      if (await isRefreshDenied(config, payload.jti)) {
+        throw unauthorized('Invalid or expired refresh token')
+      }
+
       const user = await repository.findById(payload.sub)
       if (!user || user.status !== 'ACTIVE') {
         throw unauthorized('Invalid or expired refresh token')
@@ -132,6 +162,7 @@ export function createAuthService(
       try {
         const payload = verifyRefreshToken(config, input.refreshToken)
         userId = payload.sub
+        await denyRefreshToken(config, payload.jti, refreshTtlSeconds(payload))
       } catch {
         // Client still discards tokens; logging is best-effort.
       }

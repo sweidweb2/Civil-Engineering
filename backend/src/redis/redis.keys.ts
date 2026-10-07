@@ -28,4 +28,9 @@ export const cacheKeys = {
   rateLimit(scope: string, id: string): string {
     return `${PREFIX}:rl:${scope}:${id}`
   },
+
+  /** Denylisted refresh token jti until natural expiry. */
+  refreshDeny(jti: string): string {
+    return `${PREFIX}:auth:refresh:deny:${jti}`
+  },
 } as const

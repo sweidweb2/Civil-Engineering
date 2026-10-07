@@ -34,10 +34,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { cn } from '@/lib/utils'
+import { ApiError } from '@/services/api'
+import { toastApiError } from '@/services/toast'
+import {
+  createUser as createUserApi,
+  deactivateUser,
+  listUsers,
+  updateUser,
+} from '@/services/users'
 
 import { DataPanel, RowActions } from './components/DataPanel'
 import { UserFormDialog } from './components/UserFormDialog'
@@ -46,22 +53,16 @@ import { RoleBarChart } from './components/RoleBarChart'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { TablePager } from './components/TablePager'
 import { UserAttributeCells, USER_TABLE_HEADERS } from './components/UserCells'
-import { PAGE_SIZE, pageCount, paginate } from './lib/text'
+import { PAGE_SIZE, pageCount } from './lib/text'
 import { readUsersPageLayout, writeUsersPageLayout } from './lib/users-layout'
 import { matchesUserQuery, MOCK_LOGINS_DAILY } from './mock-data'
-import { useUsersStore } from './usersStore'
+import { toAdminUserRow, type UserFormValues } from './usersStore'
 
 export function UsersPage() {
   useDocumentTitle('Users')
   const location = useLocation()
   const navigate = useNavigate()
   const usersPath = `${portalBaseFromPath(location.pathname)}/users`
-  const load = useCallback(() => loadMock(true), [])
-  const remote = useRemoteData(load)
-  const rows = useUsersStore((state) => state.items)
-  const createUser = useUsersStore((state) => state.createUser)
-  const removeUser = useUsersStore((state) => state.removeUser)
-  const toggleStatus = useUsersStore((state) => state.toggleStatus)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [chartsOpen, setChartsOpen] = useState(true)
@@ -70,22 +71,67 @@ export function UsersPage() {
   const [draftShowUsage, setDraftShowUsage] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
 
+  const load = useCallback(() => listUsers(page, PAGE_SIZE), [page])
+  const remote = useRemoteData(load)
+
+  const rows = useMemo(
+    () => (remote.status === 'success' ? remote.data.data.map(toAdminUserRow) : []),
+    [remote],
+  )
+  const total = remote.status === 'success' ? remote.data.meta.total : 0
+  const totalPages = remote.status === 'success' ? remote.data.meta.totalPages : pageCount(total)
+
   const filtered = useMemo(() => rows.filter((row) => matchesUserQuery(row, query)), [rows, query])
-  const totalPages = pageCount(filtered.length)
-  const safePage = Math.min(page, totalPages)
-  const visible = paginate(filtered, safePage)
 
   const active = rows.filter((r) => r.status === 'ACTIVE').length
   const inactive = rows.length - active
 
-  function onToggleStatus(id: string) {
-    toggleStatus(id)
-    toast.message('Status updated (UI only)')
+  async function onToggleStatus(id: string) {
+    const row = rows.find((item) => item.id === id)
+    if (!row) return
+    try {
+      await updateUser(id, { status: row.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' })
+      toast.success('Status updated')
+      await remote.refetch()
+    } catch (error) {
+      toastApiError(error, 'Could not update status')
+    }
   }
 
-  function onRemoveUser(id: string) {
-    removeUser(id)
-    toast.message('User removed from this list (UI only)')
+  async function onDeactivateUser(id: string) {
+    try {
+      await deactivateUser(id)
+      toast.success('User deactivated')
+      await remote.refetch()
+    } catch (error) {
+      toastApiError(error, 'Could not deactivate user')
+    }
+  }
+
+  async function onCreateUser(values: UserFormValues): Promise<string | null> {
+    const email = values.email.trim().toLowerCase()
+    if (!email) return 'Email is required'
+    if (values.password.length < 8) return 'Password must be at least 8 characters'
+    try {
+      const created = await createUserApi({
+        email,
+        password: values.password,
+        role: values.role,
+        firstName: values.firstName.trim() || undefined,
+        lastName: values.lastName.trim() || undefined,
+        displayName: values.displayName.trim() || undefined,
+        phone: values.phone.trim() || undefined,
+      })
+      if (values.status === 'INACTIVE') {
+        await deactivateUser(created.data.id)
+      }
+      setPage(1)
+      await remote.refetch()
+      return null
+    } catch (error) {
+      if (error instanceof ApiError) return error.message
+      return 'Could not create user'
+    }
   }
 
   return (
@@ -93,7 +139,7 @@ export function UsersPage() {
       <PageHeader
         className="mb-0"
         title="Manage users"
-        description="User + profile fields. passwordHash is never shown."
+        description="User + profile fields from the API. passwordHash is never shown."
         actions={
           <div className="flex items-center gap-2">
             <Button type="button" onClick={() => setCreateOpen(true)}>
@@ -123,10 +169,14 @@ export function UsersPage() {
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Users} label="Users" value={rows.length} />
-        <StatCard icon={UserCheck} label="Active" value={active} />
-        <StatCard icon={UserX} label="Inactive" value={inactive} />
-        <StatCard icon={Briefcase} label="PMs" value={rows.filter((r) => r.role === 'MANAGER').length} />
+        <StatCard icon={Users} label="Users" value={total} />
+        <StatCard icon={UserCheck} label="Active (page)" value={active} />
+        <StatCard icon={UserX} label="Inactive (page)" value={inactive} />
+        <StatCard
+          icon={Briefcase}
+          label="PMs (page)"
+          value={rows.filter((r) => r.role === 'MANAGER').length}
+        />
       </div>
 
       {showUsage ? (
@@ -141,7 +191,9 @@ export function UsersPage() {
             >
               <div className="min-w-0 space-y-1">
                 <CardTitle>Usage</CardTitle>
-                <p className="text-sm text-muted-foreground">Logins and role mix. Mock counts only.</p>
+                <p className="text-sm text-muted-foreground">
+                  Role mix from this page. Logins chart is placeholder data.
+                </p>
               </div>
               <span className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
                 <ChevronDown className={cn('size-3.5 transition-transform', chartsOpen && 'rotate-180')} />
@@ -203,11 +255,7 @@ export function UsersPage() {
         open={createOpen}
         mode="create"
         onOpenChange={setCreateOpen}
-        onSave={(values) => {
-          const error = createUser(values)
-          if (!error) setPage(1)
-          return error
-        }}
+        onSave={onCreateUser}
       />
 
       <AsyncState
@@ -222,80 +270,84 @@ export function UsersPage() {
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value)
-                setPage(1)
               }}
-              placeholder="Filter users…"
+              placeholder="Filter this page…"
               aria-label="Filter users"
               className="max-w-sm"
             />
           }
           footer={
             <TablePager
-              page={safePage}
-              totalPages={totalPages}
-              total={filtered.length}
+              page={page}
+              totalPages={Math.max(1, totalPages)}
+              total={total}
               onPageChange={setPage}
             />
           }
         >
-          <Table startIndex={(safePage - 1) * PAGE_SIZE}>
-          <TableHeader>
-            <TableRow>
-              {USER_TABLE_HEADERS.map((header) => (
-                <TableHead key={header}>{header}</TableHead>
-              ))}
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visible.length === 0 ? (
+          <Table startIndex={(page - 1) * PAGE_SIZE}>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={USER_TABLE_HEADERS.length + 1} className="text-muted-foreground">
-                  No users match.
-                </TableCell>
+                {USER_TABLE_HEADERS.map((header) => (
+                  <TableHead key={header}>{header}</TableHead>
+                ))}
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              visible.map((row) => (
-                <TableRow
-                  key={row.id}
-                  clickable
-                  onClick={() => navigate(`${usersPath}/${row.id}`)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      navigate(`${usersPath}/${row.id}`)
-                    }
-                  }}
-                >
-                  <UserAttributeCells row={row} onToggleStatus={onToggleStatus} />
-                  <TableCell className="text-right">
-                    <RowActions>
-                      <Link
-                        to={`${usersPath}/${row.id}`}
-                        aria-label={`View ${row.email}`}
-                        className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <Eye />
-                      </Link>
-                      <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="destructive"
-                        aria-label={`Delete ${row.email}`}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          onRemoveUser(row.id)
-                        }}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </RowActions>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={USER_TABLE_HEADERS.length + 1} className="text-muted-foreground">
+                    No users match.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
+              ) : (
+                filtered.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    clickable
+                    onClick={() => navigate(`${usersPath}/${row.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        navigate(`${usersPath}/${row.id}`)
+                      }
+                    }}
+                  >
+                    <UserAttributeCells
+                      row={row}
+                      onToggleStatus={(id) => {
+                        void onToggleStatus(id)
+                      }}
+                    />
+                    <TableCell className="text-right">
+                      <RowActions>
+                        <Link
+                          to={`${usersPath}/${row.id}`}
+                          aria-label={`View ${row.email}`}
+                          className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Eye />
+                        </Link>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="destructive"
+                          aria-label={`Deactivate ${row.email}`}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            void onDeactivateUser(row.id)
+                          }}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </RowActions>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
           </Table>
         </DataPanel>
       </AsyncState>

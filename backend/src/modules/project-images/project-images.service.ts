@@ -2,9 +2,10 @@ import { randomUUID } from 'node:crypto'
 
 import sharp from 'sharp'
 
-import type { AuthActor } from '../../auth/auth-actor.js'
+import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { notFound, validationError } from '../../errors/app-error.js'
+import { getLogger } from '../../logging/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import type {
@@ -186,8 +187,10 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
       try {
         await storage.deleteObject(image.storagePath)
       } catch (error) {
-        // Log error but don't fail the operation
-        console.error('Failed to delete image from storage:', error)
+        getLogger().error(
+          { err: error, imageId, storagePath: image.storagePath },
+          'failed to delete project image from storage',
+        )
       }
     },
 

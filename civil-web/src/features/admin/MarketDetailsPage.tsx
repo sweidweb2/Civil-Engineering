@@ -50,9 +50,10 @@ export function MarketDetailsPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [updated, setUpdated] = useState<Provider | null>(null)
 
-  const load = useCallback(() => {
-    if (!providerId) return Promise.reject(new Error('Missing provider id'))
-    return getProvider(providerId)
+  const load = useCallback(async () => {
+    if (!providerId) throw new Error('Missing provider id')
+    const result = await getProvider(providerId)
+    return result.data
   }, [providerId])
   const remote = useRemoteData(load, { enabled: Boolean(providerId) })
   const provider = updated ?? (remote.status === 'success' ? remote.data : undefined)

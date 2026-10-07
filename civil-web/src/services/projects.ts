@@ -1,5 +1,3 @@
-import { useAuthStore } from '@/stores/authStore'
-
 import { apiRequest } from './api'
 
 export type ProjectStatus =
@@ -45,6 +43,7 @@ export type Project = {
   createdAt: string
   updatedAt: string
   archivedAt: string | null
+  mainImageUrl?: string | null
 }
 
 export type PaginatedProjects = {
@@ -85,27 +84,18 @@ export type UpdateProjectInput = {
   notes?: string
 }
 
-function accessToken() {
-  return useAuthStore.getState().tokens?.accessToken ?? null
-}
-
 export function listProjects(page = 1, limit = 20) {
-  return apiRequest<PaginatedProjects>(`/projects?page=${page}&limit=${limit}`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<PaginatedProjects>(`/projects?page=${page}&limit=${limit}`)
 }
 
 export function getProjectById(id: string) {
-  return apiRequest<{ data: Project }>(`/projects/${id}`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<{ data: Project }>(`/projects/${id}`)
 }
 
 export function createProject(input: CreateProjectInput) {
   return apiRequest<{ data: Project }>('/projects', {
     method: 'POST',
     body: JSON.stringify(input),
-    accessToken: accessToken(),
   })
 }
 
@@ -113,13 +103,11 @@ export function updateProject(id: string, input: UpdateProjectInput) {
   return apiRequest<{ data: Project }>(`/projects/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
-    accessToken: accessToken(),
   })
 }
 
 export function archiveProject(id: string) {
   return apiRequest<void>(`/projects/${id}/archive`, {
     method: 'POST',
-    accessToken: accessToken(),
   })
 }

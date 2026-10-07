@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import bcrypt from 'bcrypt'
 import type { SignOptions } from 'jsonwebtoken'
 import jwt from 'jsonwebtoken'
@@ -18,6 +20,9 @@ export type RefreshTokenPayload = {
   sub: string
   role: RoleName
   typ: 'refresh'
+  jti: string
+  /** Present after jwt.verify */
+  exp?: number
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -40,7 +45,12 @@ export function signRefreshToken(config: AppConfig, userId: string, role: RoleNa
   const options: SignOptions = {
     expiresIn: config.jwtRefreshExpiresIn as SignOptions['expiresIn'],
   }
-  const payload: RefreshTokenPayload = { sub: userId, role, typ: 'refresh' }
+  const payload: RefreshTokenPayload = {
+    sub: userId,
+    role,
+    typ: 'refresh',
+    jti: randomUUID(),
+  }
   return jwt.sign(payload, refreshSecret, options)
 }
 
@@ -64,8 +74,16 @@ export function verifyRefreshToken(config: AppConfig, token: string): RefreshTok
     throw new Error('Invalid refresh token')
   }
   const payload = decoded as RefreshTokenPayload
-  if (payload.typ !== 'refresh' || !payload.sub || !payload.role) {
+  if (payload.typ !== 'refresh' || !payload.sub || !payload.role || !payload.jti) {
     throw new Error('Invalid refresh token payload')
   }
   return payload
+}
+
+/** Remaining lifetime in seconds for Redis TTL (min 1). */
+export function refreshTtlSeconds(payload: RefreshTokenPayload, fallbackSec = 7 * 24 * 3600): number {
+  if (typeof payload.exp === 'number') {
+    return Math.max(1, payload.exp - Math.floor(Date.now() / 1000))
+  }
+  return fallbackSec
 }

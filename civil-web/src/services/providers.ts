@@ -134,18 +134,18 @@ export function listProviderOwnerCandidates() {
 }
 
 export function getProvider(id: string) {
-  return apiRequest<Provider>(`/providers/${id}`)
+  return apiRequest<{ data: Provider }>(`/providers/${id}`)
 }
 
 export function createProvider(input: ProviderWriteInput) {
-  return apiRequest<Provider>('/providers', {
+  return apiRequest<{ data: Provider }>('/providers', {
     method: 'POST',
     body: JSON.stringify(input),
   })
 }
 
 export function updateProvider(id: string, input: ProviderWriteInput) {
-  return apiRequest<Provider>(`/providers/${id}`, {
+  return apiRequest<{ data: Provider }>(`/providers/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   })

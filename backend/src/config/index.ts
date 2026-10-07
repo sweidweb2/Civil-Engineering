@@ -10,8 +10,8 @@ const baseEnvSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   DATABASE_URL: z.string().min(1).optional(),
-  JWT_ACCESS_SECRET: z.string().min(1).optional(),
-  JWT_REFRESH_SECRET: z.string().min(1).optional(),
+  JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
+  JWT_REFRESH_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
   JWT_ACCESS_EXPIRES_IN: z.string().min(1).default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().min(1).default('7d'),
   JSON_BODY_LIMIT: z.string().min(1).default('100kb'),
@@ -163,6 +163,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
   const data = parsed.data
 
+  if (data.NODE_ENV === 'staging' || data.NODE_ENV === 'production') {
+    if (!data.JWT_ACCESS_SECRET || !data.JWT_REFRESH_SECRET) {
+      throw new Error(
+        'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are required when NODE_ENV is staging or production (min 32 characters)',
+      )
+    }
+  }
+
   return {
     env: data.NODE_ENV,
     port: data.PORT,
@@ -194,6 +202,9 @@ export function requireJwtSecrets(config: AppConfig): {
 } {
   if (!config.jwtAccessSecret || !config.jwtRefreshSecret) {
     throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are required for authentication')
+  }
+  if (config.jwtAccessSecret.length < 32 || config.jwtRefreshSecret.length < 32) {
+    throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be at least 32 characters')
   }
   return {
     accessSecret: config.jwtAccessSecret,

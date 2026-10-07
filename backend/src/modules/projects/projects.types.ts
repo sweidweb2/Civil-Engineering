@@ -41,4 +41,11 @@ export type Project = {
   createdAt: string
   updatedAt: string
   archivedAt: string | null
+  /** Present on list responses when a main gallery image exists and storage can presign. */
+  mainImageUrl?: string | null
+}
+
+/** Repository list row before service attaches a presigned URL. */
+export type ProjectListRow = Project & {
+  mainImageStoragePath: string | null
 }

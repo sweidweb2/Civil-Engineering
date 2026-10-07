@@ -4,6 +4,21 @@ import type { AuthRepository, AuthUserRecord } from '../../src/modules/auth/auth
 import { createAuthService } from '../../src/modules/auth/auth.service.js'
 import { loadTestConfig } from '../helpers/test-config.js'
 
+const redisStore = new Map<string, string>()
+
+vi.mock('../../src/redis/index.js', () => ({
+  cacheKeys: {
+    refreshDeny: (jti: string) => `civil:auth:refresh:deny:${jti}`,
+  },
+  getRedis: vi.fn(() => ({
+    get: vi.fn(async (key: string) => redisStore.get(key) ?? null),
+    set: vi.fn(async (key: string, value: string, _mode: string, _ttl: number) => {
+      redisStore.set(key, value)
+      return 'OK'
+    }),
+  })),
+}))
+
 vi.mock('../../src/modules/auth/auth.tokens.js', () => ({
   hashPassword: vi.fn(async (password: string) => `hash:${password}`),
   verifyPassword: vi.fn(
@@ -11,9 +26,10 @@ vi.mock('../../src/modules/auth/auth.tokens.js', () => ({
   ),
   signAccessToken: vi.fn(() => 'access-token'),
   signRefreshToken: vi.fn(() => 'refresh-token'),
+  refreshTtlSeconds: vi.fn(() => 3600),
   verifyRefreshToken: vi.fn((_config: unknown, token: string) => {
     if (token === 'bad') throw new Error('invalid')
-    return { sub: 'user-1', role: 'CLIENT', typ: 'refresh' as const }
+    return { sub: 'user-1', role: 'CLIENT', typ: 'refresh' as const, jti: 'jti-1', exp: 9999999999 }
   }),
 }))
 
@@ -39,6 +55,7 @@ describe('auth.service', () => {
   let repository: AuthRepository
 
   beforeEach(() => {
+    redisStore.clear()
     repository = {
       findByEmail: vi.fn(),
       findById: vi.fn(),
@@ -138,5 +155,15 @@ describe('auth.service', () => {
   it('logout resolves without error', async () => {
     const service = createAuthService(repository, config)
     await expect(service.logout({ refreshToken: 'anything' })).resolves.toBeUndefined()
+  })
+
+  it('rejects refresh after logout denylists the jti', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser())
+    const service = createAuthService(repository, config)
+
+    await service.logout({ refreshToken: 'good' })
+    await expect(service.refreshTokens({ refreshToken: 'good' })).rejects.toMatchObject({
+      status: 401,
+    })
   })
 })

@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-import { unauthorized } from '../../errors/app-error.js'
+import { parseAuthActor } from '../../auth/auth-actor.js'
 import type { FilesService } from './files.service.js'
 
 export type FilesController = {
@@ -10,18 +10,11 @@ export type FilesController = {
   softDelete: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
-function requireActor(req: Request) {
-  if (!req.user) {
-    throw unauthorized()
-  }
-  return { id: req.user.id, roles: req.user.roles }
-}
-
 export function createFilesController(service: FilesService): FilesController {
   return {
     async presign(req, res, next) {
       try {
-        const result = await service.presign(requireActor(req), req.body)
+        const result = await service.presign(parseAuthActor(req), req.body)
         res.status(201).json(result)
       } catch (error) {
         next(error)
@@ -30,7 +23,7 @@ export function createFilesController(service: FilesService): FilesController {
 
     async complete(req, res, next) {
       try {
-        const file = await service.complete(requireActor(req), String(req.params.id))
+        const file = await service.complete(parseAuthActor(req), String(req.params.id))
         res.status(200).json({
           id: file.id,
           key: file.key,
@@ -46,7 +39,7 @@ export function createFilesController(service: FilesService): FilesController {
 
     async downloadUrl(req, res, next) {
       try {
-        const result = await service.downloadUrl(requireActor(req), String(req.params.id))
+        const result = await service.downloadUrl(parseAuthActor(req), String(req.params.id))
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -55,7 +48,7 @@ export function createFilesController(service: FilesService): FilesController {
 
     async softDelete(req, res, next) {
       try {
-        await service.softDelete(requireActor(req), String(req.params.id))
+        await service.softDelete(parseAuthActor(req), String(req.params.id))
         res.status(204).send()
       } catch (error) {
         next(error)

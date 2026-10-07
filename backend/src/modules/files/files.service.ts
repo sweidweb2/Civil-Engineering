@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import {
   forbidden,
@@ -16,10 +17,10 @@ import type { PresignFileBody } from './files.schema.js'
 import type { DownloadUrlResult, FileRecord, PresignFileResult } from './files.types.js'
 
 export type FilesService = {
-  presign: (actor: { id: string; roles: string[] }, input: PresignFileBody) => Promise<PresignFileResult>
-  complete: (actor: { id: string; roles: string[] }, fileId: string) => Promise<FileRecord>
-  downloadUrl: (actor: { id: string; roles: string[] }, fileId: string) => Promise<DownloadUrlResult>
-  softDelete: (actor: { id: string; roles: string[] }, fileId: string) => Promise<FileRecord>
+  presign: (actor: AuthActor, input: PresignFileBody) => Promise<PresignFileResult>
+  complete: (actor: AuthActor, fileId: string) => Promise<FileRecord>
+  downloadUrl: (actor: AuthActor, fileId: string) => Promise<DownloadUrlResult>
+  softDelete: (actor: AuthActor, fileId: string) => Promise<FileRecord>
 }
 
 export type FilesServiceDeps = {

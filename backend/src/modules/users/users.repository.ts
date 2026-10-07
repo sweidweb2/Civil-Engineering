@@ -1,7 +1,9 @@
 import { prisma } from '../../database/prisma.js'
-import type { Role, UserStatus } from '../../generated/prisma/client.js'
+import type { Prisma, Role, UserStatus } from '../../generated/prisma/client.js'
 import type { ListUsersQuery } from './users.schema.js'
 import type { User } from './users.types.js'
+
+type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>
 
 type CreateUserInput = {
   email: string
@@ -37,7 +39,7 @@ export type UsersRepository = {
   updateStatus: (id: string, status: UserStatus) => Promise<User>
 }
 
-function mapToUser(user: any): User {
+function mapToUser(user: UserWithProfile): User {
   return {
     id: user.id,
     email: user.email,

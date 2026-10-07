@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-import { unauthorized } from '../../errors/app-error.js'
+import { parseAuthActor } from '../../auth/auth-actor.js'
 import type { ListProjectsQuery } from './projects.schema.js'
 import type { ProjectsService } from './projects.service.js'
 
@@ -12,19 +12,13 @@ export type ProjectsController = {
   archive: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
-function requireActor(req: Request) {
-  if (!req.user) {
-    throw unauthorized()
-  }
-  return { id: req.user.id, roles: req.user.roles }
-}
-
 export function createProjectsController(service: ProjectsService): ProjectsController {
   return {
     async list(req, res, next) {
       try {
+        const actor = parseAuthActor(req)
         const query = req.query as unknown as ListProjectsQuery
-        const result = await service.listProjects(query)
+        const result = await service.listProjects(query, actor)
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -32,7 +26,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
     },
     async getById(req, res, next) {
       try {
-        const actor = requireActor(req)
+        const actor = parseAuthActor(req)
         const project = await service.assertAccessible(String(req.params.id), actor)
         res.status(200).json({ data: project })
       } catch (error) {
@@ -41,7 +35,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
     },
     async create(req, res, next) {
       try {
-        const actor = requireActor(req)
+        const actor = parseAuthActor(req)
         const project = await service.createProject(req.body, actor.id)
         res.status(201).json({ data: project })
       } catch (error) {
@@ -50,7 +44,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
     },
     async update(req, res, next) {
       try {
-        const actor = requireActor(req)
+        const actor = parseAuthActor(req)
         const project = await service.updateProject(String(req.params.id), req.body, actor)
         res.status(200).json({ data: project })
       } catch (error) {
@@ -59,7 +53,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
     },
     async archive(req, res, next) {
       try {
-        const actor = requireActor(req)
+        const actor = parseAuthActor(req)
         await service.archiveProject(String(req.params.id), actor)
         res.status(204).send()
       } catch (error) {

@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-import { unauthorized } from '../../errors/app-error.js'
+import { parseAuthActor } from '../../auth/auth-actor.js'
 import type { ListProvidersQuery } from './providers.schema.js'
 import type { ProvidersService } from './providers.service.js'
 
@@ -12,20 +12,13 @@ export type ProvidersController = {
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
-function requireActor(req: Request) {
-  if (!req.user) {
-    throw unauthorized()
-  }
-  return { id: req.user.id, roles: req.user.roles }
-}
-
 export function createProvidersController(service: ProvidersService): ProvidersController {
   return {
     async list(req, res, next) {
       try {
         const result = await service.listProviders(
           req.query as unknown as ListProvidersQuery,
-          requireActor(req),
+          parseAuthActor(req),
         )
         res.status(200).json(result)
       } catch (error) {
@@ -35,7 +28,7 @@ export function createProvidersController(service: ProvidersService): ProvidersC
 
     async listOwnerCandidates(req, res, next) {
       try {
-        const data = await service.listOwnerCandidates(requireActor(req))
+        const data = await service.listOwnerCandidates(parseAuthActor(req))
         res.status(200).json({ data })
       } catch (error) {
         next(error)
@@ -44,8 +37,8 @@ export function createProvidersController(service: ProvidersService): ProvidersC
 
     async getById(req, res, next) {
       try {
-        const provider = await service.getProviderById(String(req.params.id), requireActor(req))
-        res.status(200).json(provider)
+        const provider = await service.getProviderById(String(req.params.id), parseAuthActor(req))
+        res.status(200).json({ data: provider })
       } catch (error) {
         next(error)
       }
@@ -53,8 +46,8 @@ export function createProvidersController(service: ProvidersService): ProvidersC
 
     async create(req, res, next) {
       try {
-        const provider = await service.createProvider(req.body, requireActor(req))
-        res.status(201).json(provider)
+        const provider = await service.createProvider(req.body, parseAuthActor(req))
+        res.status(201).json({ data: provider })
       } catch (error) {
         next(error)
       }
@@ -62,8 +55,12 @@ export function createProvidersController(service: ProvidersService): ProvidersC
 
     async update(req, res, next) {
       try {
-        const provider = await service.updateProvider(String(req.params.id), req.body, requireActor(req))
-        res.status(200).json(provider)
+        const provider = await service.updateProvider(
+          String(req.params.id),
+          req.body,
+          parseAuthActor(req),
+        )
+        res.status(200).json({ data: provider })
       } catch (error) {
         next(error)
       }

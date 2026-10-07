@@ -95,14 +95,23 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async create(input) {
+      const profileData = {
+        firstName: input.profile?.firstName?.trim() || undefined,
+        lastName: input.profile?.lastName?.trim() || undefined,
+        displayName: input.profile?.displayName?.trim() || undefined,
+        phone: input.profile?.phone?.trim() || undefined,
+      }
+
+      const hasProfileData = Object.values(profileData).some((val) => val !== undefined)
+
       const user = await prisma.user.create({
         data: {
           email: input.email,
           passwordHash: input.passwordHash,
           role: input.role,
-          profile: input.profile
+          profile: hasProfileData
             ? {
-                create: input.profile,
+                create: profileData,
               }
             : undefined,
         },
@@ -112,16 +121,25 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async update(id, input) {
+      const profileData = {
+        firstName: input.profile?.firstName?.trim() || undefined,
+        lastName: input.profile?.lastName?.trim() || undefined,
+        displayName: input.profile?.displayName?.trim() || undefined,
+        phone: input.profile?.phone?.trim() || undefined,
+      }
+
+      const hasProfileData = Object.values(profileData).some((val) => val !== undefined)
+
       const user = await prisma.user.update({
         where: { id },
         data: {
           role: input.role,
           status: input.status,
-          profile: input.profile
+          profile: hasProfileData
             ? {
                 upsert: {
-                  create: input.profile,
-                  update: input.profile,
+                  create: profileData,
+                  update: profileData,
                 },
               }
             : undefined,

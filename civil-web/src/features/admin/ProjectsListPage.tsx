@@ -137,10 +137,11 @@ function ProjectCard({ project }: { project: Project }) {
             </div>
           </div>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon-sm">
-                <MoreVertical className="size-4" />
-              </Button>
+            <DropdownMenuTrigger
+              render={<Button variant="ghost" size="icon-sm" />}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
@@ -256,7 +257,6 @@ export function ProjectsListPage() {
       toast.success('Project created successfully')
       setCreateOpen(false)
       void remote.refetch()
-      // Navigate to the project detail page
       navigate(`/admin/projects/${result.data.id}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create project')
@@ -265,10 +265,7 @@ export function ProjectsListPage() {
     }
   }
 
-  const handleCreateOpen = () => {
-    setCreateData({ name: '' })
-    setCreateOpen(true)
-  }
+  const handleDeleteOpen = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation()
     setDeletingProject(project)
     setDeleteOpen(true)
@@ -370,7 +367,7 @@ export function ProjectsListPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4">
-            <Field required>
+            <Field>
               <Label htmlFor="create-name">Project Name</Label>
               <Input
                 id="create-name"

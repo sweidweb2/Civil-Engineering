@@ -1,5 +1,5 @@
-import type { RequestHandler } from 'express'
-import type { ZodType } from 'zod'
+import type { Request, RequestHandler } from 'express'
+import { z, type ZodType } from 'zod'
 
 type ValidateTarget = {
   body?: ZodType
@@ -37,4 +37,29 @@ export function validate(schemas: ValidateTarget): RequestHandler {
       next(error)
     }
   }
+}
+
+/** Imperative body validation used by merged notifications / project-images controllers. */
+export async function validateBody(req: Request, schema: ZodType): Promise<void> {
+  replaceRequestProperty(req, 'body', schema.parse(req.body))
+}
+
+/** Imperative query validation. */
+export async function validateQuery(req: Request, schema: ZodType): Promise<void> {
+  replaceRequestProperty(req, 'query', schema.parse(req.query))
+}
+
+/** Imperative params validation — accepts a Zod object or a field-shape record. */
+export async function validateParams(
+  req: Request,
+  schemaOrShape: ZodType | Record<string, ZodType>,
+): Promise<void> {
+  const schema =
+    typeof schemaOrShape === 'object' &&
+    schemaOrShape !== null &&
+    'parse' in schemaOrShape &&
+    typeof schemaOrShape.parse === 'function'
+      ? (schemaOrShape as ZodType)
+      : z.object(schemaOrShape as Record<string, ZodType>)
+  replaceRequestProperty(req, 'params', schema.parse(req.params))
 }

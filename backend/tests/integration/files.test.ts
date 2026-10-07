@@ -41,6 +41,9 @@ describe.skipIf(!hasDb)('files API (integration)', () => {
       if (!obj || obj.size <= 0) return null
       return { contentLength: obj.size, contentType: obj.contentType }
     },
+    async putObject({ key, body, contentType }) {
+      objects.set(key, { size: body.length, contentType })
+    },
     async deleteObject(key) {
       objects.delete(key)
     },

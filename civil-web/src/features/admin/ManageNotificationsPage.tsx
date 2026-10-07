@@ -5,7 +5,7 @@ import {
   Trash2,
   RotateCcw,
   Edit,
-  User,
+  User as UserIcon,
   Users,
 } from 'lucide-react'
 import { useCallback, useState } from 'react'
@@ -84,7 +84,8 @@ export function ManageNotificationsPage() {
 
   const load = useCallback(() => listNotifications(page, limit, true), [page])
   const remote = useRemoteData(load)
-  const usersRemote = useRemoteData(listUsers)
+  const loadUsers = useCallback(() => listUsers(1, 100), [])
+  const usersRemote = useRemoteData(loadUsers)
 
   const notifications: Notification[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
@@ -424,7 +425,7 @@ export function ManageNotificationsPage() {
                 size="sm"
                 onClick={() => setCreateMode('single')}
               >
-                <User className="size-4" />
+                <UserIcon className="size-4" />
                 Single User
               </Button>
               <Button
@@ -439,9 +440,14 @@ export function ManageNotificationsPage() {
             </div>
 
             {createMode === 'single' ? (
-              <Field required>
+              <Field>
                 <Label htmlFor="receiverId">Receiver</Label>
-                <Select value={formData.receiverId} onValueChange={(value) => setFormData({ ...formData, receiverId: value })}>
+                <Select
+                  value={formData.receiverId}
+                  onValueChange={(value) => {
+                    if (value) setFormData({ ...formData, receiverId: value })
+                  }}
+                >
                   <SelectTrigger id="receiverId">
                     <SelectValue placeholder="Select user" />
                   </SelectTrigger>
@@ -455,7 +461,7 @@ export function ManageNotificationsPage() {
                 </Select>
               </Field>
             ) : (
-              <Field required>
+              <Field>
                 <Label>Recipients ({formData.receiverIds.length} selected)</Label>
                 <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
                   {users.map((user) => (
@@ -473,7 +479,7 @@ export function ManageNotificationsPage() {
               </Field>
             )}
 
-            <Field required>
+            <Field>
               <Label htmlFor="type">Type</Label>
               <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as NotificationType })}>
                 <SelectTrigger id="type">
@@ -490,7 +496,7 @@ export function ManageNotificationsPage() {
               </Select>
             </Field>
 
-            <Field required>
+            <Field>
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
@@ -502,7 +508,7 @@ export function ManageNotificationsPage() {
               />
             </Field>
 
-            <Field required>
+            <Field>
               <Label htmlFor="message">Message</Label>
               <Textarea
                 id="message"
@@ -536,7 +542,7 @@ export function ManageNotificationsPage() {
             <DialogDescription>Update notification details.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <Field required>
+            <Field>
               <Label htmlFor="edit-type">Type</Label>
               <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as NotificationType })}>
                 <SelectTrigger id="edit-type">
@@ -553,7 +559,7 @@ export function ManageNotificationsPage() {
               </Select>
             </Field>
 
-            <Field required>
+            <Field>
               <Label htmlFor="edit-title">Title</Label>
               <Input
                 id="edit-title"
@@ -565,7 +571,7 @@ export function ManageNotificationsPage() {
               />
             </Field>
 
-            <Field required>
+            <Field>
               <Label htmlFor="edit-message">Message</Label>
               <Textarea
                 id="edit-message"

@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, Calendar, MapPin, DollarSign, TrendingUp, FileText, Save } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, MapPin, TrendingUp, FileText, Save } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -142,7 +142,7 @@ export function ProjectDetailPage() {
               <CardContent className="space-y-4">
                 {isEditing ? (
                   <>
-                    <Field required>
+                    <Field>
                       <Label htmlFor="name">Project Name</Label>
                       <Input
                         id="name"

@@ -24,6 +24,7 @@ function unavailableStorage(): StorageService {
     presignPut: fail,
     presignGet: fail,
     headObject: fail,
+    putObject: fail,
     deleteObject: async () => undefined,
   }
 }

@@ -10,15 +10,22 @@ export const listUsersQuerySchema = paginationQuerySchema
 
 export const createUserBodySchema = z.object({
   email: z.string().email(),
-  name: z.string().min(1).max(120),
-  roles: z.array(z.string().min(1)).default([]),
+  password: z.string().min(8).max(100),
+  role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).default('CLIENT'),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  displayName: z.string().min(1).max(120).optional(),
+  phone: z.string().min(1).max(20).optional(),
 })
 
 export const updateUserBodySchema = z
   .object({
-    name: z.string().min(1).max(120).optional(),
-    roles: z.array(z.string().min(1)).optional(),
-    status: z.enum(['active', 'inactive']).optional(),
+    role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+    firstName: z.string().min(1).max(100).optional(),
+    lastName: z.string().min(1).max(100).optional(),
+    displayName: z.string().min(1).max(120).optional(),
+    phone: z.string().min(1).max(20).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field is required',

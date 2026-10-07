@@ -115,7 +115,10 @@ export const SUPER_NAV: PanelNavItem[] = [
   { to: '/super/errors', label: 'Errors', icon: AlertTriangle },
 ]
 
-export const ADMIN_NAV: PanelNavItem[] = [{ to: '/admin', label: 'Home', icon: Home, end: true }]
+export const ADMIN_NAV: PanelNavItem[] = [
+  { to: '/admin', label: 'Home', icon: Home, end: true },
+  { to: '/admin/users', label: 'Users', icon: Activity },
+]
 
 export const PROVIDER_NAV: PanelNavItem[] = [
   { to: '/provider', label: 'Home', icon: Home, end: true },

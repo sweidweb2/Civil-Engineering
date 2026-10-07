@@ -9,12 +9,15 @@ import { UnexpectedErrorPage } from '@/features/errors/UnexpectedErrorPage'
 import { HomePage } from '@/features/home/HomePage'
 import { ActivityLogsPage } from '@/features/panels/ActivityLogsPage'
 import { ErrorLogsPage } from '@/features/panels/ErrorLogsPage'
+import { NewUserPage } from '@/features/panels/NewUserPage'
 import { PanelHomePage } from '@/features/panels/PanelHomePage'
 import {
   AdminPanelLayout,
   ProviderPanelLayout,
   SuperPanelLayout,
 } from '@/features/panels/PanelLayouts'
+import { UserDetailPage } from '@/features/panels/UserDetailPage'
+import { UsersListPage } from '@/features/panels/UsersListPage'
 import { homePathForRole } from '@/lib/homePath'
 import type { AuthRole } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
@@ -88,6 +91,9 @@ function App() {
                 <PanelHomePage title="Admin home" description="Admin tools will land here." />
               }
             />
+            <Route path="users" element={<UsersListPage />} />
+            <Route path="users/new" element={<NewUserPage />} />
+            <Route path="users/:id" element={<UserDetailPage />} />
           </Route>
 
           <Route

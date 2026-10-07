@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { ProjectStatus } from './admin.types'
@@ -25,10 +26,7 @@ export function ManageProjectsPage() {
   useDocumentTitle('Manage projects')
   const [query, setQuery] = useState('')
 
-  const load = useCallback(async () => {
-    await new Promise((resolve) => window.setTimeout(resolve, 600))
-    return MOCK_PROJECTS
-  }, [])
+  const load = useCallback(() => loadMock(MOCK_PROJECTS), [])
   const remote = useRemoteData(load)
 
   const catalog = remote.status === 'success' ? remote.data : []

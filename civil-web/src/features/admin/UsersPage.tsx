@@ -1,8 +1,10 @@
 import { Briefcase, ChevronDown, Eye, MoreHorizontal, Plus, Trash2, UserCheck, Users, UserX } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,6 +34,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
+import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +56,8 @@ export function UsersPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const usersPath = `${portalBaseFromPath(location.pathname)}/users`
+  const load = useCallback(() => loadMock(true), [])
+  const remote = useRemoteData(load)
   const rows = useUsersStore((state) => state.items)
   const createUser = useUsersStore((state) => state.createUser)
   const removeUser = useUsersStore((state) => state.removeUser)
@@ -204,29 +210,35 @@ export function UsersPage() {
         }}
       />
 
-      <DataPanel
-        toolbar={
-          <Input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Filter users…"
-            aria-label="Filter users"
-            className="max-w-sm"
-          />
-        }
-        footer={
-          <TablePager
-            page={safePage}
-            totalPages={totalPages}
-            total={filtered.length}
-            onPageChange={setPage}
-          />
-        }
+      <AsyncState
+        isLoading={remote.isLoading}
+        error={remote.isError ? remote.error : undefined}
+        onRetry={() => void remote.refetch()}
+        loadingFallback={<TableSkeleton columns={USER_TABLE_HEADERS.length + 1} />}
       >
-        <Table startIndex={(safePage - 1) * PAGE_SIZE}>
+        <DataPanel
+          toolbar={
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Filter users…"
+              aria-label="Filter users"
+              className="max-w-sm"
+            />
+          }
+          footer={
+            <TablePager
+              page={safePage}
+              totalPages={totalPages}
+              total={filtered.length}
+              onPageChange={setPage}
+            />
+          }
+        >
+          <Table startIndex={(safePage - 1) * PAGE_SIZE}>
           <TableHeader>
             <TableRow>
               {USER_TABLE_HEADERS.map((header) => (
@@ -284,8 +296,9 @@ export function UsersPage() {
               ))
             )}
           </TableBody>
-        </Table>
-      </DataPanel>
+          </Table>
+        </DataPanel>
+      </AsyncState>
     </div>
   )
 }

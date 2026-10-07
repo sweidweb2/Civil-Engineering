@@ -1,7 +1,9 @@
 import { BadgeCheck, ChevronsRight, Clock, HardHat, ShieldOff, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +25,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
+import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { VerificationStatus, WorkerVerificationRow } from './admin.types'
 import { DataPanel, RowActions } from './components/DataPanel'
@@ -40,7 +44,13 @@ const NEXT_STATUS: Record<VerificationStatus, VerificationStatus> = {
 
 export function WorkerVerificationPage() {
   useDocumentTitle('Worker verification')
-  const [rows, setRows] = useState<WorkerVerificationRow[]>(MOCK_WORKER_VERIFICATIONS)
+  const load = useCallback(() => loadMock(MOCK_WORKER_VERIFICATIONS), [])
+  const remote = useRemoteData(load)
+  const seed = remote.status === 'success' ? remote.data : null
+  const [rows, setRows] = useState<WorkerVerificationRow[]>([])
+  useEffect(() => {
+    if (seed) setRows(seed)
+  }, [seed])
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -134,24 +144,30 @@ export function WorkerVerificationPage() {
         />
       </div>
 
-      <DataPanel
-        toolbar={
-          <Input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Filter workers…"
-            aria-label="Filter workers"
-            className="max-w-sm"
-          />
-        }
-        footer={
-          <TablePager page={safePage} totalPages={totalPages} total={filtered.length} onPageChange={setPage} />
-        }
+      <AsyncState
+        isLoading={remote.isLoading}
+        error={remote.isError ? remote.error : undefined}
+        onRetry={() => void remote.refetch()}
+        loadingFallback={<TableSkeleton columns={WORKER_TABLE_HEADERS.length + 2} />}
       >
-        <Table startIndex={(safePage - 1) * PAGE_SIZE}>
+        <DataPanel
+          toolbar={
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Filter workers…"
+              aria-label="Filter workers"
+              className="max-w-sm"
+            />
+          }
+          footer={
+            <TablePager page={safePage} totalPages={totalPages} total={filtered.length} onPageChange={setPage} />
+          }
+        >
+          <Table startIndex={(safePage - 1) * PAGE_SIZE}>
           <TableHeader>
             <TableRow>
               {WORKER_TABLE_HEADERS.map((header) => (
@@ -201,8 +217,9 @@ export function WorkerVerificationPage() {
               ))
             )}
           </TableBody>
-        </Table>
-      </DataPanel>
+          </Table>
+        </DataPanel>
+      </AsyncState>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

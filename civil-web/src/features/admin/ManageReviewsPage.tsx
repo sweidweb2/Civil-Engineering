@@ -1,7 +1,9 @@
 import { CheckCircle2, Clock, Star, XCircle } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +18,8 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
+import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { PlatformReview, ReviewStatus } from './admin.types'
 import { DataPanel, RowActions, ToolbarCard } from './components/DataPanel'
@@ -46,7 +50,13 @@ function matchesReview(row: PlatformReview, query: string): boolean {
 
 export function ManageReviewsPage() {
   useDocumentTitle('Manage reviews')
-  const [rows, setRows] = useState<PlatformReview[]>(MOCK_REVIEWS)
+  const load = useCallback(() => loadMock(MOCK_REVIEWS), [])
+  const remote = useRemoteData(load)
+  const seed = remote.status === 'success' ? remote.data : null
+  const [rows, setRows] = useState<PlatformReview[]>([])
+  useEffect(() => {
+    if (seed) setRows(seed)
+  }, [seed])
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState<ReviewStatus | 'all'>('all')
@@ -117,17 +127,23 @@ export function ManageReviewsPage() {
         </ToolbarCard>
 
         <TabsContent value={tab}>
-          <DataPanel
-            footer={
-              <TablePager
-                page={safePage}
-                totalPages={totalPages}
-                total={filtered.length}
-                onPageChange={setPage}
-              />
-            }
+          <AsyncState
+            isLoading={remote.isLoading}
+            error={remote.isError ? remote.error : undefined}
+            onRetry={() => void remote.refetch()}
+            loadingFallback={<TableSkeleton columns={6} />}
           >
-            <Table startIndex={(safePage - 1) * PAGE_SIZE}>
+            <DataPanel
+              footer={
+                <TablePager
+                  page={safePage}
+                  totalPages={totalPages}
+                  total={filtered.length}
+                  onPageChange={setPage}
+                />
+              }
+            >
+              <Table startIndex={(safePage - 1) * PAGE_SIZE}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Author</TableHead>
@@ -198,8 +214,9 @@ export function ManageReviewsPage() {
                   ))
                 )}
               </TableBody>
-            </Table>
-          </DataPanel>
+              </Table>
+            </DataPanel>
+          </AsyncState>
         </TabsContent>
       </Tabs>
     </div>

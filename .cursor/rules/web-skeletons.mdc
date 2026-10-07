@@ -13,14 +13,16 @@ Use the shadcn `Skeleton` primitive and shared presets — do not add packages l
 - Primitive: `@/components/ui/skeleton` (shadcn)
 - Presets: `@/components/feedback/skeletons`
 - Wire via `AsyncState` `loadingFallback` (default is `ContentSkeleton`)
+- Mock screens: `loadMock(data)` + `useRemoteData` so skeletons are visible
 
 ## Preset map
 
 | Layout | Preset | Use when |
 | --- | --- | --- |
 | Generic | `ContentSkeleton` | Unknown / simple blocks |
-| Card grid | `CardGridSkeleton` | Project/provider/directory cards (includes `CardImageSkeleton`) |
-| Card image | `CardImageSkeleton` | Card media strip — isometric civil art (`/public/illustrations/skeleton-*.jpg`) + pulse |
+| Card grid | `CardGridSkeleton` | Project/provider/directory cards |
+| Card image | `CardImageSkeleton` / `CivilCardMedia` | Card media (wireframe civil art) |
+| Stats | `StatGridSkeleton` | Dashboard / stat strips |
 | Table | `TableSkeleton` | Logs, admin tables |
 | Detail form | `DetailSkeleton` | Multi-card detail pages |
 | Detail card | `DetailCardSkeleton` | Single key/value detail |
@@ -30,11 +32,8 @@ Use the shadcn `Skeleton` primitive and shared presets — do not add packages l
 ## Rules
 
 ```tsx
-// ❌ BAD — spinner or "Loading…" text for page data
+// ❌ BAD — spinner or empty card as “skeleton”
 if (isLoading) return <p>Loading…</p>
-
-// ❌ BAD — ad-hoc skeleton markup in the page
-{isLoading && <div className="animate-pulse h-4 bg-muted" />}
 
 // ✅ GOOD — AsyncState + matching preset
 <AsyncState
@@ -47,7 +46,7 @@ if (isLoading) return <p>Loading…</p>
 </AsyncState>
 ```
 
-- Match the skeleton shape to the loaded UI (table → `TableSkeleton`, cards → `CardGridSkeleton`).
-- Prefer `InlineSpinner` only for brief auth/session hydration, not page content.
-- Keep `role="status"` / `aria-busy` on presets (already included).
-- Do not invent a new skeleton library; compose with `Skeleton` + presets.
+- Match skeleton shape to loaded UI.
+- Every list/table/detail/analytics page that loads data must use `AsyncState` + a preset.
+- `InlineSpinner` only for brief auth/session hydration.
+- Keep `PageHeader` outside the loading fallback when possible.

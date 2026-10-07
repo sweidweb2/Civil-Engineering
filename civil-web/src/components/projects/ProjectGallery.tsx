@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Image as ImageIcon, Star, Trash2, Upload, X 
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
 import { GallerySkeleton } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
@@ -129,13 +130,15 @@ export function ProjectGallery({ projectId }: Props) {
     setSelectedImageIndex((selectedImageIndex - 1 + images.length) % images.length)
   }
 
-  if (remote.isLoading) {
-    return <GallerySkeleton />
-  }
-
   return (
     <>
-      <Card className="md:col-span-2">
+      <AsyncState
+        isLoading={remote.isLoading}
+        error={remote.isError ? remote.error : undefined}
+        onRetry={() => void remote.refetch()}
+        loadingFallback={<GallerySkeleton />}
+      >
+        <Card className="md:col-span-2">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -218,7 +221,8 @@ export function ProjectGallery({ projectId }: Props) {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </AsyncState>
 
       {selectedImageIndex !== null && images[selectedImageIndex] && (
         <div

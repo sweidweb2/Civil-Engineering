@@ -100,6 +100,34 @@ export function CardGridSkeleton({
   )
 }
 
+/** Stat card strip (dashboard / list page headers). */
+export function StatGridSkeleton({
+  className,
+  count = 4,
+}: SkeletonPresetProps & { count?: number }) {
+  return (
+    <div
+      className={cn('grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4', className)}
+      role="status"
+      aria-busy="true"
+      aria-label="Loading"
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
+        >
+          <Skeleton className="size-9 shrink-0 rounded-lg" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-12" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Table / DataPanel pages (logs, admin notification list). */
 export function TableSkeleton({
   className,

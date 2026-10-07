@@ -1,7 +1,9 @@
 import { Box, FolderTree, HardHat, Pencil, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,6 +27,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
+import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { CategoryKind, PlatformCategory } from './admin.types'
 import { DataPanel, RowActions } from './components/DataPanel'
@@ -42,7 +46,13 @@ const EMPTY_FORM: CategoryForm = { name: '', kind: 'material' }
 
 export function ManageCategoriesPage() {
   useDocumentTitle('Manage categories')
-  const [rows, setRows] = useState<PlatformCategory[]>(MOCK_CATEGORIES)
+  const load = useCallback(() => loadMock(MOCK_CATEGORIES), [])
+  const remote = useRemoteData(load)
+  const seed = remote.status === 'success' ? remote.data : null
+  const [rows, setRows] = useState<PlatformCategory[]>([])
+  useEffect(() => {
+    if (seed) setRows(seed)
+  }, [seed])
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<PlatformCategory | null>(null)
@@ -115,24 +125,30 @@ export function ManageCategoriesPage() {
         <StatCard icon={HardHat} label="Worker" value={rows.filter((r) => r.kind === 'worker').length} />
       </div>
 
-      <DataPanel
-        toolbar={
-          <Input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Filter categories…"
-            aria-label="Filter categories"
-            className="max-w-sm"
-          />
-        }
-        footer={
-          <TablePager page={safePage} totalPages={totalPages} total={filtered.length} onPageChange={setPage} />
-        }
+      <AsyncState
+        isLoading={remote.isLoading}
+        error={remote.isError ? remote.error : undefined}
+        onRetry={() => void remote.refetch()}
+        loadingFallback={<TableSkeleton columns={3} />}
       >
-        <Table startIndex={(safePage - 1) * PAGE_SIZE}>
+        <DataPanel
+          toolbar={
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Filter categories…"
+              aria-label="Filter categories"
+              className="max-w-sm"
+            />
+          }
+          footer={
+            <TablePager page={safePage} totalPages={totalPages} total={filtered.length} onPageChange={setPage} />
+          }
+        >
+          <Table startIndex={(safePage - 1) * PAGE_SIZE}>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
@@ -182,8 +198,9 @@ export function ManageCategoriesPage() {
               ))
             )}
           </TableBody>
-        </Table>
-      </DataPanel>
+          </Table>
+        </DataPanel>
+      </AsyncState>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

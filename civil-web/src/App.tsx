@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { RequireAuth, RequireRole } from '@/components/auth'
+import { NavigationLoader } from '@/components/feedback/navigation-loader'
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
@@ -51,6 +52,7 @@ function RootHome() {
 function App() {
   return (
     <BrowserRouter>
+      <NavigationLoader />
       <ErrorBoundary>
         <Routes>
           <Route

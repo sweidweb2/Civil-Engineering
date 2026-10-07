@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
@@ -58,11 +59,7 @@ export function DirectoryPage() {
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<DirectoryKind | 'all'>('all')
 
-  const load = useCallback(async () => {
-    // Mock latency so CardGridSkeleton is visible (replace when API is wired).
-    await new Promise((resolve) => window.setTimeout(resolve, 600))
-    return MOCK_DIRECTORY
-  }, [])
+  const load = useCallback(() => loadMock(MOCK_DIRECTORY), [])
   const remote = useRemoteData(load)
 
   const catalog = remote.status === 'success' ? remote.data : []

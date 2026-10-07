@@ -1,7 +1,9 @@
 import { Clock, Store, UserCheck, UserPlus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +17,8 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
+import { useRemoteData } from '@/hooks/useRemoteData'
 
 import type { ApprovalStatus, RegistrationRow } from './admin.types'
 import { DataPanel, ToolbarCard } from './components/DataPanel'
@@ -31,7 +35,13 @@ const TABS: Array<{ value: ApprovalStatus; label: string }> = [
 
 export function RegistrationApprovalsPage() {
   useDocumentTitle('Registration approvals')
-  const [rows, setRows] = useState<RegistrationRow[]>(MOCK_REGISTRATIONS)
+  const load = useCallback(() => loadMock(MOCK_REGISTRATIONS), [])
+  const remote = useRemoteData(load)
+  const seed = remote.status === 'success' ? remote.data : null
+  const [rows, setRows] = useState<RegistrationRow[]>([])
+  useEffect(() => {
+    if (seed) setRows(seed)
+  }, [seed])
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState<ApprovalStatus>('pending')
@@ -99,17 +109,23 @@ export function RegistrationApprovalsPage() {
         </ToolbarCard>
 
         <TabsContent value={tab}>
-          <DataPanel
-            footer={
-              <TablePager
-                page={safePage}
-                totalPages={totalPages}
-                total={filtered.length}
-                onPageChange={setPage}
-              />
-            }
+          <AsyncState
+            isLoading={remote.isLoading}
+            error={remote.isError ? remote.error : undefined}
+            onRetry={() => void remote.refetch()}
+            loadingFallback={<TableSkeleton columns={USER_TABLE_HEADERS.length + 1} />}
           >
-            <Table startIndex={(safePage - 1) * PAGE_SIZE}>
+            <DataPanel
+              footer={
+                <TablePager
+                  page={safePage}
+                  totalPages={totalPages}
+                  total={filtered.length}
+                  onPageChange={setPage}
+                />
+              }
+            >
+              <Table startIndex={(safePage - 1) * PAGE_SIZE}>
               <TableHeader>
                 <TableRow>
                   {USER_TABLE_HEADERS.map((header) => (
@@ -149,8 +165,9 @@ export function RegistrationApprovalsPage() {
                   ))
                 )}
               </TableBody>
-            </Table>
-          </DataPanel>
+              </Table>
+            </DataPanel>
+          </AsyncState>
         </TabsContent>
       </Tabs>
     </div>

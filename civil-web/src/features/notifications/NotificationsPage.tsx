@@ -1,8 +1,10 @@
 import { Bell, BellOff, CheckCheck, Inbox } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { AsyncState } from '@/components/feedback/async-state'
+import { ListSkeleton } from '@/components/feedback/skeletons'
 import { DataPanel, ToolbarCard } from '@/components/layout/data-panel'
 import { PageHeader } from '@/components/layout/page-header'
 import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
@@ -10,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { loadMock } from '@/hooks/loadMock'
+import { useRemoteData } from '@/hooks/useRemoteData'
 
 import { NotificationRow } from './NotificationRow'
 import { canFollowNotificationHref, groupNotifications } from './notification-utils'
@@ -28,6 +32,8 @@ export function NotificationsPage() {
   useDocumentTitle('Notifications')
   const location = useLocation()
   const navigate = useNavigate()
+  const load = useCallback(() => loadMock(true), [])
+  const remote = useRemoteData(load)
   const items = useNotificationsStore((state) => state.items)
   const markRead = useNotificationsStore((state) => state.markRead)
   const markUnread = useNotificationsStore((state) => state.markUnread)
@@ -111,31 +117,38 @@ export function NotificationsPage() {
         </ToolbarCard>
 
         <TabsContent value={tab}>
-          <DataPanel>
-            {groups.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {tab === 'unread' ? 'You are all caught up.' : 'No notifications match.'}
-              </p>
-            ) : (
-              groups.map((group) => (
-                <section key={group.label}>
-                  <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
-                    {group.label}
-                  </h2>
-                  <div className="divide-y divide-border">
-                    {group.items.map((item) => (
-                      <NotificationRow
-                        key={item.id}
-                        item={item}
-                        onOpen={openItem}
-                        onToggleRead={toggleRead}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))
-            )}
-          </DataPanel>
+          <AsyncState
+            isLoading={remote.isLoading}
+            error={remote.isError ? remote.error : undefined}
+            onRetry={() => void remote.refetch()}
+            loadingFallback={<ListSkeleton />}
+          >
+            <DataPanel>
+              {groups.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  {tab === 'unread' ? 'You are all caught up.' : 'No notifications match.'}
+                </p>
+              ) : (
+                groups.map((group) => (
+                  <section key={group.label}>
+                    <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
+                      {group.label}
+                    </h2>
+                    <div className="divide-y divide-border">
+                      {group.items.map((item) => (
+                        <NotificationRow
+                          key={item.id}
+                          item={item}
+                          onOpen={openItem}
+                          onToggleRead={toggleRead}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))
+              )}
+            </DataPanel>
+          </AsyncState>
         </TabsContent>
       </Tabs>
     </div>

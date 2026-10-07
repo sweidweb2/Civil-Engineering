@@ -9,8 +9,9 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  ImageIcon,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -50,6 +51,7 @@ import {
   createProject,
   archiveProject,
 } from '@/services/projects'
+import { listProjectImages } from '@/services/projectImages'
 
 function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
@@ -89,6 +91,125 @@ function formatDate(iso: string | null) {
   } catch {
     return '—'
   }
+}
+
+function ProjectCard({ project }: { project: Project }) {
+  const navigate = useNavigate()
+  const [mainImageUrl, setMainImageUrl] = useState<string | null>(null)
+  const Icon = getTypeIcon(project.type)
+
+  useEffect(() => {
+    listProjectImages(project.id)
+      .then((res) => {
+        const mainImage = res.data.find((img) => img.isMain)
+        if (mainImage) {
+          setMainImageUrl(mainImage.url)
+        }
+      })
+      .catch(() => {
+        // Silently fail if images can't be loaded
+      })
+  }, [project.id])
+
+  return (
+    <Card
+      className="cursor-pointer overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-primary/20"
+      onClick={() => navigate(`/admin/projects/${project.id}`)}
+    >
+      {mainImageUrl ? (
+        <div className="aspect-video w-full overflow-hidden bg-muted">
+          <img src={mainImageUrl} alt={project.name} className="size-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex aspect-video w-full items-center justify-center bg-muted">
+          <ImageIcon className="size-12 text-muted-foreground/30" />
+        </div>
+      )}
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Icon className="size-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <CardTitle className="line-clamp-1 text-base">{project.name}</CardTitle>
+              {project.code && <CardDescription className="text-xs">Code: {project.code}</CardDescription>}
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon-sm">
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/admin/projects/${project.id}`)
+                }}
+              >
+                <Pencil className="size-3" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // This will be handled by parent component
+                }}
+              >
+                <Trash2 className="size-3" />
+                Archive
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {project.description && (
+          <p className="line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
+        )}
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Badge variant={getStatusColor(project.status)} className="text-xs">
+              {getStatusLabel(project.status)}
+            </Badge>
+          </div>
+          {project.type && (
+            <div className="flex items-center gap-1">
+              <Building2 className="size-3" />
+              <span>{project.type}</span>
+            </div>
+          )}
+        </div>
+
+        {project.progress > 0 && (
+          <div className="flex items-center gap-2">
+            <TrendingUp className="size-3 text-muted-foreground" />
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+              <div className="h-full bg-primary transition-all" style={{ width: `${project.progress}%` }} />
+            </div>
+            <span className="text-xs text-muted-foreground">{project.progress}%</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          {project.startDate && (
+            <div className="flex items-center gap-1">
+              <Calendar className="size-3" />
+              <span>{formatDate(project.startDate)}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1">
+            <Clock className="size-3" />
+            <span>{formatDate(project.createdAt)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export function ProjectsListPage() {
@@ -144,7 +265,10 @@ export function ProjectsListPage() {
     }
   }
 
-  const handleDeleteOpen = (project: Project, e: React.MouseEvent) => {
+  const handleCreateOpen = () => {
+    setCreateData({ name: '' })
+    setCreateOpen(true)
+  }
     e.stopPropagation()
     setDeletingProject(project)
     setDeleteOpen(true)
@@ -193,102 +317,17 @@ export function ProjectsListPage() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => {
-              const Icon = getTypeIcon(project.type)
-              return (
-                <Card
-                  key={project.id}
-                  className="cursor-pointer transition-all hover:shadow-md hover:ring-2 hover:ring-primary/20"
-                  onClick={() => navigate(`/admin/projects/${project.id}`)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <div className="rounded-lg bg-primary/10 p-2">
-                          <Icon className="size-5 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="line-clamp-1 text-base">{project.name}</CardTitle>
-                          {project.code && (
-                            <CardDescription className="text-xs">Code: {project.code}</CardDescription>
-                          )}
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon-sm">
-                            <MoreVertical className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigate(`/admin/projects/${project.id}`)
-                            }}
-                          >
-                            <Pencil className="size-3" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={(e) => handleDeleteOpen(project, e)}
-                          >
-                            <Trash2 className="size-3" />
-                            Archive
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {project.description && (
-                      <p className="line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
-                    )}
-
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Badge variant={getStatusColor(project.status)} className="text-xs">
-                          {getStatusLabel(project.status)}
-                        </Badge>
-                      </div>
-                      {project.type && (
-                        <div className="flex items-center gap-1">
-                          <Building2 className="size-3" />
-                          <span>{project.type}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {project.progress > 0 && (
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="size-3 text-muted-foreground" />
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${project.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{project.progress}%</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      {project.startDate && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="size-3" />
-                          <span>{formatDate(project.startDate)}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Clock className="size-3" />
-                        <span>{formatDate(project.createdAt)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            {projects.map((project) => (
+              <div key={project.id} onClick={(e) => {
+                // Check if click came from dropdown menu
+                const target = e.target as HTMLElement
+                if (target.closest('[role="menuitem"]')?.textContent?.includes('Archive')) {
+                  handleDeleteOpen(project, e)
+                }
+              }}>
+                <ProjectCard project={project} />
+              </div>
+            ))}
           </div>
         )}
 

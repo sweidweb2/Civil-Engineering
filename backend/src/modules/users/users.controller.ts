@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { unauthorized } from '../../errors/app-error.js'
+import type { ListUsersQuery } from './users.schema.js'
 import type { UsersService } from './users.service.js'
 
 export type UsersController = {
@@ -20,10 +21,11 @@ function requireActor(req: Request) {
 
 export function createUsersController(service: UsersService): UsersController {
   return {
-    async list(_req, res, next) {
+    async list(req, res, next) {
       try {
-        const data = await service.listUsers()
-        res.status(200).json({ data })
+        const query = req.query as ListUsersQuery
+        const result = await service.listUsers(query)
+        res.status(200).json(result)
       } catch (error) {
         next(error)
       }
@@ -32,7 +34,7 @@ export function createUsersController(service: UsersService): UsersController {
       try {
         const actor = requireActor(req)
         const user = await service.assertAccessible(String(req.params.id), actor)
-        res.status(200).json(user)
+        res.status(200).json({ data: user })
       } catch (error) {
         next(error)
       }
@@ -40,7 +42,7 @@ export function createUsersController(service: UsersService): UsersController {
     async create(req, res, next) {
       try {
         const user = await service.createUser(req.body)
-        res.status(201).json(user)
+        res.status(201).json({ data: user })
       } catch (error) {
         next(error)
       }
@@ -49,7 +51,7 @@ export function createUsersController(service: UsersService): UsersController {
       try {
         const actor = requireActor(req)
         const user = await service.updateUser(String(req.params.id), req.body, actor)
-        res.status(200).json(user)
+        res.status(200).json({ data: user })
       } catch (error) {
         next(error)
       }
@@ -58,7 +60,7 @@ export function createUsersController(service: UsersService): UsersController {
       try {
         const actor = requireActor(req)
         const user = await service.deactivateUser(String(req.params.id), actor)
-        res.status(200).json(user)
+        res.status(200).json({ data: user })
       } catch (error) {
         next(error)
       }

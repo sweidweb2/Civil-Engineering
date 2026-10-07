@@ -1,0 +1,170 @@
+import { prisma } from '../../database/prisma.js'
+import type {
+  CreateNotificationData,
+  Notification,
+  NotificationWithSender,
+  NotificationsRepository,
+  UpdateNotificationData,
+} from './notifications.types.js'
+
+function mapToNotification(row: any): Notification {
+  return {
+    id: row.id,
+    senderId: row.senderId,
+    receiverId: row.receiverId,
+    type: row.type,
+    title: row.title,
+    message: row.message,
+    isRead: row.isRead,
+    readAt: row.readAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    deletedAt: row.deletedAt?.toISOString() ?? null,
+  }
+}
+
+function mapToNotificationWithSender(row: any): NotificationWithSender {
+  return {
+    ...mapToNotification(row),
+    sender: row.sender
+      ? {
+          id: row.sender.id,
+          email: row.sender.email,
+          role: row.sender.role,
+        }
+      : null,
+  }
+}
+
+export function createNotificationsRepository(): NotificationsRepository {
+  return {
+    async findMany(query) {
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      const skip = (page - 1) * limit
+
+      const where: any = {}
+      if (query.receiverId) {
+        where.receiverId = query.receiverId
+      }
+      if (!query.includeDeleted) {
+        where.deletedAt = null
+      }
+
+      const [notifications, total] = await Promise.all([
+        prisma.notification.findMany({
+          skip,
+          take: limit,
+          where,
+          include: {
+            sender: {
+              select: {
+                id: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.notification.count({ where }),
+      ])
+
+      return {
+        notifications: notifications.map(mapToNotificationWithSender),
+        total,
+      }
+    },
+
+    async findById(id) {
+      const notification = await prisma.notification.findUnique({ where: { id } })
+      return notification ? mapToNotification(notification) : null
+    },
+
+    async countUnread(receiverId) {
+      return prisma.notification.count({
+        where: {
+          receiverId,
+          isRead: false,
+          deletedAt: null,
+        },
+      })
+    },
+
+    async create(data) {
+      const notification = await prisma.notification.create({
+        data: {
+          senderId: data.senderId ?? null,
+          receiverId: data.receiverId,
+          type: data.type ?? 'INFO',
+          title: data.title,
+          message: data.message,
+        },
+      })
+      return mapToNotification(notification)
+    },
+
+    async createMany(data) {
+      const result = await prisma.notification.createMany({
+        data: data.map((item) => ({
+          senderId: item.senderId ?? null,
+          receiverId: item.receiverId,
+          type: item.type ?? 'INFO',
+          title: item.title,
+          message: item.message,
+        })),
+      })
+      return result.count
+    },
+
+    async update(id, data) {
+      const notification = await prisma.notification.update({
+        where: { id },
+        data,
+      })
+      return mapToNotification(notification)
+    },
+
+    async markAsRead(id) {
+      const notification = await prisma.notification.update({
+        where: { id },
+        data: {
+          isRead: true,
+          readAt: new Date(),
+        },
+      })
+      return mapToNotification(notification)
+    },
+
+    async markAsUnread(id) {
+      const notification = await prisma.notification.update({
+        where: { id },
+        data: {
+          isRead: false,
+          readAt: null,
+        },
+      })
+      return mapToNotification(notification)
+    },
+
+    async softDelete(id) {
+      const notification = await prisma.notification.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      })
+      return mapToNotification(notification)
+    },
+
+    async hardDelete(id) {
+      await prisma.notification.delete({ where: { id } })
+    },
+
+    async restore(id) {
+      const notification = await prisma.notification.update({
+        where: { id },
+        data: { deletedAt: null },
+      })
+      return mapToNotification(notification)
+    },
+  }
+}

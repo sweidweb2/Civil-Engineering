@@ -30,21 +30,23 @@ enum UserStatus {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  passwordHash String
-  role         Role          @default(CLIENT)
-  status       UserStatus    @default(ACTIVE)
+  id                   String         @id @default(cuid())
+  email                String         @unique
+  passwordHash         String
+  role                 Role           @default(CLIENT)
+  status               UserStatus     @default(ACTIVE)
   /// Admin verification page — marketplace visibility for workers (and reuse for other roles).
-  isVerified   Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  profile      Profile?
-  activityLogs ActivityLog[]
-  deviceTokens DeviceToken[]
-  files        File[]
-  provider     Provider?
-  projects     Project[]
+  isVerified           Boolean        @default(false)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  profile              Profile?
+  activityLogs         ActivityLog[]
+  deviceTokens         DeviceToken[]
+  files                File[]
+  provider             Provider?
+  projects             Project[]
+  sentNotifications    Notification[] @relation("SentNotifications")
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
 
   @@map("users")
 }
@@ -406,6 +408,40 @@ model ProjectImage {
   @@index([projectId, displayOrder])
   @@index([projectId, isMain])
   @@map("project_images")
+}
+
+// =============================================================================
+// notifications — User notification system
+// =============================================================================
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  senderId   String?
+  receiverId String
+  type       NotificationType @default(INFO)
+  title      String
+  message    String
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  deletedAt  DateTime?
+  sender     User?            @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver   User             @relation("ReceivedNotifications", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId, deletedAt])
+  @@index([receiverId, isRead, deletedAt])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 // =============================================================================

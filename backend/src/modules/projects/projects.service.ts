@@ -1,18 +1,18 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin } from '../../authz/index.js'
-import { notFound, notImplemented } from '../../errors/app-error.js'
+import { conflict, notFound } from '../../errors/app-error.js'
 import type { ProjectsRepository } from './projects.repository.js'
-import type { CreateProjectBody, UpdateProjectBody } from './projects.schema.js'
+import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
 import type { Project } from './projects.types.js'
 
 export type ProjectsService = {
-  listProjects: () => Promise<Project[]>
+  listProjects: (query: ListProjectsQuery) => Promise<{ data: Project[]; meta: { total: number; page: number; limit: number; totalPages: number } }>
   getProjectById: (id: string) => Promise<Project>
   /** Cross-module / HTTP: load project and enforce owner-or-admin. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<Project>
   createProject: (input: CreateProjectBody, ownerId: string) => Promise<Project>
   updateProject: (id: string, input: UpdateProjectBody, actor: AuthActor) => Promise<Project>
-  archiveProject: (id: string, actor: AuthActor) => Promise<Project>
+  archiveProject: (id: string, actor: AuthActor) => Promise<void>
 }
 
 export function createProjectsService(repository: ProjectsRepository): ProjectsService {
@@ -31,23 +31,59 @@ export function createProjectsService(repository: ProjectsRepository): ProjectsS
   }
 
   return {
-    async listProjects() {
-      return repository.findMany()
+    async listProjects(query) {
+      const { projects, total } = await repository.findMany(query)
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      return {
+        data: projects,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      }
     },
+    
     async getProjectById(id) {
       return loadOrThrow(id)
     },
+    
     assertAccessible,
-    async createProject() {
-      throw notImplemented('projects.createProject')
+    
+    async createProject(input, ownerId) {
+      // Check if code is unique if provided
+      if (input.code) {
+        const existing = await repository.findByCode(input.code)
+        if (existing) {
+          throw conflict('Project code already in use', 'CODE_IN_USE')
+        }
+      }
+      
+      return repository.create({
+        ...input,
+        ownerId,
+      })
     },
-    async updateProject(id, _input, actor) {
+    
+    async updateProject(id, input, actor) {
       await assertAccessible(id, actor)
-      throw notImplemented('projects.updateProject')
+      
+      // Check if code is unique if being updated
+      if (input.code) {
+        const existing = await repository.findByCode(input.code)
+        if (existing && existing.id !== id) {
+          throw conflict('Project code already in use', 'CODE_IN_USE')
+        }
+      }
+      
+      return repository.update(id, input)
     },
+    
     async archiveProject(id, actor) {
       await assertAccessible(id, actor)
-      throw notImplemented('projects.archiveProject')
+      await repository.delete(id)
     },
   }
 }

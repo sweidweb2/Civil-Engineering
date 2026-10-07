@@ -12,11 +12,11 @@ import { ErrorLogsPage } from '@/features/panels/ErrorLogsPage'
 import { AdminAnalyticsPage } from '@/features/admin/AdminAnalyticsPage'
 import { DirectoryPage } from '@/features/admin/DirectoryPage'
 import { ManageCategoriesPage } from '@/features/admin/ManageCategoriesPage'
-import { ManageProjectsPage } from '@/features/admin/ManageProjectsPage'
 import { ManageProvidersPage } from '@/features/admin/ManageProvidersPage'
 import { ManageReviewsPage } from '@/features/admin/ManageReviewsPage'
-import { ProjectDetailsPage } from '@/features/admin/ProjectDetailsPage'
 import { MarketDetailsPage } from '@/features/admin/MarketDetailsPage'
+import { ProjectsListPage } from '@/features/admin/ProjectsListPage'
+import { ProjectDetailPage } from '@/features/admin/ProjectDetailPage'
 import { RegistrationApprovalsPage } from '@/features/admin/RegistrationApprovalsPage'
 import { SettingsPage } from '@/features/admin/SettingsPage'
 import { UserDetailsPage } from '@/features/admin/UserDetailsPage'
@@ -108,8 +108,8 @@ function App() {
             <Route path="verification" element={<WorkerVerificationPage />} />
             <Route path="providers" element={<ManageProvidersPage />} />
             <Route path="providers/:providerId" element={<MarketDetailsPage />} />
-            <Route path="projects" element={<ManageProjectsPage />} />
-            <Route path="projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="projects" element={<ProjectsListPage />} />
+            <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />
             <Route path="reviews" element={<ManageReviewsPage />} />
             <Route path="categories" element={<ManageCategoriesPage />} />

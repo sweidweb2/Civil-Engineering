@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { unauthorized } from '../../errors/app-error.js'
+import type { ListProjectsQuery } from './projects.schema.js'
 import type { ProjectsService } from './projects.service.js'
 
 export type ProjectsController = {
@@ -20,10 +21,11 @@ function requireActor(req: Request) {
 
 export function createProjectsController(service: ProjectsService): ProjectsController {
   return {
-    async list(_req, res, next) {
+    async list(req, res, next) {
       try {
-        const data = await service.listProjects()
-        res.status(200).json({ data })
+        const query = req.query as ListProjectsQuery
+        const result = await service.listProjects(query)
+        res.status(200).json(result)
       } catch (error) {
         next(error)
       }
@@ -32,7 +34,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
       try {
         const actor = requireActor(req)
         const project = await service.assertAccessible(String(req.params.id), actor)
-        res.status(200).json(project)
+        res.status(200).json({ data: project })
       } catch (error) {
         next(error)
       }
@@ -41,7 +43,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
       try {
         const actor = requireActor(req)
         const project = await service.createProject(req.body, actor.id)
-        res.status(201).json(project)
+        res.status(201).json({ data: project })
       } catch (error) {
         next(error)
       }
@@ -50,7 +52,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
       try {
         const actor = requireActor(req)
         const project = await service.updateProject(String(req.params.id), req.body, actor)
-        res.status(200).json(project)
+        res.status(200).json({ data: project })
       } catch (error) {
         next(error)
       }
@@ -58,8 +60,8 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
     async archive(req, res, next) {
       try {
         const actor = requireActor(req)
-        const project = await service.archiveProject(String(req.params.id), actor)
-        res.status(200).json(project)
+        await service.archiveProject(String(req.params.id), actor)
+        res.status(204).send()
       } catch (error) {
         next(error)
       }

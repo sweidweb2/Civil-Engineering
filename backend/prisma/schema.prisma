@@ -44,6 +44,7 @@ model User {
   deviceTokens DeviceToken[]
   files        File[]
   provider     Provider?
+  projects     Project[]
 
   @@map("users")
 }
@@ -333,8 +334,62 @@ model ListingOffer {
 }
 
 // =============================================================================
-// projects — Project (TBD)
+// projects — Project management for civil engineering
 // =============================================================================
+
+enum ProjectStatus {
+  DRAFT
+  PLANNING
+  APPROVED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  INFRASTRUCTURE
+  RENOVATION
+  OTHER
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  code            String?       @unique
+  ownerId         String
+  address         String?
+  city            String?
+  country         String?
+  startDate       DateTime?
+  endDate         DateTime?
+  actualStartDate DateTime?
+  actualEndDate   DateTime?
+  status          ProjectStatus @default(DRAFT)
+  progress        Int           @default(0)
+  budget          Decimal?      @db.Decimal(18, 4)
+  currency        String        @default("USD")
+  actualCost      Decimal?      @db.Decimal(18, 4)
+  type            ProjectType?
+  isPublic        Boolean       @default(false)
+  tags            Json?
+  attachments     Json?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  archivedAt      DateTime?
+  owner           User          @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([city, country])
+  @@index([createdAt])
+  @@map("projects")
+}
 
 // =============================================================================
 // workers — Worker, ProjectAssignment (TBD)

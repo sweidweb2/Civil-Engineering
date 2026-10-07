@@ -23,6 +23,7 @@ export type StorageService = {
   }) => Promise<string>
   presignGet: (input: { key: string; expiresInSec?: number }) => Promise<string>
   headObject: (key: string) => Promise<HeadObjectResult | null>
+  putObject: (input: { key: string; body: Buffer; contentType: string }) => Promise<void>
   deleteObject: (key: string) => Promise<void>
 }
 
@@ -80,6 +81,17 @@ export function createStorageService(storage: StorageConfig): StorageService {
         }
         throw error
       }
+    },
+
+    async putObject({ key, body, contentType }) {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      )
     },
 
     async deleteObject(key) {

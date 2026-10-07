@@ -13,6 +13,7 @@ import { createHealthRoutes } from '../modules/health/health.routes.js'
 import { createHealthService } from '../modules/health/health.service.js'
 import { createLoggingModule } from '../modules/logging/index.js'
 import { createMaterialsModule } from '../modules/materials/index.js'
+import { createProjectImagesModule } from '../modules/project-images/index.js'
 import { createProjectsModule } from '../modules/projects/index.js'
 import { createProvidersModule } from '../modules/providers/index.js'
 import { createUsersModule } from '../modules/users/index.js'
@@ -41,6 +42,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use('/users', createUsersModule())
   router.use('/providers', createProvidersModule())
   router.use('/projects', createProjectsModule())
+  router.use('/project-images', createProjectImagesModule({ config, storage: deps.storage }))
   router.use('/workers', createWorkersModule())
   router.use('/materials', createMaterialsModule())
   router.use('/expenses', createExpensesModule())

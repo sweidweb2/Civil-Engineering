@@ -228,7 +228,7 @@ export function RegistrationApprovalsPage() {
                 />
               }
             >
-              <Table startIndex={(page - 1) * PAGE_SIZE}>
+              <Table startIndex={(page - 1) * PAGE_SIZE} indexVariant="plain">
                 <TableHeader>
                   <TableRow>
                     {USER_TABLE_HEADERS.map((header) => (
@@ -247,7 +247,7 @@ export function RegistrationApprovalsPage() {
                   ) : (
                     rows.map((row) => (
                       <TableRow key={row.id}>
-                        <UserAttributeCells row={row} />
+                        <UserAttributeCells row={row} showAvatar />
                         <TableCell className="text-right">
                           <RowActions>
                             {tab === 'pending' ? (

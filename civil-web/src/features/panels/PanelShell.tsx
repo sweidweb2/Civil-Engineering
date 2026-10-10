@@ -27,6 +27,7 @@ import { useTheme } from 'next-themes'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -165,6 +166,16 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
               </p>
               <p className="truncate text-xs text-sidebar-foreground/70">{user?.email}</p>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Sign out"
+              className="shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
+              onClick={() => void onLogout()}
+            >
+              <LogOut />
+            </Button>
           </div>
         </SidebarFooter>
       </Sidebar>

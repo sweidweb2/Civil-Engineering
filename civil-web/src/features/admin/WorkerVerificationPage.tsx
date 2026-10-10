@@ -230,7 +230,7 @@ export function WorkerVerificationPage() {
             <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
           }
         >
-          <Table startIndex={(page - 1) * PAGE_SIZE}>
+          <Table startIndex={(page - 1) * PAGE_SIZE} indexVariant="plain">
             <TableHeader>
               <TableRow>
                 {WORKER_TABLE_HEADERS.map((header) => (
@@ -250,7 +250,7 @@ export function WorkerVerificationPage() {
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.id}>
-                    <UserAttributeCells row={row} showRoleStatus={false} />
+                    <UserAttributeCells row={row} showRoleStatus={false} showAvatar />
                     <TableCell>
                       <VerificationBadge status={row.verification} />
                     </TableCell>

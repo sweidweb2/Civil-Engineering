@@ -134,7 +134,7 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<AdminAnalyticsPage />} />
+            <Route index element={<PmAnalyticsPage />} />
             <Route path="analytics" element={<PmAnalyticsPage />} />
             <Route path="profile" element={<PmProfilePage />} />
             <Route path="projects" element={<ProjectsListPage />} />

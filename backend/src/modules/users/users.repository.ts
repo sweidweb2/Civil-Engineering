@@ -53,6 +53,8 @@ export type VerificationCounts = {
   verified: number
 }
 
+export type UserRoleCounts = Record<Role, number>
+
 export type UserDirectoryCounts = {
   active: number
   inactive: number
@@ -65,6 +67,7 @@ export type UserDirectoryCounts = {
   inactiveCreatedLastMonth: number
   managersCreatedThisMonth: number
   managersCreatedLastMonth: number
+  roles: UserRoleCounts
 }
 
 export type UsersRepository = {
@@ -209,6 +212,7 @@ export function createUsersRepository(): UsersRepository {
         inactiveCreatedLastMonth,
         managersCreatedThisMonth,
         managersCreatedLastMonth,
+        groupedRoles,
       ] = await Promise.all([
         prisma.user.count({ where: { status: 'ACTIVE' } }),
         prisma.user.count({ where: { status: 'INACTIVE' } }),
@@ -221,7 +225,23 @@ export function createUsersRepository(): UsersRepository {
         createdIn(lastMonth, thisMonth, { status: 'INACTIVE' }),
         createdIn(thisMonth, nextMonth, { role: 'MANAGER' }),
         createdIn(lastMonth, thisMonth, { role: 'MANAGER' }),
+        prisma.user.groupBy({
+          by: ['role'],
+          _count: { _all: true },
+        }),
       ])
+
+      const roles: UserRoleCounts = {
+        SUPER: 0,
+        ADMIN: 0,
+        MANAGER: 0,
+        PROVIDER: 0,
+        WORKER: 0,
+        CLIENT: 0,
+      }
+      for (const row of groupedRoles) {
+        roles[row.role] = row._count._all
+      }
 
       return {
         active,
@@ -235,6 +255,7 @@ export function createUsersRepository(): UsersRepository {
         inactiveCreatedLastMonth,
         managersCreatedThisMonth,
         managersCreatedLastMonth,
+        roles,
       }
     },
 

@@ -2,7 +2,7 @@ import { hashPassword } from '../auth/auth.tokens.js'
 import type { AuthActor } from '../../authz/index.js'
 import { assertSelfOrAdmin, isAdmin } from '../../authz/index.js'
 import { conflict, forbidden, notFound } from '../../errors/app-error.js'
-import type { UsersRepository } from './users.repository.js'
+import type { UserDirectoryCounts, UsersRepository } from './users.repository.js'
 import type {
   CreateApprovalBody,
   CreateUserBody,
@@ -16,7 +16,12 @@ import type {
 import { APPROVAL_ROLES, type ApprovalRole, type User, type VerificationStatus } from './users.types.js'
 
 export type UsersService = {
-  listUsers: (query: ListUsersQuery) => Promise<{ data: User[]; meta: { total: number; page: number; limit: number; totalPages: number } }>
+  listUsers: (
+    query: ListUsersQuery,
+  ) => Promise<{
+    data: User[]
+    meta: { total: number; page: number; limit: number; totalPages: number; counts: UserDirectoryCounts }
+  }>
   getUserById: (id: string) => Promise<User>
   /** Self or admin may read a user record. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<User>

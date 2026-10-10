@@ -60,7 +60,6 @@ import {
 
 import { DataPanel, RowActions } from './components/DataPanel'
 import { UserFormDialog } from './components/UserFormDialog'
-import { LoginLineChart } from './components/LoginLineChart'
 import { RoleBarChart } from './components/RoleBarChart'
 import {
   monthOverMonth,
@@ -72,8 +71,7 @@ import { TablePager } from './components/TablePager'
 import { UserAttributeCells, USER_TABLE_HEADERS } from './components/UserCells'
 import { PAGE_SIZE, pageCount } from './lib/text'
 import { readUsersPageLayout, writeUsersPageLayout } from './lib/users-layout'
-import { matchesUserQuery, MOCK_LOGINS_DAILY } from './mock-data'
-import { toAdminUserRow, type UserFormValues } from './usersStore'
+import { matchesUserQuery, toAdminUserRow, type UserFormValues } from './usersStore'
 
 const EMPTY_COUNTS: UserDirectoryCounts = {
   active: 0,
@@ -87,6 +85,7 @@ const EMPTY_COUNTS: UserDirectoryCounts = {
   inactiveCreatedLastMonth: 0,
   managersCreatedThisMonth: 0,
   managersCreatedLastMonth: 0,
+  roles: { SUPER: 0, ADMIN: 0, MANAGER: 0, PROVIDER: 0, WORKER: 0, CLIENT: 0 },
 }
 
 function createdInMonth(iso: string, offset: number): boolean {
@@ -314,9 +313,7 @@ export function UsersPage() {
             >
               <div className="min-w-0 space-y-1">
                 <CardTitle>Usage</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Role mix from this page. Logins chart is placeholder data.
-                </p>
+                <p className="text-sm text-muted-foreground">Role mix across every account.</p>
               </div>
               <span className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
                 <ChevronDown className={cn('size-3.5 transition-transform', chartsOpen && 'rotate-180')} />
@@ -326,15 +323,9 @@ export function UsersPage() {
           </CardHeader>
           {chartsOpen ? (
             <CardContent id="users-charts">
-              <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-                <div className="min-w-0">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">Logins per day</p>
-                  <LoginLineChart points={MOCK_LOGINS_DAILY} />
-                </div>
-                <div className="min-w-0">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">Users by role</p>
-                  <RoleBarChart rows={rows} />
-                </div>
+              <div className="min-w-0">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Users by role</p>
+                <RoleBarChart counts={counts.roles} />
               </div>
             </CardContent>
           ) : null}

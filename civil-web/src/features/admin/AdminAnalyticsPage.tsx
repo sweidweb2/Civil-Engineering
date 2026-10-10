@@ -1,15 +1,4 @@
-import {
-  BadgeCheck,
-  Briefcase,
-  Eye,
-  Flag,
-  FolderKanban,
-  HardHat,
-  Library,
-  Package,
-  Store,
-  Users,
-} from 'lucide-react'
+import { BadgeCheck, FolderKanban, HardHat, Package, Star, Store, Users, Briefcase } from 'lucide-react'
 import { useCallback } from 'react'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -17,44 +6,81 @@ import { StatGridSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { listListings } from '@/services/listings'
+import { listProjects } from '@/services/projects'
+import { listProviders } from '@/services/providers'
+import { listReviews } from '@/services/reviews'
+import { listUsers, listVerifications } from '@/services/users'
 
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { MOCK_ANALYTICS } from './mock-data'
+
+type DashboardStats = {
+  registeredUsers: number
+  managers: number
+  providers: number
+  workers: number
+  projects: number
+  listings: number
+  reviews: number
+  verificationRequests: number
+}
+
+async function loadDashboard(): Promise<DashboardStats> {
+  const [users, providers, projects, listings, reviews, verifications] = await Promise.all([
+    listUsers(1, 1),
+    listProviders(1, 1),
+    listProjects(1, 1),
+    listListings(1, 1),
+    listReviews(1, 1),
+    listVerifications({ page: 1, limit: 1 }),
+  ])
+  const providerCounts = providers.meta.statusCounts
+  const reviewCounts = reviews.meta.statusCounts
+  return {
+    registeredUsers: users.meta.total,
+    managers: users.meta.counts.managers,
+    providers: providerCounts.PENDING + providerCounts.APPROVED + providerCounts.SUSPENDED,
+    workers: verifications.meta.counts.workers,
+    projects: projects.meta.total,
+    listings: listings.meta.total,
+    reviews: reviewCounts.PENDING + reviewCounts.ACCEPTED + reviewCounts.REJECTED,
+    verificationRequests: verifications.meta.counts.requested,
+  }
+}
 
 export function AdminAnalyticsPage() {
   useDocumentTitle('Dashboard')
-  const load = useCallback(() => loadMock(MOCK_ANALYTICS), [])
+  const load = useCallback(() => loadDashboard(), [])
   const remote = useRemoteData(load)
-  const stats = remote.status === 'success' ? remote.data : MOCK_ANALYTICS
+  const stats = remote.status === 'success' ? remote.data : null
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
         title="Dashboard"
-        description="Platform analytics. Figures are UI mock data until admin APIs land."
+        description="Live counts from users, providers, projects, listings, reviews, and verification."
       />
 
       <AsyncState
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<StatGridSkeleton count={10} />}
+        loadingFallback={<StatGridSkeleton count={8} />}
       >
-        <div className={STAT_GRID_CLASS}>
-          <StatCard icon={Users} label="Registered users" value={stats.registeredUsers} />
-          <StatCard icon={Briefcase} label="Active PMs" value={stats.activePms} />
-          <StatCard icon={Store} label="Providers" value={stats.providers} />
-          <StatCard icon={HardHat} label="Workers" value={stats.workers} />
-          <StatCard icon={FolderKanban} label="Projects" value={stats.projects} />
-          <StatCard icon={Package} label="Marketplace listings" value={stats.marketplaceListings} />
-          <StatCard icon={Eye} label="Listing views" value={stats.listingViews.toLocaleString()} />
-          <StatCard icon={Library} label="Directory views" value={stats.directoryViews.toLocaleString()} />
-          <StatCard icon={Flag} label="Reports" value={stats.reports} />
-          <StatCard icon={BadgeCheck} label="Verification requests" value={stats.verificationRequests} />
-        </div>
+        {stats ? (
+          <div className={STAT_GRID_CLASS}>
+            <StatCard icon={Users} label="Registered users" value={stats.registeredUsers} />
+            <StatCard icon={Briefcase} label="Project managers" value={stats.managers} />
+            <StatCard icon={Store} label="Providers" value={stats.providers} />
+            <StatCard icon={HardHat} label="Workers" value={stats.workers} />
+            <StatCard icon={FolderKanban} label="Projects" value={stats.projects} />
+            <StatCard icon={Package} label="Listings" value={stats.listings} />
+            <StatCard icon={Star} label="Reviews" value={stats.reviews} />
+            <StatCard icon={BadgeCheck} label="Verification requests" value={stats.verificationRequests} />
+          </div>
+        ) : null}
       </AsyncState>
 
       <Card size="sm">

@@ -94,7 +94,12 @@ describe.skipIf(!hasDb)('users API (integration)', () => {
 
     const list = await request(app).get('/api/v1/users').set('Authorization', `Bearer ${token}`)
     expect(list.status).toBe(200)
-    expect(list.body.meta.total).toBeGreaterThanOrEqual(2)
+    expect(list.body.meta.total).toBe(2)
+    expect(list.body.meta.counts).toMatchObject({
+      active: 2,
+      managers: 1,
+      roles: { ADMIN: 1, MANAGER: 1, CLIENT: 0 },
+    })
   })
 
   it('lets a user read their own profile but not another client', async () => {

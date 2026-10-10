@@ -136,7 +136,7 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="gap-1 px-1">
+              <SidebarMenu className="gap-1 px-1 group-data-[collapsible=icon]:px-0">
                 {nav.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton

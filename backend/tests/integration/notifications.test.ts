@@ -104,6 +104,62 @@ describe.skipIf(!hasDb)('notifications API (integration)', () => {
     expect(read.body.data.isRead).toBe(true)
   })
 
+  it('scopes a super inbox to the caller and marks every unread row read', async () => {
+    const app = createApp({ config })
+    const superUser = await createUser('SUPER', 'super-mine@example.com')
+    const receiver = await createUser('CLIENT', 'recv-mine@example.com')
+    const superToken = await login(app, 'super-mine@example.com')
+
+    const forSuper = await request(app)
+      .post('/api/v1/notifications')
+      .set('Authorization', `Bearer ${superToken}`)
+      .send({
+        receiverId: superUser.id,
+        title: 'For super',
+        message: 'Your own row',
+        type: 'INFO',
+      })
+    expect(forSuper.status).toBe(201)
+
+    const forClient = await request(app)
+      .post('/api/v1/notifications')
+      .set('Authorization', `Bearer ${superToken}`)
+      .send({
+        receiverId: receiver.id,
+        title: 'For client',
+        message: 'Someone else',
+        type: 'INFO',
+      })
+    expect(forClient.status).toBe(201)
+
+    const mine = await request(app)
+      .get('/api/v1/notifications')
+      .query({ mine: 'true' })
+      .set('Authorization', `Bearer ${superToken}`)
+    expect(mine.status).toBe(200)
+    expect(mine.body.data).toHaveLength(1)
+    expect(mine.body.data[0].receiverId).toBe(superUser.id)
+    expect(mine.body.meta.counts).toMatchObject({ active: 1, unread: 1, deleted: 0 })
+
+    const all = await request(app)
+      .get('/api/v1/notifications')
+      .set('Authorization', `Bearer ${superToken}`)
+    expect(all.status).toBe(200)
+    expect(all.body.meta.counts.active).toBe(2)
+
+    const marked = await request(app)
+      .post('/api/v1/notifications/read-all')
+      .set('Authorization', `Bearer ${superToken}`)
+    expect(marked.status).toBe(200)
+    expect(marked.body.data.count).toBe(1)
+
+    const after = await request(app)
+      .get('/api/v1/notifications')
+      .query({ mine: 'true' })
+      .set('Authorization', `Bearer ${superToken}`)
+    expect(after.body.meta.counts).toMatchObject({ active: 1, unread: 0, deleted: 0 })
+  })
+
   it('forbids clients from creating notifications', async () => {
     const app = createApp({ config })
     const client = await createUser('CLIENT', 'client-n@example.com')

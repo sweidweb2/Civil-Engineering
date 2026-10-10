@@ -57,6 +57,24 @@ export function userStatusLabel(status: UserStatus): string {
   return 'Inactive'
 }
 
+export function matchesUserQuery(row: AdminUserRow, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const hay = [
+    row.email,
+    row.role,
+    row.status,
+    row.profile.firstName,
+    row.profile.lastName,
+    row.profile.displayName,
+    row.profile.phone,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return hay.includes(q)
+}
+
 export function toAdminUserRow(user: User): AdminUserRow {
   return {
     id: user.id,

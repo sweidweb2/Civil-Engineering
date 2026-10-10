@@ -27,33 +27,10 @@ export type RegistrationRow = AdminUserRow & {
   approval: ApprovalStatus
 }
 
-export type LoginDayPoint = {
-  date: string
-  count: number
-}
-
 export type VerificationStatus = 'unverified' | 'requested' | 'verified'
 
 export type WorkerVerificationRow = AdminUserRow & {
   verification: VerificationStatus
-}
-
-export type ProviderShop = {
-  id: string
-  userId: string
-  name: string
-  location: string
-  category: string
-  listingCount: number
-  status: UserStatus
-}
-
-export type CategoryKind = 'material' | 'worker'
-
-export type PlatformCategory = {
-  id: string
-  name: string
-  kind: CategoryKind
 }
 
 export type DirectoryKind = 'material' | 'equipment' | 'worker'
@@ -66,32 +43,4 @@ export type DirectoryItem = {
   location: string
   source: string
   price: string
-}
-
-export type ReviewStatus = 'pending' | 'accepted' | 'rejected'
-export type ReviewTarget = 'provider' | 'worker' | 'listing'
-
-export type PlatformReview = {
-  id: string
-  authorName: string
-  authorEmail: string
-  targetType: ReviewTarget
-  targetName: string
-  rating: number
-  comment: string
-  status: ReviewStatus
-  createdAt: string
-}
-
-export type AnalyticsSnapshot = {
-  registeredUsers: number
-  activePms: number
-  providers: number
-  workers: number
-  projects: number
-  marketplaceListings: number
-  listingViews: number
-  directoryViews: number
-  reports: number
-  verificationRequests: number
 }

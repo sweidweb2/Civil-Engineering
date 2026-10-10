@@ -214,7 +214,7 @@ export function ManageReviewsPage() {
             isLoading={remote.isLoading}
             error={remote.isError ? remote.error : undefined}
             onRetry={() => void remote.refetch()}
-            loadingFallback={<TableSkeleton columns={5} />}
+            loadingFallback={<TableSkeleton columns={6} />}
           >
             <DataPanel
               footer={
@@ -228,13 +228,14 @@ export function ManageReviewsPage() {
                     <TableHead>Target</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Status actions</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground">
+                      <TableCell colSpan={6} className="text-muted-foreground">
                         No reviews match.
                       </TableCell>
                     </TableRow>
@@ -265,16 +266,6 @@ export function ManageReviewsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <RowActions>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={busyId === row.id}
-                              onClick={() => setViewing(row)}
-                            >
-                              <Eye />
-                              View
-                            </Button>
                             {row.status !== 'ACCEPTED' ? (
                               <Button
                                 type="button"
@@ -296,6 +287,20 @@ export function ManageReviewsPage() {
                                 Reject
                               </Button>
                             ) : null}
+                          </RowActions>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <RowActions>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busyId === row.id}
+                              onClick={() => setViewing(row)}
+                            >
+                              <Eye />
+                              View
+                            </Button>
                             <Button
                               type="button"
                               size="icon-sm"

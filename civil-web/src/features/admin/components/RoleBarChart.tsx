@@ -1,26 +1,26 @@
 import type { AuthRole } from '@/services/auth'
+import type { UserRoleCounts } from '@/services/users'
 
-import type { AdminUserRow } from '../admin.types'
 import { roleLabel } from '../usersStore'
 
 const ROLE_ORDER: AuthRole[] = ['SUPER', 'ADMIN', 'MANAGER', 'PROVIDER', 'WORKER', 'CLIENT']
 
 type RoleBarChartProps = {
-  rows: AdminUserRow[]
+  counts: UserRoleCounts
 }
 
-export function RoleBarChart({ rows }: RoleBarChartProps) {
-  const counts = ROLE_ORDER.map((role) => ({
+export function RoleBarChart({ counts }: RoleBarChartProps) {
+  const items = ROLE_ORDER.map((role) => ({
     role,
-    count: rows.filter((row) => row.role === role).length,
+    count: counts[role],
   })).filter((item) => item.count > 0)
 
   const width = 520
   const rowH = 22
   const pad = { top: 8, right: 28, bottom: 8, left: 108 }
-  const height = pad.top + pad.bottom + Math.max(counts.length, 1) * rowH
+  const height = pad.top + pad.bottom + Math.max(items.length, 1) * rowH
   const innerW = width - pad.left - pad.right
-  const max = Math.max(...counts.map((item) => item.count), 1)
+  const max = Math.max(...items.map((item) => item.count), 1)
 
   return (
     <svg
@@ -29,7 +29,12 @@ export function RoleBarChart({ rows }: RoleBarChartProps) {
       role="img"
       aria-label="Users by role"
     >
-      {counts.map((item, index) => {
+      {items.length === 0 ? (
+        <text x={pad.left} y={pad.top + 14} className="fill-muted-foreground" fontSize="11">
+          No users yet
+        </text>
+      ) : null}
+      {items.map((item, index) => {
         const y = pad.top + index * rowH
         const barW = (item.count / max) * innerW
         return (

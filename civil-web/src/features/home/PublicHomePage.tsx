@@ -11,7 +11,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { homePathForRole } from '@/lib/homePath'
@@ -88,6 +88,51 @@ function PublicHomeAction({
   )
 }
 
+function AppleStoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-7 text-primary" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M16.37 12.72c-.03-2.35 1.92-3.48 2.01-3.53-1.1-1.61-2.81-1.83-3.41-1.85-1.45-.15-2.84.86-3.58.86-.74 0-1.88-.84-3.09-.82-1.59.03-3.06.93-3.88 2.36-1.66 2.88-.42 7.14 1.19 9.48.79 1.14 1.73 2.42 2.96 2.37 1.19-.05 1.64-.77 3.08-.77 1.43 0 1.84.77 3.09.74 1.28-.02 2.09-1.16 2.87-2.31.9-1.32 1.27-2.6 1.29-2.67-.03-.01-2.48-.95-2.51-3.86zM14.58 6.39c.65-.79 1.09-1.89.97-2.99-1 .04-2.21.67-2.93 1.46-.64.74-1.2 1.86-1.05 2.95 1.11.09 2.25-.57 3.01-1.42z"
+      />
+    </svg>
+  )
+}
+
+function PlayStoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-7 text-primary" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M4.4 3.55v16.9c0 .86.94 1.39 1.68.94l13.55-8.45c.7-.44.7-1.44 0-1.88L6.08 2.61c-.74-.45-1.68.08-1.68.94z"
+      />
+    </svg>
+  )
+}
+
+function StoreDownloadButton({ store }: { store: 'apple' | 'play' }) {
+  const isApple = store === 'apple'
+  const storeName = isApple ? 'App Store' : 'Play Store'
+
+  return (
+    <span title="Not available yet" className="inline-flex">
+      <Button
+        type="button"
+        variant="outline"
+        disabled
+        aria-label={`Download the app from the ${storeName}. Not available yet.`}
+        className="h-auto cursor-not-allowed gap-3 rounded-xl bg-card px-4 py-2.5 text-left shadow-sm disabled:opacity-70"
+      >
+        {isApple ? <AppleStoreIcon /> : <PlayStoreIcon />}
+        <span className="flex flex-col leading-none">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground">Download from</span>
+          <span className="mt-1 text-base font-semibold text-foreground">{storeName}</span>
+        </span>
+      </Button>
+    </span>
+  )
+}
+
 function PublicHeader() {
   return (
     <header className="sticky top-0 z-40 h-14 shrink-0 bg-background">
@@ -117,15 +162,20 @@ function PublicHero() {
           Plan what a project needs, record real expenses, and find providers and workers in one
           place — instead of scattered files and separate lists.
         </p>
-        <PublicHomeAction showArrow className="mt-5" />
       </div>
 
-      <div className="mt-2 flex min-h-0 flex-1 items-start justify-center px-4 sm:px-6">
-        <img
-          src="/illustrations/hero-civil-platform.jpg?v=6"
-          alt="Blueprints, cost sheets, and site records moving through one civil engineering workspace"
-          className="max-h-full w-full max-w-5xl object-contain object-top"
-        />
+      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-4 sm:px-6">
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <StoreDownloadButton store="apple" />
+          <StoreDownloadButton store="play" />
+        </div>
+        <div className="mt-6 flex min-h-0 flex-1 items-start justify-center lg:mt-3">
+          <img
+            src="/illustrations/hero-civil-platform.jpg?v=6"
+            alt="Blueprints, cost sheets, and site records moving through one civil engineering workspace"
+            className="max-h-full w-full object-contain object-top"
+          />
+        </div>
       </div>
     </section>
   )
@@ -154,7 +204,7 @@ const principles = [
 
 function PrinciplesSection() {
   return (
-    <section id="principles" aria-labelledby="principles-title" className="scroll-mt-6 border-b border-border bg-[#EBD9C3]">
+    <section id="principles" aria-labelledby="principles-title" className="scroll-mt-6 border-b border-border bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 py-20 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <h2
@@ -313,39 +363,165 @@ function WhySection() {
   )
 }
 
-function UnifiedSection() {
-  const scattered = ['Drawings in one folder', 'Supplier prices in another', 'Wages in a notebook', 'Expenses in chat']
-  const unified = ['One project overview', 'Planned cost beside actual cost', 'Providers and workers on the record', 'Documents kept with the job']
+type Particle = { x: number; y: number; r: number; opacity: number }
 
+function particleRandom(seed: number) {
+  let value = seed
+  return () => {
+    value = (value + 0x6d2b79f5) | 0
+    let t = Math.imul(value ^ (value >>> 15), 1 | value)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function scatteredParticles(): Particle[] {
+  const random = particleRandom(11)
+  return Array.from({ length: 72 }, () => ({
+    x: 18 + random() * 284,
+    y: 14 + random() * 154,
+    r: 1.15 + random() * 2.1,
+    opacity: 0.28 + random() * 0.62,
+  }))
+}
+
+function clusteredParticles(): Particle[] {
+  const random = particleRandom(29)
+  const groups = [
+    { x: 72, y: 98, spread: 52, count: 34 },
+    { x: 168, y: 78, spread: 36, count: 42 },
+    { x: 250, y: 108, spread: 44, count: 32 },
+  ]
+  return groups.flatMap((group) =>
+    Array.from({ length: group.count }, () => {
+      const angle = random() * Math.PI * 2
+      const distance = Math.pow(random(), 0.65) * group.spread
+      return {
+        x: group.x + Math.cos(angle) * distance,
+        y: group.y + Math.sin(angle) * distance * 0.82,
+        r: 1.2 + random() * 2,
+        opacity: 0.4 + random() * 0.55,
+      }
+    }),
+  )
+}
+
+function networkParticles() {
+  const count = 58
+  const golden = Math.PI * (3 - Math.sqrt(5))
+  const nodes = Array.from({ length: count }, (_, index) => {
+    const y = 1 - (index / (count - 1)) * 2
+    const radius = Math.sqrt(1 - y * y)
+    const theta = golden * index
+    return { x: Math.cos(theta) * radius, y, z: Math.sin(theta) * radius }
+  })
+  const links: Array<[number, number]> = []
+  for (let i = 0; i < count; i += 1) {
+    for (let j = i + 1; j < count; j += 1) {
+      const dx = nodes[i].x - nodes[j].x
+      const dy = nodes[i].y - nodes[j].y
+      const dz = nodes[i].z - nodes[j].z
+      if (dx * dx + dy * dy + dz * dz < 0.34) links.push([i, j])
+    }
+  }
+  const project = (node: (typeof nodes)[number]) => ({
+    x: 160 + (node.x + node.z * 0.28) * 78,
+    y: 92 + node.y * 72,
+    r: 1.5 + (node.z + 1) * 0.7,
+    opacity: 0.45 + (node.z + 1) * 0.25,
+  })
+  return { nodes: nodes.map(project), links, raw: nodes }
+}
+
+const unifiedStages = [
+  {
+    number: '01',
+    title: 'Scattered files',
+    text: 'Drawings, supplier prices, wage notes, and expense messages each live somewhere else.',
+    art: 'scattered' as const,
+  },
+  {
+    number: '02',
+    title: 'Facts start to meet',
+    text: 'The estimate, what was spent, and the people on a job begin to sit next to each other.',
+    art: 'clustered' as const,
+  },
+  {
+    number: '03',
+    title: 'One project record',
+    text: 'Plan, actual cost, providers, workers, and documents stay on the same job.',
+    art: 'unified' as const,
+  },
+]
+
+function UnifiedArt({ kind }: { kind: (typeof unifiedStages)[number]['art'] }) {
+  if (kind === 'unified') {
+    const { nodes, links, raw } = networkParticles()
+    return (
+      <svg viewBox="0 0 320 180" className="h-40 w-full text-primary" aria-hidden>
+        {links.map(([from, to]) => (
+          <line
+            key={`${from}-${to}`}
+            x1={nodes[from].x}
+            y1={nodes[from].y}
+            x2={nodes[to].x}
+            y2={nodes[to].y}
+            stroke="currentColor"
+            strokeWidth="0.6"
+            opacity={0.22 + ((raw[from].z + raw[to].z + 2) / 4) * 0.35}
+          />
+        ))}
+        {nodes.map((node, index) => (
+          <circle key={index} cx={node.x} cy={node.y} r={node.r} fill="currentColor" opacity={node.opacity} />
+        ))}
+      </svg>
+    )
+  }
+
+  const particles = kind === 'scattered' ? scatteredParticles() : clusteredParticles()
+  return (
+    <svg viewBox="0 0 320 180" className="h-40 w-full text-primary" aria-hidden>
+      {particles.map((particle, index) => (
+        <circle
+          key={index}
+          cx={particle.x}
+          cy={particle.y}
+          r={particle.r}
+          fill="currentColor"
+          opacity={particle.opacity}
+        />
+      ))}
+    </svg>
+  )
+}
+
+function UnifiedSection() {
   return (
     <section id="unified" aria-labelledby="unified-title" className="scroll-mt-6 border-b border-border bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 py-20 sm:px-6 lg:px-8">
         <SectionHeading
           id="unified-title"
           title="From fragmented data into unified data"
           text="The same facts stop living in separate files. They sit on the project they belong to."
         />
-        <div className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-xl bg-muted/70 p-6 sm:p-8">
-            <h3 className="text-sm font-semibold tracking-tight text-muted-foreground">Scattered</h3>
-            <ul className="mt-4 flex flex-col gap-3">
-              {scattered.map((item) => (
-                <li key={item} className="text-base text-foreground">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-          <article className="rounded-xl bg-primary p-6 text-primary-foreground sm:p-8">
-            <h3 className="text-sm font-semibold tracking-tight text-primary-foreground/80">One record</h3>
-            <ul className="mt-4 flex flex-col gap-3">
-              {unified.map((item) => (
-                <li key={item} className="text-base">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
+        <div className="grid md:grid-cols-3">
+          {unifiedStages.map((stage, index) => (
+            <article
+              key={stage.number}
+              className={cn(
+                'flex flex-col',
+                index > 0 && 'mt-10 border-t border-border pt-10 md:mt-0 md:border-t-0 md:border-l md:pt-0 md:pl-8',
+                index < unifiedStages.length - 1 && 'md:pr-8',
+              )}
+            >
+              <p className="text-xs font-medium tracking-wide text-muted-foreground">{stage.number}</p>
+              <h3 className="mt-3 text-base font-semibold tracking-tight text-foreground">{stage.title}</h3>
+              <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">{stage.text}</p>
+              <div className="mt-8">
+                <UnifiedArt kind={stage.art} />
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </section>

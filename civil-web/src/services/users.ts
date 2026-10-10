@@ -24,6 +24,8 @@ export type User = {
   updatedAt: string
 }
 
+export type UserRoleCounts = Record<AuthRole, number>
+
 export type UserDirectoryCounts = {
   active: number
   inactive: number
@@ -36,6 +38,7 @@ export type UserDirectoryCounts = {
   inactiveCreatedLastMonth: number
   managersCreatedThisMonth: number
   managersCreatedLastMonth: number
+  roles: UserRoleCounts
 }
 
 export type PaginatedUsers = {

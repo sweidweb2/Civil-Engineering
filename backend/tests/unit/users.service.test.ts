@@ -51,6 +51,7 @@ describe('usersService', () => {
         inactiveCreatedLastMonth: 1,
         managersCreatedThisMonth: 0,
         managersCreatedLastMonth: 0,
+        roles: { SUPER: 0, ADMIN: 1, MANAGER: 2, PROVIDER: 0, WORKER: 0, CLIENT: 1 },
       })),
       findById: vi.fn(async () => makeUser()),
       findByEmail: vi.fn(async () => null),

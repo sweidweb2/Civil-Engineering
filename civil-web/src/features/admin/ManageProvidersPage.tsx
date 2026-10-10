@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
-import { CardGridSkeleton } from '@/components/feedback/skeletons'
+import { CardGridSkeleton, ProviderCardMedia } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,27 +97,26 @@ export function ManageProvidersPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<CardGridSkeleton media="logo" />}
+        loadingFallback={<CardGridSkeleton media="provider" />}
       >
         <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {providers.length === 0 ? (
             <p className="text-sm text-muted-foreground">No providers match.</p>
           ) : (
-            providers.map((provider) => (
+            providers.map((provider, index) => (
               <Link key={provider.id} to={`/admin/providers/${provider.id}`} className="min-w-0">
-                <Card size="sm" className="h-full cursor-pointer transition-colors hover:bg-muted/40 hover:ring-primary/30">
-                  <CardHeader className="min-w-0">
-                    <div className="mb-1 flex h-40 items-center overflow-hidden rounded-lg bg-muted">
-                      {provider.logoUrl ? (
-                        <img
-                          src={provider.logoUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="px-3 text-xs text-muted-foreground">Provider</span>
-                      )}
+                <Card
+                  size="sm"
+                  className="h-full cursor-pointer overflow-hidden pt-0! transition-colors hover:bg-muted/40 hover:ring-primary/30"
+                >
+                  {provider.logoUrl ? (
+                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
+                      <img src={provider.logoUrl} alt="" className="size-full object-cover" />
                     </div>
+                  ) : (
+                    <ProviderCardMedia variant={index} />
+                  )}
+                  <CardHeader className="min-w-0">
                     <CardTitle className="truncate" title={provider.name}>
                       {ellipsis(provider.name, 36)}
                     </CardTitle>

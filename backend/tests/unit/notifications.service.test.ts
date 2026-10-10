@@ -29,6 +29,7 @@ function makeNotification(overrides: Partial<Notification> = {}): Notification {
 
 function setup(notification: Notification | null = makeNotification()) {
   const repository: NotificationsRepository = {
+    countStates: vi.fn(async () => ({ active: 1, unread: 1, deleted: 0 })),
     findMany: vi.fn(async () => ({
       notifications: notification
         ? [{ ...notification, sender: { id: 'super-1', email: 's@example.com', role: 'SUPER' } }]
@@ -37,6 +38,7 @@ function setup(notification: Notification | null = makeNotification()) {
     })),
     findById: vi.fn(async () => notification),
     countUnread: vi.fn(async () => 2),
+    markAllRead: vi.fn(async () => 2),
     create: vi.fn(async (data) => makeNotification({ ...data, id: 'n-new' })),
     createMany: vi.fn(async (data) => data.length),
     update: vi.fn(async (id, data) => makeNotification({ id, ...data })),
@@ -54,7 +56,7 @@ function setup(notification: Notification | null = makeNotification()) {
 describe('notificationsService', () => {
   it('scopes list to the current user for non-super roles', async () => {
     const { service, repository } = setup()
-    await service.listNotifications(owner, { page: 1, limit: 20, includeDeleted: false })
+    await service.listNotifications(owner, { page: 1, limit: 20, includeDeleted: false, mine: false })
     expect(repository.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ receiverId: owner.id, includeDeleted: false }),
     )
@@ -62,7 +64,7 @@ describe('notificationsService', () => {
 
   it('lets SUPER list without forcing receiver scope', async () => {
     const { service, repository } = setup()
-    await service.listNotifications(superAdmin, { page: 1, limit: 20, includeDeleted: true })
+    await service.listNotifications(superAdmin, { page: 1, limit: 20, includeDeleted: true, mine: false })
     expect(repository.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ includeDeleted: true }),
     )
@@ -93,6 +95,20 @@ describe('notificationsService', () => {
     })
     expect(result.count).toBe(2)
     expect(repository.createMany).toHaveBeenCalled()
+  })
+
+  it('scopes a mine=true list to the caller, including SUPER', async () => {
+    const { service, repository } = setup()
+    await service.listNotifications(superAdmin, { page: 1, limit: 8, includeDeleted: false, mine: true })
+    expect(repository.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ receiverId: superAdmin.id, includeDeleted: false }),
+    )
+  })
+
+  it('marks every unread notification for the caller as read', async () => {
+    const { service, repository } = setup()
+    await expect(service.markAllRead(owner)).resolves.toBe(2)
+    expect(repository.markAllRead).toHaveBeenCalledWith(owner.id)
   })
 
   it('lets the receiver mark as read', async () => {

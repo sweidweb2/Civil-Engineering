@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from 'cn'
 import { format } from 'date-fns'
 import { ChevronUp } from 'lucide-react'
@@ -113,8 +113,23 @@ function edgeShift(percent: number) {
   return 'translateX(-50%)'
 }
 
-function buildTicks(domainStart: number, domainEnd: number): { ticks: AxisTick[]; minWidth: number } {
+const TICK_SLOT_PX = 88
+
+function thinTicks(ticks: AxisTick[], maxTicks: number): AxisTick[] {
+  if (ticks.length <= maxTicks) return ticks
+  const lastIndex = ticks.length - 1
+  const step = lastIndex / (maxTicks - 1)
+  const picked: AxisTick[] = []
+  for (let index = 0; index < maxTicks; index += 1) {
+    const tick = ticks[Math.round(index * step)]
+    if (tick && picked[picked.length - 1]?.at !== tick.at) picked.push(tick)
+  }
+  return picked
+}
+
+function buildTicks(domainStart: number, domainEnd: number, plotWidth: number): AxisTick[] {
   const days = (domainEnd - domainStart) / DAY_MS
+  const maxTicks = Math.max(2, Math.floor(Math.max(plotWidth, 240) / TICK_SLOT_PX))
   const ticks: AxisTick[] = []
 
   if (days <= 100) {
@@ -143,19 +158,19 @@ function buildTicks(domainStart: number, domainEnd: number): { ticks: AxisTick[]
   }
 
   if (ticks.length < 2) {
-    return {
-      ticks: [
-        { at: domainStart, label: format(domainStart, 'MMM d') },
-        { at: domainEnd, label: format(domainEnd, 'MMM d, yyyy') },
-      ],
-      minWidth: 560,
-    }
+    return [
+      { at: domainStart, label: format(domainStart, 'MMM d') },
+      { at: domainEnd, label: format(domainEnd, 'MMM d, yyyy') },
+    ]
   }
 
-  return {
-    ticks,
-    minWidth: Math.max(640, ticks.length * (days > 800 ? 96 : 84)),
-  }
+  return thinTicks(ticks, maxTicks)
+}
+
+function barPlacement(startPercent: number, endPercent: number) {
+  const left = Math.min(100, Math.max(0, startPercent))
+  const right = Math.min(100, Math.max(left, endPercent))
+  return { left, width: right - left }
 }
 
 type ProjectProgressTimelineProps = {
@@ -208,13 +223,13 @@ export function ProjectProgressTimeline({ refreshKey = 0 }: ProjectProgressTimel
     const domainEnd = max + pad
     const span = domainEnd - domainStart
     const position = (time: number) => ((time - domainStart) / span) * 100
-    const axis = buildTicks(domainStart, domainEnd)
 
     return {
       lanes,
       position,
       today: position(now),
-      ...axis,
+      domainStart,
+      domainEnd,
     }
   }, [now, projects])
 
@@ -295,16 +310,35 @@ function TimelineChart({
     lanes: TimelineLane[]
     position: (time: number) => number
     today: number
-    ticks: AxisTick[]
-    minWidth: number
+    domainStart: number
+    domainEnd: number
   }
   hiddenCount: number
   onOpen: (id: string) => void
 }) {
+  const plotRef = useRef<HTMLDivElement>(null)
+  const [plotWidth, setPlotWidth] = useState(0)
+
+  useEffect(() => {
+    const node = plotRef.current
+    if (!node) return
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0
+      setPlotWidth((current) => (Math.abs(current - width) < 1 ? current : width))
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  const ticks = useMemo(
+    () => buildTicks(chart.domainStart, chart.domainEnd, plotWidth),
+    [chart.domainEnd, chart.domainStart, plotWidth],
+  )
+
   return (
     <div className="px-2 pt-2 pb-3 sm:px-3">
-      <div className="max-h-[34rem] overflow-auto">
-        <div className="flex w-max min-w-full">
+      <div className="max-h-[34rem] overflow-x-hidden overflow-y-auto">
+        <div className="flex w-full min-w-0">
           <div className="sticky left-0 z-40 w-44 shrink-0 border-r border-border/70 bg-card sm:w-52">
             <div className={cn(AXIS_CLASS, 'sticky top-0 z-10 bg-card')} />
             <ul>
@@ -328,7 +362,7 @@ function TimelineChart({
             <div className={cn(AXIS_CLASS, 'sticky bottom-0 z-10 bg-card')} />
           </div>
 
-          <div className="relative min-w-0 flex-1 px-3" style={{ minWidth: chart.minWidth }}>
+          <div ref={plotRef} className="relative min-w-0 flex-1 overflow-hidden px-3">
             <div className={cn(AXIS_CLASS, 'sticky top-0 z-30 bg-card')}>
               <span
                 className="absolute top-1 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium tracking-wide text-background"
@@ -339,7 +373,7 @@ function TimelineChart({
             </div>
 
             <div className="relative">
-              {chart.ticks.map((tick) => (
+              {ticks.map((tick) => (
                 <div
                   key={tick.at}
                   className="pointer-events-none absolute inset-y-0 w-px bg-border/80"
@@ -347,17 +381,20 @@ function TimelineChart({
                 />
               ))}
               {chart.lanes.map((lane) => {
-                const left = chart.position(lane.start)
-                const width = Math.max(chart.position(lane.end) - left, 1.25)
+                const { left, width } = barPlacement(chart.position(lane.start), chart.position(lane.end))
                 return (
-                  <div key={lane.id} className={cn(ROW_CLASS, 'relative')}>
+                  <div key={lane.id} className={cn(ROW_CLASS, 'relative overflow-hidden')}>
                     <button
                       type="button"
                       className={cn(
-                        '@container/bar absolute top-1/2 flex h-7 -translate-y-1/2 items-center overflow-hidden rounded-md text-xs font-medium transition-shadow hover:ring-2 hover:ring-foreground/15',
+                        '@container/bar absolute top-1/2 flex h-7 max-w-full -translate-y-1/2 items-center overflow-hidden rounded-md text-xs font-medium transition-shadow hover:ring-2 hover:ring-foreground/15',
                         lane.lane.bar,
                       )}
-                      style={{ left: `${left}%`, width: `${width}%` }}
+                      style={{
+                        left: `${left}%`,
+                        width: `max(${width}%, 0.75rem)`,
+                        maxWidth: `calc(100% - ${left}%)`,
+                      }}
                       title={`${lane.name} · ${lane.progress}% · ${format(lane.start, 'MMM d, yyyy')} – ${format(lane.end, 'MMM d, yyyy')}${lane.endIsEstimated ? ' (end estimated from progress)' : ''}`}
                       onClick={() => onOpen(lane.id)}
                     >
@@ -365,9 +402,9 @@ function TimelineChart({
                         className={cn('absolute inset-y-0 left-0', lane.lane.fill)}
                         style={{ width: `${lane.progress}%` }}
                       />
-                      <span className="relative z-10 flex w-full items-center justify-between gap-2 px-2">
-                        <span className="hidden min-w-0 truncate @[6.5rem]/bar:inline">{lane.name}</span>
-                        <span className="shrink-0 tabular-nums">{lane.progress}%</span>
+                      <span className="relative z-10 flex w-full min-w-0 items-center justify-between gap-2 overflow-hidden px-2">
+                        <span className="hidden min-w-0 truncate @[7rem]/bar:inline">{lane.name}</span>
+                        <span className="hidden shrink-0 tabular-nums @[2.75rem]/bar:inline">{lane.progress}%</span>
                       </span>
                     </button>
                   </div>
@@ -386,7 +423,7 @@ function TimelineChart({
             </div>
 
             <div className={cn(AXIS_CLASS, 'sticky bottom-0 z-30 bg-card')}>
-              {chart.ticks.map((tick) => {
+              {ticks.map((tick) => {
                 const percent = chart.position(tick.at)
                 return (
                   <span

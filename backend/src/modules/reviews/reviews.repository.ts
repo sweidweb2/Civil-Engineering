@@ -1,5 +1,11 @@
 import { prisma } from '../../database/prisma.js'
 import type { Prisma, ReviewStatus, ReviewTargetType } from '../../generated/prisma/client.js'
+import {
+  findListingNames,
+  listingExists,
+  listListingChoices,
+  searchListingIdsByName,
+} from '../listings/index.js'
 import type { ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type { ReviewStatusCounts, ReviewTargetOption } from './reviews.types.js'
 
@@ -105,9 +111,7 @@ async function targetNameMap(rows: ReviewRow[]): Promise<Map<string, string>> {
           select: { id: true, email: true, profile: { select: { displayName: true, firstName: true, lastName: true } } },
         })
       : [],
-    listingIds.length
-      ? prisma.listing.findMany({ where: { id: { in: listingIds } }, select: { id: true, name: true } })
-      : [],
+    findListingNames(listingIds),
   ])
 
   for (const provider of providers) names.set(key('PROVIDER', provider.id), provider.name)
@@ -165,17 +169,13 @@ async function searchWhere(query: ListReviewsQuery): Promise<Prisma.ReviewWhereI
       select: { id: true },
       take: 100,
     }),
-    prisma.listing.findMany({
-      where: { name: { contains: q, mode: 'insensitive' } },
-      select: { id: true },
-      take: 100,
-    }),
+    searchListingIdsByName(q, 100),
   ])
 
   const or = text.OR ?? []
   if (providers.length) or.push({ targetType: 'PROVIDER', targetId: { in: providers.map((row) => row.id) } })
   if (workers.length) or.push({ targetType: 'WORKER', targetId: { in: workers.map((row) => row.id) } })
-  if (listings.length) or.push({ targetType: 'LISTING', targetId: { in: listings.map((row) => row.id) } })
+  if (listings.length) or.push({ targetType: 'LISTING', targetId: { in: listings } })
   filters.push({ OR: or })
   return { AND: filters }
 }
@@ -234,8 +234,7 @@ export function createReviewsRepository(): ReviewsRepository {
         return provider ? 'ok' : 'missing'
       }
       if (targetType === 'LISTING') {
-        const listing = await prisma.listing.findUnique({ where: { id: targetId }, select: { id: true } })
-        return listing ? 'ok' : 'missing'
+        return (await listingExists(targetId)) ? 'ok' : 'missing'
       }
       const worker = await prisma.user.findUnique({
         where: { id: targetId },
@@ -255,12 +254,7 @@ export function createReviewsRepository(): ReviewsRepository {
         return rows.map((row) => ({ id: row.id, name: row.name, subtitle: row.city }))
       }
       if (targetType === 'LISTING') {
-        const rows = await prisma.listing.findMany({
-          orderBy: { name: 'asc' },
-          take: 100,
-          select: { id: true, name: true, type: true },
-        })
-        return rows.map((row) => ({ id: row.id, name: row.name, subtitle: row.type }))
+        return listListingChoices(100)
       }
       const rows = await prisma.user.findMany({
         where: { role: 'WORKER' },

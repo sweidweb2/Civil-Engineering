@@ -34,6 +34,11 @@ export type PaginatedNotifications = {
     limit: number
     total: number
     totalPages: number
+    counts: {
+      active: number
+      unread: number
+      deleted: number
+    }
   }
 }
 
@@ -58,10 +63,14 @@ export type UpdateNotificationInput = {
   isRead?: boolean
 }
 
-export function listNotifications(page = 1, limit = 20, includeDeleted = false) {
-  return apiRequest<PaginatedNotifications>(
-    `/notifications?page=${page}&limit=${limit}&includeDeleted=${includeDeleted}`,
-  )
+export function listNotifications(page = 1, limit = 20, includeDeleted = false, mine = false) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    includeDeleted: String(includeDeleted),
+  })
+  if (mine) params.set('mine', 'true')
+  return apiRequest<PaginatedNotifications>(`/notifications?${params.toString()}`, { cache: 'no-store' })
 }
 
 export function getNotification(id: string) {
@@ -69,7 +78,11 @@ export function getNotification(id: string) {
 }
 
 export function getUnreadCount() {
-  return apiRequest<{ data: { count: number } }>('/notifications/unread-count')
+  return apiRequest<{ data: { count: number } }>('/notifications/unread-count', { cache: 'no-store' })
+}
+
+export function markAllAsRead() {
+  return apiRequest<{ data: { count: number } }>('/notifications/read-all', { method: 'POST' })
 }
 
 export function createNotification(input: CreateNotificationInput) {

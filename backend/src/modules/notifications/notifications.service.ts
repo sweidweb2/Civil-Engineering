@@ -13,9 +13,14 @@ export type NotificationsService = {
   listNotifications: (
     actor: AuthActor,
     query: ListNotificationsQuery
-  ) => Promise<{ notifications: NotificationWithSender[]; total: number }>
+  ) => Promise<{
+    notifications: NotificationWithSender[]
+    total: number
+    counts: { active: number; unread: number; deleted: number }
+  }>
   getNotification: (actor: AuthActor, id: string) => Promise<Notification>
   countUnread: (actor: AuthActor) => Promise<number>
+  markAllRead: (actor: AuthActor) => Promise<number>
   createNotification: (actor: AuthActor, input: CreateNotificationBody) => Promise<Notification>
   broadcastNotification: (actor: AuthActor, input: BroadcastNotificationBody) => Promise<{ count: number }>
   updateNotification: (actor: AuthActor, id: string, input: UpdateNotificationBody) => Promise<Notification>
@@ -61,15 +66,25 @@ export function createNotificationsService(deps: NotificationsServiceDeps): Noti
 
       // Super Admin can see all notifications with includeDeleted
       // Regular users can only see their own non-deleted notifications
-      if (actor.roles.includes('SUPER')) {
-        return repository.findMany(query)
-      }
+      const scoped = !query.mine && actor.roles.includes('SUPER')
+        ? {
+            page: query.page,
+            limit: query.limit,
+            includeDeleted: query.includeDeleted,
+            receiverId: undefined,
+          }
+        : {
+            page: query.page,
+            limit: query.limit,
+            receiverId: actor.id,
+            includeDeleted: false,
+          }
 
-      return repository.findMany({
-        ...query,
-        receiverId: actor.id,
-        includeDeleted: false, // Regular users never see deleted
-      })
+      const [pageResult, counts] = await Promise.all([
+        repository.findMany(scoped),
+        repository.countStates(scoped.receiverId),
+      ])
+      return { ...pageResult, counts }
     },
 
     async getNotification(actor, id) {
@@ -87,6 +102,13 @@ export function createNotificationsService(deps: NotificationsServiceDeps): Noti
         throw unauthorized()
       }
       return repository.countUnread(actor.id)
+    },
+
+    async markAllRead(actor) {
+      if (!actor.id) {
+        throw unauthorized()
+      }
+      return repository.markAllRead(actor.id)
     },
 
     async createNotification(actor, input) {

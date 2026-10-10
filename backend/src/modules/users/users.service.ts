@@ -97,7 +97,10 @@ export function createUsersService(repository: UsersRepository): UsersService {
 
   return {
     async listUsers(query) {
-      const { users, total } = await repository.findMany(query)
+      const [{ users, total }, counts] = await Promise.all([
+        repository.findMany(query),
+        repository.countDirectory(),
+      ])
       const page = query.page ?? 1
       const limit = query.limit ?? 20
       return {
@@ -107,6 +110,7 @@ export function createUsersService(repository: UsersRepository): UsersService {
           page,
           limit,
           totalPages: Math.ceil(total / limit),
+          counts,
         },
       }
     },

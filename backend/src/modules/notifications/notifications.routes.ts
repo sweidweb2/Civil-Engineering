@@ -31,6 +31,7 @@ export function createNotificationsRouter(deps: NotificationsRouterDeps): Router
     controller.listNotifications,
   )
   router.get('/unread-count', authenticate, controller.countUnread)
+  router.post('/read-all', authenticate, controller.markAllRead)
   router.get(
     '/:id',
     authenticate,

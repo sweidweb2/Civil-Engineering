@@ -4,13 +4,15 @@ import { cn } from 'cn'
 function Table({
   className,
   startIndex = 0,
+  indexVariant = 'badge',
   style,
   ...props
-}: React.ComponentProps<'table'> & { startIndex?: number }) {
+}: React.ComponentProps<'table'> & { startIndex?: number; indexVariant?: 'badge' | 'plain' }) {
   return (
     <div data-slot="table-container" className="relative w-full min-w-0 overflow-x-auto">
       <table
         data-slot="table"
+        data-index={indexVariant}
         className={cn('w-full caption-bottom text-sm', className)}
         style={{ '--table-index-start': startIndex, ...style } as React.CSSProperties}
         {...props}

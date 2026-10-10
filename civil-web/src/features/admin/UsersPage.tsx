@@ -1,8 +1,18 @@
 import { Briefcase, ChevronDown, Eye, MoreHorizontal, Plus, Trash2, UserCheck, Users, UserX } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
@@ -44,19 +54,73 @@ import {
   deactivateUser,
   listUsers,
   updateUser,
+  type UserDirectoryCounts,
+  type UserStatus,
 } from '@/services/users'
 
 import { DataPanel, RowActions } from './components/DataPanel'
 import { UserFormDialog } from './components/UserFormDialog'
 import { LoginLineChart } from './components/LoginLineChart'
 import { RoleBarChart } from './components/RoleBarChart'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
+import {
+  monthOverMonth,
+  ProjectMetricCard,
+  ProjectMetricCardSkeleton,
+} from './components/ProjectMetricCard'
+import { STAT_GRID_CLASS } from './components/StatCard'
 import { TablePager } from './components/TablePager'
 import { UserAttributeCells, USER_TABLE_HEADERS } from './components/UserCells'
 import { PAGE_SIZE, pageCount } from './lib/text'
 import { readUsersPageLayout, writeUsersPageLayout } from './lib/users-layout'
 import { matchesUserQuery, MOCK_LOGINS_DAILY } from './mock-data'
 import { toAdminUserRow, type UserFormValues } from './usersStore'
+
+const EMPTY_COUNTS: UserDirectoryCounts = {
+  active: 0,
+  inactive: 0,
+  managers: 0,
+  createdThisMonth: 0,
+  createdLastMonth: 0,
+  activeCreatedThisMonth: 0,
+  activeCreatedLastMonth: 0,
+  inactiveCreatedThisMonth: 0,
+  inactiveCreatedLastMonth: 0,
+  managersCreatedThisMonth: 0,
+  managersCreatedLastMonth: 0,
+}
+
+function createdInMonth(iso: string, offset: number): boolean {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1).getTime()
+  const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 1).getTime()
+  const created = new Date(iso).getTime()
+  return created >= start && created < end
+}
+
+function shiftStatusCounts(
+  counts: UserDirectoryCounts,
+  from: UserStatus,
+  to: UserStatus,
+  createdAt: string,
+): UserDirectoryCounts {
+  if (from === to) return counts
+  const next = { ...counts }
+  const bump = (status: UserStatus, delta: number) => {
+    if (status === 'ACTIVE') next.active += delta
+    if (status === 'INACTIVE') next.inactive += delta
+    if (createdInMonth(createdAt, 0)) {
+      if (status === 'ACTIVE') next.activeCreatedThisMonth += delta
+      if (status === 'INACTIVE') next.inactiveCreatedThisMonth += delta
+    }
+    if (createdInMonth(createdAt, -1)) {
+      if (status === 'ACTIVE') next.activeCreatedLastMonth += delta
+      if (status === 'INACTIVE') next.inactiveCreatedLastMonth += delta
+    }
+  }
+  bump(from, -1)
+  bump(to, 1)
+  return next
+}
 
 export function UsersPage() {
   useDocumentTitle('Users')
@@ -70,9 +134,12 @@ export function UsersPage() {
   const [layoutOpen, setLayoutOpen] = useState(false)
   const [draftShowUsage, setDraftShowUsage] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
+  const [pendingDeactivate, setPendingDeactivate] = useState<{ id: string; email: string } | null>(null)
+  const [isDeactivating, setIsDeactivating] = useState(false)
 
   const load = useCallback(() => listUsers(page, PAGE_SIZE), [page])
   const remote = useRemoteData(load)
+  const statusToggleGeneration = useRef(new Map<string, number>())
 
   const rows = useMemo(
     () => (remote.status === 'success' ? remote.data.data.map(toAdminUserRow) : []),
@@ -80,31 +147,60 @@ export function UsersPage() {
   )
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const totalPages = remote.status === 'success' ? remote.data.meta.totalPages : pageCount(total)
+  const counts = remote.status === 'success' ? remote.data.meta.counts : EMPTY_COUNTS
 
   const filtered = useMemo(() => rows.filter((row) => matchesUserQuery(row, query)), [rows, query])
 
-  const active = rows.filter((r) => r.status === 'ACTIVE').length
-  const inactive = rows.filter((r) => r.status === 'INACTIVE').length
-
   async function onToggleStatus(id: string) {
-    const row = rows.find((item) => item.id === id)
-    if (!row) return
+    if (remote.status !== 'success') return
+    const current = remote.data.data.find((item) => item.id === id)
+    if (!current) return
+    const nextStatus = current.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+    const generation = (statusToggleGeneration.current.get(id) ?? 0) + 1
+    statusToggleGeneration.current.set(id, generation)
+
+    remote.mutate((pageData) => ({
+      ...pageData,
+      data: pageData.data.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)),
+      meta: {
+        ...pageData.meta,
+        counts: shiftStatusCounts(pageData.meta.counts, current.status, nextStatus, current.createdAt),
+      },
+    }))
+
     try {
-      await updateUser(id, { status: row.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' })
+      const result = await updateUser(id, { status: nextStatus })
+      if (statusToggleGeneration.current.get(id) !== generation) return
+      remote.mutate((pageData) => ({
+        ...pageData,
+        data: pageData.data.map((item) => (item.id === id ? result.data : item)),
+      }))
       toast.success('Status updated')
-      await remote.refetch()
     } catch (error) {
+      if (statusToggleGeneration.current.get(id) !== generation) return
+      remote.mutate((pageData) => ({
+        ...pageData,
+        data: pageData.data.map((item) => (item.id === id ? current : item)),
+        meta: {
+          ...pageData.meta,
+          counts: shiftStatusCounts(pageData.meta.counts, nextStatus, current.status, current.createdAt),
+        },
+      }))
       toastApiError(error, 'Could not update status')
     }
   }
 
   async function onDeactivateUser(id: string) {
+    setIsDeactivating(true)
     try {
       await deactivateUser(id)
       toast.success('User deactivated')
+      setPendingDeactivate(null)
       await remote.refetch()
     } catch (error) {
       toastApiError(error, 'Could not deactivate user')
+    } finally {
+      setIsDeactivating(false)
     }
   }
 
@@ -168,16 +264,43 @@ export function UsersPage() {
         }
       />
 
-      <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Users} label="Users" value={total} />
-        <StatCard icon={UserCheck} label="Active (page)" value={active} />
-        <StatCard icon={UserX} label="Inactive (page)" value={inactive} />
-        <StatCard
-          icon={Briefcase}
-          label="PMs (page)"
-          value={rows.filter((r) => r.role === 'MANAGER').length}
-        />
-      </div>
+      {remote.isLoading ? (
+        <div className={STAT_GRID_CLASS}>
+          {Array.from({ length: 4 }, (_, index) => (
+            <ProjectMetricCardSkeleton key={index} />
+          ))}
+        </div>
+      ) : (
+        <div className={STAT_GRID_CLASS}>
+          <ProjectMetricCard
+            icon={Users}
+            label="Users"
+            value={String(total)}
+            change={monthOverMonth(counts.createdThisMonth, counts.createdLastMonth)}
+          />
+          <ProjectMetricCard
+            icon={UserCheck}
+            label="Active"
+            value={String(counts.active)}
+            change={monthOverMonth(counts.activeCreatedThisMonth, counts.activeCreatedLastMonth)}
+            barShift={4}
+          />
+          <ProjectMetricCard
+            icon={UserX}
+            label="Inactive"
+            value={String(counts.inactive)}
+            change={monthOverMonth(counts.inactiveCreatedThisMonth, counts.inactiveCreatedLastMonth)}
+            barShift={8}
+          />
+          <ProjectMetricCard
+            icon={Briefcase}
+            label="Project managers"
+            value={String(counts.managers)}
+            change={monthOverMonth(counts.managersCreatedThisMonth, counts.managersCreatedLastMonth)}
+            barShift={12}
+          />
+        </div>
+      )}
 
       {showUsage ? (
         <Card size="sm" className="min-w-0">
@@ -258,6 +381,33 @@ export function UsersPage() {
         onSave={onCreateUser}
       />
 
+      <AlertDialog
+        open={pendingDeactivate !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeactivating) setPendingDeactivate(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeactivate?.email} will be marked inactive and will not be able to sign in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeactivating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeactivating || !pendingDeactivate}
+              onClick={() => {
+                if (pendingDeactivate) void onDeactivateUser(pendingDeactivate.id)
+              }}
+            >
+              {isDeactivating ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AsyncState
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
@@ -285,7 +435,7 @@ export function UsersPage() {
             />
           }
         >
-          <Table startIndex={(page - 1) * PAGE_SIZE}>
+          <Table startIndex={(page - 1) * PAGE_SIZE} indexVariant="plain">
             <TableHeader>
               <TableRow>
                 {USER_TABLE_HEADERS.map((header) => (
@@ -316,6 +466,7 @@ export function UsersPage() {
                   >
                     <UserAttributeCells
                       row={row}
+                      showAvatar
                       onToggleStatus={(id) => {
                         void onToggleStatus(id)
                       }}
@@ -337,7 +488,7 @@ export function UsersPage() {
                           aria-label={`Deactivate ${row.email}`}
                           onClick={(event) => {
                             event.stopPropagation()
-                            void onDeactivateUser(row.id)
+                            setPendingDeactivate({ id: row.id, email: row.email })
                           }}
                         >
                           <Trash2 />

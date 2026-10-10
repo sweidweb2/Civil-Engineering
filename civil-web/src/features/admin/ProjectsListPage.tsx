@@ -5,7 +5,6 @@ import {
   Calendar,
   Clock,
   FolderKanban,
-  ImageIcon,
   MapPin,
   MoreVertical,
   Pencil,
@@ -17,7 +16,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
-import { CardGridSkeleton } from '@/components/feedback/skeletons'
+import { CardGridSkeleton, ProjectCardMedia } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,7 +131,15 @@ function ProjectCardImage({ src, alt }: { src: string; alt: string }) {
   )
 }
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({
+  project,
+  variant,
+  onArchive,
+}: {
+  project: Project
+  variant: number
+  onArchive: (project: Project) => void
+}) {
   const navigate = useNavigate()
   const location = useLocation()
   const projectPath = `${portalBaseFromPath(location.pathname)}/projects/${project.id}`
@@ -147,9 +154,7 @@ function ProjectCard({ project }: { project: Project }) {
       {mainImageUrl ? (
         <ProjectCardImage src={mainImageUrl} alt={project.name} />
       ) : (
-        <div className="flex aspect-video w-full items-center justify-center bg-muted">
-          <ImageIcon className="size-12 text-muted-foreground/30" />
-        </div>
+        <ProjectCardMedia variant={variant} />
       )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -181,9 +186,9 @@ function ProjectCard({ project }: { project: Project }) {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  // This will be handled by parent component
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onArchive(project)
                 }}
               >
                 <Trash2 className="size-3" />
@@ -302,8 +307,7 @@ export function ProjectsListPage() {
     }
   }
 
-  const handleDeleteOpen = (project: Project, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleDeleteOpen = (project: Project) => {
     setDeletingProject(project)
     setDeleteOpen(true)
   }
@@ -355,16 +359,13 @@ export function ProjectsListPage() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <div key={project.id} onClick={(e) => {
-                // Check if click came from dropdown menu
-                const target = e.target as HTMLElement
-                if (target.closest('[role="menuitem"]')?.textContent?.includes('Archive')) {
-                  handleDeleteOpen(project, e)
-                }
-              }}>
-                <ProjectCard project={project} />
-              </div>
+            {projects.map((project, index) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                variant={index}
+                onArchive={handleDeleteOpen}
+              />
             ))}
           </div>
         )}
@@ -400,14 +401,14 @@ export function ProjectsListPage() {
 
       {/* Create Project Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>
               Enter the basic information for your project. You can add more details later.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
+          <form onSubmit={handleCreateSubmit} className="grid gap-4 sm:grid-cols-2">
             <Field>
               <Label htmlFor="create-name">Project Name</Label>
               <Input
@@ -417,6 +418,16 @@ export function ProjectsListPage() {
                 placeholder="e.g., Downtown Office Building"
                 maxLength={200}
                 required
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="create-code">Project Code</Label>
+              <Input
+                id="create-code"
+                value={createData.code || ''}
+                onChange={(e) => setCreateData({ ...createData, code: e.target.value })}
+                placeholder="e.g., PRJ-2024-001"
+                maxLength={50}
               />
             </Field>
             <Field>
@@ -431,23 +442,13 @@ export function ProjectsListPage() {
               />
             </Field>
             <Field>
-              <Label htmlFor="create-code">Project Code</Label>
-              <Input
-                id="create-code"
-                value={createData.code || ''}
-                onChange={(e) => setCreateData({ ...createData, code: e.target.value })}
-                placeholder="e.g., PRJ-2024-001"
-                maxLength={50}
-              />
-            </Field>
-            <Field>
               <Label htmlFor="create-type">Project Type</Label>
               <Select
                 items={PROJECT_TYPE_OPTIONS}
                 value={createData.type}
                 onValueChange={(value) => setCreateData({ ...createData, type: value as ProjectType })}
               >
-                <SelectTrigger id="create-type">
+                <SelectTrigger id="create-type" className="w-full">
                   <SelectValue placeholder="Select project type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -481,13 +482,13 @@ export function ProjectsListPage() {
                 placeholder="Select end date"
               />
             </Field>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground sm:col-span-2">
               Progress is the time elapsed from the start date to the end date
               {createData.startDate && createData.endDate
                 ? ` (${scheduleProgress(createData.startDate, createData.endDate)}%).`
                 : '. Set both dates to calculate it.'}
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={isCreating}>
                 Cancel
               </Button>

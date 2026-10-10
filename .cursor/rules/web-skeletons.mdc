@@ -21,7 +21,8 @@ Use the shadcn `Skeleton` primitive and shared presets — do not add packages l
 | --- | --- | --- |
 | Generic | `ContentSkeleton` | Unknown / simple blocks |
 | Card grid | `CardGridSkeleton` | Project/provider/directory cards |
-| Card image | `CardImageSkeleton` / `CivilCardMedia` | Card media (wireframe civil art) |
+| Card image | `CardImageSkeleton` / `CivilCardMedia` | Card media (building, crane, massing) |
+| Provider card | `ProviderCardMedia` / `CardGridSkeleton media="provider"` | Supplier shop, yard, or warehouse art |
 | Stats | `StatGridSkeleton` | Dashboard / stat strips |
 | Table | `TableSkeleton` | Logs, admin tables |
 | Detail form | `DetailSkeleton` | Multi-card detail pages |

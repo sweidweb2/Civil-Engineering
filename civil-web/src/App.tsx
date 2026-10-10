@@ -1,6 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
 import { RequireAuth, RequireRole } from '@/components/auth'
+import { InlineSpinner } from '@/components/feedback/async-state'
 import { NavigationLoader } from '@/components/feedback/navigation-loader'
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary'
 import { LoginPage } from '@/features/auth/LoginPage'
@@ -8,10 +9,12 @@ import { RegisterPage } from '@/features/auth/RegisterPage'
 import { NotFoundPage } from '@/features/errors/NotFoundPage'
 import { UnexpectedErrorPage } from '@/features/errors/UnexpectedErrorPage'
 import { HomePage } from '@/features/home/HomePage'
+import { PublicHomePage } from '@/features/home/PublicHomePage'
 import { ActivityLogsPage } from '@/features/panels/ActivityLogsPage'
 import { ErrorLogsPage } from '@/features/panels/ErrorLogsPage'
 import { AdminAnalyticsPage } from '@/features/admin/AdminAnalyticsPage'
 import { DirectoryPage } from '@/features/admin/DirectoryPage'
+import { ListingsPage } from '@/features/admin/ListingsPage'
 import { ManageCategoriesPage } from '@/features/admin/ManageCategoriesPage'
 import { ManageNotificationsPage } from '@/features/admin/ManageNotificationsPage'
 import { ManageProvidersPage } from '@/features/admin/ManageProvidersPage'
@@ -25,6 +28,8 @@ import { UserDetailsPage } from '@/features/admin/UserDetailsPage'
 import { UsersPage } from '@/features/admin/UsersPage'
 import { WorkerVerificationPage } from '@/features/admin/WorkerVerificationPage'
 import { NotificationsInboxPage } from '@/features/notifications/NotificationsInboxPage'
+import { PmAnalyticsPage } from '@/features/pm/PmAnalyticsPage'
+import { PmProfilePage } from '@/features/pm/PmProfilePage'
 import { PanelHomePage } from '@/features/panels/PanelHomePage'
 import {
   AdminPanelLayout,
@@ -33,20 +38,26 @@ import {
   SuperPanelLayout,
 } from '@/features/panels/PanelLayouts'
 import { homePathForRole } from '@/lib/homePath'
-import type { AuthRole } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
 
-function hasPanel(role: AuthRole | null | undefined): boolean {
-  return role === 'SUPER' || role === 'ADMIN' || role === 'MANAGER' || role === 'PROVIDER'
-}
+/** Public landing. Portal roles stay here and use Dashboard to open their shell. */
+function RootRoute() {
+  const user = useAuthStore((s) => s.user)
+  const isHydrated = useAuthStore((s) => s.isHydrated)
 
-/** Signed-in `/` — panel roles go to their shell; others stay on client home. */
-function RootHome() {
-  const role = useAuthStore((s) => s.user?.role)
-  if (hasPanel(role)) {
-    return <Navigate to={homePathForRole(role)} replace />
+  if (!isHydrated) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-background">
+        <InlineSpinner label="Loading session…" />
+      </div>
+    )
   }
-  return <HomePage />
+
+  if (user && homePathForRole(user.role) === '/') {
+    return <HomePage />
+  }
+
+  return <PublicHomePage />
 }
 
 function App() {
@@ -55,14 +66,7 @@ function App() {
       <NavigationLoader />
       <ErrorBoundary>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <RootHome />
-              </RequireAuth>
-            }
-          />
+          <Route path="/" element={<RootRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/500" element={<UnexpectedErrorPage />} />
@@ -114,10 +118,10 @@ function App() {
             <Route path="projects" element={<ProjectsListPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />
+            <Route path="listings" element={<ListingsPage />} />
             <Route path="reviews" element={<ManageReviewsPage />} />
             <Route path="categories" element={<ManageCategoriesPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
-            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           <Route
@@ -131,6 +135,8 @@ function App() {
             }
           >
             <Route index element={<AdminAnalyticsPage />} />
+            <Route path="analytics" element={<PmAnalyticsPage />} />
+            <Route path="profile" element={<PmProfilePage />} />
             <Route path="projects" element={<ProjectsListPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />

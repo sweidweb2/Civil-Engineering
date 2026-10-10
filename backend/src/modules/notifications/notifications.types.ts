@@ -50,8 +50,10 @@ export type NotificationsRepository = {
     page?: number
     limit?: number
   }) => Promise<{ notifications: NotificationWithSender[]; total: number }>
+  countStates: (receiverId?: string) => Promise<{ active: number; unread: number; deleted: number }>
   findById: (id: string) => Promise<Notification | null>
   countUnread: (receiverId: string) => Promise<number>
+  markAllRead: (receiverId: string) => Promise<number>
   create: (data: CreateNotificationData) => Promise<Notification>
   createMany: (data: CreateNotificationData[]) => Promise<number>
   update: (id: string, data: UpdateNotificationData) => Promise<Notification>

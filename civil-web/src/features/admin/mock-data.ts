@@ -1,13 +1,13 @@
 import type { AuthRole } from '@/services/auth'
 
 import type {
-  AdminProject,
   AdminUserRow,
   AnalyticsSnapshot,
   LoginDayPoint,
   PlatformCategory,
   PlatformReview,
   ProviderShop,
+  RegistrationRow,
   WorkerVerificationRow,
 } from './admin.types'
 
@@ -208,6 +208,44 @@ export const MOCK_USERS: AdminUserRow[] = [
   }),
 ]
 
+const extraPendingProvider = row('usr_19', 'crane.east@example.com', 'PROVIDER', 'ACTIVE', 1, {
+  firstName: 'Tarek',
+  lastName: 'Saliba',
+  displayName: 'East Crane & Heavy Equipment Trading Company',
+  phone: '+961 01 990 001',
+  avatarUrl: null,
+  createdAt: '',
+  updatedAt: '',
+})
+
+const extraPendingWorker = row('usr_20', 'painter.zeina@example.com', 'WORKER', 'ACTIVE', 0, {
+  firstName: 'Zeina',
+  lastName: 'Mrad',
+  displayName: 'Zeina Mrad',
+  phone: '+961 76 333 111',
+  avatarUrl: null,
+  createdAt: '',
+  updatedAt: '',
+})
+
+/** Approval is UI-only — Prisma has ACTIVE/INACTIVE, not a pending column. */
+export const MOCK_REGISTRATIONS: RegistrationRow[] = [
+  { ...MOCK_USERS[2], approval: 'approved' },
+  { ...MOCK_USERS[3], approval: 'approved' },
+  { ...MOCK_USERS[4], approval: 'approved' },
+  { ...MOCK_USERS[5], approval: 'approved' },
+  { ...MOCK_USERS[6], approval: 'approved' },
+  { ...MOCK_USERS[9], approval: 'pending' },
+  { ...MOCK_USERS[10], approval: 'pending' },
+  { ...MOCK_USERS[11], approval: 'pending' },
+  { ...MOCK_USERS[13], approval: 'pending' },
+  { ...MOCK_USERS[14], approval: 'approved' },
+  { ...MOCK_USERS[15], approval: 'pending' },
+  { ...MOCK_USERS[17], approval: 'pending' },
+  { ...extraPendingProvider, approval: 'pending' },
+  { ...extraPendingWorker, approval: 'pending' },
+]
+
 export const MOCK_ANALYTICS: AnalyticsSnapshot = {
   registeredUsers: MOCK_USERS.length,
   activePms: MOCK_USERS.filter((u) => u.role === 'MANAGER' && u.status === 'ACTIVE').length,
@@ -288,15 +326,6 @@ export const MOCK_CATEGORIES: PlatformCategory[] = [
   { id: 'cat_09', name: 'Welding', kind: 'worker' },
   { id: 'cat_10', name: 'Plumbing', kind: 'worker' },
   { id: 'cat_11', name: 'Electrical', kind: 'worker' },
-]
-
-export const MOCK_PROJECTS: AdminProject[] = [
-  { id: 'prj_01', name: 'Beirut Waterfront Tower', location: 'Beirut', managerName: 'Karim Mansour', status: 'active' },
-  { id: 'prj_02', name: 'Tripoli Ring Road', location: 'Tripoli', managerName: 'Lina Chamoun', status: 'planning' },
-  { id: 'prj_03', name: 'Zahle Clinic Wing', location: 'Zahle', managerName: 'Karim Mansour', status: 'active' },
-  { id: 'prj_04', name: 'Jounieh Marina Store', location: 'Jounieh', managerName: 'Lina Chamoun', status: 'completed' },
-  { id: 'prj_05', name: 'Saida School Block', location: 'Saida', managerName: 'Karim Mansour', status: 'planning' },
-  { id: 'prj_06', name: 'Byblos Heritage Facade', location: 'Byblos', managerName: 'Lina Chamoun', status: 'active' },
 ]
 
 export const MOCK_REVIEWS: PlatformReview[] = [
@@ -389,10 +418,6 @@ export const MOCK_REVIEWS: PlatformReview[] = [
     createdAt: isoDaysAgo(10),
   },
 ]
-
-export function findProjectById(id: string): AdminProject | undefined {
-  return MOCK_PROJECTS.find((project) => project.id === id)
-}
 
 export function findUserById(id: string): AdminUserRow | undefined {
   return MOCK_USERS.find((user) => user.id === id)

@@ -6,38 +6,90 @@ type SkeletonPresetProps = {
   className?: string
 }
 
+/**
+ * Card art: one calm isometric subject, centered, with a wide empty margin on warm
+ * off-white (#f4f1eb). Solid faces only — never a wireframe, blueprint, or see-through
+ * walls. One even charcoal outline. Flat soft shading in warm stone, pale gray, and a
+ * little clay. A single clear scene, no people, no text, no clutter.
+ */
 export const CIVIL_ILLUSTRATIONS = [
-  '/illustrations/skeleton-building.jpg?v=wireframe',
-  '/illustrations/skeleton-crane.jpg?v=wireframe',
-  '/illustrations/skeleton-planning.jpg?v=wireframe',
+  '/illustrations/skeleton-building.jpg?v=2',
+  '/illustrations/skeleton-crane.jpg?v=2',
+  '/illustrations/skeleton-planning.jpg?v=2',
+] as const
+
+const PROVIDER_ILLUSTRATIONS = [
+  '/illustrations/provider-shop.jpg?v=2',
+  '/illustrations/provider-yard.jpg?v=2',
+  '/illustrations/provider-warehouse.jpg?v=2',
+] as const
+
+const PROJECT_ILLUSTRATIONS = [
+  '/illustrations/project-frame.jpg?v=2',
+  '/illustrations/project-house.jpg?v=2',
+  '/illustrations/project-site.jpg?v=2',
 ] as const
 
 export function civilIllustrationSrc(variant = 0) {
   return CIVIL_ILLUSTRATIONS[variant % CIVIL_ILLUSTRATIONS.length]
 }
 
-/** Tall civil media block — used on loaded cards and skeleton cards. */
-export function CivilCardMedia({
+function IllustrationFrame({
+  src,
+  className,
+  pulsing = false,
+}: SkeletonPresetProps & { src: string; pulsing?: boolean }) {
+  return (
+    <div className={cn('relative aspect-[16/10] w-full overflow-hidden bg-[#f4f1eb]', className)}>
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        decoding="async"
+        className="size-full object-contain object-center"
+      />
+      {pulsing ? <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" /> : null}
+    </div>
+  )
+}
+
+/** Provider card art: shop, supply yard, or warehouse. */
+export function ProviderCardMedia({
   className,
   variant = 0,
   pulsing = false,
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
   return (
-    <div
-      className={cn(
-        'relative aspect-[16/10] w-full overflow-hidden bg-muted',
-        className,
-      )}
-    >
-      <img
-        src={civilIllustrationSrc(variant)}
-        alt=""
-        aria-hidden
-        className="size-full object-cover object-center opacity-70 grayscale"
-      />
-      {pulsing ? <div className="absolute inset-0 animate-pulse bg-foreground/10" /> : null}
-    </div>
+    <IllustrationFrame
+      className={className}
+      pulsing={pulsing}
+      src={PROVIDER_ILLUSTRATIONS[variant % PROVIDER_ILLUSTRATIONS.length]}
+    />
   )
+}
+
+/** Shown on a project card when it has no main photo. */
+export function ProjectCardMedia({
+  className,
+  variant = 0,
+  pulsing = false,
+}: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
+  return (
+    <IllustrationFrame
+      className={cn('aspect-video', className)}
+      pulsing={pulsing}
+      src={PROJECT_ILLUSTRATIONS[variant % PROJECT_ILLUSTRATIONS.length]}
+    />
+  )
+}
+
+/** Project and directory card art: building, crane, or massing study. */
+export function CivilCardMedia({
+  className,
+  variant = 0,
+  pulsing = false,
+}: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
+  return <IllustrationFrame className={className} pulsing={pulsing} src={civilIllustrationSrc(variant)} />
 }
 
 /** Default AsyncState fallback — generic content block. */
@@ -64,23 +116,48 @@ export function CardImageSkeleton({
   return <CivilCardMedia className={className} variant={variant} pulsing />
 }
 
+/** Listing card: square thumb on the left, price and actions on one row. */
+function ListingCardItemSkeleton() {
+  return (
+    <div className="flex min-w-0 items-stretch gap-3 rounded-lg border border-border bg-card p-3">
+      <Skeleton className="size-16 shrink-0 self-center rounded-md" />
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+        <div className="min-w-0 space-y-1.5">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <Skeleton className="h-4 w-24" />
+          <div className="flex gap-1">
+            <Skeleton className="size-7 rounded-lg" />
+            <Skeleton className="size-7 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** One directory/provider/project card — bones only, no real Card chrome. */
 function CardItemSkeleton({
   variant,
   media,
 }: {
   variant: number
-  media: 'civil' | 'plain' | 'logo'
+  media: 'civil' | 'plain' | 'logo' | 'provider' | 'listing'
 }) {
+  if (media === 'listing') return <ListingCardItemSkeleton />
+
   return (
     <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
       {media === 'plain' ? (
         <Skeleton className="aspect-video w-full rounded-none" />
-      ) : media === 'logo' ? null : (
+      ) : media === 'provider' || media === 'logo' ? (
+        <ProviderCardMedia variant={variant} pulsing />
+      ) : (
         <CardImageSkeleton variant={variant} />
       )}
       <div className="flex flex-col gap-3 p-3">
-        {media === 'logo' ? <Skeleton className="h-40 w-full rounded-lg" /> : null}
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/2" />
         <div className="flex gap-2 pt-1">
@@ -97,14 +174,16 @@ export function CardGridSkeleton({
   className,
   count = 6,
   media = 'civil',
-}: SkeletonPresetProps & { count?: number; media?: 'civil' | 'plain' | 'logo' }) {
+}: SkeletonPresetProps & { count?: number; media?: 'civil' | 'plain' | 'logo' | 'provider' | 'listing' }) {
   return (
     <div
       className={cn(
         'grid min-w-0',
         media === 'plain'
           ? 'gap-4 md:grid-cols-2 lg:grid-cols-3'
-          : 'gap-3 sm:grid-cols-2 xl:grid-cols-3',
+          : media === 'listing'
+            ? 'gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3'
+            : 'gap-3 sm:grid-cols-2 xl:grid-cols-3',
         className,
       )}
       role="status"

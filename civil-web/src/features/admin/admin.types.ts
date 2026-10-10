@@ -56,16 +56,6 @@ export type PlatformCategory = {
   kind: CategoryKind
 }
 
-export type ProjectStatus = 'planning' | 'active' | 'completed'
-
-export type AdminProject = {
-  id: string
-  name: string
-  location: string
-  managerName: string
-  status: ProjectStatus
-}
-
 export type DirectoryKind = 'material' | 'equipment' | 'worker'
 
 export type DirectoryItem = {

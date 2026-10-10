@@ -1,15 +1,16 @@
 import { type FormEvent, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { GuestOnly } from '@/components/auth'
 import { Field, FieldError, FieldGroup, FieldLabel, Form } from '@/components/forms'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { type FieldErrors, parseForm } from '@/lib/form'
+import { cn } from '@/lib/utils'
 import { toastApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -48,6 +49,13 @@ export function LoginPage() {
 
   return (
     <GuestOnly>
+      <Link
+        to="/"
+        className={cn(buttonVariants({ variant: 'outline' }), 'fixed top-4 left-4 z-50')}
+      >
+        <ArrowLeft />
+        Home
+      </Link>
       <div className="flex min-h-svh items-center justify-center bg-background px-4">
         <Card className="w-full max-w-sm">
           <CardContent>

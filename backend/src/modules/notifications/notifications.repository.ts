@@ -91,6 +91,16 @@ export function createNotificationsRepository(): NotificationsRepository {
       }
     },
 
+    async countStates(receiverId) {
+      const scope = receiverId ? { receiverId } : {}
+      const [active, unread, deleted] = await Promise.all([
+        prisma.notification.count({ where: { ...scope, deletedAt: null } }),
+        prisma.notification.count({ where: { ...scope, deletedAt: null, isRead: false } }),
+        prisma.notification.count({ where: { ...scope, deletedAt: { not: null } } }),
+      ])
+      return { active, unread, deleted }
+    },
+
     async findById(id) {
       const notification = await prisma.notification.findUnique({ where: { id } })
       return notification ? mapToNotification(notification) : null
@@ -104,6 +114,21 @@ export function createNotificationsRepository(): NotificationsRepository {
           deletedAt: null,
         },
       })
+    },
+
+    async markAllRead(receiverId) {
+      const result = await prisma.notification.updateMany({
+        where: {
+          receiverId,
+          isRead: false,
+          deletedAt: null,
+        },
+        data: {
+          isRead: true,
+          readAt: new Date(),
+        },
+      })
+      return result.count
     },
 
     async create(data) {

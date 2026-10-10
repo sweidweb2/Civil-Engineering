@@ -20,6 +20,13 @@ type CreateUserInput = {
   }
 }
 
+/** Empty string clears the field. Omitted fields stay unchanged. */
+function optionalProfileText(value: string | undefined): string | null | undefined {
+  if (value === undefined) return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
 type UpdateUserInput = {
   role?: Role
   status?: UserStatus
@@ -46,8 +53,23 @@ export type VerificationCounts = {
   verified: number
 }
 
+export type UserDirectoryCounts = {
+  active: number
+  inactive: number
+  managers: number
+  createdThisMonth: number
+  createdLastMonth: number
+  activeCreatedThisMonth: number
+  activeCreatedLastMonth: number
+  inactiveCreatedThisMonth: number
+  inactiveCreatedLastMonth: number
+  managersCreatedThisMonth: number
+  managersCreatedLastMonth: number
+}
+
 export type UsersRepository = {
   findMany: (query: ListUsersQuery) => Promise<{ users: User[]; total: number }>
+  countDirectory: () => Promise<UserDirectoryCounts>
   findApprovals: (query: ListApprovalsQuery) => Promise<{ users: User[]; total: number }>
   countApprovals: () => Promise<ApprovalCounts>
   findVerifications: (query: ListVerificationsQuery) => Promise<{ users: User[]; total: number }>
@@ -162,6 +184,57 @@ export function createUsersRepository(): UsersRepository {
       return {
         users: users.map(mapToUser),
         total,
+      }
+    },
+
+    async countDirectory() {
+      const now = new Date()
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const createdIn = (start: Date, end: Date, extra?: Prisma.UserWhereInput) =>
+        prisma.user.count({
+          where: { ...extra, createdAt: { gte: start, lt: end } },
+        })
+
+      const [
+        active,
+        inactive,
+        managers,
+        createdThisMonth,
+        createdLastMonth,
+        activeCreatedThisMonth,
+        activeCreatedLastMonth,
+        inactiveCreatedThisMonth,
+        inactiveCreatedLastMonth,
+        managersCreatedThisMonth,
+        managersCreatedLastMonth,
+      ] = await Promise.all([
+        prisma.user.count({ where: { status: 'ACTIVE' } }),
+        prisma.user.count({ where: { status: 'INACTIVE' } }),
+        prisma.user.count({ where: { role: 'MANAGER' } }),
+        createdIn(thisMonth, nextMonth),
+        createdIn(lastMonth, thisMonth),
+        createdIn(thisMonth, nextMonth, { status: 'ACTIVE' }),
+        createdIn(lastMonth, thisMonth, { status: 'ACTIVE' }),
+        createdIn(thisMonth, nextMonth, { status: 'INACTIVE' }),
+        createdIn(lastMonth, thisMonth, { status: 'INACTIVE' }),
+        createdIn(thisMonth, nextMonth, { role: 'MANAGER' }),
+        createdIn(lastMonth, thisMonth, { role: 'MANAGER' }),
+      ])
+
+      return {
+        active,
+        inactive,
+        managers,
+        createdThisMonth,
+        createdLastMonth,
+        activeCreatedThisMonth,
+        activeCreatedLastMonth,
+        inactiveCreatedThisMonth,
+        inactiveCreatedLastMonth,
+        managersCreatedThisMonth,
+        managersCreatedLastMonth,
       }
     },
 
@@ -286,10 +359,10 @@ export function createUsersRepository(): UsersRepository {
 
     async update(id, input) {
       const profileData = {
-        firstName: input.profile?.firstName?.trim() || undefined,
-        lastName: input.profile?.lastName?.trim() || undefined,
-        displayName: input.profile?.displayName?.trim() || undefined,
-        phone: input.profile?.phone?.trim() || undefined,
+        firstName: optionalProfileText(input.profile?.firstName),
+        lastName: optionalProfileText(input.profile?.lastName),
+        displayName: optionalProfileText(input.profile?.displayName),
+        phone: optionalProfileText(input.profile?.phone),
       }
 
       const hasProfileData = Object.values(profileData).some((val) => val !== undefined)

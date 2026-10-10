@@ -11,6 +11,7 @@ import { createHealthController } from '../modules/health/health.controller.js'
 import { createHealthRepository } from '../modules/health/health.repository.js'
 import { createHealthRoutes } from '../modules/health/health.routes.js'
 import { createHealthService } from '../modules/health/health.service.js'
+import { createListingsModule } from '../modules/listings/index.js'
 import { createLoggingModule } from '../modules/logging/index.js'
 import { createNotificationsModule } from '../modules/notifications/index.js'
 import { createProjectImagesModule } from '../modules/project-images/index.js'
@@ -45,6 +46,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use('/users', createUsersModule())
   router.use('/providers', createProvidersModule())
   router.use('/categories', createCategoriesModule())
+  router.use('/listings', createListingsModule())
   router.use('/reviews', createReviewsModule())
   router.use('/projects', projectsRouter)
   router.use('/project-images', createProjectImagesModule({ config, storage: deps.storage }))

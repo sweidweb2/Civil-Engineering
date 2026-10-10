@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Clock, Pencil, Plus, Star, Trash2, XCircle } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, Pencil, Plus, Star, Trash2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -17,7 +17,17 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -59,6 +69,34 @@ function ReviewStatusBadge({ status }: { status: ReviewStatus }) {
   return <Badge variant={status === 'ACCEPTED' ? 'default' : 'outline'}>{reviewStatusLabel(status)}</Badge>
 }
 
+function formatWhen(iso: string) {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString()
+}
+
+function ReadOnlyField({
+  id,
+  label,
+  value,
+  multiline = false,
+}: {
+  id: string
+  label: string
+  value: string
+  multiline?: boolean
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {multiline ? (
+        <Textarea id={id} readOnly rows={4} value={value} />
+      ) : (
+        <Input id={id} readOnly value={value} />
+      )}
+    </div>
+  )
+}
+
 export function ManageReviewsPage() {
   useDocumentTitle('Manage reviews')
   const [query, setQuery] = useState('')
@@ -67,6 +105,7 @@ export function ManageReviewsPage() {
   const [tab, setTab] = useState<ReviewStatus | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Review | null>(null)
+  const [viewing, setViewing] = useState<Review | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Review | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -175,7 +214,7 @@ export function ManageReviewsPage() {
             isLoading={remote.isLoading}
             error={remote.isError ? remote.error : undefined}
             onRetry={() => void remote.refetch()}
-            loadingFallback={<TableSkeleton columns={6} />}
+            loadingFallback={<TableSkeleton columns={5} />}
           >
             <DataPanel
               footer={
@@ -188,7 +227,6 @@ export function ManageReviewsPage() {
                     <TableHead>Author</TableHead>
                     <TableHead>Target</TableHead>
                     <TableHead>Rating</TableHead>
-                    <TableHead>Comment</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -196,7 +234,7 @@ export function ManageReviewsPage() {
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-muted-foreground">
+                      <TableCell colSpan={5} className="text-muted-foreground">
                         No reviews match.
                       </TableCell>
                     </TableRow>
@@ -211,23 +249,32 @@ export function ManageReviewsPage() {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="max-w-40">
-                          <div className="min-w-0">
+                        <TableCell className="max-w-56">
+                          <div className="flex min-w-0 items-center gap-2">
                             <p className="truncate" title={row.targetName}>
                               {ellipsis(row.targetName, 22)}
                             </p>
-                            <Badge variant="outline">{row.targetType.toLowerCase()}</Badge>
+                            <Badge variant="outline" className="shrink-0">
+                              {row.targetType.toLowerCase()}
+                            </Badge>
                           </div>
                         </TableCell>
                         <TableCell className="tabular-nums">{row.rating}/5</TableCell>
-                        <TableCell className="max-w-56 truncate" title={row.comment}>
-                          {ellipsis(row.comment, 40)}
-                        </TableCell>
                         <TableCell>
                           <ReviewStatusBadge status={row.status} />
                         </TableCell>
                         <TableCell className="text-right">
                           <RowActions>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busyId === row.id}
+                              onClick={() => setViewing(row)}
+                            >
+                              <Eye />
+                              View
+                            </Button>
                             {row.status !== 'ACCEPTED' ? (
                               <Button
                                 type="button"
@@ -280,6 +327,49 @@ export function ManageReviewsPage() {
           </AsyncState>
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={viewing !== null}
+        onOpenChange={(open) => {
+          if (!open) setViewing(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Review details</DialogTitle>
+            <DialogDescription>
+              {viewing ? `Review by ${viewing.author.displayName}.` : 'Review details.'}
+            </DialogDescription>
+          </DialogHeader>
+          {viewing ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ReadOnlyField id="review-view-author" label="Author" value={viewing.author.displayName} />
+              <ReadOnlyField id="review-view-email" label="Email" value={viewing.author.email} />
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="review-view-target">Target</Label>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Input id="review-view-target" readOnly value={viewing.targetName} />
+                  <Badge variant="outline" className="shrink-0">
+                    {viewing.targetType.toLowerCase()}
+                  </Badge>
+                </div>
+              </div>
+              <ReadOnlyField id="review-view-rating" label="Rating" value={`${viewing.rating}/5`} />
+              <ReadOnlyField id="review-view-status" label="Status" value={reviewStatusLabel(viewing.status)} />
+              <ReadOnlyField id="review-view-created" label="Created" value={formatWhen(viewing.createdAt)} />
+              <ReadOnlyField id="review-view-updated" label="Updated" value={formatWhen(viewing.updatedAt)} />
+              <div className="sm:col-span-2">
+                <ReadOnlyField id="review-view-comment" label="Comment" value={viewing.comment} multiline />
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setViewing(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ReviewFormDialog
         open={createOpen}

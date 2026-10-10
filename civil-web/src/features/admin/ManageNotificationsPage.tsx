@@ -1,5 +1,6 @@
 import {
   Bell,
+  Mail,
   Plus,
   Send,
   Trash2,
@@ -12,7 +13,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
-import { TableSkeleton } from '@/components/feedback/skeletons'
+import { StatGridSkeleton, TableSkeleton } from '@/components/feedback/skeletons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,7 +56,7 @@ import {
   restoreNotification,
   updateNotification,
 } from '@/services/notifications'
-import { listUsers, type User } from '@/services/users'
+import { listAllUsers, type User } from '@/services/users'
 import { cn } from '@/lib/utils'
 
 type CreateMode = 'single' | 'broadcast'
@@ -110,13 +111,14 @@ export function ManageNotificationsPage() {
 
   const load = useCallback(() => listNotifications(page, limit, true), [page])
   const remote = useRemoteData(load)
-  const loadUsers = useCallback(() => listUsers(1, 100), [])
+  const loadUsers = useCallback(() => listAllUsers(), [])
   const usersRemote = useRemoteData(loadUsers)
 
   const notifications: Notification[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
+  const counts = remote.status === 'success' ? remote.data.meta.counts : null
   const totalPages = remote.status === 'success' ? remote.data.meta.totalPages : 1
-  const users: User[] = usersRemote.status === 'success' ? usersRemote.data.data : []
+  const users: User[] = usersRemote.status === 'success' ? usersRemote.data : []
 
   const [formData, setFormData] = useState({
     receiverId: '',
@@ -291,19 +293,16 @@ export function ManageNotificationsPage() {
         }
       />
 
-      <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Bell} label="Total Notifications" value={total} />
-        <StatCard
-          icon={Bell}
-          label="Active"
-          value={notifications.filter((n) => !n.deletedAt).length}
-        />
-        <StatCard
-          icon={Trash2}
-          label="Deleted"
-          value={notifications.filter((n) => n.deletedAt).length}
-        />
-      </div>
+      {counts ? (
+        <div className={STAT_GRID_CLASS}>
+          <StatCard icon={Bell} label="Total" value={total} />
+          <StatCard icon={Send} label="Active" value={counts.active} />
+          <StatCard icon={Mail} label="Unread" value={counts.unread} />
+          <StatCard icon={Trash2} label="Deleted" value={counts.deleted} />
+        </div>
+      ) : remote.isLoading ? (
+        <StatGridSkeleton count={4} />
+      ) : null}
 
       <AsyncState
         isLoading={remote.isLoading}
@@ -466,7 +465,18 @@ export function ManageNotificationsPage() {
               </Button>
             </div>
 
-            {createMode === 'single' ? (
+            {usersRemote.isError ? (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 px-3 py-2">
+                <p className="text-sm text-destructive">Could not load users.</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void usersRemote.refetch()}>
+                  Retry
+                </Button>
+              </div>
+            ) : usersRemote.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading users…</p>
+            ) : users.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No users to notify.</p>
+            ) : createMode === 'single' ? (
               <Field>
                 <Label htmlFor="receiverId">Receiver</Label>
                 <Select

@@ -9,6 +9,7 @@ export type NotificationsController = {
   listNotifications: RequestHandler
   getNotification: RequestHandler
   countUnread: RequestHandler
+  markAllRead: RequestHandler
   createNotification: RequestHandler
   broadcastNotification: RequestHandler
   updateNotification: RequestHandler
@@ -40,6 +41,7 @@ export function createNotificationsController(
           limit: query.limit,
           total: result.total,
           totalPages: Math.ceil(result.total / query.limit),
+          counts: result.counts,
         },
       })
     }),
@@ -53,6 +55,12 @@ export function createNotificationsController(
     countUnread: wrap(async (req, res) => {
       const actor = parseAuthActor(req)
       const count = await service.countUnread(actor)
+      res.json({ data: { count } })
+    }),
+
+    markAllRead: wrap(async (req, res) => {
+      const actor = parseAuthActor(req)
+      const count = await service.markAllRead(actor)
       res.json({ data: { count } })
     }),
 

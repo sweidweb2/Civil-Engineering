@@ -39,6 +39,19 @@ describe('usersService', () => {
   beforeEach(() => {
     repository = {
       findMany: vi.fn(async () => ({ users: [makeUser()], total: 1 })),
+      countDirectory: vi.fn(async () => ({
+        active: 4,
+        inactive: 1,
+        managers: 2,
+        createdThisMonth: 1,
+        createdLastMonth: 1,
+        activeCreatedThisMonth: 1,
+        activeCreatedLastMonth: 0,
+        inactiveCreatedThisMonth: 0,
+        inactiveCreatedLastMonth: 1,
+        managersCreatedThisMonth: 0,
+        managersCreatedLastMonth: 0,
+      })),
       findById: vi.fn(async () => makeUser()),
       findByEmail: vi.fn(async () => null),
       create: vi.fn(async (input) =>
@@ -87,7 +100,13 @@ describe('usersService', () => {
     const service = createUsersService(repository)
     const result = await service.listUsers({ page: 1, limit: 20 })
     expect(result.data).toHaveLength(1)
-    expect(result.meta).toMatchObject({ total: 1, page: 1, limit: 20, totalPages: 1 })
+    expect(result.meta).toMatchObject({
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+      counts: { active: 4, inactive: 1, managers: 2 },
+    })
   })
 
   it('creates a user when email is free', async () => {

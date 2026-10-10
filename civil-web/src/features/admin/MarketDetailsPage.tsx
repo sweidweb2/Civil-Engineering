@@ -15,6 +15,7 @@ import { getProvider, providerStatusLabel, type Provider } from '@/services/prov
 
 import { formFromProvider, ProviderFormDialog } from './components/ProviderFormDialog'
 import { formatWhen } from './lib/text'
+import { ListingsBrowser } from './ListingsPage'
 
 function formatCoord(value: number | null) {
   return value == null ? '—' : String(value)
@@ -124,6 +125,8 @@ export function MarketDetailsPage() {
           </Card>
         )}
       </AsyncState>
+
+      {provider ? <ListingsBrowser providerId={provider.id} /> : null}
 
       {provider ? (
         <ProviderFormDialog

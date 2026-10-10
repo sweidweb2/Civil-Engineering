@@ -24,6 +24,20 @@ export type User = {
   updatedAt: string
 }
 
+export type UserDirectoryCounts = {
+  active: number
+  inactive: number
+  managers: number
+  createdThisMonth: number
+  createdLastMonth: number
+  activeCreatedThisMonth: number
+  activeCreatedLastMonth: number
+  inactiveCreatedThisMonth: number
+  inactiveCreatedLastMonth: number
+  managersCreatedThisMonth: number
+  managersCreatedLastMonth: number
+}
+
 export type PaginatedUsers = {
   data: User[]
   meta: {
@@ -31,6 +45,7 @@ export type PaginatedUsers = {
     limit: number
     total: number
     totalPages: number
+    counts: UserDirectoryCounts
   }
 }
 
@@ -55,9 +70,18 @@ export type UpdateUserInput = {
   phone?: string
 }
 
+export async function listAllUsers(): Promise<User[]> {
+  const first = await listUsers(1, 100)
+  if (first.meta.totalPages <= 1) return first.data
+  const rest = await Promise.all(
+    Array.from({ length: first.meta.totalPages - 1 }, (_, index) => listUsers(index + 2, 100)),
+  )
+  return [first.data, ...rest.map((page) => page.data)].flat()
+}
+
 export function listUsers(page = 1, limit = 100) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
-  return apiRequest<PaginatedUsers>(`/users?${params.toString()}`)
+  return apiRequest<PaginatedUsers>(`/users?${params.toString()}`, { cache: 'no-store' })
 }
 
 export function getUser(id: string) {

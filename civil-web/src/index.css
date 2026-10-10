@@ -255,6 +255,17 @@
   [data-slot='table-body'] tr:has([colspan])::before {
     content: '';
   }
+
+  [data-slot='table'][data-index='plain'] [data-slot='table-body'] tr:not(:has([colspan]))::after {
+    left: 0;
+    width: 3rem;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
 }
 
 /* LoaderGrid — route navigation spinner */
@@ -262,25 +273,25 @@
   0% {
     width: 0.5em;
     box-shadow:
-      1em -0.5em rgba(225, 20, 98, 0.75),
-      -1em 0.5em rgba(111, 202, 220, 0.75);
+      1em -0.5em rgba(40, 122, 116, 0.75),
+      -1em 0.5em rgba(111, 207, 151, 0.75);
   }
   35% {
     width: 2.5em;
     box-shadow:
-      0 -0.5em rgba(225, 20, 98, 0.75),
-      0 0.5em rgba(111, 202, 220, 0.75);
+      0 -0.5em rgba(40, 122, 116, 0.75),
+      0 0.5em rgba(111, 207, 151, 0.75);
   }
   70% {
     width: 0.5em;
     box-shadow:
-      -1em -0.5em rgba(225, 20, 98, 0.75),
-      1em 0.5em rgba(111, 202, 220, 0.75);
+      -1em -0.5em rgba(40, 122, 116, 0.75),
+      1em 0.5em rgba(111, 207, 151, 0.75);
   }
   100% {
     box-shadow:
-      1em -0.5em rgba(225, 20, 98, 0.75),
-      -1em 0.5em rgba(111, 202, 220, 0.75);
+      1em -0.5em rgba(40, 122, 116, 0.75),
+      -1em 0.5em rgba(111, 207, 151, 0.75);
   }
 }
 
@@ -288,25 +299,25 @@
   0% {
     height: 0.5em;
     box-shadow:
-      0.5em 1em rgba(61, 184, 143, 0.75),
-      -0.5em -1em rgba(233, 169, 32, 0.75);
+      0.5em 1em rgba(40, 122, 116, 0.75),
+      -0.5em -1em rgba(111, 207, 151, 0.75);
   }
   35% {
     height: 2.5em;
     box-shadow:
-      0.5em 0 rgba(61, 184, 143, 0.75),
-      -0.5em 0 rgba(233, 169, 32, 0.75);
+      0.5em 0 rgba(40, 122, 116, 0.75),
+      -0.5em 0 rgba(111, 207, 151, 0.75);
   }
   70% {
     height: 0.5em;
     box-shadow:
-      0.5em -1em rgba(61, 184, 143, 0.75),
-      -0.5em 1em rgba(233, 169, 32, 0.75);
+      0.5em -1em rgba(40, 122, 116, 0.75),
+      -0.5em 1em rgba(111, 207, 151, 0.75);
   }
   100% {
     box-shadow:
-      0.5em 1em rgba(61, 184, 143, 0.75),
-      -0.5em -1em rgba(233, 169, 32, 0.75);
+      0.5em 1em rgba(40, 122, 116, 0.75),
+      -0.5em -1em rgba(111, 207, 151, 0.75);
   }
 }
 
@@ -328,4 +339,21 @@
 
 .loader-grid .afterEl {
   animation: after6 2s infinite;
+}
+
+/* Public home — beige sampled from the hero illustration. */
+.home-canvas {
+  --background: #f8f3ed;
+  --foreground: #1a2a27;
+  --card: #ffffff;
+  --card-foreground: #1a2a27;
+  --popover: #ffffff;
+  --popover-foreground: #1a2a27;
+  --muted: #ffffff;
+  --muted-foreground: #5a6b67;
+  --secondary: #ffffff;
+  --secondary-foreground: #1a2a27;
+  --accent: #efe6dc;
+  --accent-foreground: #1a2a27;
+  --border: #e6ddd2;
 }

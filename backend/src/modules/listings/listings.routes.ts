@@ -1,0 +1,47 @@
+import { Router } from 'express'
+
+import { ADMIN_ROLES } from '../../authz/index.js'
+import { authenticate } from '../../middleware/authenticate.js'
+import { authorize } from '../../middleware/authorize.js'
+import { validate } from '../../middleware/validate.js'
+import type { ListingsController } from './listings.controller.js'
+import {
+  createListingBodySchema,
+  listingIdParamsSchema,
+  listListingsQuerySchema,
+  updateListingBodySchema,
+} from './listings.schema.js'
+
+export function createListingsRoutes(controller: ListingsController): Router {
+  const router = Router()
+
+  router.use(authenticate)
+
+  router.get(
+    '/',
+    authorize('SUPER', 'ADMIN', 'MANAGER'),
+    validate({ query: listListingsQuerySchema }),
+    controller.list,
+  )
+  router.get(
+    '/:id',
+    authorize('SUPER', 'ADMIN', 'MANAGER'),
+    validate({ params: listingIdParamsSchema }),
+    controller.getById,
+  )
+  router.post('/', authorize(...ADMIN_ROLES), validate({ body: createListingBodySchema }), controller.create)
+  router.patch(
+    '/:id',
+    authorize(...ADMIN_ROLES),
+    validate({ params: listingIdParamsSchema, body: updateListingBodySchema }),
+    controller.update,
+  )
+  router.delete(
+    '/:id',
+    authorize(...ADMIN_ROLES),
+    validate({ params: listingIdParamsSchema }),
+    controller.remove,
+  )
+
+  return router
+}

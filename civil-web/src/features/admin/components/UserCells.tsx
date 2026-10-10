@@ -1,5 +1,6 @@
 import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from 'cn'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,29 @@ function displayName(row: AdminUserRow): string | null {
   )
 }
 
+const AVATAR_TONES = [
+  'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200',
+  'bg-sky-100 text-sky-800 dark:bg-sky-400/15 dark:text-sky-200',
+  'bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-200',
+  'bg-violet-100 text-violet-800 dark:bg-violet-400/15 dark:text-violet-200',
+  'bg-lime-100 text-lime-800 dark:bg-lime-400/15 dark:text-lime-200',
+  'bg-orange-100 text-orange-800 dark:bg-orange-400/15 dark:text-orange-200',
+  'bg-rose-100 text-rose-800 dark:bg-rose-400/15 dark:text-rose-200',
+  'bg-cyan-100 text-cyan-800 dark:bg-cyan-400/15 dark:text-cyan-200',
+  'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-400/15 dark:text-fuchsia-200',
+] as const
+
+function avatarTone(seed: string): string {
+  let hash = 0
+  for (const char of seed) hash = (hash + char.charCodeAt(0)) % AVATAR_TONES.length
+  return AVATAR_TONES[hash] ?? AVATAR_TONES[0]
+}
+
+function nameInitial(name: string): string {
+  const letter = name.trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
+}
+
 function statusText(status: UserStatus): string {
   return userStatusLabel(status)
 }
@@ -60,18 +84,36 @@ export function VerificationBadge({ status }: { status: VerificationStatus }) {
 export function UserAttributeCells({
   row,
   showRoleStatus = true,
+  showAvatar = false,
   onToggleStatus,
 }: {
   row: AdminUserRow
   showRoleStatus?: boolean
+  showAvatar?: boolean
   onToggleStatus?: (id: string) => void
 }) {
-  const name = displayName(row)
+  const label = displayName(row)
+  const avatarName = label || row.email
 
   return (
     <>
-      <TableCell title={name ?? undefined} className="max-w-36 truncate">
-        {ellipsis(name, 22)}
+      <TableCell title={(showAvatar ? avatarName : label) ?? undefined} className={showAvatar ? 'max-w-56' : 'max-w-36 truncate'}>
+        {showAvatar ? (
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              aria-hidden
+              className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                avatarTone(row.id),
+              )}
+            >
+              {nameInitial(avatarName)}
+            </span>
+            <span className="min-w-0 truncate font-medium">{ellipsis(avatarName, 28)}</span>
+          </div>
+        ) : (
+          ellipsis(label, 22)
+        )}
       </TableCell>
       <TableCell title={row.email} className="max-w-52">
         <div className="flex min-w-0 items-center gap-1">

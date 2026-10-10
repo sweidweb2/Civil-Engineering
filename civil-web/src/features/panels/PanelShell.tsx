@@ -4,12 +4,15 @@ import {
   AlertTriangle,
   BadgeCheck,
   Bell,
+  ChartColumn,
+  CircleUser,
   FolderKanban,
   FolderTree,
   Home,
   LayoutDashboard,
   Library,
   LogOut,
+  Package,
   Moon,
   Palette,
   Settings,
@@ -73,6 +76,12 @@ type PanelShellProps = {
 function navIsActive(pathname: string, item: PanelNavItem): boolean {
   if (item.end) return pathname === item.to
   return pathname === item.to || pathname.startsWith(`${item.to}/`)
+}
+
+function userDisplayName(user: AuthUser | null): string {
+  if (!user) return 'Signed out'
+  const parts = [user.profile?.firstName, user.profile?.lastName].filter(Boolean).join(' ')
+  return user.profile?.displayName || parts || user.email.split('@')[0] || user.email
 }
 
 function userInitials(user: AuthUser | null): string {
@@ -145,8 +154,18 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="overflow-hidden group-data-[collapsible=icon]:hidden">
-          <p className="truncate px-2 pb-2 text-xs text-sidebar-foreground/70">{user?.email}</p>
+        <SidebarFooter className="overflow-hidden">
+          <div className="flex items-center gap-2 px-2 py-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <Avatar>
+              <AvatarFallback>{userInitials(user)}</AvatarFallback>
+            </Avatar>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {userDisplayName(user)}
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground/70">{user?.email}</p>
+            </div>
+          </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
@@ -170,6 +189,24 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-44">
+                <DropdownMenuItem onClick={() => navigate('/')}>
+                  <Home />
+                  Home
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {location.pathname.startsWith('/pm') ? (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate('/pm/analytics')}>
+                      <ChartColumn />
+                      Analytics
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/pm/profile')}>
+                      <CircleUser />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>Theme</DropdownMenuLabel>
                   <DropdownMenuRadioGroup
@@ -228,14 +265,15 @@ export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin/providers', label: 'Providers', icon: Store },
   { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
   { to: '/admin/directory', label: 'Directory', icon: Library },
+  { to: '/admin/listings', label: 'Listings', icon: Package },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
   { to: '/admin/notifications', label: 'Notifications', icon: Bell },
-  { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
 export const PM_NAV: PanelNavItem[] = [
   { to: '/pm', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/pm/analytics', label: 'Analytics', icon: ChartColumn },
   { to: '/pm/projects', label: 'Manage projects', icon: FolderKanban },
   { to: '/pm/directory', label: 'Directory', icon: Library },
   { to: '/pm/categories', label: 'Categories', icon: FolderTree },

@@ -235,7 +235,10 @@ export const ADMIN_NAV: PanelNavItem[] = [
 ]
 
 export const PM_NAV: PanelNavItem[] = [
-  { to: '/pm', label: 'Home', icon: Home, end: true },
+  { to: '/pm', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/pm/projects', label: 'Manage projects', icon: FolderKanban },
+  { to: '/pm/directory', label: 'Directory', icon: Library },
+  { to: '/pm/categories', label: 'Categories', icon: FolderTree },
   { to: '/pm/notifications', label: 'Notifications', icon: Bell },
 ]
 

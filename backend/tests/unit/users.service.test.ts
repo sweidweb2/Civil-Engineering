@@ -18,6 +18,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: 'user@example.com',
     role: 'CLIENT',
     status: 'ACTIVE',
+    verificationStatus: 'UNVERIFIED',
     isVerified: false,
     profile: {
       firstName: 'Ada',
@@ -44,6 +45,7 @@ describe('usersService', () => {
         makeUser({
           email: input.email,
           role: input.role as User['role'],
+          verificationStatus: input.verificationStatus ?? 'UNVERIFIED',
           isVerified: input.isVerified ?? false,
         }),
       ),
@@ -52,10 +54,32 @@ describe('usersService', () => {
           id,
           role: (input.role as User['role'] | undefined) ?? 'CLIENT',
           status: (input.status as User['status'] | undefined) ?? 'ACTIVE',
+          verificationStatus: input.verificationStatus ?? 'UNVERIFIED',
           isVerified: input.isVerified ?? false,
         }),
       ),
       updateStatus: vi.fn(async (id, status) => makeUser({ id, status })),
+      findApprovals: vi.fn(async () => ({ users: [makeUser({ role: 'MANAGER', status: 'PENDING' })], total: 1 })),
+      countApprovals: vi.fn(async () => ({ pending: 1, approved: 0, providersPending: 0 })),
+      findVerifications: vi.fn(async () => ({
+        users: [makeUser({ role: 'WORKER', verificationStatus: 'REQUESTED' })],
+        total: 1,
+      })),
+      countVerifications: vi.fn(async () => ({
+        workers: 1,
+        unverified: 0,
+        requested: 1,
+        verified: 0,
+      })),
+      updateVerification: vi.fn(async (id, verificationStatus) =>
+        makeUser({
+          id,
+          role: 'WORKER',
+          verificationStatus,
+          isVerified: verificationStatus === 'VERIFIED',
+        }),
+      ),
+      delete: vi.fn(async () => 'deleted' as const),
     }
   })
 
@@ -136,6 +160,110 @@ describe('usersService', () => {
       'user-1',
       expect.objectContaining({ role: 'MANAGER', status: 'INACTIVE' }),
     )
+  })
+
+  it('approves a pending manager and rejects other roles', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'MANAGER', status: 'PENDING' }))
+    const service = createUsersService(repository)
+    await expect(service.approveUser('user-1', admin)).resolves.toMatchObject({ status: 'ACTIVE' })
+    expect(repository.updateStatus).toHaveBeenCalledWith('user-1', 'ACTIVE')
+
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'CLIENT', status: 'PENDING' }))
+    await expect(service.approveUser('user-1', admin)).rejects.toMatchObject({
+      status: 409,
+      code: 'APPROVAL_ROLE_NOT_REQUIRED',
+    })
+  })
+
+  it('forbids non-admins from creating a pending registration', async () => {
+    const service = createUsersService(repository)
+    await expect(
+      service.createApproval(
+        { email: 'new@example.com', password: 'password1', role: 'WORKER' },
+        self,
+      ),
+    ).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('creates a pending registration for an approval role', async () => {
+    const service = createUsersService(repository)
+    await service.createApproval(
+      { email: 'New@Example.com', password: 'password1', role: 'PROVIDER', firstName: 'New' },
+      admin,
+    )
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'new@example.com',
+        role: 'PROVIDER',
+        status: 'PENDING',
+      }),
+    )
+  })
+
+  it('moves an approved worker back to pending', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER', status: 'ACTIVE' }))
+    const service = createUsersService(repository)
+    await expect(service.unapproveUser('user-1', admin)).resolves.toMatchObject({ status: 'PENDING' })
+    expect(repository.updateStatus).toHaveBeenCalledWith('user-1', 'PENDING')
+  })
+
+  it('deletes only pending registrations', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER', status: 'PENDING' }))
+    const service = createUsersService(repository)
+    await expect(service.deleteApproval('user-1', admin)).resolves.toBeUndefined()
+    expect(repository.delete).toHaveBeenCalledWith('user-1')
+
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER', status: 'ACTIVE' }))
+    await expect(service.deleteApproval('user-1', admin)).rejects.toMatchObject({
+      status: 409,
+      code: 'APPROVAL_NOT_PENDING',
+    })
+  })
+
+  it('creates a pending worker with verification requested', async () => {
+    const service = createUsersService(repository)
+    await service.createVerification(
+      { email: 'Worker@Example.com', password: 'password1', firstName: 'Wren' },
+      admin,
+    )
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'worker@example.com',
+        role: 'WORKER',
+        status: 'PENDING',
+        verificationStatus: 'REQUESTED',
+        isVerified: false,
+      }),
+    )
+  })
+
+  it('advances worker verification and rejects other roles', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ role: 'WORKER', verificationStatus: 'REQUESTED' }),
+    )
+    const service = createUsersService(repository)
+    await expect(
+      service.setVerification('user-1', { verificationStatus: 'VERIFIED' }, admin),
+    ).resolves.toMatchObject({ verificationStatus: 'VERIFIED', isVerified: true })
+    expect(repository.updateVerification).toHaveBeenCalledWith('user-1', 'VERIFIED')
+
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'MANAGER' }))
+    await expect(
+      service.setVerification('user-1', { verificationStatus: 'VERIFIED' }, admin),
+    ).rejects.toMatchObject({ status: 409, code: 'VERIFICATION_ROLE_NOT_WORKER' })
+  })
+
+  it('deletes a worker from verification and blocks linked records', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER' }))
+    const service = createUsersService(repository)
+    await expect(service.deleteVerification('user-1', admin)).resolves.toBeUndefined()
+    expect(repository.delete).toHaveBeenCalledWith('user-1')
+
+    vi.mocked(repository.delete).mockResolvedValue('in_use')
+    await expect(service.deleteVerification('user-1', admin)).rejects.toMatchObject({
+      status: 409,
+      code: 'VERIFICATION_IN_USE',
+    })
   })
 
   it('lets self update profile fields only', async () => {

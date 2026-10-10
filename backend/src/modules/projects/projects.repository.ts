@@ -5,9 +5,12 @@ import type { Project, ProjectListRow } from './projects.types.js'
 
 type CreateProjectInput = CreateProjectBody & {
   ownerId: string
+  progress: number
 }
 
-type UpdateProjectInput = UpdateProjectBody
+type UpdateProjectInput = UpdateProjectBody & {
+  progress: number
+}
 
 export type ProjectsRepository = {
   findMany: (
@@ -86,6 +89,7 @@ export function createProjectsRepository(): ProjectsRepository {
       const where = {
         archivedAt: null,
         ...(ownerId ? { ownerId } : {}),
+        ...(query.status ? { status: query.status as ProjectStatus } : {}),
       }
 
       const [projects, total] = await Promise.all([
@@ -137,6 +141,9 @@ export function createProjectsRepository(): ProjectsRepository {
           ownerId: input.ownerId,
           type: input.type as ProjectType | undefined,
           status: 'DRAFT' as ProjectStatus,
+          startDate: input.startDate ? new Date(input.startDate) : null,
+          endDate: input.endDate ? new Date(input.endDate) : null,
+          progress: input.progress,
         },
       })
       return mapToProject(project)

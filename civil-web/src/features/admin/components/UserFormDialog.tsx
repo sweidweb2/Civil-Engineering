@@ -24,7 +24,7 @@ import { Switch } from '@/components/ui/switch'
 import {
   EMPTY_USER_FORM,
   isUserRole,
-  USER_ROLES,
+  USER_ROLE_OPTIONS,
   type UserFormValues,
 } from '../usersStore'
 
@@ -119,6 +119,7 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
             <div className="grid gap-1.5">
               <FieldLabel htmlFor="user-role" label="Role" restriction="required" />
               <Select
+                items={USER_ROLE_OPTIONS}
                 value={form.role}
                 onValueChange={(value) => {
                   if (value && isUserRole(value)) setForm((current) => ({ ...current, role: value }))
@@ -128,9 +129,9 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {USER_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {role}
+                  {USER_ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -140,7 +141,7 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
               <FieldLabel htmlFor="user-status" label="Status" restriction="required" />
               <div className="flex h-8 items-center justify-between gap-3">
                 <span className="text-sm text-muted-foreground">
-                  {form.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                  {form.status === 'ACTIVE' ? 'Active' : form.status === 'PENDING' ? 'Pending' : 'Inactive'}
                 </span>
                 <Switch
                   id="user-status"

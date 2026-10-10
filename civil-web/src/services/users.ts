@@ -1,13 +1,17 @@
 import { apiRequest } from './api'
 import type { AuthRole } from './auth'
 
-export type UserStatus = 'ACTIVE' | 'INACTIVE'
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING'
+
+export type ApprovalRole = 'MANAGER' | 'PROVIDER' | 'WORKER'
+export type ApprovalListStatus = 'pending' | 'approved'
 
 export type User = {
   id: string
   email: string
   role: AuthRole
   status: UserStatus
+  verificationStatus: 'UNVERIFIED' | 'REQUESTED' | 'VERIFIED'
   isVerified: boolean
   profile: {
     firstName: string | null
@@ -78,4 +82,121 @@ export function deactivateUser(id: string) {
   return apiRequest<{ data: User }>(`/users/${id}/deactivate`, {
     method: 'POST',
   })
+}
+
+export type ApprovalCounts = {
+  pending: number
+  approved: number
+  providersPending: number
+}
+
+export type PaginatedApprovals = {
+  data: User[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    counts: ApprovalCounts
+  }
+}
+
+export type CreateApprovalInput = {
+  email: string
+  password: string
+  role: ApprovalRole
+  firstName?: string
+  lastName?: string
+  displayName?: string
+  phone?: string
+}
+
+export function listApprovals(query: {
+  approval: ApprovalListStatus
+  page?: number
+  limit?: number
+  q?: string
+}) {
+  const params = new URLSearchParams({
+    approval: query.approval,
+    page: String(query.page ?? 1),
+    limit: String(query.limit ?? 20),
+  })
+  if (query.q) params.set('q', query.q)
+  return apiRequest<PaginatedApprovals>(`/users/approvals?${params.toString()}`)
+}
+
+export function createApproval(input: CreateApprovalInput) {
+  return apiRequest<{ data: User }>('/users/approvals', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function approveUser(id: string) {
+  return apiRequest<{ data: User }>(`/users/${id}/approve`, { method: 'POST' })
+}
+
+export function unapproveUser(id: string) {
+  return apiRequest<{ data: User }>(`/users/${id}/unapprove`, { method: 'POST' })
+}
+
+export function deleteApproval(id: string) {
+  return apiRequest<void>(`/users/${id}/approval`, { method: 'DELETE' })
+}
+
+export type VerificationCounts = {
+  workers: number
+  unverified: number
+  requested: number
+  verified: number
+}
+
+export type PaginatedVerifications = {
+  data: User[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    counts: VerificationCounts
+  }
+}
+
+export type CreateVerificationInput = {
+  email: string
+  password: string
+  firstName?: string
+  lastName?: string
+  displayName?: string
+  phone?: string
+}
+
+export type ApiVerificationStatus = User['verificationStatus']
+
+export function listVerifications(query: { page?: number; limit?: number; q?: string } = {}) {
+  const params = new URLSearchParams({
+    page: String(query.page ?? 1),
+    limit: String(query.limit ?? 20),
+  })
+  if (query.q) params.set('q', query.q)
+  return apiRequest<PaginatedVerifications>(`/users/verifications?${params.toString()}`)
+}
+
+export function createVerification(input: CreateVerificationInput) {
+  return apiRequest<{ data: User }>('/users/verifications', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function setVerification(id: string, verificationStatus: ApiVerificationStatus) {
+  return apiRequest<{ data: User }>(`/users/${id}/verification`, {
+    method: 'POST',
+    body: JSON.stringify({ verificationStatus }),
+  })
+}
+
+export function deleteVerification(id: string) {
+  return apiRequest<void>(`/users/${id}/verification`, { method: 'DELETE' })
 }

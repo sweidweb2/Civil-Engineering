@@ -124,6 +124,15 @@ describe('auth.service', () => {
     ).rejects.toMatchObject({ status: 401, code: 'UNAUTHORIZED' })
   })
 
+  it('rejects login for pending users after the password matches', async () => {
+    vi.mocked(repository.findByEmail).mockResolvedValue(makeUser({ status: 'PENDING', role: 'WORKER' }))
+    const service = createAuthService(repository, config)
+
+    await expect(
+      service.login({ email: 'user@example.com', password: 'secret123' }),
+    ).rejects.toMatchObject({ status: 401, code: 'ACCOUNT_PENDING' })
+  })
+
   it('rejects login for inactive users', async () => {
     vi.mocked(repository.findByEmail).mockResolvedValue(makeUser({ status: 'INACTIVE' }))
     const service = createAuthService(repository, config)

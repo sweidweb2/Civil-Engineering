@@ -1,14 +1,16 @@
-import { ArrowLeft, Building2, Calendar, MapPin, TrendingUp, FileText, Save } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Building2, Calendar, FileText, MapPin, Save, TrendingUp } from 'lucide-react'
+import { useLocation, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailSkeleton } from '@/components/feedback/skeletons'
+import { PageHeader } from '@/components/layout/page-header'
 import { ProjectGallery } from '@/components/projects/ProjectGallery'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,14 +18,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { portalBaseFromPath } from '@/lib/homePath'
 import {
+  getProjectById,
   type Project,
+  PROJECT_STATUS_OPTIONS,
+  PROJECT_TYPE_OPTIONS,
+  projectStatusLabel,
+  projectTypeLabel,
   type ProjectStatus,
   type ProjectType,
-  type UpdateProjectInput,
-  getProjectById,
   updateProject,
+  type UpdateProjectInput,
 } from '@/services/projects'
+
+import { scheduleProgress } from './lib/schedule-progress'
 
 function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
@@ -38,6 +47,39 @@ function getStatusColor(status: string): 'default' | 'secondary' | 'destructive'
   }
 }
 
+function toDate(iso: string | null | undefined): Date | undefined {
+  if (!iso) return undefined
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? undefined : date
+}
+
+function formatDate(iso: string | null | undefined) {
+  const date = toDate(iso)
+  return date ? date.toLocaleDateString() : '—'
+}
+
+function ScheduleProgress({
+  startDate,
+  endDate,
+}: {
+  startDate?: string | null
+  endDate?: string | null
+}) {
+  const progress = scheduleProgress(startDate, endDate)
+  return (
+    <div>
+      <p className="text-sm font-medium">Progress</p>
+      <p className="text-xs text-muted-foreground">Elapsed time from the start date to the end date.</p>
+      <div className="mt-2 flex items-center gap-2">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+          <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+        </div>
+        <span className="text-sm text-muted-foreground tabular-nums">{progress}%</span>
+      </div>
+    </div>
+  )
+}
+
 function formatDateTime(iso: string | null) {
   if (!iso) return '—'
   try {
@@ -49,7 +91,8 @@ function formatDateTime(iso: string | null) {
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const location = useLocation()
+  const projectsPath = `${portalBaseFromPath(location.pathname)}/projects`
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -75,7 +118,8 @@ export function ProjectDetailPage() {
       city: project.city || undefined,
       country: project.country || undefined,
       status: project.status,
-      progress: project.progress,
+      startDate: project.startDate,
+      endDate: project.endDate,
       type: project.type || undefined,
       notes: project.notes || undefined,
     })
@@ -89,6 +133,14 @@ export function ProjectDetailPage() {
 
   const handleSave = async () => {
     if (!id || !project) return
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      new Date(formData.endDate).getTime() <= new Date(formData.startDate).getTime()
+    ) {
+      toast.error('End date must be after the start date')
+      return
+    }
     setIsSaving(true)
     try {
       await updateProject(id, formData)
@@ -102,31 +154,34 @@ export function ProjectDetailPage() {
     }
   }
 
+  const breadcrumbs = [
+    { label: 'Projects', to: projectsPath },
+    { label: project?.name ?? 'Project details' },
+  ]
+
   if (!id) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
+        <PageHeader
+          className="mb-0"
+          breadcrumbs={breadcrumbs}
+          title="Project Details"
+          description="View and manage project information."
+        />
         <p className="text-muted-foreground">Project ID is required</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/admin/projects')}>
-            <ArrowLeft className="size-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Project Details</h1>
-            <p className="text-sm text-muted-foreground">View and manage project information.</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {!isEditing && <Button onClick={handleEdit}>Edit Project</Button>}
-        </div>
-      </div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader
+        className="mb-0"
+        breadcrumbs={breadcrumbs}
+        title="Project Details"
+        description="View and manage project information."
+        actions={!isEditing ? <Button onClick={handleEdit}>Edit Project</Button> : null}
+      />
 
       <AsyncState
         isLoading={remote.isLoading}
@@ -178,6 +233,7 @@ export function ProjectDetailPage() {
                     <Field>
                       <Label htmlFor="type">Project Type</Label>
                       <Select
+                        items={PROJECT_TYPE_OPTIONS}
                         value={formData.type}
                         onValueChange={(value) => setFormData({ ...formData, type: value as ProjectType })}
                       >
@@ -185,12 +241,11 @@ export function ProjectDetailPage() {
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="RESIDENTIAL">Residential</SelectItem>
-                          <SelectItem value="COMMERCIAL">Commercial</SelectItem>
-                          <SelectItem value="INDUSTRIAL">Industrial</SelectItem>
-                          <SelectItem value="INFRASTRUCTURE">Infrastructure</SelectItem>
-                          <SelectItem value="RENOVATION">Renovation</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
+                          {PROJECT_TYPE_OPTIONS.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </Field>
@@ -226,7 +281,7 @@ export function ProjectDetailPage() {
                       <Building2 className="size-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm font-medium">Type</p>
-                        <p className="text-sm text-muted-foreground">{project.type || '—'}</p>
+                        <p className="text-sm text-muted-foreground">{projectTypeLabel(project.type)}</p>
                       </div>
                     </div>
                   </>
@@ -237,7 +292,7 @@ export function ProjectDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Status & Progress</CardTitle>
-                <CardDescription>Current project status and completion.</CardDescription>
+                <CardDescription>Status, schedule, and progress from the start date.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isEditing ? (
@@ -245,6 +300,7 @@ export function ProjectDetailPage() {
                     <Field>
                       <Label htmlFor="status">Status</Label>
                       <Select
+                        items={PROJECT_STATUS_OPTIONS}
                         value={formData.status}
                         onValueChange={(value) => setFormData({ ...formData, status: value as ProjectStatus })}
                       >
@@ -252,27 +308,37 @@ export function ProjectDetailPage() {
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DRAFT">Draft</SelectItem>
-                          <SelectItem value="PLANNING">Planning</SelectItem>
-                          <SelectItem value="APPROVED">Approved</SelectItem>
-                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                          <SelectItem value="ON_HOLD">On Hold</SelectItem>
-                          <SelectItem value="COMPLETED">Completed</SelectItem>
-                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                          {PROJECT_STATUS_OPTIONS.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </Field>
                     <Field>
-                      <Label htmlFor="progress">Progress (%)</Label>
-                      <Input
-                        id="progress"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.progress ?? 0}
-                        onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) || 0 })}
+                      <Label htmlFor="startDate">Start date</Label>
+                      <DatePicker
+                        id="startDate"
+                        value={toDate(formData.startDate)}
+                        onChange={(date) =>
+                          setFormData({ ...formData, startDate: date ? date.toISOString() : null })
+                        }
+                        placeholder="Select start date"
                       />
                     </Field>
+                    <Field>
+                      <Label htmlFor="endDate">End date</Label>
+                      <DatePicker
+                        id="endDate"
+                        value={toDate(formData.endDate)}
+                        onChange={(date) =>
+                          setFormData({ ...formData, endDate: date ? date.toISOString() : null })
+                        }
+                        placeholder="Select end date"
+                      />
+                    </Field>
+                    <ScheduleProgress startDate={formData.startDate} endDate={formData.endDate} />
                   </>
                 ) : (
                   <>
@@ -281,23 +347,28 @@ export function ProjectDetailPage() {
                       <div>
                         <p className="text-sm font-medium">Status</p>
                         <Badge variant={getStatusColor(project.status)} className="mt-1">
-                          {project.status.replace(/_/g, ' ')}
+                          {projectStatusLabel(project.status)}
                         </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Calendar className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Start date</p>
+                        <p className="text-sm text-muted-foreground">{formatDate(project.startDate)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Calendar className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">End date</p>
+                        <p className="text-sm text-muted-foreground">{formatDate(project.endDate)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <TrendingUp className="size-4 text-muted-foreground" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Progress</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full bg-primary transition-all"
-                              style={{ width: `${project.progress}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-muted-foreground">{project.progress}%</span>
-                        </div>
+                        <ScheduleProgress startDate={project.startDate} endDate={project.endDate} />
                       </div>
                     </div>
                   </>

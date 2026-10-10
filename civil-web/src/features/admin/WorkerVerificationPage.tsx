@@ -1,10 +1,20 @@
 import { BadgeCheck, ChevronsRight, Clock, HardHat, ShieldOff, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,91 +35,139 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ApiError } from '@/services/api'
+import { toastApiError } from '@/services/toast'
+import {
+  createVerification,
+  deleteVerification,
+  listVerifications,
+  setVerification,
+  type ApiVerificationStatus,
+  type VerificationCounts,
+} from '@/services/users'
 
 import type { VerificationStatus, WorkerVerificationRow } from './admin.types'
 import { DataPanel, RowActions } from './components/DataPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { TablePager } from './components/TablePager'
 import { UserAttributeCells, VerificationBadge, WORKER_TABLE_HEADERS } from './components/UserCells'
-import { PAGE_SIZE, pageCount, paginate } from './lib/text'
-import { matchesUserQuery, MOCK_WORKER_VERIFICATIONS } from './mock-data'
+import { PAGE_SIZE } from './lib/text'
+import { toAdminUserRow } from './usersStore'
 
-const NEXT_STATUS: Record<VerificationStatus, VerificationStatus> = {
-  unverified: 'requested',
-  requested: 'verified',
-  verified: 'unverified',
+const NEXT_STATUS: Record<VerificationStatus, ApiVerificationStatus> = {
+  unverified: 'REQUESTED',
+  requested: 'VERIFIED',
+  verified: 'UNVERIFIED',
+}
+
+const NEXT_LABEL: Record<VerificationStatus, string> = {
+  unverified: 'Mark requested',
+  requested: 'Mark verified',
+  verified: 'Mark unverified',
+}
+
+const EMPTY_COUNTS: VerificationCounts = { workers: 0, unverified: 0, requested: 0, verified: 0 }
+
+const EMPTY_FORM = { email: '', password: '', firstName: '', lastName: '', phone: '' }
+
+function toUiStatus(status: ApiVerificationStatus): VerificationStatus {
+  if (status === 'REQUESTED') return 'requested'
+  if (status === 'VERIFIED') return 'verified'
+  return 'unverified'
+}
+
+function toWorkerRow(user: Parameters<typeof toAdminUserRow>[0]): WorkerVerificationRow {
+  return {
+    ...toAdminUserRow(user),
+    verification: toUiStatus(user.verificationStatus),
+  }
 }
 
 export function WorkerVerificationPage() {
   useDocumentTitle('Worker verification')
-  const load = useCallback(() => loadMock(MOCK_WORKER_VERIFICATIONS), [])
-  const remote = useRemoteData(load)
-  const seed = remote.status === 'success' ? remote.data : null
-  const [rows, setRows] = useState<WorkerVerificationRow[]>([])
-  useEffect(() => {
-    if (seed) setRows(seed)
-  }, [seed])
   const [query, setQuery] = useState('')
+  const [appliedQuery, setAppliedQuery] = useState('')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [form, setForm] = useState({ email: '', firstName: '', lastName: '', phone: '' })
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [isSaving, setIsSaving] = useState(false)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<WorkerVerificationRow | null>(null)
 
-  const filtered = useMemo(() => rows.filter((row) => matchesUserQuery(row, query)), [rows, query])
-  const totalPages = pageCount(filtered.length)
-  const safePage = Math.min(page, totalPages)
-  const visible = paginate(filtered, safePage)
+  useEffect(() => {
+    const handle = window.setTimeout(() => setAppliedQuery(query.trim()), 300)
+    return () => window.clearTimeout(handle)
+  }, [query])
 
-  function cycleStatus(id: string) {
-    setRows((current) =>
-      current.map((row) => {
-        if (row.id !== id) return row
-        const verification = NEXT_STATUS[row.verification]
-        return { ...row, verification, isVerified: verification === 'verified' }
+  const load = useCallback(
+    () =>
+      listVerifications({
+        page,
+        limit: PAGE_SIZE,
+        q: appliedQuery || undefined,
       }),
-    )
-    toast.message('Verification updated (UI only)')
+    [appliedQuery, page],
+  )
+  const remote = useRemoteData(load)
+  const payload = remote.status === 'success' ? remote.data : null
+  const rows = payload ? payload.data.map(toWorkerRow) : []
+  const counts = payload?.meta.counts ?? EMPTY_COUNTS
+  const total = payload?.meta.total ?? 0
+  const totalPages = Math.max(1, payload?.meta.totalPages ?? 1)
+
+  async function runRowAction(id: string, action: () => Promise<unknown>, success: string) {
+    setBusyId(id)
+    try {
+      await action()
+      toast.success(success)
+      await remote.refetch()
+    } catch (error) {
+      toastApiError(error, 'Could not update verification')
+    } finally {
+      setBusyId(null)
+    }
   }
 
-  function removeRow(id: string) {
-    setRows((current) => current.filter((row) => row.id !== id))
-    toast.message('Worker removed from this list (UI only)')
-  }
-
-  function addRow() {
-    const email = form.email.trim()
+  async function onCreate() {
+    const email = form.email.trim().toLowerCase()
     if (!email) {
       toast.error('Email is required')
       return
     }
-    const now = new Date().toISOString()
-    const id = `usr_w_${Date.now()}`
-    setRows((current) => [
-      {
-        id,
+    if (form.password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    setIsSaving(true)
+    try {
+      await createVerification({
         email,
-        role: 'WORKER',
-        status: 'ACTIVE',
-        isVerified: false,
-        createdAt: now,
-        updatedAt: now,
-        verification: 'requested',
-        profile: {
-          firstName: form.firstName.trim() || null,
-          lastName: form.lastName.trim() || null,
-          displayName: [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ') || null,
-          phone: form.phone.trim() || null,
-          avatarUrl: null,
-          createdAt: now,
-          updatedAt: now,
-        },
-      },
-      ...current,
-    ])
-    setForm({ email: '', firstName: '', lastName: '', phone: '' })
-    setDialogOpen(false)
-    toast.message('Verification request added (UI only)')
+        password: form.password,
+        firstName: form.firstName.trim() || undefined,
+        lastName: form.lastName.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+      })
+      setForm(EMPTY_FORM)
+      setDialogOpen(false)
+      setPage(1)
+      setQuery('')
+      setAppliedQuery('')
+      toast.success('Verification request created')
+      if (page === 1 && appliedQuery === '' && query === '') await remote.refetch()
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message)
+      else toast.error('Could not create verification request')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function onDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
+    setDeleteTarget(null)
+    await runRowAction(id, () => deleteVerification(id), 'Worker deleted')
   }
 
   return (
@@ -126,23 +184,28 @@ export function WorkerVerificationPage() {
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={HardHat} label="Workers" value={rows.length} />
-        <StatCard
-          icon={ShieldOff}
-          label="Unverified"
-          value={rows.filter((r) => r.verification === 'unverified').length}
-        />
-        <StatCard
-          icon={Clock}
-          label="Requested"
-          value={rows.filter((r) => r.verification === 'requested').length}
-        />
-        <StatCard
-          icon={BadgeCheck}
-          label="Verified"
-          value={rows.filter((r) => r.verification === 'verified').length}
-        />
+        <StatCard icon={HardHat} label="Workers" value={counts.workers} />
+        <StatCard icon={ShieldOff} label="Unverified" value={counts.unverified} />
+        <StatCard icon={Clock} label="Requested" value={counts.requested} />
+        <StatCard icon={BadgeCheck} label="Verified" value={counts.verified} />
       </div>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this worker?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.email} will be removed. Linked records block deletion.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => void onDelete()}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AsyncState
         isLoading={remote.isLoading}
@@ -154,8 +217,8 @@ export function WorkerVerificationPage() {
           toolbar={
             <Input
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
+              onChange={(event) => {
+                setQuery(event.target.value)
                 setPage(1)
               }}
               placeholder="Filter workers…"
@@ -164,109 +227,146 @@ export function WorkerVerificationPage() {
             />
           }
           footer={
-            <TablePager page={safePage} totalPages={totalPages} total={filtered.length} onPageChange={setPage} />
+            <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
           }
         >
-          <Table startIndex={(safePage - 1) * PAGE_SIZE}>
-          <TableHeader>
-            <TableRow>
-              {WORKER_TABLE_HEADERS.map((header) => (
-                <TableHead key={header}>{header}</TableHead>
-              ))}
-              <TableHead>Verification</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visible.length === 0 ? (
+          <Table startIndex={(page - 1) * PAGE_SIZE}>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={WORKER_TABLE_HEADERS.length + 2} className="text-muted-foreground">
-                  No workers match.
-                </TableCell>
+                {WORKER_TABLE_HEADERS.map((header) => (
+                  <TableHead key={header}>{header}</TableHead>
+                ))}
+                <TableHead>Verification</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              visible.map((row) => (
-                <TableRow key={row.id}>
-                  <UserAttributeCells row={row} showRoleStatus={false} />
-                  <TableCell>
-                    <VerificationBadge status={row.verification} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <RowActions>
-                      <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="outline"
-                        aria-label={`Advance ${row.email}`}
-                        onClick={() => cycleStatus(row.id)}
-                      >
-                        <ChevronsRight />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="destructive"
-                        aria-label={`Delete ${row.email}`}
-                        onClick={() => removeRow(row.id)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </RowActions>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={WORKER_TABLE_HEADERS.length + 2} className="text-muted-foreground">
+                    No workers match.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
+              ) : (
+                rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <UserAttributeCells row={row} showRoleStatus={false} />
+                    <TableCell>
+                      <VerificationBadge status={row.verification} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <RowActions>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="outline"
+                          aria-label={`${NEXT_LABEL[row.verification]} for ${row.email}`}
+                          disabled={busyId === row.id}
+                          onClick={() =>
+                            void runRowAction(
+                              row.id,
+                              () => setVerification(row.id, NEXT_STATUS[row.verification]),
+                              'Verification updated',
+                            )
+                          }
+                        >
+                          <ChevronsRight />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="destructive"
+                          aria-label={`Delete ${row.email}`}
+                          disabled={busyId === row.id}
+                          onClick={() => setDeleteTarget(row)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </RowActions>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
           </Table>
         </DataPanel>
       </AsyncState>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (open) setForm(EMPTY_FORM)
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add verification request</DialogTitle>
-            <DialogDescription>Creates a local worker row. Not saved to the API.</DialogDescription>
+            <DialogDescription>
+              Creates a pending worker with verification requested. They cannot sign in until approved, and they stay
+              off the marketplace until verified.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="worker-email">Email</Label>
               <Input
                 id="worker-email"
+                type="email"
+                maxLength={254}
+                placeholder="name@example.com"
                 value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="worker-password">Password</Label>
+              <Input
+                id="worker-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
               />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="worker-first">First name</Label>
               <Input
                 id="worker-first"
+                maxLength={100}
+                placeholder="First name"
                 value={form.firstName}
-                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
               />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="worker-last">Last name</Label>
               <Input
                 id="worker-last"
+                maxLength={100}
+                placeholder="Last name"
                 value={form.lastName}
-                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
               />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="worker-phone">Phone</Label>
               <Input
                 id="worker-phone"
+                maxLength={20}
+                placeholder="+961 70 000 000"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button type="button" onClick={addRow}>
-              Add
+            <Button type="button" onClick={() => void onCreate()} disabled={isSaving}>
+              {isSaving ? 'Creating…' : 'Add'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -31,7 +31,7 @@ import {
 
 import { UserFormDialog } from './components/UserFormDialog'
 import { formatWhen } from './lib/text'
-import { formFromUser, toAdminUserRow, type UserFormValues } from './usersStore'
+import { formFromUser, roleLabel, toAdminUserRow, userStatusLabel, type UserFormValues } from './usersStore'
 
 export function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>()
@@ -59,10 +59,9 @@ export function UserDetailsPage() {
   const fields = useMemo(() => {
     if (!user) return null
     return [
-      { label: 'Id', value: user.id },
       { label: 'Email', value: user.email },
-      { label: 'Role', value: user.role },
-      { label: 'Status', value: user.status },
+      { label: 'Role', value: roleLabel(user.role) },
+      { label: 'Status', value: userStatusLabel(user.status) },
       { label: 'Verified', value: user.isVerified ? 'Yes' : 'No' },
       { label: 'User created', value: formatWhen(user.createdAt) },
       { label: 'User updated', value: formatWhen(user.updatedAt) },

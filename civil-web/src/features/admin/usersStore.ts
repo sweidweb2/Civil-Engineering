@@ -33,6 +33,30 @@ export function isUserRole(value: string): value is AuthRole {
   return (USER_ROLES as readonly string[]).includes(value)
 }
 
+const ROLE_LABELS: Record<AuthRole, string> = {
+  SUPER: 'Super',
+  ADMIN: 'Admin',
+  MANAGER: 'Project manager',
+  PROVIDER: 'Provider',
+  WORKER: 'Worker',
+  CLIENT: 'Client',
+}
+
+export const USER_ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = USER_ROLES.map((role) => ({
+  value: role,
+  label: ROLE_LABELS[role],
+}))
+
+export function roleLabel(role: AuthRole): string {
+  return ROLE_LABELS[role]
+}
+
+export function userStatusLabel(status: UserStatus): string {
+  if (status === 'ACTIVE') return 'Active'
+  if (status === 'PENDING') return 'Pending'
+  return 'Inactive'
+}
+
 export function toAdminUserRow(user: User): AdminUserRow {
   return {
     id: user.id,

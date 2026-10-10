@@ -17,6 +17,33 @@ export type ProjectType =
   | 'RENOVATION'
   | 'OTHER'
 
+export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> = [
+  { value: 'RESIDENTIAL', label: 'Residential' },
+  { value: 'COMMERCIAL', label: 'Commercial' },
+  { value: 'INDUSTRIAL', label: 'Industrial' },
+  { value: 'INFRASTRUCTURE', label: 'Infrastructure' },
+  { value: 'RENOVATION', label: 'Renovation' },
+  { value: 'OTHER', label: 'Other' },
+]
+
+export const PROJECT_STATUS_OPTIONS: Array<{ value: ProjectStatus; label: string }> = [
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'PLANNING', label: 'Planning' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'ON_HOLD', label: 'On Hold' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+]
+
+export function projectTypeLabel(type: string | null | undefined): string {
+  return PROJECT_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? '—'
+}
+
+export function projectStatusLabel(status: string): string {
+  return PROJECT_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status.replaceAll('_', ' ')
+}
+
 export type Project = {
   id: string
   name: string
@@ -61,6 +88,8 @@ export type CreateProjectInput = {
   description?: string
   code?: string
   type?: ProjectType
+  startDate?: string | null
+  endDate?: string | null
 }
 
 export type UpdateProjectInput = {
@@ -70,12 +99,11 @@ export type UpdateProjectInput = {
   address?: string
   city?: string
   country?: string
-  startDate?: string
-  endDate?: string
+  startDate?: string | null
+  endDate?: string | null
   actualStartDate?: string
   actualEndDate?: string
   status?: ProjectStatus
-  progress?: number
   budget?: string
   currency?: string
   actualCost?: string
@@ -84,8 +112,13 @@ export type UpdateProjectInput = {
   notes?: string
 }
 
-export function listProjects(page = 1, limit = 20) {
-  return apiRequest<PaginatedProjects>(`/projects?page=${page}&limit=${limit}`)
+export function listProjects(page = 1, limit = 20, status?: ProjectStatus) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  })
+  if (status) params.set('status', status)
+  return apiRequest<PaginatedProjects>(`/projects?${params.toString()}`)
 }
 
 export function getProjectById(id: string) {

@@ -27,6 +27,15 @@ enum Role {
 enum UserStatus {
   ACTIVE
   INACTIVE
+  /// Self-registered PM, provider, or worker waiting for admin approval. Cannot sign in.
+  PENDING
+}
+
+/// Worker marketplace visibility. Only VERIFIED workers are public.
+enum VerificationStatus {
+  UNVERIFIED
+  REQUESTED
+  VERIFIED
 }
 
 model User {
@@ -35,7 +44,8 @@ model User {
   passwordHash         String
   role                 Role           @default(CLIENT)
   status               UserStatus     @default(ACTIVE)
-  /// Admin verification page — marketplace visibility for workers (and reuse for other roles).
+  /// Worker marketplace visibility. isVerified stays true only when this is VERIFIED.
+  verificationStatus   VerificationStatus @default(UNVERIFIED)
   isVerified           Boolean        @default(false)
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
@@ -45,9 +55,12 @@ model User {
   files                File[]
   provider             Provider?
   projects             Project[]
+  reviews              Review[]
   sentNotifications    Notification[] @relation("SentNotifications")
   receivedNotifications Notification[] @relation("ReceivedNotifications")
 
+  @@index([role, status])
+  @@index([role, verificationStatus])
   @@map("users")
 }
 
@@ -389,6 +402,7 @@ model Project {
 
   @@index([ownerId])
   @@index([status])
+  @@index([startDate])
   @@index([city, country])
   @@index([createdAt])
   @@map("projects")
@@ -442,6 +456,41 @@ model Notification {
   @@index([receiverId, isRead, deletedAt])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// =============================================================================
+// reviews — directory ratings (provider, worker, listing)
+// =============================================================================
+
+enum ReviewTargetType {
+  PROVIDER
+  WORKER
+  LISTING
+}
+
+enum ReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// One rating per author per target. targetId is Provider, worker User, or Listing.
+model Review {
+  id         String           @id @default(cuid())
+  authorId   String
+  targetType ReviewTargetType
+  targetId   String
+  rating     Int
+  comment    String
+  status     ReviewStatus     @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  author     User             @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@unique([authorId, targetType, targetId])
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@map("reviews")
 }
 
 // =============================================================================

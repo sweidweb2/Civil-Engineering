@@ -1,18 +1,19 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { cn } from 'cn'
 import {
   Building2,
   Calendar,
-  FolderKanban,
-  MapPin,
-  Plus,
   Clock,
-  TrendingUp,
+  FolderKanban,
+  ImageIcon,
+  MapPin,
   MoreVertical,
   Pencil,
+  Plus,
   Trash2,
-  ImageIcon,
+  TrendingUp,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -30,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -41,17 +43,25 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { portalBaseFromPath } from '@/lib/homePath'
 import {
-  type Project,
-  type ProjectType,
+  archiveProject,
+  createProject,
   type CreateProjectInput,
   listProjects,
-  createProject,
-  archiveProject,
+  type Project,
+  PROJECT_TYPE_OPTIONS,
+  projectStatusLabel,
+  projectTypeLabel,
+  type ProjectType,
 } from '@/services/projects'
+
+import { ProjectProgressTimeline } from './components/ProjectProgressTimeline'
+import { scheduleProgress } from './lib/schedule-progress'
 
 function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
@@ -67,7 +77,7 @@ function getStatusColor(status: string): 'default' | 'secondary' | 'destructive'
 }
 
 function getStatusLabel(status: string): string {
-  return status.replace(/_/g, ' ')
+  return projectStatusLabel(status)
 }
 
 function getTypeIcon(type: string | null) {
@@ -93,20 +103,49 @@ function formatDate(iso: string | null) {
   }
 }
 
+function ProjectCardImage({ src, alt }: { src: string; alt: string }) {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    setIsLoaded(false)
+    const image = imgRef.current
+    if (image?.complete && image.naturalWidth > 0) {
+      setIsLoaded(true)
+    }
+  }, [src])
+
+  return (
+    <div className="relative aspect-video w-full overflow-hidden bg-muted">
+      {isLoaded ? null : (
+        <Skeleton className="absolute inset-0 size-full rounded-none" aria-hidden />
+      )}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        className={cn('size-full object-cover', isLoaded ? 'opacity-100' : 'opacity-0')}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setIsLoaded(true)}
+      />
+    </div>
+  )
+}
+
 function ProjectCard({ project }: { project: Project }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const projectPath = `${portalBaseFromPath(location.pathname)}/projects/${project.id}`
   const Icon = getTypeIcon(project.type)
   const mainImageUrl = project.mainImageUrl ?? null
 
   return (
     <Card
-      className="cursor-pointer overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-primary/20"
-      onClick={() => navigate(`/admin/projects/${project.id}`)}
+      className="cursor-pointer overflow-hidden pt-0! transition-all hover:shadow-md hover:ring-2 hover:ring-primary/20"
+      onClick={() => navigate(projectPath)}
     >
       {mainImageUrl ? (
-        <div className="aspect-video w-full overflow-hidden bg-muted">
-          <img src={mainImageUrl} alt={project.name} className="size-full object-cover" />
-        </div>
+        <ProjectCardImage src={mainImageUrl} alt={project.name} />
       ) : (
         <div className="flex aspect-video w-full items-center justify-center bg-muted">
           <ImageIcon className="size-12 text-muted-foreground/30" />
@@ -134,7 +173,7 @@ function ProjectCard({ project }: { project: Project }) {
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
-                  navigate(`/admin/projects/${project.id}`)
+                  navigate(projectPath)
                 }}
               >
                 <Pencil className="size-3" />
@@ -168,7 +207,7 @@ function ProjectCard({ project }: { project: Project }) {
           {project.type && (
             <div className="flex items-center gap-1">
               <Building2 className="size-3" />
-              <span>{project.type}</span>
+              <span>{projectTypeLabel(project.type)}</span>
             </div>
           )}
         </div>
@@ -201,9 +240,11 @@ function ProjectCard({ project }: { project: Project }) {
 }
 
 export function ProjectsListPage() {
-  useDocumentTitle('Projects')
+  useDocumentTitle('Manage projects')
   const navigate = useNavigate()
+  const location = useLocation()
   const [page, setPage] = useState(1)
+  const [timelineVersion, setTimelineVersion] = useState(0)
   const limit = 20
 
   const load = useCallback(() => listProjects(page, limit), [page])
@@ -237,14 +278,23 @@ export function ProjectsListPage() {
       toast.error('Project name is required')
       return
     }
+    if (
+      createData.startDate &&
+      createData.endDate &&
+      new Date(createData.endDate).getTime() <= new Date(createData.startDate).getTime()
+    ) {
+      toast.error('End date must be after the start date')
+      return
+    }
 
     setIsCreating(true)
     try {
       const result = await createProject(createData)
       toast.success('Project created successfully')
       setCreateOpen(false)
+      setTimelineVersion((version) => version + 1)
       void remote.refetch()
-      navigate(`/admin/projects/${result.data.id}`)
+      navigate(`${portalBaseFromPath(location.pathname)}/projects/${result.data.id}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create project')
     } finally {
@@ -266,6 +316,7 @@ export function ProjectsListPage() {
       await archiveProject(deletingProject.id)
       toast.success('Project archived successfully')
       setDeleteOpen(false)
+      setTimelineVersion((version) => version + 1)
       void remote.refetch()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to archive project')
@@ -278,7 +329,7 @@ export function ProjectsListPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Manage projects</h1>
           <p className="text-sm text-muted-foreground">Manage your civil engineering projects.</p>
         </div>
         <Button onClick={handleCreateOpen}>
@@ -287,11 +338,13 @@ export function ProjectsListPage() {
         </Button>
       </div>
 
+      <ProjectProgressTimeline refreshKey={timelineVersion} />
+
       <AsyncState
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<CardGridSkeleton />}
+        loadingFallback={<CardGridSkeleton media="plain" />}
       >
         {projects.length === 0 ? (
           <Card>
@@ -390,6 +443,7 @@ export function ProjectsListPage() {
             <Field>
               <Label htmlFor="create-type">Project Type</Label>
               <Select
+                items={PROJECT_TYPE_OPTIONS}
                 value={createData.type}
                 onValueChange={(value) => setCreateData({ ...createData, type: value as ProjectType })}
               >
@@ -397,15 +451,42 @@ export function ProjectsListPage() {
                   <SelectValue placeholder="Select project type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="RESIDENTIAL">Residential</SelectItem>
-                  <SelectItem value="COMMERCIAL">Commercial</SelectItem>
-                  <SelectItem value="INDUSTRIAL">Industrial</SelectItem>
-                  <SelectItem value="INFRASTRUCTURE">Infrastructure</SelectItem>
-                  <SelectItem value="RENOVATION">Renovation</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
+                  {PROJECT_TYPE_OPTIONS.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
+            <Field>
+              <Label htmlFor="create-start">Start date</Label>
+              <DatePicker
+                id="create-start"
+                value={createData.startDate ? new Date(createData.startDate) : undefined}
+                onChange={(date) =>
+                  setCreateData({ ...createData, startDate: date ? date.toISOString() : null })
+                }
+                placeholder="Select start date"
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="create-end">End date</Label>
+              <DatePicker
+                id="create-end"
+                value={createData.endDate ? new Date(createData.endDate) : undefined}
+                onChange={(date) =>
+                  setCreateData({ ...createData, endDate: date ? date.toISOString() : null })
+                }
+                placeholder="Select end date"
+              />
+            </Field>
+            <p className="text-xs text-muted-foreground">
+              Progress is the time elapsed from the start date to the end date
+              {createData.startDate && createData.endDate
+                ? ` (${scheduleProgress(createData.startDate, createData.endDate)}%).`
+                : '. Set both dates to calculate it.'}
+            </p>
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={isCreating}>
                 Cancel

@@ -4,6 +4,7 @@ import type { Pool } from 'pg'
 import type { AppConfig } from '../config/index.js'
 import { loadConfig } from '../config/index.js'
 import { createAuthModule } from '../modules/auth/index.js'
+import { createCategoriesModule } from '../modules/categories/index.js'
 import { createDevicesModule } from '../modules/devices/index.js'
 import { createFilesModule } from '../modules/files/index.js'
 import { createHealthController } from '../modules/health/health.controller.js'
@@ -15,6 +16,7 @@ import { createNotificationsModule } from '../modules/notifications/index.js'
 import { createProjectImagesModule } from '../modules/project-images/index.js'
 import { createProjectsModule } from '../modules/projects/index.js'
 import { createProvidersModule } from '../modules/providers/index.js'
+import { createReviewsModule } from '../modules/reviews/index.js'
 import { createUsersModule } from '../modules/users/index.js'
 import type { StorageService } from '../storage/index.js'
 
@@ -42,6 +44,8 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use(createLoggingModule())
   router.use('/users', createUsersModule())
   router.use('/providers', createProvidersModule())
+  router.use('/categories', createCategoriesModule())
+  router.use('/reviews', createReviewsModule())
   router.use('/projects', projectsRouter)
   router.use('/project-images', createProjectImagesModule({ config, storage: deps.storage }))
   router.use('/notifications', createNotificationsModule())

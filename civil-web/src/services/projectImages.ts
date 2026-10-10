@@ -15,6 +15,7 @@ export type UploadProjectImageInput = {
   file: File
   isMain?: boolean
   displayOrder?: number
+  onProgress?: (percent: number) => void
 }
 
 export type UpdateProjectImageInput = {
@@ -50,6 +51,7 @@ export async function uploadProjectImage(
   return apiRequest<{ data: ProjectImage }>(`/project-images/projects/${projectId}/images`, {
     method: 'POST',
     body: formData,
+    onUploadProgress: input.onProgress,
   })
 }
 

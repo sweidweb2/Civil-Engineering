@@ -1,6 +1,6 @@
 import type { AuthRole } from '@/services/auth'
 
-export type UserStatus = 'ACTIVE' | 'INACTIVE'
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING'
 export type ApprovalStatus = 'pending' | 'approved'
 
 /** UI row shaped from User + Profile. Never includes passwordHash. */

@@ -1,6 +1,7 @@
 import type { AuthRole } from '@/services/auth'
 
 import type { AdminUserRow } from '../admin.types'
+import { roleLabel } from '../usersStore'
 
 const ROLE_ORDER: AuthRole[] = ['SUPER', 'ADMIN', 'MANAGER', 'PROVIDER', 'WORKER', 'CLIENT']
 
@@ -16,7 +17,7 @@ export function RoleBarChart({ rows }: RoleBarChartProps) {
 
   const width = 520
   const rowH = 22
-  const pad = { top: 8, right: 28, bottom: 8, left: 72 }
+  const pad = { top: 8, right: 28, bottom: 8, left: 108 }
   const height = pad.top + pad.bottom + Math.max(counts.length, 1) * rowH
   const innerW = width - pad.left - pad.right
   const max = Math.max(...counts.map((item) => item.count), 1)
@@ -40,7 +41,7 @@ export function RoleBarChart({ rows }: RoleBarChartProps) {
               className="fill-muted-foreground"
               fontSize="9"
             >
-              {item.role}
+              {roleLabel(item.role)}
             </text>
             <rect
               x={pad.left}

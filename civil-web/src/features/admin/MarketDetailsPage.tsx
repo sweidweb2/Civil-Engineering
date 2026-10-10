@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
-import { getProvider, type Provider } from '@/services/providers'
+import { getProvider, providerStatusLabel, type Provider } from '@/services/providers'
 
 import { formFromProvider, ProviderFormDialog } from './components/ProviderFormDialog'
 import { formatWhen } from './lib/text'
@@ -22,12 +22,11 @@ function formatCoord(value: number | null) {
 
 function providerFields(provider: Provider): Array<{ label: string; value: string }> {
   return [
-    { label: 'Id', value: provider.id },
     { label: 'Owner', value: provider.owner.displayName || provider.owner.email },
     { label: 'Owner email', value: provider.owner.email },
     { label: 'Name', value: provider.name },
     { label: 'Description', value: provider.description ?? '—' },
-    { label: 'Status', value: provider.status },
+    { label: 'Status', value: providerStatusLabel(provider.status) },
     { label: 'Logo', value: provider.logoUrl ?? '—' },
     { label: 'Phone', value: provider.phone ?? '—' },
     { label: 'WhatsApp', value: provider.whatsapp ?? '—' },
@@ -99,7 +98,7 @@ export function MarketDetailsPage() {
               <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5">
                 <p className="truncate text-sm font-medium">{provider.name}</p>
                 <Badge variant={provider.status === 'APPROVED' ? 'default' : 'outline'}>
-                  {provider.status}
+                  {providerStatusLabel(provider.status)}
                 </Badge>
               </div>
               <dl className="grid min-w-0 sm:grid-cols-2">
@@ -132,7 +131,7 @@ export function MarketDetailsPage() {
           mode="edit"
           providerId={provider.id}
           initial={formFromProvider(provider)}
-          ownerEmail={provider.owner.email}
+          ownerLabel={provider.owner.displayName || provider.owner.email}
           onOpenChange={setEditOpen}
           onSaved={(saved) => {
             setUpdated(saved)

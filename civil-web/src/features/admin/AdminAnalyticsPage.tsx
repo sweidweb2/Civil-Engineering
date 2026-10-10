@@ -24,7 +24,7 @@ import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { MOCK_ANALYTICS } from './mock-data'
 
 export function AdminAnalyticsPage() {
-  useDocumentTitle('Admin dashboard')
+  useDocumentTitle('Dashboard')
   const load = useCallback(() => loadMock(MOCK_ANALYTICS), [])
   const remote = useRemoteData(load)
   const stats = remote.status === 'success' ? remote.data : MOCK_ANALYTICS

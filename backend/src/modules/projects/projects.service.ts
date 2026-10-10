@@ -1,9 +1,10 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import { conflict, notFound } from '../../errors/app-error.js'
+import { conflict, notFound, validationError } from '../../errors/app-error.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsRepository } from './projects.repository.js'
+import { scheduleProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
 import type { Project } from './projects.types.js'
 
@@ -45,6 +46,20 @@ export function createProjectsService(
     return project
   }
 
+  function presentProject(project: Project): Project {
+    return {
+      ...project,
+      progress: scheduleProgress(project.startDate, project.endDate),
+    }
+  }
+
+  function assertSchedule(startDate: string | null | undefined, endDate: string | null | undefined) {
+    if (!startDate || !endDate) return
+    if (new Date(endDate).getTime() <= new Date(startDate).getTime()) {
+      throw validationError('End date must be after the start date')
+    }
+  }
+
   async function resolveMainImageUrl(storagePath: string | null): Promise<string | null> {
     if (!storagePath || !storage || !config) return null
     try {
@@ -66,7 +81,7 @@ export function createProjectsService(
 
       const data = await Promise.all(
         projects.map(async ({ mainImageStoragePath, ...project }) => ({
-          ...project,
+          ...presentProject(project),
           mainImageUrl: await resolveMainImageUrl(mainImageStoragePath),
         })),
       )
@@ -83,7 +98,7 @@ export function createProjectsService(
     },
 
     async getProjectById(id) {
-      return loadOrThrow(id)
+      return presentProject(await loadOrThrow(id))
     },
 
     assertAccessible,
@@ -96,14 +111,18 @@ export function createProjectsService(
         }
       }
 
-      return repository.create({
-        ...input,
-        ownerId,
-      })
+      assertSchedule(input.startDate, input.endDate)
+      return presentProject(
+        await repository.create({
+          ...input,
+          ownerId,
+          progress: scheduleProgress(input.startDate, input.endDate),
+        }),
+      )
     },
 
     async updateProject(id, input, actor) {
-      await assertAccessible(id, actor)
+      const current = await assertAccessible(id, actor)
 
       if (input.code) {
         const existing = await repository.findByCode(input.code)
@@ -112,7 +131,16 @@ export function createProjectsService(
         }
       }
 
-      return repository.update(id, input)
+      const startDate = input.startDate !== undefined ? input.startDate : current.startDate
+      const endDate = input.endDate !== undefined ? input.endDate : current.endDate
+      assertSchedule(startDate, endDate)
+
+      return presentProject(
+        await repository.update(id, {
+          ...input,
+          progress: scheduleProgress(startDate, endDate),
+        }),
+      )
     },
 
     async archiveProject(id, actor) {

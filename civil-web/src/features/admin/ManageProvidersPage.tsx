@@ -13,6 +13,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
   listProviders,
+  providerStatusLabel,
   type Provider,
   type ProviderStatus,
   type ProviderStatusCounts,
@@ -32,7 +33,7 @@ function locationLabel(provider: Provider) {
 
 function ProviderStatusBadge({ status }: { status: ProviderStatus }) {
   const variant = status === 'APPROVED' ? 'default' : 'outline'
-  return <Badge variant={variant}>{status}</Badge>
+  return <Badge variant={variant}>{providerStatusLabel(status)}</Badge>
 }
 
 export function ManageProvidersPage() {
@@ -96,7 +97,7 @@ export function ManageProvidersPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<CardGridSkeleton />}
+        loadingFallback={<CardGridSkeleton media="logo" />}
       >
         <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {providers.length === 0 ? (
@@ -106,15 +107,15 @@ export function ManageProvidersPage() {
               <Link key={provider.id} to={`/admin/providers/${provider.id}`} className="min-w-0">
                 <Card size="sm" className="h-full cursor-pointer transition-colors hover:bg-muted/40 hover:ring-primary/30">
                   <CardHeader className="min-w-0">
-                    <div className="mb-1 flex h-16 items-end overflow-hidden rounded-lg bg-muted px-3 py-2">
+                    <div className="mb-1 flex h-40 items-center overflow-hidden rounded-lg bg-muted">
                       {provider.logoUrl ? (
                         <img
                           src={provider.logoUrl}
                           alt=""
-                          className="h-full w-full object-contain object-left"
+                          className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-xs text-muted-foreground">Provider</span>
+                        <span className="px-3 text-xs text-muted-foreground">Provider</span>
                       )}
                     </div>
                     <CardTitle className="truncate" title={provider.name}>

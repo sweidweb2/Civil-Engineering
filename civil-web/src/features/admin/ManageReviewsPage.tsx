@@ -1,10 +1,20 @@
-import { CheckCircle2, Clock, Star, XCircle } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { CheckCircle2, Clock, Pencil, Plus, Star, Trash2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,67 +28,98 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { loadMock } from '@/hooks/loadMock'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ApiError } from '@/services/api'
+import {
+  deleteReview,
+  listReviews,
+  type Review,
+  type ReviewStatus,
+  type ReviewStatusCounts,
+  reviewStatusLabel,
+  updateReview,
+} from '@/services/reviews'
 
-import type { PlatformReview, ReviewStatus } from './admin.types'
 import { DataPanel, RowActions, ToolbarCard } from './components/DataPanel'
+import { ReviewFormDialog } from './components/ReviewFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { TablePager } from './components/TablePager'
-import { ellipsis, PAGE_SIZE, pageCount, paginate } from './lib/text'
-import { MOCK_REVIEWS } from './mock-data'
+import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const TABS: Array<{ value: ReviewStatus | 'all'; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'accepted', label: 'Accepted' },
-  { value: 'rejected', label: 'Rejected' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'ACCEPTED', label: 'Accepted' },
+  { value: 'REJECTED', label: 'Rejected' },
 ]
 
-function ReviewStatusBadge({ status }: { status: ReviewStatus }) {
-  return <Badge variant={status === 'accepted' ? 'default' : 'outline'}>{status}</Badge>
-}
+const EMPTY_COUNTS: ReviewStatusCounts = { PENDING: 0, ACCEPTED: 0, REJECTED: 0 }
 
-function matchesReview(row: PlatformReview, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return [row.authorName, row.authorEmail, row.targetName, row.targetType, row.comment, row.status]
-    .join(' ')
-    .toLowerCase()
-    .includes(q)
+function ReviewStatusBadge({ status }: { status: ReviewStatus }) {
+  return <Badge variant={status === 'ACCEPTED' ? 'default' : 'outline'}>{reviewStatusLabel(status)}</Badge>
 }
 
 export function ManageReviewsPage() {
   useDocumentTitle('Manage reviews')
-  const load = useCallback(() => loadMock(MOCK_REVIEWS), [])
-  const remote = useRemoteData(load)
-  const seed = remote.status === 'success' ? remote.data : null
-  const [rows, setRows] = useState<PlatformReview[]>([])
-  useEffect(() => {
-    if (seed) setRows(seed)
-  }, [seed])
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState<ReviewStatus | 'all'>('all')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editing, setEditing] = useState<Review | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Review | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
-  const scoped = useMemo(
-    () => rows.filter((row) => (tab === 'all' ? true : row.status === tab)),
-    [rows, tab],
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(query.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  const load = useCallback(
+    () =>
+      listReviews(page, PAGE_SIZE, {
+        q: debouncedQuery || undefined,
+        status: tab === 'all' ? undefined : tab,
+      }),
+    [debouncedQuery, page, tab],
   )
-  const filtered = useMemo(() => scoped.filter((row) => matchesReview(row, query)), [scoped, query])
-  const totalPages = pageCount(filtered.length)
-  const safePage = Math.min(page, totalPages)
-  const visible = paginate(filtered, safePage)
+  const remote = useRemoteData(load)
+  const rows = remote.status === 'success' ? remote.data.data : []
+  const total = remote.status === 'success' ? remote.data.meta.total : 0
+  const counts = remote.status === 'success' ? remote.data.meta.statusCounts : EMPTY_COUNTS
+  const totalPages = pageCount(total)
+  const reviewTotal = counts.PENDING + counts.ACCEPTED + counts.REJECTED
 
-  function setStatus(id: string, status: ReviewStatus) {
-    setRows((current) => current.map((row) => (row.id === id ? { ...row, status } : row)))
-    toast.message(
-      status === 'accepted'
-        ? 'Review accepted (UI only)'
-        : status === 'rejected'
-          ? 'Review rejected (UI only)'
-          : 'Review moved to pending (UI only)',
-    )
+  async function setStatus(id: string, status: ReviewStatus) {
+    setBusyId(id)
+    try {
+      await updateReview(id, { status })
+      toast.message(status === 'ACCEPTED' ? 'Review accepted' : 'Review rejected')
+      await remote.refetch()
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not update review')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    const id = pendingDelete.id
+    setBusyId(id)
+    try {
+      await deleteReview(id)
+      toast.message('Review removed')
+      setPendingDelete(null)
+      await remote.refetch()
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not remove review')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   return (
@@ -87,19 +128,25 @@ export function ManageReviewsPage() {
         className="mb-0"
         title="Manage reviews"
         description="Directory reviews and ratings. Accept to publish, reject to hide."
+        actions={
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus />
+            Create
+          </Button>
+        }
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Star} label="Reviews" value={rows.length} />
-        <StatCard icon={Clock} label="Pending" value={rows.filter((r) => r.status === 'pending').length} />
-        <StatCard icon={CheckCircle2} label="Accepted" value={rows.filter((r) => r.status === 'accepted').length} />
-        <StatCard icon={XCircle} label="Rejected" value={rows.filter((r) => r.status === 'rejected').length} />
+        <StatCard icon={Star} label="Reviews" value={reviewTotal} />
+        <StatCard icon={Clock} label="Pending" value={counts.PENDING} />
+        <StatCard icon={CheckCircle2} label="Accepted" value={counts.ACCEPTED} />
+        <StatCard icon={XCircle} label="Rejected" value={counts.REJECTED} />
       </div>
 
       <Tabs
         value={tab}
         onValueChange={(value) => {
-          if (value === 'all' || value === 'pending' || value === 'accepted' || value === 'rejected') {
+          if (value === 'all' || value === 'PENDING' || value === 'ACCEPTED' || value === 'REJECTED') {
             setTab(value)
             setPage(1)
           }
@@ -116,10 +163,7 @@ export function ManageReviewsPage() {
           </TabsList>
           <Input
             value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setPage(1)
-            }}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Filter reviews…"
             aria-label="Filter reviews"
             className="max-w-sm"
@@ -135,90 +179,141 @@ export function ManageReviewsPage() {
           >
             <DataPanel
               footer={
-                <TablePager
-                  page={safePage}
-                  totalPages={totalPages}
-                  total={filtered.length}
-                  onPageChange={setPage}
-                />
+                <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
               }
             >
-              <Table startIndex={(safePage - 1) * PAGE_SIZE}>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Author</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Comment</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.length === 0 ? (
+              <Table startIndex={(page - 1) * PAGE_SIZE}>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-muted-foreground">
-                      No reviews match.
-                    </TableCell>
+                    <TableHead>Author</TableHead>
+                    <TableHead>Target</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Comment</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  visible.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="max-w-40" title={row.authorEmail}>
-                        <div className="min-w-0">
-                          <p className="truncate">{ellipsis(row.authorName, 22)}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {ellipsis(row.authorEmail, 24)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-40">
-                        <div className="min-w-0">
-                          <p className="truncate" title={row.targetName}>
-                            {ellipsis(row.targetName, 22)}
-                          </p>
-                          <Badge variant="outline">{row.targetType}</Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="tabular-nums">{row.rating}/5</TableCell>
-                      <TableCell className="max-w-56 truncate" title={row.comment}>
-                        {ellipsis(row.comment, 40)}
-                      </TableCell>
-                      <TableCell>
-                        <ReviewStatusBadge status={row.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <RowActions>
-                          {row.status !== 'accepted' ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => setStatus(row.id, 'accepted')}
-                            >
-                              Accept
-                            </Button>
-                          ) : null}
-                          {row.status !== 'rejected' ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setStatus(row.id, 'rejected')}
-                            >
-                              Reject
-                            </Button>
-                          ) : null}
-                        </RowActions>
+                </TableHeader>
+                <TableBody>
+                  {rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-muted-foreground">
+                        No reviews match.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
+                  ) : (
+                    rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="max-w-40" title={row.author.email}>
+                          <div className="min-w-0">
+                            <p className="truncate">{ellipsis(row.author.displayName, 22)}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {ellipsis(row.author.email, 24)}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-40">
+                          <div className="min-w-0">
+                            <p className="truncate" title={row.targetName}>
+                              {ellipsis(row.targetName, 22)}
+                            </p>
+                            <Badge variant="outline">{row.targetType.toLowerCase()}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="tabular-nums">{row.rating}/5</TableCell>
+                        <TableCell className="max-w-56 truncate" title={row.comment}>
+                          {ellipsis(row.comment, 40)}
+                        </TableCell>
+                        <TableCell>
+                          <ReviewStatusBadge status={row.status} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <RowActions>
+                            {row.status !== 'ACCEPTED' ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={busyId === row.id}
+                                onClick={() => void setStatus(row.id, 'ACCEPTED')}
+                              >
+                                Accept
+                              </Button>
+                            ) : null}
+                            {row.status !== 'REJECTED' ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={busyId === row.id}
+                                onClick={() => void setStatus(row.id, 'REJECTED')}
+                              >
+                                Reject
+                              </Button>
+                            ) : null}
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="outline"
+                              aria-label={`Edit review by ${row.author.displayName}`}
+                              disabled={busyId === row.id}
+                              onClick={() => setEditing(row)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="destructive"
+                              aria-label={`Remove review by ${row.author.displayName}`}
+                              disabled={busyId === row.id}
+                              onClick={() => setPendingDelete(row)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </RowActions>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
               </Table>
             </DataPanel>
           </AsyncState>
         </TabsContent>
       </Tabs>
+
+      <ReviewFormDialog
+        open={createOpen}
+        mode="create"
+        onOpenChange={setCreateOpen}
+        onSaved={() => {
+          setPage(1)
+          void remote.refetch()
+        }}
+      />
+      <ReviewFormDialog
+        open={editing !== null}
+        mode="edit"
+        review={editing}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null)
+        }}
+        onSaved={() => void remote.refetch()}
+      />
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove review</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes the review from {pendingDelete?.author.displayName ?? 'this author'}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

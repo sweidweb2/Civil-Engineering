@@ -104,10 +104,82 @@ export type ApiRequestOptions = RequestInit & {
   accessToken?: string | null
   /** Skip 401→refresh→retry (auth endpoints and the refresh call itself). */
   skipAuthRefresh?: boolean
+  /** Byte progress for multipart uploads. Uses XHR because fetch cannot report it. */
+  onUploadProgress?: (percent: number) => void
+}
+
+function toHeaderRecord(headers: HeadersInit | undefined): Record<string, string> {
+  const record: Record<string, string> = {}
+  if (!headers) return record
+  if (headers instanceof Headers) {
+    headers.forEach((value, key) => {
+      record[key] = value
+    })
+    return record
+  }
+  if (Array.isArray(headers)) {
+    for (const [key, value] of headers) record[key] = value
+    return record
+  }
+  return { ...record, ...headers }
+}
+
+function uploadWithProgress(
+  url: string,
+  init: {
+    method: string
+    headers: Record<string, string>
+    body: FormData
+    onUploadProgress: (percent: number) => void
+    signal?: AbortSignal | null
+  },
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(init.method, url)
+    xhr.responseType = 'text'
+    for (const [key, value] of Object.entries(init.headers)) {
+      xhr.setRequestHeader(key, value)
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || event.total <= 0) return
+      init.onUploadProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)))
+    }
+
+    xhr.onload = () => {
+      const responseHeaders = new Headers()
+      for (const line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)) {
+        if (!line) continue
+        const index = line.indexOf(':')
+        if (index === -1) continue
+        responseHeaders.append(line.slice(0, index).trim(), line.slice(index + 1).trim())
+      }
+      resolve(
+        new Response(xhr.responseText, {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          headers: responseHeaders,
+        }),
+      )
+    }
+    xhr.onerror = () => reject(new ApiError(0, 'Upload failed'))
+    xhr.onabort = () => reject(new DOMException('The operation was aborted.', 'AbortError'))
+
+    if (init.signal) {
+      if (init.signal.aborted) {
+        reject(new DOMException('The operation was aborted.', 'AbortError'))
+        return
+      }
+      init.signal.addEventListener('abort', () => xhr.abort(), { once: true })
+    }
+
+    xhr.send(init.body)
+  })
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { accessToken, skipAuthRefresh, headers, ...rest } = options
+  const { accessToken, skipAuthRefresh, headers, onUploadProgress, ...rest } = options
 
   const resolveToken = (override?: string | null) => {
     if (override !== undefined) return override
@@ -116,15 +188,26 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   const execute = async (token: string | null) => {
     const isFormData = typeof FormData !== 'undefined' && rest.body instanceof FormData
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const requestHeaders = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...toHeaderRecord(headers),
+    }
+
+    if (onUploadProgress && rest.body instanceof FormData) {
+      return uploadWithProgress(`${API_BASE_URL}${path}`, {
+        method: (rest.method ?? 'POST').toUpperCase(),
+        headers: requestHeaders,
+        body: rest.body,
+        onUploadProgress,
+        signal: rest.signal,
+      })
+    }
+
+    return fetch(`${API_BASE_URL}${path}`, {
       ...rest,
-      headers: {
-        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...headers,
-      },
+      headers: requestHeaders,
     })
-    return response
   }
 
   let token = resolveToken(accessToken)

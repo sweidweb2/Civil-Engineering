@@ -84,7 +84,7 @@ export function UsersPage() {
   const filtered = useMemo(() => rows.filter((row) => matchesUserQuery(row, query)), [rows, query])
 
   const active = rows.filter((r) => r.status === 'ACTIVE').length
-  const inactive = rows.length - active
+  const inactive = rows.filter((r) => r.status === 'INACTIVE').length
 
   async function onToggleStatus(id: string) {
     const row = rows.find((item) => item.id === id)

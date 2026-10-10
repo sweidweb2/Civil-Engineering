@@ -93,7 +93,7 @@ export function ManageProjectsPage() {
               <Link key={project.id} to={`/admin/projects/${project.id}`} className="min-w-0">
                 <Card
                   size="sm"
-                  className="h-full cursor-pointer overflow-hidden pt-0 transition-colors hover:bg-muted/40 hover:ring-primary/30"
+                  className="h-full cursor-pointer overflow-hidden pt-0! transition-colors hover:bg-muted/40 hover:ring-primary/30"
                 >
                   <CivilCardMedia variant={index} />
                   <CardHeader className="min-w-0">

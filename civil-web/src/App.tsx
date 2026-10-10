@@ -130,12 +130,11 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route
-              index
-              element={
-                <PanelHomePage title="PM home" description="Project manager tools will land here." />
-              }
-            />
+            <Route index element={<AdminAnalyticsPage />} />
+            <Route path="projects" element={<ProjectsListPage />} />
+            <Route path="projects/:id" element={<ProjectDetailPage />} />
+            <Route path="directory" element={<DirectoryPage />} />
+            <Route path="categories" element={<ManageCategoriesPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

@@ -65,11 +65,22 @@ export function CardImageSkeleton({
 }
 
 /** One directory/provider/project card — bones only, no real Card chrome. */
-function CardItemSkeleton({ variant }: { variant: number }) {
+function CardItemSkeleton({
+  variant,
+  media,
+}: {
+  variant: number
+  media: 'civil' | 'plain' | 'logo'
+}) {
   return (
     <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
-      <CardImageSkeleton variant={variant} />
+      {media === 'plain' ? (
+        <Skeleton className="aspect-video w-full rounded-none" />
+      ) : media === 'logo' ? null : (
+        <CardImageSkeleton variant={variant} />
+      )}
       <div className="flex flex-col gap-3 p-3">
+        {media === 'logo' ? <Skeleton className="h-40 w-full rounded-lg" /> : null}
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/2" />
         <div className="flex gap-2 pt-1">
@@ -85,16 +96,23 @@ function CardItemSkeleton({ variant }: { variant: number }) {
 export function CardGridSkeleton({
   className,
   count = 6,
-}: SkeletonPresetProps & { count?: number }) {
+  media = 'civil',
+}: SkeletonPresetProps & { count?: number; media?: 'civil' | 'plain' | 'logo' }) {
   return (
     <div
-      className={cn('grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3', className)}
+      className={cn(
+        'grid min-w-0',
+        media === 'plain'
+          ? 'gap-4 md:grid-cols-2 lg:grid-cols-3'
+          : 'gap-3 sm:grid-cols-2 xl:grid-cols-3',
+        className,
+      )}
       role="status"
       aria-busy="true"
       aria-label="Loading"
     >
       {Array.from({ length: count }, (_, i) => (
-        <CardItemSkeleton key={i} variant={i} />
+        <CardItemSkeleton key={i} variant={i} media={media} />
       ))}
     </div>
   )

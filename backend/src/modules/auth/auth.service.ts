@@ -111,12 +111,20 @@ export function createAuthService(
 
     async login(input) {
       const user = await repository.findByEmail(input.email)
-      if (!user || user.status !== 'ACTIVE') {
+      if (!user) {
         throw unauthorized('Invalid email or password')
       }
 
       const ok = await verifyPassword(input.password, user.passwordHash)
       if (!ok) {
+        throw unauthorized('Invalid email or password')
+      }
+
+      if (user.status === 'PENDING') {
+        throw unauthorized('Account is pending admin approval', 'ACCOUNT_PENDING')
+      }
+
+      if (user.status !== 'ACTIVE') {
         throw unauthorized('Invalid email or password')
       }
 

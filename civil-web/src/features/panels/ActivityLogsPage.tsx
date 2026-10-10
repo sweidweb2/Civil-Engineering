@@ -57,7 +57,7 @@ export function ActivityLogsPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<TableSkeleton columns={5} />}
+        loadingFallback={<TableSkeleton columns={4} />}
       >
         <DataPanel
           footer={
@@ -71,13 +71,12 @@ export function ActivityLogsPage() {
                 <TableHead>Action</TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Entity</TableHead>
-                <TableHead>Request</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={4} className="text-muted-foreground">
                     No activity yet.
                   </TableCell>
                 </TableRow>
@@ -87,16 +86,9 @@ export function ActivityLogsPage() {
                     <TableCell className="whitespace-nowrap">{formatWhen(row.createdAt)}</TableCell>
                     <TableCell className="max-w-40 truncate font-medium">{row.action}</TableCell>
                     <TableCell className="max-w-48 truncate">
-                      {row.user?.email ?? row.userId ?? '—'}
+                      {row.user?.email ?? '—'}
                     </TableCell>
-                    <TableCell className="max-w-40 truncate">
-                      {row.entity
-                        ? `${row.entity}${row.entityId ? `:${row.entityId.slice(0, 8)}` : ''}`
-                        : '—'}
-                    </TableCell>
-                    <TableCell className="max-w-[8rem] truncate font-mono text-xs">
-                      {row.requestId ?? '—'}
-                    </TableCell>
+                    <TableCell className="max-w-40 truncate">{row.entity ?? '—'}</TableCell>
                   </TableRow>
                 ))
               )}

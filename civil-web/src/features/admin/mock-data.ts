@@ -4,12 +4,10 @@ import type {
   AdminProject,
   AdminUserRow,
   AnalyticsSnapshot,
-  DirectoryItem,
   LoginDayPoint,
   PlatformCategory,
   PlatformReview,
   ProviderShop,
-  RegistrationRow,
   WorkerVerificationRow,
 } from './admin.types'
 
@@ -210,44 +208,6 @@ export const MOCK_USERS: AdminUserRow[] = [
   }),
 ]
 
-const extraPendingProvider = row('usr_19', 'crane.east@example.com', 'PROVIDER', 'ACTIVE', 1, {
-  firstName: 'Tarek',
-  lastName: 'Saliba',
-  displayName: 'East Crane & Heavy Equipment Trading Company',
-  phone: '+961 01 990 001',
-  avatarUrl: null,
-  createdAt: '',
-  updatedAt: '',
-})
-
-const extraPendingWorker = row('usr_20', 'painter.zeina@example.com', 'WORKER', 'ACTIVE', 0, {
-  firstName: 'Zeina',
-  lastName: 'Mrad',
-  displayName: 'Zeina Mrad',
-  phone: '+961 76 333 111',
-  avatarUrl: null,
-  createdAt: '',
-  updatedAt: '',
-})
-
-/** Approval is UI-only — Prisma has ACTIVE/INACTIVE, not a pending column. */
-export const MOCK_REGISTRATIONS: RegistrationRow[] = [
-  { ...MOCK_USERS[2], approval: 'approved' },
-  { ...MOCK_USERS[3], approval: 'approved' },
-  { ...MOCK_USERS[4], approval: 'approved' },
-  { ...MOCK_USERS[5], approval: 'approved' },
-  { ...MOCK_USERS[6], approval: 'approved' },
-  { ...MOCK_USERS[9], approval: 'pending' },
-  { ...MOCK_USERS[10], approval: 'pending' },
-  { ...MOCK_USERS[11], approval: 'pending' },
-  { ...MOCK_USERS[13], approval: 'pending' },
-  { ...MOCK_USERS[14], approval: 'approved' },
-  { ...MOCK_USERS[15], approval: 'pending' },
-  { ...MOCK_USERS[17], approval: 'pending' },
-  { ...extraPendingProvider, approval: 'pending' },
-  { ...extraPendingWorker, approval: 'pending' },
-]
-
 export const MOCK_ANALYTICS: AnalyticsSnapshot = {
   registeredUsers: MOCK_USERS.length,
   activePms: MOCK_USERS.filter((u) => u.role === 'MANAGER' && u.status === 'ACTIVE').length,
@@ -337,20 +297,6 @@ export const MOCK_PROJECTS: AdminProject[] = [
   { id: 'prj_04', name: 'Jounieh Marina Store', location: 'Jounieh', managerName: 'Lina Chamoun', status: 'completed' },
   { id: 'prj_05', name: 'Saida School Block', location: 'Saida', managerName: 'Karim Mansour', status: 'planning' },
   { id: 'prj_06', name: 'Byblos Heritage Facade', location: 'Byblos', managerName: 'Lina Chamoun', status: 'active' },
-]
-
-export const MOCK_DIRECTORY: DirectoryItem[] = [
-  { id: 'dir_01', name: 'Portland cement 50kg', kind: 'material', category: 'Cement', location: 'Beirut', source: 'Cedar Supplies', price: 'USD 7.40' },
-  { id: 'dir_02', name: 'Rebar 12mm', kind: 'material', category: 'Steel', location: 'Tripoli', source: 'Cedar Supplies', price: 'USD 620 / ton' },
-  { id: 'dir_03', name: 'Plywood 18mm', kind: 'material', category: 'Wood', location: 'Zahle', source: 'Cedar Supplies', price: 'USD 18.00' },
-  { id: 'dir_04', name: 'Tempered glass 10mm', kind: 'material', category: 'Glass', location: 'Jounieh', source: 'Levant Glass', price: 'USD 42.00 / m²' },
-  { id: 'dir_05', name: 'Tower crane 8t', kind: 'equipment', category: 'Lifting', location: 'Beirut', source: 'Levant Equip', price: 'USD 180 / day' },
-  { id: 'dir_06', name: 'Excavator 20t', kind: 'equipment', category: 'Earthwork', location: 'Tripoli', source: 'Levant Equip', price: 'USD 220 / day' },
-  { id: 'dir_07', name: 'Concrete mixer 1.5m³', kind: 'equipment', category: 'Concrete', location: 'Zahle', source: 'Levant Equip', price: 'USD 55 / day' },
-  { id: 'dir_08', name: 'Scaffold set', kind: 'equipment', category: 'Access', location: 'Saida', source: 'Cedar Supplies', price: 'USD 28 / day' },
-  { id: 'dir_09', name: 'Hassan Farah', kind: 'worker', category: 'Masonry', location: 'Beirut', source: 'Verified worker', price: 'USD 45 / day' },
-  { id: 'dir_10', name: 'Rami Khatib', kind: 'worker', category: 'Electrical', location: 'Tripoli', source: 'Requested', price: 'USD 50 / day' },
-  { id: 'dir_11', name: 'Maya Nassar', kind: 'worker', category: 'Plumbing', location: 'Jounieh', source: 'Verified worker', price: 'USD 48 / day' },
 ]
 
 export const MOCK_REVIEWS: PlatformReview[] = [

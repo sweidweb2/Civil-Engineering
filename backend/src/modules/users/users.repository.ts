@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js'
-import type { Prisma, Role, UserStatus } from '../../generated/prisma/client.js'
-import type { ListUsersQuery } from './users.schema.js'
-import type { User } from './users.types.js'
+import type { Prisma, Role, UserStatus, VerificationStatus } from '../../generated/prisma/client.js'
+import type { ListApprovalsQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
+import { APPROVAL_ROLES, type User } from './users.types.js'
 
 type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>
 
@@ -9,6 +9,8 @@ type CreateUserInput = {
   email: string
   passwordHash: string
   role: Role
+  status?: UserStatus
+  verificationStatus?: VerificationStatus
   isVerified?: boolean
   profile?: {
     firstName?: string
@@ -21,6 +23,7 @@ type CreateUserInput = {
 type UpdateUserInput = {
   role?: Role
   status?: UserStatus
+  verificationStatus?: VerificationStatus
   isVerified?: boolean
   profile?: {
     firstName?: string
@@ -30,13 +33,91 @@ type UpdateUserInput = {
   }
 }
 
+export type ApprovalCounts = {
+  pending: number
+  approved: number
+  providersPending: number
+}
+
+export type VerificationCounts = {
+  workers: number
+  unverified: number
+  requested: number
+  verified: number
+}
+
 export type UsersRepository = {
   findMany: (query: ListUsersQuery) => Promise<{ users: User[]; total: number }>
+  findApprovals: (query: ListApprovalsQuery) => Promise<{ users: User[]; total: number }>
+  countApprovals: () => Promise<ApprovalCounts>
+  findVerifications: (query: ListVerificationsQuery) => Promise<{ users: User[]; total: number }>
+  countVerifications: () => Promise<VerificationCounts>
+  updateVerification: (id: string, verificationStatus: VerificationStatus) => Promise<User>
   findById: (id: string) => Promise<User | null>
   findByEmail: (email: string) => Promise<User | null>
   create: (input: CreateUserInput) => Promise<User>
   update: (id: string, input: UpdateUserInput) => Promise<User>
   updateStatus: (id: string, status: UserStatus) => Promise<User>
+  delete: (id: string) => Promise<'deleted' | 'in_use'>
+}
+
+const approvalRoles: Role[] = [...APPROVAL_ROLES]
+
+function isPrismaCode(error: unknown, code: string): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code
+}
+
+function approvalWhere(query: ListApprovalsQuery): Prisma.UserWhereInput {
+  const q = query.q?.trim()
+  return {
+    role: { in: approvalRoles },
+    status: query.approval === 'pending' ? 'PENDING' : 'ACTIVE',
+    ...(q
+      ? {
+          OR: [
+            { email: { contains: q, mode: 'insensitive' } },
+            {
+              profile: {
+                is: {
+                  OR: [
+                    { firstName: { contains: q, mode: 'insensitive' } },
+                    { lastName: { contains: q, mode: 'insensitive' } },
+                    { displayName: { contains: q, mode: 'insensitive' } },
+                    { phone: { contains: q, mode: 'insensitive' } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  }
+}
+
+function workerWhere(q: string | undefined): Prisma.UserWhereInput {
+  const query = q?.trim()
+  return {
+    role: 'WORKER',
+    ...(query
+      ? {
+          OR: [
+            { email: { contains: query, mode: 'insensitive' } },
+            {
+              profile: {
+                is: {
+                  OR: [
+                    { firstName: { contains: query, mode: 'insensitive' } },
+                    { lastName: { contains: query, mode: 'insensitive' } },
+                    { displayName: { contains: query, mode: 'insensitive' } },
+                    { phone: { contains: query, mode: 'insensitive' } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  }
 }
 
 function mapToUser(user: UserWithProfile): User {
@@ -45,6 +126,7 @@ function mapToUser(user: UserWithProfile): User {
     email: user.email,
     role: user.role,
     status: user.status,
+    verificationStatus: user.verificationStatus,
     isVerified: user.isVerified,
     profile: user.profile
       ? {
@@ -83,6 +165,80 @@ export function createUsersRepository(): UsersRepository {
       }
     },
 
+    async findApprovals(query) {
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      const where = approvalWhere(query)
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          include: { profile: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.user.count({ where }),
+      ])
+
+      return {
+        users: users.map(mapToUser),
+        total,
+      }
+    },
+
+    async countApprovals() {
+      const [pending, approved, providersPending] = await Promise.all([
+        prisma.user.count({ where: { role: { in: approvalRoles }, status: 'PENDING' } }),
+        prisma.user.count({ where: { role: { in: approvalRoles }, status: 'ACTIVE' } }),
+        prisma.user.count({ where: { role: 'PROVIDER', status: 'PENDING' } }),
+      ])
+      return { pending, approved, providersPending }
+    },
+
+    async findVerifications(query) {
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      const where = workerWhere(query.q)
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          include: { profile: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.user.count({ where }),
+      ])
+
+      return {
+        users: users.map(mapToUser),
+        total,
+      }
+    },
+
+    async countVerifications() {
+      const workers = { role: 'WORKER' as const }
+      const [total, unverified, requested, verified] = await Promise.all([
+        prisma.user.count({ where: workers }),
+        prisma.user.count({ where: { ...workers, verificationStatus: 'UNVERIFIED' } }),
+        prisma.user.count({ where: { ...workers, verificationStatus: 'REQUESTED' } }),
+        prisma.user.count({ where: { ...workers, verificationStatus: 'VERIFIED' } }),
+      ])
+      return { workers: total, unverified, requested, verified }
+    },
+
+    async updateVerification(id, verificationStatus) {
+      const user = await prisma.user.update({
+        where: { id },
+        data: {
+          verificationStatus,
+          isVerified: verificationStatus === 'VERIFIED',
+        },
+        include: { profile: true },
+      })
+      return mapToUser(user)
+    },
+
     async findById(id) {
       const user = await prisma.user.findUnique({
         where: { id },
@@ -114,6 +270,8 @@ export function createUsersRepository(): UsersRepository {
           email: input.email,
           passwordHash: input.passwordHash,
           role: input.role,
+          status: input.status,
+          verificationStatus: input.verificationStatus ?? 'UNVERIFIED',
           isVerified: input.isVerified ?? false,
           profile: hasProfileData
             ? {
@@ -141,6 +299,7 @@ export function createUsersRepository(): UsersRepository {
         data: {
           role: input.role,
           status: input.status,
+          verificationStatus: input.verificationStatus,
           isVerified: input.isVerified,
           profile: hasProfileData
             ? {
@@ -163,6 +322,18 @@ export function createUsersRepository(): UsersRepository {
         include: { profile: true },
       })
       return mapToUser(user)
+    },
+
+    async delete(id) {
+      try {
+        await prisma.user.delete({ where: { id } })
+        return 'deleted'
+      } catch (error) {
+        if (isPrismaCode(error, 'P2003') || isPrismaCode(error, 'P2014')) {
+          return 'in_use'
+        }
+        throw error
+      }
     },
   }
 }

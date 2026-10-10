@@ -8,6 +8,7 @@ import { TableCell } from '@/components/ui/table'
 
 import type { AdminUserRow, UserStatus, VerificationStatus } from '../admin.types'
 import { ellipsis } from '../lib/text'
+import { roleLabel, userStatusLabel } from '../usersStore'
 
 async function copyValue(value: string, label: string) {
   try {
@@ -44,8 +45,12 @@ function displayName(row: AdminUserRow): string | null {
   )
 }
 
+function statusText(status: UserStatus): string {
+  return userStatusLabel(status)
+}
+
 export function StatusBadge({ status }: { status: UserStatus }) {
-  return <Badge variant={status === 'ACTIVE' ? 'default' : 'outline'}>{status}</Badge>
+  return <Badge variant={status === 'ACTIVE' ? 'default' : 'outline'}>{statusText(status)}</Badge>
 }
 
 export function VerificationBadge({ status }: { status: VerificationStatus }) {
@@ -83,7 +88,7 @@ export function UserAttributeCells({
       {showRoleStatus ? (
         <>
           <TableCell>
-            <Badge variant="outline">{row.role}</Badge>
+            <Badge variant="outline">{roleLabel(row.role)}</Badge>
           </TableCell>
           <TableCell>
             {onToggleStatus ? (
@@ -98,9 +103,7 @@ export function UserAttributeCells({
                   aria-label={`${row.status === 'ACTIVE' ? 'Deactivate' : 'Activate'} ${row.email}`}
                   onCheckedChange={() => onToggleStatus(row.id)}
                 />
-                <span className="text-xs text-muted-foreground">
-                  {row.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                </span>
+                <span className="text-xs text-muted-foreground">{statusText(row.status)}</span>
               </div>
             ) : (
               <StatusBadge status={row.status} />

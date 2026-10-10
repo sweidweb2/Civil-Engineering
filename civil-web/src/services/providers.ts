@@ -70,6 +70,16 @@ export type ProviderWriteInput = {
 
 export const PROVIDER_STATUSES: ProviderStatus[] = ['PENDING', 'APPROVED', 'SUSPENDED']
 
+export const PROVIDER_STATUS_OPTIONS: Array<{ value: ProviderStatus; label: string }> = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+]
+
+export function providerStatusLabel(status: ProviderStatus): string {
+  return PROVIDER_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
+}
+
 function emptyToNull(value: string): string | null {
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null

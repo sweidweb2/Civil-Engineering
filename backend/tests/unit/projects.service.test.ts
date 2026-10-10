@@ -87,7 +87,7 @@ describe('projectsService', () => {
   it('lets the owner update a project', async () => {
     const { service, repository } = setup()
     await service.updateProject('p1', { name: 'Site A Renamed' }, owner)
-    expect(repository.update).toHaveBeenCalledWith('p1', { name: 'Site A Renamed' })
+    expect(repository.update).toHaveBeenCalledWith('p1', { name: 'Site A Renamed', progress: 0 })
   })
 
   it('forbids a non-owner from updating', async () => {
@@ -101,6 +101,39 @@ describe('projectsService', () => {
     const { service, repository } = setup()
     await service.archiveProject('p1', admin)
     expect(repository.delete).toHaveBeenCalledWith('p1')
+  })
+
+  it('stores progress from the start and end dates', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-06T00:00:00.000Z'))
+    try {
+      const { service, repository } = setup(makeProject())
+      await service.updateProject(
+        'p1',
+        {
+          startDate: '2026-10-01T00:00:00.000Z',
+          endDate: '2026-10-11T00:00:00.000Z',
+        },
+        owner,
+      )
+      expect(repository.update).toHaveBeenCalledWith('p1', expect.objectContaining({ progress: 50 }))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('rejects an end date that is not after the start date', async () => {
+    const { service } = setup(makeProject())
+    await expect(
+      service.updateProject(
+        'p1',
+        {
+          startDate: '2026-10-11T00:00:00.000Z',
+          endDate: '2026-10-01T00:00:00.000Z',
+        },
+        owner,
+      ),
+    ).rejects.toMatchObject({ status: 400 })
   })
 
   it('rejects code collisions on update', async () => {

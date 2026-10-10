@@ -17,6 +17,7 @@ const SEED_USERS: Array<{
   role: Role
   firstName: string
   lastName: string
+  status?: 'ACTIVE' | 'PENDING'
 }> = [
   {
     email: 'super@example.com',
@@ -53,6 +54,22 @@ const SEED_USERS: Array<{
     firstName: 'Hiba',
     lastName: 'Nassar',
   },
+  {
+    email: 'pending.worker@example.com',
+    password: 'password',
+    role: 'WORKER',
+    firstName: 'Pending',
+    lastName: 'Worker',
+    status: 'PENDING',
+  },
+  {
+    email: 'pending.provider@example.com',
+    password: 'password',
+    role: 'PROVIDER',
+    firstName: 'Pending',
+    lastName: 'Provider',
+    status: 'PENDING',
+  },
 ]
 
 async function main() {
@@ -75,7 +92,7 @@ async function main() {
           email: seed.email,
           passwordHash,
           role: seed.role,
-          status: 'ACTIVE',
+          status: seed.status ?? 'ACTIVE',
           profile: {
             create: {
               firstName: seed.firstName,
@@ -87,7 +104,7 @@ async function main() {
         update: {
           passwordHash,
           role: seed.role,
-          status: 'ACTIVE',
+          ...(seed.status === 'PENDING' ? {} : { status: 'ACTIVE' as const }),
           profile: {
             upsert: {
               create: {

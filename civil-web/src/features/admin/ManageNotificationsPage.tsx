@@ -68,6 +68,31 @@ function formatDate(iso: string): string {
   }
 }
 
+const NOTIFICATION_TYPE_OPTIONS: Array<{ value: NotificationType; label: string }> = [
+  { value: 'INFO', label: 'Info' },
+  { value: 'SUCCESS', label: 'Success' },
+  { value: 'WARNING', label: 'Warning' },
+  { value: 'ERROR', label: 'Error' },
+  { value: 'ANNOUNCEMENT', label: 'Announcement' },
+  { value: 'SYSTEM', label: 'System' },
+]
+
+function userLabel(user: User): string {
+  const profile = user.profile
+  const name =
+    profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
+  return name ? `${name} · ${user.email}` : user.email
+}
+
+function notificationTypeLabel(type: NotificationType): string {
+  return NOTIFICATION_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type
+}
+
+function receiverLabel(users: User[], receiverId: string): string {
+  const receiver = users.find((user) => user.id === receiverId)
+  return receiver ? userLabel(receiver) : 'Unknown'
+}
+
 export function ManageNotificationsPage() {
   useDocumentTitle('Manage Notifications')
   const [page, setPage] = useState(1)
@@ -314,13 +339,13 @@ export function ManageNotificationsPage() {
                   notifications.map((notification) => (
                     <TableRow key={notification.id} className={cn(notification.deletedAt && 'opacity-50')}>
                       <TableCell>
-                        <Badge variant="outline">{notification.type}</Badge>
+                        <Badge variant="outline">{notificationTypeLabel(notification.type)}</Badge>
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate font-medium">
                         {notification.title}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {users.find((u) => u.id === notification.receiverId)?.email || 'Unknown'}
+                        {receiverLabel(users, notification.receiverId)}
                       </TableCell>
                       <TableCell>
                         {notification.deletedAt ? (
@@ -445,6 +470,7 @@ export function ManageNotificationsPage() {
               <Field>
                 <Label htmlFor="receiverId">Receiver</Label>
                 <Select
+                  items={users.map((user) => ({ value: user.id, label: userLabel(user) }))}
                   value={formData.receiverId}
                   onValueChange={(value) => {
                     if (value) setFormData({ ...formData, receiverId: value })
@@ -456,7 +482,7 @@ export function ManageNotificationsPage() {
                   <SelectContent>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        {user.email} ({user.role})
+                        {userLabel(user)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -474,7 +500,7 @@ export function ManageNotificationsPage() {
                         onChange={() => handleToggleRecipient(user.id)}
                         className="cursor-pointer"
                       />
-                      <span className="text-sm">{user.email} ({user.role})</span>
+                      <span className="text-sm">{userLabel(user)}</span>
                     </label>
                   ))}
                 </div>
@@ -483,17 +509,20 @@ export function ManageNotificationsPage() {
 
             <Field>
               <Label htmlFor="type">Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as NotificationType })}>
+              <Select
+                items={NOTIFICATION_TYPE_OPTIONS}
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value as NotificationType })}
+              >
                 <SelectTrigger id="type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INFO">Info</SelectItem>
-                  <SelectItem value="SUCCESS">Success</SelectItem>
-                  <SelectItem value="WARNING">Warning</SelectItem>
-                  <SelectItem value="ERROR">Error</SelectItem>
-                  <SelectItem value="ANNOUNCEMENT">Announcement</SelectItem>
-                  <SelectItem value="SYSTEM">System</SelectItem>
+                  {NOTIFICATION_TYPE_OPTIONS.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
@@ -546,17 +575,20 @@ export function ManageNotificationsPage() {
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <Field>
               <Label htmlFor="edit-type">Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as NotificationType })}>
+              <Select
+                items={NOTIFICATION_TYPE_OPTIONS}
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value as NotificationType })}
+              >
                 <SelectTrigger id="edit-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INFO">Info</SelectItem>
-                  <SelectItem value="SUCCESS">Success</SelectItem>
-                  <SelectItem value="WARNING">Warning</SelectItem>
-                  <SelectItem value="ERROR">Error</SelectItem>
-                  <SelectItem value="ANNOUNCEMENT">Announcement</SelectItem>
-                  <SelectItem value="SYSTEM">System</SelectItem>
+                  {NOTIFICATION_TYPE_OPTIONS.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>

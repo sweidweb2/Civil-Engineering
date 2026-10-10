@@ -41,11 +41,13 @@ export async function clearUsers(): Promise<void> {
   await prisma.listingOffer.deleteMany()
   await prisma.listingVariation.deleteMany()
   await prisma.listing.deleteMany()
+  await prisma.category.deleteMany({ where: { parentId: { not: null } } })
   await prisma.category.deleteMany()
   await prisma.provider.deleteMany()
   await prisma.projectImage.deleteMany()
   await prisma.project.deleteMany()
   await prisma.notification.deleteMany()
+  await prisma.review.deleteMany()
   await prisma.user.deleteMany()
 }
 

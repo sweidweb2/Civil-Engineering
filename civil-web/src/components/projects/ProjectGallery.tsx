@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Image as ImageIcon, Star, Trash2, Upload, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Image as ImageIcon, Loader2, Star, Trash2, Upload, X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -34,9 +34,39 @@ type Props = {
   projectId: string
 }
 
+function UploadProgress({ value }: { value: number }) {
+  const label = value >= 100 ? 'Finishing upload…' : 'Uploading image…'
+
+  return (
+    <div className="mb-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          {label}
+        </span>
+        <span>{value}%</span>
+      </div>
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+        aria-label="Image upload progress"
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function ProjectGallery({ projectId }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [imageToDelete, setImageToDelete] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
@@ -65,11 +95,13 @@ export function ProjectGallery({ projectId }: Props) {
     }
 
     setIsUploading(true)
+    setUploadProgress(0)
     try {
       await uploadProjectImage(projectId, {
         file,
         displayOrder: images.length,
         isMain: images.length === 0,
+        onProgress: setUploadProgress,
       })
       toast.success('Image uploaded successfully')
       void remote.refetch()
@@ -77,6 +109,7 @@ export function ProjectGallery({ projectId }: Props) {
       toast.error(error instanceof Error ? error.message : 'Failed to upload image')
     } finally {
       setIsUploading(false)
+      setUploadProgress(0)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -156,15 +189,20 @@ export function ProjectGallery({ projectId }: Props) {
                   onChange={(e) => void handleFileSelect(e)}
                   className="hidden"
                 />
-                <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                  <Upload className="size-4" />
-                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  aria-busy={isUploading}
+                >
+                  {isUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                  {isUploading ? 'Uploading…' : 'Upload Image'}
                 </Button>
               </div>
             )}
           </div>
         </CardHeader>
         <CardContent>
+          {isUploading ? <UploadProgress value={uploadProgress} /> : null}
           {images.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <ImageIcon className="size-12 text-muted-foreground/50" />
@@ -207,6 +245,7 @@ export function ProjectGallery({ projectId }: Props) {
                     <Button
                       size="sm"
                       variant="destructive"
+                      className="bg-white text-destructive hover:bg-white"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDeleteClick(image.id)

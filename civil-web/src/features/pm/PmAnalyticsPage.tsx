@@ -32,7 +32,7 @@ function countStatus(projects: Project[], status: ProjectStatus): number {
 export function PmAnalyticsPage() {
   useDocumentTitle('Analytics')
   const load = useCallback(() => loadProjects(), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['projects', 'pm-analytics'] })
   const projects = remote.status === 'success' ? remote.data : []
   const averageProgress = projects.length
     ? Math.round(projects.reduce((sum, project) => sum + project.progress, 0) / projects.length)

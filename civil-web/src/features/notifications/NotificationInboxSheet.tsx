@@ -66,7 +66,7 @@ export function NotificationInboxSheet() {
     ])
     return { items: page.data, unread: unread.data.count }
   }, [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['notifications', 'inbox-sheet'] })
 
   useEffect(() => {
     if (skipPathRefresh.current) {

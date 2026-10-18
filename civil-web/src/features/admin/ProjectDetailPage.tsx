@@ -101,7 +101,7 @@ export function ProjectDetailPage() {
     return getProjectById(id)
   }, [id])
 
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['projects', 'detail', id ?? ''] })
   const project: Project | null = remote.status === 'success' ? remote.data.data : null
 
   useDocumentTitle(project ? `Project: ${project.name}` : 'Project Details')

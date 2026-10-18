@@ -1,4 +1,5 @@
 export { useDocumentTitle } from './useDocumentTitle'
+export { usePagedSearch } from './usePagedSearch'
 export { useMediaQuery } from './useMediaQuery'
 export { usePermissions } from './usePermissions'
 export type {

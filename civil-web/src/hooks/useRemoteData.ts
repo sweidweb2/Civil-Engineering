@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type QueryKey, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export type RemoteIdle = { status: 'idle' }
 export type RemoteLoading = { status: 'loading' }
@@ -8,72 +9,104 @@ export type RemoteError = { status: 'error'; error: unknown }
 export type RemoteState<T> = RemoteIdle | RemoteLoading | RemoteSuccess<T> | RemoteError
 
 type UseRemoteDataOptions = {
-  /** When false, skip the initial fetch. Default true. */
+  /** When false, skip the fetch. Default true. */
   enabled?: boolean
+  /**
+   * Stable cache key. Screens that pass the same key share one result.
+   * A refetch invalidates every active query under the first key segment.
+   */
+  queryKey?: QueryKey
 }
 
 type RefetchOptions = {
-  /** Drop the current view and show the loading state. First load and query changes use this. */
+  /** Drop the current view and show the loading state. */
   fresh?: boolean
 }
 
+let nextInstanceId = 1
+
 /**
- * Lightweight server-data fetch for a screen/feature.
- * Keeps loading/error/data local — do not dump results into Zustand.
- * A later refetch keeps the current result on screen so the page does not
- * swap to a skeleton or jump scroll. A new query still shows the loading state.
- * A dedicated cache library (e.g. TanStack Query) stays TBD until needed.
+ * Server-data fetch for a screen/feature.
+ * Keeps loading/error/data on the query key — do not dump results into Zustand.
+ * A later refetch keeps the current result on screen. A new query with no cache
+ * shows the loading state. Matching keys reuse the shared cache for 30 seconds
+ * unless a refetch invalidates them.
  */
 export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
-  const { enabled = true } = options
-  const [state, setState] = useState<RemoteState<T>>({ status: 'idle' })
-  const loadRef = useRef(load)
-  const requestRef = useRef(0)
+  const { enabled = true, queryKey } = options
+  const [instanceId] = useState(() => nextInstanceId++)
+  const [trackedLoad, setTrackedLoad] = useState(() => load)
+  const [loadVersion, setLoadVersion] = useState(0)
+  if (load !== trackedLoad) {
+    setTrackedLoad(() => load)
+    setLoadVersion((current) => current + 1)
+  }
+
+  const key = useMemo<QueryKey>(
+    () => (queryKey === undefined ? [instanceId, loadVersion] : queryKey),
+    [instanceId, loadVersion, queryKey],
+  )
+  const keyRef = useRef(key)
+  const client = useQueryClient()
+  const [fresh, setFresh] = useState(false)
 
   useEffect(() => {
-    loadRef.current = load
-  }, [load])
+    keyRef.current = key
+  }, [key])
 
-  const refetch = useCallback(async (options?: RefetchOptions) => {
-    const fresh = options?.fresh === true
-    const requestId = ++requestRef.current
+  const query = useQuery({
+    queryKey: key,
+    enabled,
+    retry: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    queryFn: () => load(),
+  })
 
-    setState((current) => {
-      if (!fresh && current.status === 'success') return current
-      return { status: 'loading' }
-    })
-
+  const refetch = useCallback(async (refetchOptions?: RefetchOptions) => {
+    const isFresh = refetchOptions?.fresh === true
+    const currentKey = keyRef.current
+    if (isFresh) setFresh(true)
     try {
-      const data = await loadRef.current()
-      if (requestId !== requestRef.current) return
-      setState({ status: 'success', data })
-    } catch (error) {
-      if (requestId !== requestRef.current) return
-      setState((current) => {
-        if (!fresh && current.status === 'success') return current
-        return { status: 'error', error }
-      })
+      if (isFresh) client.removeQueries({ queryKey: currentKey, exact: true })
+      await client.invalidateQueries({ queryKey: [currentKey[0]] })
+    } finally {
+      if (isFresh) setFresh(false)
     }
-  }, [])
+  }, [client])
 
-  const mutate = useCallback((updater: (current: T) => T) => {
-    setState((current) =>
-      current.status === 'success' ? { status: 'success', data: updater(current.data) } : current,
-    )
-  }, [])
+  const mutate = useCallback(
+    (updater: (current: T) => T) => {
+      client.setQueryData<T>(keyRef.current, (current) =>
+        current === undefined ? current : updater(current),
+      )
+    },
+    [client],
+  )
 
-  useEffect(() => {
-    if (!enabled) return
-    void refetch({ fresh: true })
-  }, [enabled, refetch, load])
+  const hasData = query.data !== undefined
+  const showError = query.isError && (fresh || !hasData)
+  const isLoading = fresh || (!enabled && !hasData) || (enabled && !hasData && !showError)
+  const isError = showError
+  const isSuccess = hasData && !showError
 
-  return {
-    ...state,
+  const shared = {
     refetch,
     mutate,
-    isLoading: state.status === 'loading' || state.status === 'idle',
-    isError: state.status === 'error',
-    isSuccess: state.status === 'success',
-    error: state.status === 'error' ? state.error : undefined,
+    isLoading,
+    isError,
+    isSuccess,
+    error: isError ? query.error : undefined,
   }
+
+  if (isError) {
+    return { status: 'error' as const, ...shared, error: query.error }
+  }
+  if (isSuccess) {
+    return { status: 'success' as const, data: query.data as T, ...shared }
+  }
+  if (!enabled && !hasData) {
+    return { status: 'idle' as const, ...shared }
+  }
+  return { status: 'loading' as const, ...shared }
 }

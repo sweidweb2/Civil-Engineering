@@ -72,7 +72,7 @@ export function ProjectGallery({ projectId }: Props) {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
 
   const load = useCallback(() => listProjectImages(projectId), [projectId])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['project-images', projectId] })
   const images: ProjectImage[] = remote.status === 'success' ? remote.data.data : []
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

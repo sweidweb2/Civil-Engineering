@@ -1,5 +1,5 @@
+import { useCallback, useState } from 'react'
 import { Clock, Plus, Store, Trash2, UserCheck, UserPlus } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -27,16 +27,17 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedSearch } from '@/hooks/usePagedSearch'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
 import {
+  type ApprovalCounts,
   approveUser,
   createApproval,
   deleteApproval,
   listApprovals,
   unapproveUser,
-  type ApprovalCounts,
 } from '@/services/users'
 
 import type { ApprovalStatus, RegistrationRow } from './admin.types'
@@ -44,7 +45,7 @@ import { DataPanel, RowActions, ToolbarCard } from './components/DataPanel'
 import { RegistrationFormDialog, type RegistrationFormValues } from './components/RegistrationFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { TablePager } from './components/TablePager'
-import { UserAttributeCells, USER_TABLE_HEADERS } from './components/UserCells'
+import { USER_TABLE_HEADERS,UserAttributeCells } from './components/UserCells'
 import { PAGE_SIZE } from './lib/text'
 import { toAdminUserRow } from './usersStore'
 
@@ -64,18 +65,11 @@ function toRegistrationRow(user: Parameters<typeof toAdminUserRow>[0]): Registra
 
 export function RegistrationApprovalsPage() {
   useDocumentTitle('Registration approvals')
-  const [query, setQuery] = useState('')
-  const [appliedQuery, setAppliedQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedSearch()
   const [tab, setTab] = useState<ApprovalStatus>('pending')
   const [createOpen, setCreateOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RegistrationRow | null>(null)
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => setAppliedQuery(query.trim()), 300)
-    return () => window.clearTimeout(handle)
-  }, [query])
 
   const load = useCallback(
     () =>
@@ -83,11 +77,11 @@ export function RegistrationApprovalsPage() {
         approval: tab,
         page,
         limit: PAGE_SIZE,
-        q: appliedQuery || undefined,
+        q: debouncedQuery || undefined,
       }),
-    [appliedQuery, page, tab],
+    [debouncedQuery, page, tab],
   )
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['users', 'approvals', tab, page, debouncedQuery] })
   const payload = remote.status === 'success' ? remote.data : null
   const rows = payload ? payload.data.map(toRegistrationRow) : []
   const counts = payload?.meta.counts ?? EMPTY_COUNTS
@@ -121,11 +115,9 @@ export function RegistrationApprovalsPage() {
         displayName: values.displayName.trim() || undefined,
         phone: values.phone.trim() || undefined,
       })
-      const staysOnPendingList = tab === 'pending' && page === 1 && appliedQuery === '' && query === ''
+      const staysOnPendingList = tab === 'pending' && page === 1 && debouncedQuery === '' && query === ''
       setTab('pending')
-      setPage(1)
-      setQuery('')
-      setAppliedQuery('')
+      resetSearch()
       if (staysOnPendingList) await remote.refetch()
       return null
     } catch (error) {
@@ -201,10 +193,7 @@ export function RegistrationApprovalsPage() {
           </TabsList>
           <Input
             value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setPage(1)
-            }}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Filter registrations…"
             aria-label="Filter registrations"
             className="max-w-sm"

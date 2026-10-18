@@ -1,5 +1,5 @@
+import { useCallback, useState } from 'react'
 import { Ban, CheckCircle2, Clock, Plus, Store } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -10,13 +10,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedSearch } from '@/hooks/usePagedSearch'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
   listProviders,
-  providerStatusLabel,
   type Provider,
   type ProviderStatus,
   type ProviderStatusCounts,
+  providerStatusLabel,
 } from '@/services/providers'
 
 import { ToolbarCard } from './components/DataPanel'
@@ -38,24 +39,14 @@ function ProviderStatusBadge({ status }: { status: ProviderStatus }) {
 
 export function ManageProvidersPage() {
   useDocumentTitle('Manage providers')
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
   const [createOpen, setCreateOpen] = useState(false)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedQuery(query.trim())
-      setPage(1)
-    }, 300)
-    return () => window.clearTimeout(timer)
-  }, [query])
 
   const load = useCallback(
     () => listProviders(page, PAGE_SIZE, debouncedQuery || undefined),
     [debouncedQuery, page],
   )
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['providers', 'list', page, debouncedQuery] })
 
   const providers = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0

@@ -34,7 +34,7 @@ export function ActivityLogsPage() {
   const [page, setPage] = useState(1)
 
   const load = useCallback(() => listActivityLogs(page, PAGE_LIMIT), [page])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['logs', 'activity', page] })
 
   const rows: ActivityLogItem[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0

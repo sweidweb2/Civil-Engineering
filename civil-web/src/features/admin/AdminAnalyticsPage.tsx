@@ -52,7 +52,7 @@ async function loadDashboard(): Promise<DashboardStats> {
 export function AdminAnalyticsPage() {
   useDocumentTitle('Dashboard')
   const load = useCallback(() => loadDashboard(), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['admin', 'analytics'] })
   const stats = remote.status === 'success' ? remote.data : null
 
   return (

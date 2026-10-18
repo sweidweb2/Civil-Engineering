@@ -105,7 +105,7 @@ export function NotificationsInboxPage() {
   const limit = 20
 
   const load = useCallback(() => listNotifications(page, limit), [page])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['notifications', 'inbox', page] })
 
   const notifications: Notification[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0

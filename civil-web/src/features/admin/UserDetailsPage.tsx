@@ -46,7 +46,10 @@ export function UserDetailsPage() {
     const result = await getUser(userId)
     return toAdminUserRow(result.data)
   }, [userId])
-  const remote = useRemoteData(load, { enabled: Boolean(userId) })
+  const remote = useRemoteData(load, {
+    enabled: Boolean(userId),
+    queryKey: ['users', 'detail', userId ?? ''],
+  })
   const user = remote.status === 'success' ? remote.data : undefined
 
   useDocumentTitle(user ? user.email : 'User details')

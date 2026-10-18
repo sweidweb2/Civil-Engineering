@@ -253,7 +253,7 @@ export function ProjectsListPage() {
   const limit = 20
 
   const load = useCallback(() => listProjects(page, limit), [page])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['projects', 'list', page] })
 
   const projects: Project[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0

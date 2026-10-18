@@ -137,7 +137,7 @@ export function UsersPage() {
   const [isDeactivating, setIsDeactivating] = useState(false)
 
   const load = useCallback(() => listUsers(page, PAGE_SIZE), [page])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['users', 'list', page] })
   const statusToggleGeneration = useRef(new Map<string, number>())
 
   const rows = useMemo(

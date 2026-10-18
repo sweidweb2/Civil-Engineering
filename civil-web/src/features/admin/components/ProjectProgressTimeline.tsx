@@ -186,7 +186,7 @@ export function ProjectProgressTimeline({ refreshKey = 0 }: ProjectProgressTimel
   const [now, setNow] = useState<number | null>(null)
 
   const load = useCallback(() => listProjects(1, 100, 'IN_PROGRESS'), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['projects', 'timeline'] })
   const refetch = remote.refetch
 
   useEffect(() => {

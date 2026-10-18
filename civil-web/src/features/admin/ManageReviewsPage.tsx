@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { CheckCircle2, Clock, Eye, Pencil, Plus, Star, Trash2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -37,7 +36,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedSearch } from '@/hooks/usePagedSearch'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import {
@@ -99,23 +100,13 @@ function ReadOnlyField({
 
 export function ManageReviewsPage() {
   useDocumentTitle('Manage reviews')
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
   const [tab, setTab] = useState<ReviewStatus | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Review | null>(null)
   const [viewing, setViewing] = useState<Review | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Review | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedQuery(query.trim())
-      setPage(1)
-    }, 300)
-    return () => window.clearTimeout(timer)
-  }, [query])
 
   const load = useCallback(
     () =>
@@ -125,7 +116,7 @@ export function ManageReviewsPage() {
       }),
     [debouncedQuery, page, tab],
   )
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['reviews', page, debouncedQuery, tab] })
   const rows = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const counts = remote.status === 'success' ? remote.data.meta.statusCounts : EMPTY_COUNTS

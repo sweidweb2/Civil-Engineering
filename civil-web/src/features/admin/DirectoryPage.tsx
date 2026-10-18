@@ -1,5 +1,5 @@
+import { useCallback, useState } from 'react'
 import { Box, HardHat, Layers, Wrench } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -10,52 +10,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedSearch } from '@/hooks/usePagedSearch'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { listListings, type Listing, type ListingType } from '@/services/listings'
+import { type Listing, type ListingType,listListings } from '@/services/listings'
 import { listVerifications, type User } from '@/services/users'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
 import { ToolbarCard } from './components/DataPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { ellipsis } from './lib/text'
+import { TablePager } from './components/TablePager'
+import { directoryWindows, readPageWindow } from './lib/directory-page'
+import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
-const PAGE_LIMIT = 100
+type DirectorySource = 'materials' | 'equipment' | 'workers'
+type DirectoryFilter = DirectoryKind | 'all'
 
-type DirectoryPayload = {
-  items: DirectoryItem[]
+type DirectoryStats = {
   materials: number
   equipment: number
   workers: number
-  includeWorkers: boolean
-}
-
-async function allActiveListings(type: Extract<ListingType, 'MATERIAL' | 'EQUIPMENT'>): Promise<{
-  items: Listing[]
-  total: number
-}> {
-  const first = await listListings(1, PAGE_LIMIT, { type, status: 'ACTIVE' })
-  const totalPages = Math.max(1, Math.ceil(first.meta.total / PAGE_LIMIT))
-  if (totalPages <= 1) return { items: first.data, total: first.meta.total }
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      listListings(index + 2, PAGE_LIMIT, { type, status: 'ACTIVE' }),
-    ),
-  )
-  return { items: [first.data, ...rest.map((page) => page.data)].flat(), total: first.meta.total }
-}
-
-async function allWorkers(): Promise<{ users: User[]; total: number }> {
-  const first = await listVerifications({ page: 1, limit: PAGE_LIMIT })
-  if (first.meta.totalPages <= 1) return { users: first.data, total: first.meta.counts.workers }
-  const rest = await Promise.all(
-    Array.from({ length: first.meta.totalPages - 1 }, (_, index) =>
-      listVerifications({ page: index + 2, limit: PAGE_LIMIT }),
-    ),
-  )
-  return {
-    users: [first.data, ...rest.map((page) => page.data)].flat(),
-    total: first.meta.counts.workers,
-  }
 }
 
 function personName(user: User): string {
@@ -77,7 +50,12 @@ function listingItem(listing: Listing): DirectoryItem {
 }
 
 function workerItem(user: User): DirectoryItem {
-  const status = user.verificationStatus === 'VERIFIED' ? 'Verified' : user.verificationStatus === 'REQUESTED' ? 'Requested' : 'Unverified'
+  const status =
+    user.verificationStatus === 'VERIFIED'
+      ? 'Verified'
+      : user.verificationStatus === 'REQUESTED'
+        ? 'Requested'
+        : 'Unverified'
   return {
     id: user.id,
     name: personName(user),
@@ -86,6 +64,72 @@ function workerItem(user: User): DirectoryItem {
     location: user.profile?.phone ?? '—',
     source: user.email,
     price: status,
+  }
+}
+
+async function loadDirectoryStats(includeWorkers: boolean): Promise<DirectoryStats> {
+  const [materials, equipment, workers] = await Promise.all([
+    listListings(1, 1, { type: 'MATERIAL', status: 'ACTIVE' }),
+    listListings(1, 1, { type: 'EQUIPMENT', status: 'ACTIVE' }),
+    includeWorkers ? listVerifications({ page: 1, limit: 1 }) : Promise.resolve(null),
+  ])
+  return {
+    materials: materials.meta.total,
+    equipment: equipment.meta.total,
+    workers: workers?.meta.counts.workers ?? 0,
+  }
+}
+
+async function loadDirectoryPage(input: {
+  page: number
+  query: string
+  kind: DirectoryFilter
+  includeWorkers: boolean
+}): Promise<{ items: DirectoryItem[]; total: number }> {
+  const q = input.query || undefined
+  if (input.kind === 'material' || input.kind === 'equipment') {
+    const type: ListingType = input.kind === 'material' ? 'MATERIAL' : 'EQUIPMENT'
+    const result = await listListings(input.page, PAGE_SIZE, { type, status: 'ACTIVE', q })
+    return { items: result.data.map(listingItem), total: result.meta.total }
+  }
+  if (input.kind === 'worker') {
+    const result = await listVerifications({ page: input.page, limit: PAGE_SIZE, q })
+    return { items: result.data.map(workerItem), total: result.meta.total }
+  }
+
+  const [materials, equipment, workers] = await Promise.all([
+    listListings(1, 1, { type: 'MATERIAL', status: 'ACTIVE', q }),
+    listListings(1, 1, { type: 'EQUIPMENT', status: 'ACTIVE', q }),
+    input.includeWorkers ? listVerifications({ page: 1, limit: 1, q }) : Promise.resolve(null),
+  ])
+  const totals: Array<{ source: DirectorySource; total: number }> = [
+    { source: 'materials', total: materials.meta.total },
+    { source: 'equipment', total: equipment.meta.total },
+  ]
+  if (workers) totals.push({ source: 'workers', total: workers.meta.total })
+  const plan = directoryWindows(totals, (input.page - 1) * PAGE_SIZE, PAGE_SIZE)
+  const chunks = await Promise.all(
+    plan.map(async (window) => {
+      if (window.source === 'workers') {
+        const users = await readPageWindow(
+          async (page, limit) => (await listVerifications({ page, limit, q })).data,
+          window.skip,
+          window.take,
+        )
+        return users.map(workerItem)
+      }
+      const type: ListingType = window.source === 'materials' ? 'MATERIAL' : 'EQUIPMENT'
+      const listings = await readPageWindow(
+        async (page, limit) => (await listListings(page, limit, { type, status: 'ACTIVE', q })).data,
+        window.skip,
+        window.take,
+      )
+      return listings.map(listingItem)
+    }),
+  )
+  return {
+    items: chunks.flat(),
+    total: totals.reduce((sum, entry) => sum + entry.total, 0),
   }
 }
 
@@ -122,31 +166,10 @@ export function DirectoryPage() {
   useDocumentTitle('Directory')
   const location = useLocation()
   const includeWorkers = !location.pathname.startsWith('/pm')
-  const [query, setQuery] = useState('')
-  const [kind, setKind] = useState<DirectoryKind | 'all'>('all')
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
+  const [kind, setKind] = useState<DirectoryFilter>('all')
 
-  const load = useCallback(async (): Promise<DirectoryPayload> => {
-    const [materials, equipment, workers] = await Promise.all([
-      allActiveListings('MATERIAL'),
-      allActiveListings('EQUIPMENT'),
-      includeWorkers ? allWorkers() : Promise.resolve(null),
-    ])
-    return {
-      includeWorkers,
-      materials: materials.total,
-      equipment: equipment.total,
-      workers: workers?.total ?? 0,
-      items: [
-        ...materials.items.map(listingItem),
-        ...equipment.items.map(listingItem),
-        ...(workers?.users.map(workerItem) ?? []),
-      ],
-    }
-  }, [includeWorkers])
-  const remote = useRemoteData(load)
-
-  const catalog = remote.status === 'success' ? remote.data : null
-  const kinds: Array<{ value: DirectoryKind | 'all'; label: string }> = catalog?.includeWorkers
+  const kinds: Array<{ value: DirectoryFilter; label: string }> = includeWorkers
     ? [
         { value: 'all', label: 'All' },
         { value: 'material', label: 'Materials' },
@@ -158,18 +181,21 @@ export function DirectoryPage() {
         { value: 'material', label: 'Materials' },
         { value: 'equipment', label: 'Equipment' },
       ]
-
   const activeKind = kinds.some((tab) => tab.value === kind) ? kind : 'all'
 
-  const visible = useMemo(() => {
-    const items = catalog?.items ?? []
-    const q = query.trim().toLowerCase()
-    return items.filter((item) => {
-      if (activeKind !== 'all' && item.kind !== activeKind) return false
-      if (!q) return true
-      return [item.name, item.category, item.location, item.source, item.kind].join(' ').toLowerCase().includes(q)
-    })
-  }, [activeKind, catalog, query])
+  const loadStats = useCallback(() => loadDirectoryStats(includeWorkers), [includeWorkers])
+  const statsRemote = useRemoteData(loadStats, { queryKey: ['directory', 'stats', includeWorkers] })
+  const loadPage = useCallback(
+    () => loadDirectoryPage({ page, query: debouncedQuery, kind: activeKind, includeWorkers }),
+    [activeKind, debouncedQuery, includeWorkers, page],
+  )
+  const remote = useRemoteData(loadPage, {
+    queryKey: ['directory', 'page', includeWorkers, activeKind, page, debouncedQuery],
+  })
+
+  const stats = statsRemote.status === 'success' ? statsRemote.data : null
+  const items = remote.status === 'success' ? remote.data.items : []
+  const total = remote.status === 'success' ? remote.data.total : 0
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -183,14 +209,14 @@ export function DirectoryPage() {
         }
       />
 
-      {catalog ? (
+      {stats ? (
         <div className={STAT_GRID_CLASS}>
-          <StatCard icon={Layers} label="Items" value={catalog.materials + catalog.equipment + catalog.workers} />
-          <StatCard icon={Box} label="Materials" value={catalog.materials} />
-          <StatCard icon={Wrench} label="Equipment" value={catalog.equipment} />
-          {catalog.includeWorkers ? <StatCard icon={HardHat} label="Workers" value={catalog.workers} /> : null}
+          <StatCard icon={Layers} label="Items" value={stats.materials + stats.equipment + stats.workers} />
+          <StatCard icon={Box} label="Materials" value={stats.materials} />
+          <StatCard icon={Wrench} label="Equipment" value={stats.equipment} />
+          {includeWorkers ? <StatCard icon={HardHat} label="Workers" value={stats.workers} /> : null}
         </div>
-      ) : remote.isLoading ? (
+      ) : statsRemote.isLoading ? (
         <StatGridSkeleton count={includeWorkers ? 4 : 3} />
       ) : null}
 
@@ -199,6 +225,7 @@ export function DirectoryPage() {
         onValueChange={(value) => {
           if (value === 'all' || value === 'material' || value === 'equipment' || value === 'worker') {
             setKind(value)
+            setPage(1)
           }
         }}
         className="min-w-0 gap-3"
@@ -226,7 +253,8 @@ export function DirectoryPage() {
             onRetry={() => void remote.refetch()}
             loadingFallback={<CardGridSkeleton />}
           >
-            <DirectoryCards items={visible} />
+            <DirectoryCards items={items} />
+            <TablePager page={page} totalPages={pageCount(total)} total={total} onPageChange={setPage} />
           </AsyncState>
         </TabsContent>
       </Tabs>

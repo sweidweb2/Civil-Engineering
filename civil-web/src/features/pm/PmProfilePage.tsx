@@ -43,7 +43,7 @@ export function PmProfilePage() {
     if (!userId) return Promise.reject(new Error('Sign in to view your profile'))
     return getUser(userId).then((result) => result.data)
   }, [userId])
-  const remote = useRemoteData(loadProfile)
+  const remote = useRemoteData(loadProfile, { queryKey: ['users', 'profile', userId ?? ''] })
   const account = remote.status === 'success' ? remote.data : null
 
   useEffect(() => {

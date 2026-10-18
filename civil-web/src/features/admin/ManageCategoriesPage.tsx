@@ -38,6 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedSearch } from '@/hooks/usePagedSearch'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
@@ -82,9 +83,7 @@ function formFromCategory(category: Category): CategoryForm {
 export function ManageCategoriesPage() {
   useDocumentTitle('Manage categories')
   const { isAdmin } = usePermissions()
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Category | null>(null)
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM)
@@ -93,19 +92,11 @@ export function ManageCategoriesPage() {
   const [pendingDelete, setPendingDelete] = useState<Category | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedQuery(query.trim())
-      setPage(1)
-    }, 300)
-    return () => window.clearTimeout(timer)
-  }, [query])
-
   const load = useCallback(
     () => listCategories(page, PAGE_SIZE, { q: debouncedQuery || undefined }),
     [debouncedQuery, page],
   )
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['categories', page, debouncedQuery] })
   const rows = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const counts = remote.status === 'success' ? remote.data.meta.kindCounts : EMPTY_COUNTS

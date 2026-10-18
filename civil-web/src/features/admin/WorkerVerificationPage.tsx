@@ -1,5 +1,5 @@
+import { useCallback, useState } from 'react'
 import { BadgeCheck, ChevronsRight, Clock, HardHat, ShieldOff, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -35,15 +35,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedSearch } from '@/hooks/usePagedSearch'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
 import {
+  type ApiVerificationStatus,
   createVerification,
   deleteVerification,
   listVerifications,
   setVerification,
-  type ApiVerificationStatus,
   type VerificationCounts,
 } from '@/services/users'
 
@@ -86,30 +87,23 @@ function toWorkerRow(user: Parameters<typeof toAdminUserRow>[0]): WorkerVerifica
 
 export function WorkerVerificationPage() {
   useDocumentTitle('Worker verification')
-  const [query, setQuery] = useState('')
-  const [appliedQuery, setAppliedQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedSearch()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [isSaving, setIsSaving] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<WorkerVerificationRow | null>(null)
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => setAppliedQuery(query.trim()), 300)
-    return () => window.clearTimeout(handle)
-  }, [query])
-
   const load = useCallback(
     () =>
       listVerifications({
         page,
         limit: PAGE_SIZE,
-        q: appliedQuery || undefined,
+        q: debouncedQuery || undefined,
       }),
-    [appliedQuery, page],
+    [debouncedQuery, page],
   )
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['users', 'verifications', page, debouncedQuery] })
   const payload = remote.status === 'success' ? remote.data : null
   const rows = payload ? payload.data.map(toWorkerRow) : []
   const counts = payload?.meta.counts ?? EMPTY_COUNTS
@@ -150,11 +144,10 @@ export function WorkerVerificationPage() {
       })
       setForm(EMPTY_FORM)
       setDialogOpen(false)
-      setPage(1)
-      setQuery('')
-      setAppliedQuery('')
+      const staysOnFirstPage = page === 1 && debouncedQuery === '' && query === ''
+      resetSearch()
       toast.success('Verification request created')
-      if (page === 1 && appliedQuery === '' && query === '') await remote.refetch()
+      if (staysOnFirstPage) await remote.refetch()
     } catch (error) {
       if (error instanceof ApiError) toast.error(error.message)
       else toast.error('Could not create verification request')
@@ -217,10 +210,7 @@ export function WorkerVerificationPage() {
           toolbar={
             <Input
               value={query}
-              onChange={(event) => {
-                setQuery(event.target.value)
-                setPage(1)
-              }}
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="Filter workers…"
               aria-label="Filter workers"
               className="max-w-sm"

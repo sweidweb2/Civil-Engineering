@@ -110,9 +110,9 @@ export function ManageNotificationsPage() {
   const limit = 20
 
   const load = useCallback(() => listNotifications(page, limit, true), [page])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { queryKey: ['notifications', 'admin', page] })
   const loadUsers = useCallback(() => listAllUsers(), [])
-  const usersRemote = useRemoteData(loadUsers)
+  const usersRemote = useRemoteData(loadUsers, { queryKey: ['users', 'directory'] })
 
   const notifications: Notification[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0

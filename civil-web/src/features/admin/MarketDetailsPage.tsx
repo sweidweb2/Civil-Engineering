@@ -55,7 +55,10 @@ export function MarketDetailsPage() {
     const result = await getProvider(providerId)
     return result.data
   }, [providerId])
-  const remote = useRemoteData(load, { enabled: Boolean(providerId) })
+  const remote = useRemoteData(load, {
+    enabled: Boolean(providerId),
+    queryKey: ['providers', 'detail', providerId ?? ''],
+  })
   const provider = updated ?? (remote.status === 'success' ? remote.data : undefined)
   useDocumentTitle(provider ? provider.name : 'Provider details')
 

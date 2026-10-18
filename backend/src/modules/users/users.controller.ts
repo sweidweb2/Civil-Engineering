@@ -6,6 +6,7 @@ import type { UsersService } from './users.service.js'
 
 export type UsersController = {
   list: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  listLookup: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getById: (req: Request, res: Response, next: NextFunction) => Promise<void>
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>
@@ -27,6 +28,14 @@ export function createUsersController(service: UsersService): UsersController {
       try {
         const query = req.query as unknown as ListUsersQuery
         const result = await service.listUsers(query)
+        res.status(200).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+    async listLookup(_req, res, next) {
+      try {
+        const result = await service.listLookup()
         res.status(200).json(result)
       } catch (error) {
         next(error)

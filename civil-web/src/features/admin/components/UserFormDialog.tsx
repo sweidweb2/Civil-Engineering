@@ -26,7 +26,7 @@ import {
   isUserRole,
   USER_ROLE_OPTIONS,
   type UserFormValues,
-} from '../usersStore'
+} from '../users.rows'
 
 type UserFormDialogProps = {
   open: boolean

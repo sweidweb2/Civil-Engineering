@@ -39,7 +39,11 @@ describe('usersService', () => {
   beforeEach(() => {
     repository = {
       findMany: vi.fn(async () => ({ users: [makeUser()], total: 1 })),
+      findLookup: vi.fn(async () => [
+        { id: 'user-1', email: 'user@example.com', name: 'Ada Lovelace' },
+      ]),
       countDirectory: vi.fn(async () => ({
+        accounts: 4,
         active: 4,
         inactive: 1,
         managers: 2,
@@ -97,6 +101,13 @@ describe('usersService', () => {
     }
   })
 
+  it('returns lean lookup rows for recipient pickers', async () => {
+    const service = createUsersService(repository)
+    await expect(service.listLookup()).resolves.toEqual({
+      data: [{ id: 'user-1', email: 'user@example.com', name: 'Ada Lovelace' }],
+    })
+  })
+
   it('lists users with pagination meta', async () => {
     const service = createUsersService(repository)
     const result = await service.listUsers({ page: 1, limit: 20 })
@@ -106,7 +117,7 @@ describe('usersService', () => {
       page: 1,
       limit: 20,
       totalPages: 1,
-      counts: { active: 4, inactive: 1, managers: 2 },
+      counts: { accounts: 4, active: 4, inactive: 1, managers: 2 },
     })
   })
 

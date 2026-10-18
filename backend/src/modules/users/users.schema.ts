@@ -2,22 +2,28 @@ import { z } from 'zod'
 
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 
+const optionalSearchQuery = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().max(120).optional(),
+)
+
 export const userIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'User ID is required'),
 })
 
-export const listUsersQuerySchema = paginationQuerySchema
+export const listUsersQuerySchema = paginationQuerySchema.extend({
+  q: optionalSearchQuery,
+})
 
 export const approvalStatusSchema = z.enum(['pending', 'approved'])
 
 export const approvalRoleSchema = z.enum(['MANAGER', 'PROVIDER', 'WORKER'])
 
+export const verificationStatusSchema = z.enum(['UNVERIFIED', 'REQUESTED', 'VERIFIED'])
+
 export const listApprovalsQuerySchema = paginationQuerySchema.extend({
   approval: approvalStatusSchema.default('pending'),
-  q: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-    z.string().trim().max(120).optional(),
-  ),
+  q: optionalSearchQuery,
 })
 
 export const createUserBodySchema = z.object({
@@ -61,13 +67,9 @@ const profileFields = {
 }
 
 export const listVerificationsQuerySchema = paginationQuerySchema.extend({
-  q: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-    z.string().trim().max(120).optional(),
-  ),
+  q: optionalSearchQuery,
+  status: verificationStatusSchema.optional(),
 })
-
-export const verificationStatusSchema = z.enum(['UNVERIFIED', 'REQUESTED', 'VERIFIED'])
 
 export const setVerificationBodySchema = z.object({
   verificationStatus: verificationStatusSchema,

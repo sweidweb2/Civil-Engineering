@@ -41,7 +41,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { PageHeader } from '@/components/layout/page-header'
+import { PageHeader, TablePager } from '@/components/layout'
 import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -56,7 +56,7 @@ import {
   restoreNotification,
   updateNotification,
 } from '@/services/notifications'
-import { listAllUsers, type User } from '@/services/users'
+import { listUserLookups, type UserLookup } from '@/services/users'
 import { cn } from '@/lib/utils'
 
 type CreateMode = 'single' | 'broadcast'
@@ -78,18 +78,15 @@ const NOTIFICATION_TYPE_OPTIONS: Array<{ value: NotificationType; label: string 
   { value: 'SYSTEM', label: 'System' },
 ]
 
-function userLabel(user: User): string {
-  const profile = user.profile
-  const name =
-    profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
-  return name ? `${name} · ${user.email}` : user.email
+function userLabel(user: UserLookup): string {
+  return user.name ? `${user.name} · ${user.email}` : user.email
 }
 
 function notificationTypeLabel(type: NotificationType): string {
   return NOTIFICATION_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type
 }
 
-function receiverLabel(users: User[], receiverId: string): string {
+function receiverLabel(users: UserLookup[], receiverId: string): string {
   const receiver = users.find((user) => user.id === receiverId)
   return receiver ? userLabel(receiver) : 'Unknown'
 }
@@ -111,14 +108,14 @@ export function ManageNotificationsPage() {
 
   const load = useCallback(() => listNotifications(page, limit, true), [page])
   const remote = useRemoteData(load, { queryKey: ['notifications', 'admin', page] })
-  const loadUsers = useCallback(() => listAllUsers(), [])
-  const usersRemote = useRemoteData(loadUsers, { queryKey: ['users', 'directory'] })
+  const loadUsers = useCallback(() => listUserLookups(), [])
+  const usersRemote = useRemoteData(loadUsers, { queryKey: ['users', 'lookup'] })
 
   const notifications: Notification[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const counts = remote.status === 'success' ? remote.data.meta.counts : null
-  const totalPages = remote.status === 'success' ? remote.data.meta.totalPages : 1
-  const users: User[] = usersRemote.status === 'success' ? usersRemote.data : []
+  const totalPages = Math.max(1, remote.status === 'success' ? remote.data.meta.totalPages : 1)
+  const users: UserLookup[] = usersRemote.status === 'success' ? usersRemote.data.data : []
 
   const [formData, setFormData] = useState({
     receiverId: '',
@@ -407,31 +404,9 @@ export function ManageNotificationsPage() {
               </TableBody>
             </Table>
 
-            {totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between gap-2">
-                <p className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages} ({total} total)
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
+            <div className="mt-4">
+              <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+            </div>
           </CardContent>
         </Card>
       </AsyncState>

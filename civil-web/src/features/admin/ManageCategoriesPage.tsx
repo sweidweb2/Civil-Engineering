@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
@@ -55,9 +55,7 @@ import {
   updateCategory,
 } from '@/services/categories'
 
-import { DataPanel, RowActions } from './components/DataPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: CategoryKindCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0, WORKER: 0 }
@@ -83,7 +81,7 @@ function formFromCategory(category: Category): CategoryForm {
 export function ManageCategoriesPage() {
   useDocumentTitle('Manage categories')
   const { isAdmin } = usePermissions()
-  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Category | null>(null)
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM)

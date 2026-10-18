@@ -4,21 +4,19 @@ import { useLocation } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, CivilCardMedia, StatGridSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { PageHeader, TablePager, ToolbarCard } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { type Listing, type ListingType,listListings } from '@/services/listings'
 import { listVerifications, type User } from '@/services/users'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
-import { ToolbarCard } from './components/DataPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { directoryWindows, readPageWindow } from './lib/directory-page'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
@@ -166,7 +164,7 @@ export function DirectoryPage() {
   useDocumentTitle('Directory')
   const location = useLocation()
   const includeWorkers = !location.pathname.startsWith('/pm')
-  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [kind, setKind] = useState<DirectoryFilter>('all')
 
   const kinds: Array<{ value: DirectoryFilter; label: string }> = includeWorkers

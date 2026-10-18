@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { DataPanel, RowActions, TablePager, ToolbarCard } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,8 +34,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
@@ -49,12 +49,10 @@ import {
 } from '@/services/users'
 
 import type { VerificationStatus, WorkerVerificationRow } from './admin.types'
-import { DataPanel, RowActions } from './components/DataPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { UserAttributeCells, VerificationBadge, WORKER_TABLE_HEADERS } from './components/UserCells'
 import { PAGE_SIZE } from './lib/text'
-import { toAdminUserRow } from './usersStore'
+import { toAdminUserRow } from './users.rows'
 
 const NEXT_STATUS: Record<VerificationStatus, ApiVerificationStatus> = {
   unverified: 'REQUESTED',
@@ -67,6 +65,13 @@ const NEXT_LABEL: Record<VerificationStatus, string> = {
   requested: 'Mark verified',
   verified: 'Mark unverified',
 }
+
+const STATUS_TABS: Array<{ value: 'all' | ApiVerificationStatus; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'UNVERIFIED', label: 'Unverified' },
+  { value: 'REQUESTED', label: 'Requested' },
+  { value: 'VERIFIED', label: 'Verified' },
+]
 
 const EMPTY_COUNTS: VerificationCounts = { workers: 0, unverified: 0, requested: 0, verified: 0 }
 
@@ -85,9 +90,9 @@ function toWorkerRow(user: Parameters<typeof toAdminUserRow>[0]): WorkerVerifica
   }
 }
 
-export function WorkerVerificationPage() {
-  useDocumentTitle('Worker verification')
-  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedSearch()
+export function VerificationQueue() {
+  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedQuery()
+  const [status, setStatus] = useState<(typeof STATUS_TABS)[number]['value']>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [isSaving, setIsSaving] = useState(false)
@@ -100,10 +105,11 @@ export function WorkerVerificationPage() {
         page,
         limit: PAGE_SIZE,
         q: debouncedQuery || undefined,
+        status: status === 'all' ? undefined : status,
       }),
-    [debouncedQuery, page],
+    [debouncedQuery, page, status],
   )
-  const remote = useRemoteData(load, { queryKey: ['users', 'verifications', page, debouncedQuery] })
+  const remote = useRemoteData(load, { queryKey: ['users', 'verifications', page, debouncedQuery, status] })
   const payload = remote.status === 'success' ? remote.data : null
   const rows = payload ? payload.data.map(toWorkerRow) : []
   const counts = payload?.meta.counts ?? EMPTY_COUNTS
@@ -165,17 +171,6 @@ export function WorkerVerificationPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <PageHeader
-        className="mb-0"
-        title="Worker verification"
-        description="Unverified workers stay off the public marketplace. Flow: Unverified → Requested → Verified."
-        actions={
-          <Button type="button" onClick={() => setDialogOpen(true)}>
-            Add request
-          </Button>
-        }
-      />
-
       <div className={STAT_GRID_CLASS}>
         <StatCard icon={HardHat} label="Workers" value={counts.workers} />
         <StatCard icon={ShieldOff} label="Unverified" value={counts.unverified} />
@@ -200,6 +195,36 @@ export function WorkerVerificationPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ToolbarCard>
+        <Tabs
+          value={status}
+          onValueChange={(value) => {
+            const next = STATUS_TABS.find((item) => item.value === value)
+            if (!next) return
+            setStatus(next.value)
+            setPage(1)
+          }}
+        >
+          <TabsList>
+            {STATUS_TABS.map((item) => (
+              <TabsTrigger key={item.value} value={item.value}>
+                {item.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search workers…"
+          aria-label="Search workers"
+          className="max-w-sm"
+        />
+        <Button type="button" className="ms-auto" onClick={() => setDialogOpen(true)}>
+          Add request
+        </Button>
+      </ToolbarCard>
+
       <AsyncState
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
@@ -207,15 +232,6 @@ export function WorkerVerificationPage() {
         loadingFallback={<TableSkeleton columns={WORKER_TABLE_HEADERS.length + 2} />}
       >
         <DataPanel
-          toolbar={
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter workers…"
-              aria-label="Filter workers"
-              className="max-w-sm"
-            />
-          }
           footer={
             <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
           }

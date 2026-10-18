@@ -28,6 +28,7 @@ export function createUsersRoutes(controller: UsersController): Router {
     validate({ query: listUsersQuerySchema }),
     controller.list,
   )
+  router.get('/lookup', authorize(...ADMIN_ROLES), controller.listLookup)
   router.get(
     '/approvals',
     authorize(...ADMIN_ROLES),

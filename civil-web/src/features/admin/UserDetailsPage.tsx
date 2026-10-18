@@ -31,7 +31,7 @@ import {
 
 import { UserFormDialog } from './components/UserFormDialog'
 import { formatWhen } from './lib/text'
-import { formFromUser, roleLabel, toAdminUserRow, userStatusLabel, type UserFormValues } from './usersStore'
+import { formFromUser, roleLabel, toAdminUserRow, userStatusLabel, type UserFormValues } from './users.rows'
 
 export function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>()

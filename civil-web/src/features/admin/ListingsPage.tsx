@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, civilIllustrationSrc, TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
@@ -40,10 +40,8 @@ import {
   listListings,
 } from '@/services/listings'
 
-import { DataPanel, RowActions } from './components/DataPanel'
 import { ListingFormDialog } from './components/ListingFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: ListingTypeCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 }
@@ -119,7 +117,7 @@ export function ListingsPage() {
 export function ListingsBrowser({ providerId }: { providerId?: string }) {
   const embedded = Boolean(providerId)
   const { isAdmin } = usePermissions()
-  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [view, setView] = useState<ListingView>(embedded ? 'table' : 'cards')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Listing | null>(null)

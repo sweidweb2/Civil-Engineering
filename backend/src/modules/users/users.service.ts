@@ -13,7 +13,13 @@ import type {
   SetVerificationBody,
   UpdateUserBody,
 } from './users.schema.js'
-import { APPROVAL_ROLES, type ApprovalRole, type User, type VerificationStatus } from './users.types.js'
+import {
+  APPROVAL_ROLES,
+  type ApprovalRole,
+  type User,
+  type UserLookup,
+  type VerificationStatus,
+} from './users.types.js'
 
 export type UsersService = {
   listUsers: (
@@ -22,6 +28,7 @@ export type UsersService = {
     data: User[]
     meta: { total: number; page: number; limit: number; totalPages: number; counts: UserDirectoryCounts }
   }>
+  listLookup: () => Promise<{ data: UserLookup[] }>
   getUserById: (id: string) => Promise<User>
   /** Self or admin may read a user record. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<User>
@@ -118,6 +125,10 @@ export function createUsersService(repository: UsersRepository): UsersService {
           counts,
         },
       }
+    },
+
+    async listLookup() {
+      return { data: await repository.findLookup() }
     },
     
     async getUserById(id) {

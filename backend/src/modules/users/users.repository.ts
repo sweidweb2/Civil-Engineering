@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import type { Prisma, Role, UserStatus, VerificationStatus } from '../../generated/prisma/client.js'
 import type { ListApprovalsQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
-import { APPROVAL_ROLES, type User } from './users.types.js'
+import { APPROVAL_ROLES, type User, type UserLookup } from './users.types.js'
 
 type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>
 
@@ -56,6 +56,7 @@ export type VerificationCounts = {
 export type UserRoleCounts = Record<Role, number>
 
 export type UserDirectoryCounts = {
+  accounts: number
   active: number
   inactive: number
   managers: number
@@ -70,8 +71,30 @@ export type UserDirectoryCounts = {
   roles: UserRoleCounts
 }
 
+type DirectoryCountRow = {
+  accounts: number | bigint
+  active: number | bigint
+  inactive: number | bigint
+  managers: number | bigint
+  createdThisMonth: number | bigint
+  createdLastMonth: number | bigint
+  activeCreatedThisMonth: number | bigint
+  activeCreatedLastMonth: number | bigint
+  inactiveCreatedThisMonth: number | bigint
+  inactiveCreatedLastMonth: number | bigint
+  managersCreatedThisMonth: number | bigint
+  managersCreatedLastMonth: number | bigint
+  roleSuper: number | bigint
+  roleAdmin: number | bigint
+  roleManager: number | bigint
+  roleProvider: number | bigint
+  roleWorker: number | bigint
+  roleClient: number | bigint
+}
+
 export type UsersRepository = {
   findMany: (query: ListUsersQuery) => Promise<{ users: User[]; total: number }>
+  findLookup: () => Promise<UserLookup[]>
   countDirectory: () => Promise<UserDirectoryCounts>
   findApprovals: (query: ListApprovalsQuery) => Promise<{ users: User[]; total: number }>
   countApprovals: () => Promise<ApprovalCounts>
@@ -92,57 +115,54 @@ function isPrismaCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code
 }
 
-function approvalWhere(query: ListApprovalsQuery): Prisma.UserWhereInput {
-  const q = query.q?.trim()
+function userSearchWhere(q: string | undefined): Prisma.UserWhereInput {
+  const query = q?.trim()
+  if (!query) return {}
   return {
-    role: { in: approvalRoles },
-    status: query.approval === 'pending' ? 'PENDING' : 'ACTIVE',
-    ...(q
-      ? {
-          OR: [
-            { email: { contains: q, mode: 'insensitive' } },
-            {
-              profile: {
-                is: {
-                  OR: [
-                    { firstName: { contains: q, mode: 'insensitive' } },
-                    { lastName: { contains: q, mode: 'insensitive' } },
-                    { displayName: { contains: q, mode: 'insensitive' } },
-                    { phone: { contains: q, mode: 'insensitive' } },
-                  ],
-                },
-              },
-            },
-          ],
-        }
-      : {}),
+    OR: [
+      { email: { contains: query, mode: 'insensitive' } },
+      {
+        profile: {
+          is: {
+            OR: [
+              { firstName: { contains: query, mode: 'insensitive' } },
+              { lastName: { contains: query, mode: 'insensitive' } },
+              { displayName: { contains: query, mode: 'insensitive' } },
+              { phone: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+        },
+      },
+    ],
   }
 }
 
-function workerWhere(q: string | undefined): Prisma.UserWhereInput {
-  const query = q?.trim()
+function approvalWhere(query: ListApprovalsQuery): Prisma.UserWhereInput {
+  return {
+    role: { in: approvalRoles },
+    status: query.approval === 'pending' ? 'PENDING' : 'ACTIVE',
+    ...userSearchWhere(query.q),
+  }
+}
+
+function workerWhere(q: string | undefined, status?: VerificationStatus): Prisma.UserWhereInput {
   return {
     role: 'WORKER',
-    ...(query
-      ? {
-          OR: [
-            { email: { contains: query, mode: 'insensitive' } },
-            {
-              profile: {
-                is: {
-                  OR: [
-                    { firstName: { contains: query, mode: 'insensitive' } },
-                    { lastName: { contains: query, mode: 'insensitive' } },
-                    { displayName: { contains: query, mode: 'insensitive' } },
-                    { phone: { contains: query, mode: 'insensitive' } },
-                  ],
-                },
-              },
-            },
-          ],
-        }
-      : {}),
+    ...(status ? { verificationStatus: status } : {}),
+    ...userSearchWhere(q),
   }
+}
+
+function profileName(
+  profile: { displayName: string | null; firstName: string | null; lastName: string | null } | null,
+): string {
+  if (!profile) return ''
+  const display = profile.displayName?.trim()
+  if (display) return display
+  return [profile.firstName, profile.lastName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(' ')
 }
 
 function mapToUser(user: UserWithProfile): User {
@@ -172,16 +192,17 @@ export function createUsersRepository(): UsersRepository {
     async findMany(query) {
       const page = query.page ?? 1
       const limit = query.limit ?? 20
-      const skip = (page - 1) * limit
+      const where = userSearchWhere(query.q)
 
       const [users, total] = await Promise.all([
         prisma.user.findMany({
-          skip,
+          where,
+          skip: (page - 1) * limit,
           take: limit,
           include: { profile: true },
           orderBy: { createdAt: 'desc' },
         }),
-        prisma.user.count(),
+        prisma.user.count({ where }),
       ])
 
       return {
@@ -190,72 +211,100 @@ export function createUsersRepository(): UsersRepository {
       }
     },
 
+    async findLookup() {
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          profile: {
+            select: {
+              displayName: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { email: 'asc' },
+      })
+      return users.map((user) => ({
+        id: user.id,
+        email: user.email,
+        name: profileName(user.profile),
+      }))
+    },
+
     async countDirectory() {
       const now = new Date()
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const createdIn = (start: Date, end: Date, extra?: Prisma.UserWhereInput) =>
-        prisma.user.count({
-          where: { ...extra, createdAt: { gte: start, lt: end } },
-        })
 
-      const [
-        active,
-        inactive,
-        managers,
-        createdThisMonth,
-        createdLastMonth,
-        activeCreatedThisMonth,
-        activeCreatedLastMonth,
-        inactiveCreatedThisMonth,
-        inactiveCreatedLastMonth,
-        managersCreatedThisMonth,
-        managersCreatedLastMonth,
-        groupedRoles,
-      ] = await Promise.all([
-        prisma.user.count({ where: { status: 'ACTIVE' } }),
-        prisma.user.count({ where: { status: 'INACTIVE' } }),
-        prisma.user.count({ where: { role: 'MANAGER' } }),
-        createdIn(thisMonth, nextMonth),
-        createdIn(lastMonth, thisMonth),
-        createdIn(thisMonth, nextMonth, { status: 'ACTIVE' }),
-        createdIn(lastMonth, thisMonth, { status: 'ACTIVE' }),
-        createdIn(thisMonth, nextMonth, { status: 'INACTIVE' }),
-        createdIn(lastMonth, thisMonth, { status: 'INACTIVE' }),
-        createdIn(thisMonth, nextMonth, { role: 'MANAGER' }),
-        createdIn(lastMonth, thisMonth, { role: 'MANAGER' }),
-        prisma.user.groupBy({
-          by: ['role'],
-          _count: { _all: true },
-        }),
-      ])
+      const [row] = await prisma.$queryRaw<DirectoryCountRow[]>`
+        SELECT
+          COUNT(*)::int AS accounts,
+          COUNT(*) FILTER (WHERE status::text = 'ACTIVE')::int AS active,
+          COUNT(*) FILTER (WHERE status::text = 'INACTIVE')::int AS inactive,
+          COUNT(*) FILTER (WHERE role::text = 'MANAGER')::int AS managers,
+          COUNT(*) FILTER (WHERE "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "createdThisMonth",
+          COUNT(*) FILTER (WHERE "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "createdLastMonth",
+          COUNT(*) FILTER (WHERE status::text = 'ACTIVE' AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "activeCreatedThisMonth",
+          COUNT(*) FILTER (WHERE status::text = 'ACTIVE' AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "activeCreatedLastMonth",
+          COUNT(*) FILTER (WHERE status::text = 'INACTIVE' AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "inactiveCreatedThisMonth",
+          COUNT(*) FILTER (WHERE status::text = 'INACTIVE' AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "inactiveCreatedLastMonth",
+          COUNT(*) FILTER (WHERE role::text = 'MANAGER' AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "managersCreatedThisMonth",
+          COUNT(*) FILTER (WHERE role::text = 'MANAGER' AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "managersCreatedLastMonth",
+          COUNT(*) FILTER (WHERE role::text = 'SUPER')::int AS "roleSuper",
+          COUNT(*) FILTER (WHERE role::text = 'ADMIN')::int AS "roleAdmin",
+          COUNT(*) FILTER (WHERE role::text = 'MANAGER')::int AS "roleManager",
+          COUNT(*) FILTER (WHERE role::text = 'PROVIDER')::int AS "roleProvider",
+          COUNT(*) FILTER (WHERE role::text = 'WORKER')::int AS "roleWorker",
+          COUNT(*) FILTER (WHERE role::text = 'CLIENT')::int AS "roleClient"
+        FROM users
+      `
 
-      const roles: UserRoleCounts = {
-        SUPER: 0,
-        ADMIN: 0,
-        MANAGER: 0,
-        PROVIDER: 0,
-        WORKER: 0,
-        CLIENT: 0,
-      }
-      for (const row of groupedRoles) {
-        roles[row.role] = row._count._all
+      const count = (value: number | bigint | null | undefined) => Number(value ?? 0)
+      const current = row ?? {
+        accounts: 0,
+        active: 0,
+        inactive: 0,
+        managers: 0,
+        createdThisMonth: 0,
+        createdLastMonth: 0,
+        activeCreatedThisMonth: 0,
+        activeCreatedLastMonth: 0,
+        inactiveCreatedThisMonth: 0,
+        inactiveCreatedLastMonth: 0,
+        managersCreatedThisMonth: 0,
+        managersCreatedLastMonth: 0,
+        roleSuper: 0,
+        roleAdmin: 0,
+        roleManager: 0,
+        roleProvider: 0,
+        roleWorker: 0,
+        roleClient: 0,
       }
 
       return {
-        active,
-        inactive,
-        managers,
-        createdThisMonth,
-        createdLastMonth,
-        activeCreatedThisMonth,
-        activeCreatedLastMonth,
-        inactiveCreatedThisMonth,
-        inactiveCreatedLastMonth,
-        managersCreatedThisMonth,
-        managersCreatedLastMonth,
-        roles,
+        accounts: count(current.accounts),
+        active: count(current.active),
+        inactive: count(current.inactive),
+        managers: count(current.managers),
+        createdThisMonth: count(current.createdThisMonth),
+        createdLastMonth: count(current.createdLastMonth),
+        activeCreatedThisMonth: count(current.activeCreatedThisMonth),
+        activeCreatedLastMonth: count(current.activeCreatedLastMonth),
+        inactiveCreatedThisMonth: count(current.inactiveCreatedThisMonth),
+        inactiveCreatedLastMonth: count(current.inactiveCreatedLastMonth),
+        managersCreatedThisMonth: count(current.managersCreatedThisMonth),
+        managersCreatedLastMonth: count(current.managersCreatedLastMonth),
+        roles: {
+          SUPER: count(current.roleSuper),
+          ADMIN: count(current.roleAdmin),
+          MANAGER: count(current.roleManager),
+          PROVIDER: count(current.roleProvider),
+          WORKER: count(current.roleWorker),
+          CLIENT: count(current.roleClient),
+        },
       }
     },
 
@@ -292,7 +341,7 @@ export function createUsersRepository(): UsersRepository {
     async findVerifications(query) {
       const page = query.page ?? 1
       const limit = query.limit ?? 20
-      const where = workerWhere(query.q)
+      const where = workerWhere(query.q, query.status)
       const [users, total] = await Promise.all([
         prisma.user.findMany({
           where,

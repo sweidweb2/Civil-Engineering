@@ -6,7 +6,7 @@ const SEARCH_DELAY_MS = 300
  * Shared search box state for admin lists: debounced query and a page index
  * that returns to 1 when the debounced query changes.
  */
-export function usePagedSearch() {
+export function usePagedQuery() {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [page, setPage] = useState(1)

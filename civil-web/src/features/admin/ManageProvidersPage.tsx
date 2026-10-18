@@ -4,13 +4,13 @@ import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, ProviderCardMedia } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { PageHeader, TablePager, ToolbarCard } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
   listProviders,
@@ -20,10 +20,8 @@ import {
   providerStatusLabel,
 } from '@/services/providers'
 
-import { ToolbarCard } from './components/DataPanel'
 import { ProviderFormDialog } from './components/ProviderFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: ProviderStatusCounts = { PENDING: 0, APPROVED: 0, SUSPENDED: 0 }
@@ -39,7 +37,7 @@ function ProviderStatusBadge({ status }: { status: ProviderStatus }) {
 
 export function ManageProvidersPage() {
   useDocumentTitle('Manage providers')
-  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [createOpen, setCreateOpen] = useState(false)
 
   const load = useCallback(

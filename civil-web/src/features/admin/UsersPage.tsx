@@ -1,5 +1,5 @@
 import { Briefcase, ChevronDown, Eye, MoreHorizontal, Plus, Trash2, UserCheck, Users, UserX } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -44,6 +44,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { cn } from '@/lib/utils'
@@ -55,10 +56,8 @@ import {
   listUsers,
   updateUser,
   type UserDirectoryCounts,
-  type UserStatus,
 } from '@/services/users'
 
-import { DataPanel, RowActions } from './components/DataPanel'
 import { UserFormDialog } from './components/UserFormDialog'
 import { RoleBarChart } from './components/RoleBarChart'
 import {
@@ -67,13 +66,13 @@ import {
   ProjectMetricCardSkeleton,
 } from './components/ProjectMetricCard'
 import { STAT_GRID_CLASS } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { UserAttributeCells, USER_TABLE_HEADERS } from './components/UserCells'
 import { PAGE_SIZE, pageCount } from './lib/text'
 import { readUsersPageLayout, writeUsersPageLayout } from './lib/users-layout'
-import { matchesUserQuery, toAdminUserRow, type UserFormValues } from './usersStore'
+import { toAdminUserRow, type UserFormValues } from './users.rows'
 
 const EMPTY_COUNTS: UserDirectoryCounts = {
+  accounts: 0,
   active: 0,
   inactive: 0,
   managers: 0,
@@ -88,46 +87,12 @@ const EMPTY_COUNTS: UserDirectoryCounts = {
   roles: { SUPER: 0, ADMIN: 0, MANAGER: 0, PROVIDER: 0, WORKER: 0, CLIENT: 0 },
 }
 
-function createdInMonth(iso: string, offset: number): boolean {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1).getTime()
-  const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 1).getTime()
-  const created = new Date(iso).getTime()
-  return created >= start && created < end
-}
-
-function shiftStatusCounts(
-  counts: UserDirectoryCounts,
-  from: UserStatus,
-  to: UserStatus,
-  createdAt: string,
-): UserDirectoryCounts {
-  if (from === to) return counts
-  const next = { ...counts }
-  const bump = (status: UserStatus, delta: number) => {
-    if (status === 'ACTIVE') next.active += delta
-    if (status === 'INACTIVE') next.inactive += delta
-    if (createdInMonth(createdAt, 0)) {
-      if (status === 'ACTIVE') next.activeCreatedThisMonth += delta
-      if (status === 'INACTIVE') next.inactiveCreatedThisMonth += delta
-    }
-    if (createdInMonth(createdAt, -1)) {
-      if (status === 'ACTIVE') next.activeCreatedLastMonth += delta
-      if (status === 'INACTIVE') next.inactiveCreatedLastMonth += delta
-    }
-  }
-  bump(from, -1)
-  bump(to, 1)
-  return next
-}
-
 export function UsersPage() {
   useDocumentTitle('Users')
   const location = useLocation()
   const navigate = useNavigate()
   const usersPath = `${portalBaseFromPath(location.pathname)}/users`
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedQuery()
   const [chartsOpen, setChartsOpen] = useState(true)
   const [showUsage, setShowUsage] = useState(() => readUsersPageLayout().showUsage)
   const [layoutOpen, setLayoutOpen] = useState(false)
@@ -136,9 +101,11 @@ export function UsersPage() {
   const [pendingDeactivate, setPendingDeactivate] = useState<{ id: string; email: string } | null>(null)
   const [isDeactivating, setIsDeactivating] = useState(false)
 
-  const load = useCallback(() => listUsers(page, PAGE_SIZE), [page])
-  const remote = useRemoteData(load, { queryKey: ['users', 'list', page] })
-  const statusToggleGeneration = useRef(new Map<string, number>())
+  const load = useCallback(
+    () => listUsers(page, PAGE_SIZE, debouncedQuery || undefined),
+    [debouncedQuery, page],
+  )
+  const remote = useRemoteData(load, { queryKey: ['users', 'list', page, debouncedQuery] })
 
   const rows = useMemo(
     () => (remote.status === 'success' ? remote.data.data.map(toAdminUserRow) : []),
@@ -148,43 +115,16 @@ export function UsersPage() {
   const totalPages = remote.status === 'success' ? remote.data.meta.totalPages : pageCount(total)
   const counts = remote.status === 'success' ? remote.data.meta.counts : EMPTY_COUNTS
 
-  const filtered = useMemo(() => rows.filter((row) => matchesUserQuery(row, query)), [rows, query])
-
   async function onToggleStatus(id: string) {
     if (remote.status !== 'success') return
     const current = remote.data.data.find((item) => item.id === id)
     if (!current) return
     const nextStatus = current.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-    const generation = (statusToggleGeneration.current.get(id) ?? 0) + 1
-    statusToggleGeneration.current.set(id, generation)
-
-    remote.mutate((pageData) => ({
-      ...pageData,
-      data: pageData.data.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)),
-      meta: {
-        ...pageData.meta,
-        counts: shiftStatusCounts(pageData.meta.counts, current.status, nextStatus, current.createdAt),
-      },
-    }))
-
     try {
-      const result = await updateUser(id, { status: nextStatus })
-      if (statusToggleGeneration.current.get(id) !== generation) return
-      remote.mutate((pageData) => ({
-        ...pageData,
-        data: pageData.data.map((item) => (item.id === id ? result.data : item)),
-      }))
+      await updateUser(id, { status: nextStatus })
       toast.success('Status updated')
+      await remote.refetch()
     } catch (error) {
-      if (statusToggleGeneration.current.get(id) !== generation) return
-      remote.mutate((pageData) => ({
-        ...pageData,
-        data: pageData.data.map((item) => (item.id === id ? current : item)),
-        meta: {
-          ...pageData.meta,
-          counts: shiftStatusCounts(pageData.meta.counts, nextStatus, current.status, current.createdAt),
-        },
-      }))
       toastApiError(error, 'Could not update status')
     }
   }
@@ -220,8 +160,9 @@ export function UsersPage() {
       if (values.status === 'INACTIVE') {
         await deactivateUser(created.data.id)
       }
-      setPage(1)
-      await remote.refetch()
+      const staysOnFirstPage = page === 1 && debouncedQuery === '' && query === ''
+      resetSearch()
+      if (staysOnFirstPage) await remote.refetch()
       return null
     } catch (error) {
       if (error instanceof ApiError) return error.message
@@ -274,7 +215,7 @@ export function UsersPage() {
           <ProjectMetricCard
             icon={Users}
             label="Users"
-            value={String(total)}
+            value={String(counts.accounts)}
             change={monthOverMonth(counts.createdThisMonth, counts.createdLastMonth)}
           />
           <ProjectMetricCard
@@ -409,11 +350,9 @@ export function UsersPage() {
           toolbar={
             <Input
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-              }}
-              placeholder="Filter this page…"
-              aria-label="Filter users"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search users…"
+              aria-label="Search users"
               className="max-w-sm"
             />
           }
@@ -436,14 +375,14 @@ export function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={USER_TABLE_HEADERS.length + 1} className="text-muted-foreground">
                     No users match.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((row) => (
+                rows.map((row) => (
                   <TableRow
                     key={row.id}
                     clickable

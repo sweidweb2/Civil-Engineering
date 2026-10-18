@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { RequireAuth, RequireRole } from '@/components/auth'
 import { InlineSpinner } from '@/components/feedback/async-state'
@@ -22,11 +22,10 @@ import { ManageReviewsPage } from '@/features/admin/ManageReviewsPage'
 import { MarketDetailsPage } from '@/features/admin/MarketDetailsPage'
 import { ProjectsListPage } from '@/features/admin/ProjectsListPage'
 import { ProjectDetailPage } from '@/features/admin/ProjectDetailPage'
-import { RegistrationApprovalsPage } from '@/features/admin/RegistrationApprovalsPage'
 import { SettingsPage } from '@/features/admin/SettingsPage'
 import { UserDetailsPage } from '@/features/admin/UserDetailsPage'
+import { UserQueuePage } from '@/features/admin/UserQueuePage'
 import { UsersPage } from '@/features/admin/UsersPage'
-import { WorkerVerificationPage } from '@/features/admin/WorkerVerificationPage'
 import { NotificationsInboxPage } from '@/features/notifications/NotificationsInboxPage'
 import { PmAnalyticsPage } from '@/features/pm/PmAnalyticsPage'
 import { PmProfilePage } from '@/features/pm/PmProfilePage'
@@ -109,10 +108,11 @@ function App() {
             }
           >
             <Route index element={<AdminAnalyticsPage />} />
-            <Route path="approvals" element={<RegistrationApprovalsPage />} />
+            <Route path="queue" element={<UserQueuePage />} />
+            <Route path="approvals" element={<Navigate to="/admin/queue" replace />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="users/:userId" element={<UserDetailsPage />} />
-            <Route path="verification" element={<WorkerVerificationPage />} />
+            <Route path="verification" element={<Navigate to="/admin/queue?view=verification" replace />} />
             <Route path="providers" element={<ManageProvidersPage />} />
             <Route path="providers/:providerId" element={<MarketDetailsPage />} />
             <Route path="projects" element={<ProjectsListPage />} />

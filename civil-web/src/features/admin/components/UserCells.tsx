@@ -9,7 +9,7 @@ import { TableCell } from '@/components/ui/table'
 
 import type { AdminUserRow, UserStatus, VerificationStatus } from '../admin.types'
 import { ellipsis } from '../lib/text'
-import { roleLabel, userStatusLabel } from '../usersStore'
+import { roleLabel, userStatusLabel } from '../users.rows'
 
 async function copyValue(value: string, label: string) {
   try {

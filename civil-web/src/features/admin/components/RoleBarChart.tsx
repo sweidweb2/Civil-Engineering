@@ -1,7 +1,7 @@
 import type { AuthRole } from '@/services/auth'
 import type { UserRoleCounts } from '@/services/users'
 
-import { roleLabel } from '../usersStore'
+import { roleLabel } from '../users.rows'
 
 const ROLE_ORDER: AuthRole[] = ['SUPER', 'ADMIN', 'MANAGER', 'PROVIDER', 'WORKER', 'CLIENT']
 

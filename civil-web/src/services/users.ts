@@ -27,6 +27,7 @@ export type User = {
 export type UserRoleCounts = Record<AuthRole, number>
 
 export type UserDirectoryCounts = {
+  accounts: number
   active: number
   inactive: number
   managers: number
@@ -73,17 +74,19 @@ export type UpdateUserInput = {
   phone?: string
 }
 
-export async function listAllUsers(): Promise<User[]> {
-  const first = await listUsers(1, 100)
-  if (first.meta.totalPages <= 1) return first.data
-  const rest = await Promise.all(
-    Array.from({ length: first.meta.totalPages - 1 }, (_, index) => listUsers(index + 2, 100)),
-  )
-  return [first.data, ...rest.map((page) => page.data)].flat()
+export type UserLookup = {
+  id: string
+  email: string
+  name: string
 }
 
-export function listUsers(page = 1, limit = 100) {
+export function listUserLookups() {
+  return apiRequest<{ data: UserLookup[] }>('/users/lookup', { cache: 'no-store' })
+}
+
+export function listUsers(page = 1, limit = 100, q?: string) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (q) params.set('q', q)
   return apiRequest<PaginatedUsers>(`/users?${params.toString()}`, { cache: 'no-store' })
 }
 
@@ -201,12 +204,15 @@ export type CreateVerificationInput = {
 
 export type ApiVerificationStatus = User['verificationStatus']
 
-export function listVerifications(query: { page?: number; limit?: number; q?: string } = {}) {
+export function listVerifications(
+  query: { page?: number; limit?: number; q?: string; status?: ApiVerificationStatus } = {},
+) {
   const params = new URLSearchParams({
     page: String(query.page ?? 1),
     limit: String(query.limit ?? 20),
   })
   if (query.q) params.set('q', query.q)
+  if (query.status) params.set('status', query.status)
   return apiRequest<PaginatedVerifications>(`/users/verifications?${params.toString()}`)
 }
 

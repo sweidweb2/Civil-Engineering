@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { DataPanel, PageHeader, RowActions, TablePager, ToolbarCard } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +38,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import {
@@ -51,10 +51,8 @@ import {
   updateReview,
 } from '@/services/reviews'
 
-import { DataPanel, RowActions, ToolbarCard } from './components/DataPanel'
 import { ReviewFormDialog } from './components/ReviewFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const TABS: Array<{ value: ReviewStatus | 'all'; label: string }> = [
@@ -100,7 +98,7 @@ function ReadOnlyField({
 
 export function ManageReviewsPage() {
   useDocumentTitle('Manage reviews')
-  const { query, setQuery, debouncedQuery, page, setPage } = usePagedSearch()
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [tab, setTab] = useState<ReviewStatus | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Review | null>(null)

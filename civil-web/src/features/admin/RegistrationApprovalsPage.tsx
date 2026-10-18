@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { DataPanel, RowActions, TablePager, ToolbarCard } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { usePagedSearch } from '@/hooks/usePagedSearch'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
@@ -41,13 +40,11 @@ import {
 } from '@/services/users'
 
 import type { ApprovalStatus, RegistrationRow } from './admin.types'
-import { DataPanel, RowActions, ToolbarCard } from './components/DataPanel'
 import { RegistrationFormDialog, type RegistrationFormValues } from './components/RegistrationFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
-import { TablePager } from './components/TablePager'
 import { USER_TABLE_HEADERS,UserAttributeCells } from './components/UserCells'
 import { PAGE_SIZE } from './lib/text'
-import { toAdminUserRow } from './usersStore'
+import { toAdminUserRow } from './users.rows'
 
 const TABS: Array<{ value: ApprovalStatus; label: string }> = [
   { value: 'pending', label: 'Pending' },
@@ -63,9 +60,8 @@ function toRegistrationRow(user: Parameters<typeof toAdminUserRow>[0]): Registra
   }
 }
 
-export function RegistrationApprovalsPage() {
-  useDocumentTitle('Registration approvals')
-  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedSearch()
+export function RegistrationQueue() {
+  const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedQuery()
   const [tab, setTab] = useState<ApprovalStatus>('pending')
   const [createOpen, setCreateOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -135,18 +131,6 @@ export function RegistrationApprovalsPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <PageHeader
-        className="mb-0"
-        title="Registration approvals"
-        description="Project managers, providers, and workers stay pending until an admin approves them. Pending accounts cannot sign in."
-        actions={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
-            <Plus />
-            Create
-          </Button>
-        }
-      />
-
       <div className={STAT_GRID_CLASS}>
         <StatCard icon={UserPlus} label="Total registrations" value={counts.pending + counts.approved} />
         <StatCard icon={Clock} label="Pending" value={counts.pending} />
@@ -194,10 +178,14 @@ export function RegistrationApprovalsPage() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter registrations…"
-            aria-label="Filter registrations"
+            placeholder="Search registrations…"
+            aria-label="Search registrations"
             className="max-w-sm"
           />
+          <Button type="button" className="ms-auto" onClick={() => setCreateOpen(true)}>
+            <Plus />
+            Create
+          </Button>
         </ToolbarCard>
 
         <TabsContent value={tab}>

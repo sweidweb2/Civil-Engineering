@@ -2,7 +2,6 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
   AlertTriangle,
-  BadgeCheck,
   Bell,
   ChartColumn,
   CircleUser,
@@ -270,9 +269,8 @@ export const SUPER_NAV: PanelNavItem[] = [
 
 export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/approvals', label: 'Approvals', icon: UserCheck },
+  { to: '/admin/queue', label: 'Queue', icon: UserCheck },
   { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/verification', label: 'Verification', icon: BadgeCheck },
   { to: '/admin/providers', label: 'Providers', icon: Store },
   { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
   { to: '/admin/directory', label: 'Directory', icon: Library },

@@ -31,3 +31,10 @@ export type User = {
   createdAt: string
   updatedAt: string
 }
+
+/** Lean row for recipient pickers. */
+export type UserLookup = {
+  id: string
+  email: string
+  name: string
+}

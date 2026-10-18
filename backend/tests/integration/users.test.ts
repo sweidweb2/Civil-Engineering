@@ -96,10 +96,46 @@ describe.skipIf(!hasDb)('users API (integration)', () => {
     expect(list.status).toBe(200)
     expect(list.body.meta.total).toBe(2)
     expect(list.body.meta.counts).toMatchObject({
+      accounts: 2,
       active: 2,
       managers: 1,
       roles: { ADMIN: 1, MANAGER: 1, CLIENT: 0 },
     })
+
+    const searched = await request(app)
+      .get('/api/v1/users')
+      .query({ q: 'Pat' })
+      .set('Authorization', `Bearer ${token}`)
+    expect(searched.status).toBe(200)
+    expect(searched.body.data).toHaveLength(1)
+    expect(searched.body.data[0].email).toBe('pm@example.com')
+    expect(searched.body.meta.total).toBe(1)
+    expect(searched.body.meta.counts.accounts).toBe(2)
+  })
+
+  it('returns a lean user lookup for admins', async () => {
+    const app = createApp({ config })
+    await createUser('ADMIN', 'admin-lookup@example.com')
+    await createUser('CLIENT', 'client-lookup@example.com')
+    const adminToken = await login(app, 'admin-lookup@example.com')
+    const clientToken = await login(app, 'client-lookup@example.com')
+
+    const anonymous = await request(app).get('/api/v1/users/lookup')
+    expect(anonymous.status).toBe(401)
+
+    const forbidden = await request(app)
+      .get('/api/v1/users/lookup')
+      .set('Authorization', `Bearer ${clientToken}`)
+    expect(forbidden.status).toBe(403)
+
+    const lookup = await request(app)
+      .get('/api/v1/users/lookup')
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(lookup.status).toBe(200)
+    expect(lookup.body.data).toEqual([
+      { id: expect.any(String), email: 'admin-lookup@example.com', name: 'ADMIN Test' },
+      { id: expect.any(String), email: 'client-lookup@example.com', name: 'CLIENT Test' },
+    ])
   })
 
   it('lets a user read their own profile but not another client', async () => {

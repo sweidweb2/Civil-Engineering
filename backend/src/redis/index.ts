@@ -4,6 +4,8 @@ export {
   cacheGetJson,
   cacheSetJson,
   cacheDel,
+  readThroughCache,
+  invalidateCache,
   bumpListVersion,
   getListVersion,
 } from './redis.cache.js'

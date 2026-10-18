@@ -12,11 +12,30 @@ type UpdateProjectInput = UpdateProjectBody & {
   progress: number
 }
 
+export type ProjectScheduleRow = {
+  status: ProjectStatus
+  startDate: string | null
+  endDate: string | null
+}
+
+export type ProjectTimelineRow = {
+  id: string
+  name: string
+  status: ProjectStatus
+  startDate: string | null
+  endDate: string | null
+  actualStartDate: string | null
+  actualEndDate: string | null
+  createdAt: string
+}
+
 export type ProjectsRepository = {
   findMany: (
     query: ListProjectsQuery,
     ownerId?: string,
   ) => Promise<{ projects: ProjectListRow[]; total: number }>
+  findScheduleRows: (ownerId?: string) => Promise<ProjectScheduleRow[]>
+  findTimeline: (ownerId?: string) => Promise<ProjectTimelineRow[]>
   findById: (id: string) => Promise<Project | null>
   findByCode: (code: string) => Promise<Project | null>
   create: (input: CreateProjectInput) => Promise<Project>
@@ -116,6 +135,49 @@ export function createProjectsRepository(): ProjectsRepository {
         })),
         total,
       }
+    },
+
+    async findScheduleRows(ownerId) {
+      const rows = await prisma.project.findMany({
+        where: { archivedAt: null, ...(ownerId ? { ownerId } : {}) },
+        select: { status: true, startDate: true, endDate: true },
+      })
+      return rows.map((row) => ({
+        status: row.status,
+        startDate: row.startDate?.toISOString() ?? null,
+        endDate: row.endDate?.toISOString() ?? null,
+      }))
+    },
+
+    async findTimeline(ownerId) {
+      const rows = await prisma.project.findMany({
+        where: {
+          archivedAt: null,
+          status: 'IN_PROGRESS',
+          ...(ownerId ? { ownerId } : {}),
+        },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          actualStartDate: true,
+          actualEndDate: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        status: row.status,
+        startDate: row.startDate?.toISOString() ?? null,
+        endDate: row.endDate?.toISOString() ?? null,
+        actualStartDate: row.actualStartDate?.toISOString() ?? null,
+        actualEndDate: row.actualEndDate?.toISOString() ?? null,
+        createdAt: row.createdAt.toISOString(),
+      }))
     },
 
     async findById(id) {

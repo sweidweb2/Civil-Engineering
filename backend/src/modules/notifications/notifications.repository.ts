@@ -19,8 +19,31 @@ type NotificationWithSenderRow = Prisma.NotificationGetPayload<{
         role: true
       }
     }
+    receiver: {
+      select: {
+        id: true
+        email: true
+        profile: {
+          select: {
+            displayName: true
+            firstName: true
+            lastName: true
+          }
+        }
+      }
+    }
   }
 }>
+
+function personName(profile: {
+  displayName: string | null
+  firstName: string | null
+  lastName: string | null
+} | null): string {
+  const named =
+    profile?.displayName?.trim() || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
+  return named || ''
+}
 
 function mapToNotification(row: NotificationRow): Notification {
   return {
@@ -48,6 +71,17 @@ function mapToNotificationWithSender(row: NotificationWithSenderRow): Notificati
           role: row.sender.role,
         }
       : null,
+    receiver: row.receiver
+      ? {
+          id: row.receiver.id,
+          email: row.receiver.email,
+          name: personName(row.receiver.profile) || row.receiver.email,
+        }
+      : {
+          id: row.receiverId,
+          email: '',
+          name: '',
+        },
   }
 }
 
@@ -77,6 +111,19 @@ export function createNotificationsRepository(): NotificationsRepository {
                 id: true,
                 email: true,
                 role: true,
+              },
+            },
+            receiver: {
+              select: {
+                id: true,
+                email: true,
+                profile: {
+                  select: {
+                    displayName: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
               },
             },
           },

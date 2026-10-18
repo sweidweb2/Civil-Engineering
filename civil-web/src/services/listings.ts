@@ -84,13 +84,20 @@ export function rentalUnitLabel(unit: RentalUnit): string {
 export function listListings(
   page = 1,
   limit = 8,
-  filters?: { q?: string; type?: ListingType; status?: ListingStatus; providerId?: string },
+  filters?: {
+    q?: string
+    type?: ListingType
+    status?: ListingStatus
+    providerId?: string
+    counts?: boolean
+  },
 ) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters?.q) params.set('q', filters.q)
   if (filters?.type) params.set('type', filters.type)
   if (filters?.status) params.set('status', filters.status)
   if (filters?.providerId) params.set('providerId', filters.providerId)
+  if (filters?.counts === false) params.set('counts', 'false')
   return apiRequest<PaginatedListings>(`/listings?${params.toString()}`)
 }
 

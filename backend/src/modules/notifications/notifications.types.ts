@@ -26,6 +26,11 @@ export type NotificationWithSender = Notification & {
     email: string
     role: string
   } | null
+  receiver: {
+    id: string
+    email: string
+    name: string
+  }
 }
 
 export type CreateNotificationData = {

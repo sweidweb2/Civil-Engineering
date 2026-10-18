@@ -9,7 +9,7 @@ import {
   User as UserIcon,
   Users,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -86,9 +86,10 @@ function notificationTypeLabel(type: NotificationType): string {
   return NOTIFICATION_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type
 }
 
-function receiverLabel(users: UserLookup[], receiverId: string): string {
-  const receiver = users.find((user) => user.id === receiverId)
-  return receiver ? userLabel(receiver) : 'Unknown'
+function receiverLabel(notification: Notification): string {
+  const receiver = notification.receiver
+  if (!receiver) return 'Unknown'
+  return receiver.name ? `${receiver.name} · ${receiver.email}` : receiver.email
 }
 
 export function ManageNotificationsPage() {
@@ -104,18 +105,32 @@ export function ManageNotificationsPage() {
   const [isSending, setIsSending] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
+  const [lookupQuery, setLookupQuery] = useState('')
+  const [debouncedLookup, setDebouncedLookup] = useState('')
+
   const limit = 20
 
   const load = useCallback(() => listNotifications(page, limit, true), [page])
   const remote = useRemoteData(load, { queryKey: ['notifications', 'admin', page] })
-  const loadUsers = useCallback(() => listUserLookups(), [])
-  const usersRemote = useRemoteData(loadUsers, { queryKey: ['users', 'lookup'] })
+  const loadUsers = useCallback(
+    () => listUserLookups(1, 20, debouncedLookup || undefined),
+    [debouncedLookup],
+  )
+  const usersRemote = useRemoteData(loadUsers, {
+    enabled: createOpen,
+    queryKey: ['users', 'lookup', debouncedLookup],
+  })
 
   const notifications: Notification[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const counts = remote.status === 'success' ? remote.data.meta.counts : null
   const totalPages = Math.max(1, remote.status === 'success' ? remote.data.meta.totalPages : 1)
   const users: UserLookup[] = usersRemote.status === 'success' ? usersRemote.data.data : []
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedLookup(lookupQuery.trim()), 300)
+    return () => window.clearTimeout(timer)
+  }, [lookupQuery])
 
   const [formData, setFormData] = useState({
     receiverId: '',
@@ -126,6 +141,8 @@ export function ManageNotificationsPage() {
   })
 
   const handleCreateOpen = () => {
+    setLookupQuery('')
+    setDebouncedLookup('')
     setFormData({
       receiverId: '',
       receiverIds: [],
@@ -341,7 +358,7 @@ export function ManageNotificationsPage() {
                         {notification.title}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {receiverLabel(users, notification.receiverId)}
+                        {receiverLabel(notification)}
                       </TableCell>
                       <TableCell>
                         {notification.deletedAt ? (
@@ -440,6 +457,16 @@ export function ManageNotificationsPage() {
               </Button>
             </div>
 
+            <Field>
+              <Label htmlFor="user-search">Find a user</Label>
+              <Input
+                id="user-search"
+                value={lookupQuery}
+                onChange={(event) => setLookupQuery(event.target.value)}
+                placeholder="Name or email"
+              />
+            </Field>
+
             {usersRemote.isError ? (
               <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 px-3 py-2">
                 <p className="text-sm text-destructive">Could not load users.</p>
@@ -450,7 +477,7 @@ export function ManageNotificationsPage() {
             ) : usersRemote.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading users…</p>
             ) : users.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No users to notify.</p>
+              <p className="text-sm text-muted-foreground">No users match that search.</p>
             ) : createMode === 'single' ? (
               <Field>
                 <Label htmlFor="receiverId">Receiver</Label>
@@ -489,6 +516,12 @@ export function ManageNotificationsPage() {
                     </label>
                   ))}
                 </div>
+                {usersRemote.status === 'success' && usersRemote.data.meta.total > users.length ? (
+                  <p className="text-xs text-muted-foreground">
+                    Showing {users.length} of {usersRemote.data.meta.total}. Search to find others. Selected
+                    recipients stay selected.
+                  </p>
+                ) : null}
               </Field>
             )}
 

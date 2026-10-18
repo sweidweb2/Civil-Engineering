@@ -6,6 +6,8 @@ import type { ProjectsService } from './projects.service.js'
 
 export type ProjectsController = {
   list: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  summary: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  timeline: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getById: (req: Request, res: Response, next: NextFunction) => Promise<void>
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>
@@ -19,6 +21,24 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
         const actor = parseAuthActor(req)
         const query = req.query as unknown as ListProjectsQuery
         const result = await service.listProjects(query, actor)
+        res.status(200).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+    async summary(req, res, next) {
+      try {
+        const actor = parseAuthActor(req)
+        const result = await service.getSummary(actor)
+        res.status(200).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+    async timeline(req, res, next) {
+      try {
+        const actor = parseAuthActor(req)
+        const result = await service.listTimeline(actor)
         res.status(200).json(result)
       } catch (error) {
         next(error)

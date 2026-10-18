@@ -5,10 +5,10 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProjectProgressTimeline } from '@/features/admin/components/ProjectProgressTimeline'
-import { listProjects, type Project } from '@/services/projects'
+import { listProjectTimeline, type Project } from '@/services/projects'
 
 vi.mock('@/services/projects', () => ({
-  listProjects: vi.fn(),
+  listProjectTimeline: vi.fn(),
 }))
 
 function project(overrides: Partial<Project> = {}): Project {
@@ -61,7 +61,7 @@ function renderTimeline() {
 
 describe('ProjectProgressTimeline', () => {
   beforeEach(() => {
-    vi.mocked(listProjects).mockReset()
+    vi.mocked(listProjectTimeline).mockReset()
   })
 
   afterEach(() => {
@@ -69,7 +69,7 @@ describe('ProjectProgressTimeline', () => {
   })
 
   it('shows in-progress projects on a shared axis and folds the chart', async () => {
-    vi.mocked(listProjects).mockResolvedValue({
+    vi.mocked(listProjectTimeline).mockResolvedValue({
       data: [
         project(),
         project({
@@ -79,7 +79,7 @@ describe('ProjectProgressTimeline', () => {
           progress: 0,
         }),
       ],
-      meta: { page: 1, limit: 100, total: 2, totalPages: 1 },
+      meta: { total: 2 },
     })
 
     const user = userEvent.setup()
@@ -98,9 +98,9 @@ describe('ProjectProgressTimeline', () => {
   })
 
   it('opens the project when a bar is chosen', async () => {
-    vi.mocked(listProjects).mockResolvedValue({
+    vi.mocked(listProjectTimeline).mockResolvedValue({
       data: [project()],
-      meta: { page: 1, limit: 100, total: 1, totalPages: 1 },
+      meta: { total: 1 },
     })
 
     const { router, container } = renderTimeline()
@@ -111,9 +111,9 @@ describe('ProjectProgressTimeline', () => {
   })
 
   it('explains when nothing is in progress', async () => {
-    vi.mocked(listProjects).mockResolvedValue({
+    vi.mocked(listProjectTimeline).mockResolvedValue({
       data: [],
-      meta: { page: 1, limit: 100, total: 0, totalPages: 0 },
+      meta: { total: 0 },
     })
 
     renderTimeline()

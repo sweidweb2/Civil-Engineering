@@ -1,10 +1,11 @@
 import { prisma } from '../../database/prisma.js'
-import type { Prisma, ReviewStatus, ReviewTargetType } from '../../generated/prisma/client.js'
+import { Prisma, type ReviewStatus, type ReviewTargetType } from '../../generated/prisma/client.js'
+import { cacheKeys } from '../../redis/redis.keys.js'
+import { invalidateCache, readThroughCache } from '../../redis/redis.cache.js'
 import {
   findListingNames,
   listingExists,
   listListingChoices,
-  searchListingIdsByName,
 } from '../listings/index.js'
 import type { ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type { ReviewStatusCounts, ReviewTargetOption } from './reviews.types.js'
@@ -133,72 +134,116 @@ async function withNames(rows: ReviewRow[]): Promise<ReviewRecord[]> {
   return rows.map((row) => toRecord(row, names.get(key(row.targetType, row.targetId)) ?? 'Removed target'))
 }
 
-async function searchWhere(query: ListReviewsQuery): Promise<Prisma.ReviewWhereInput> {
-  const filters: Prisma.ReviewWhereInput[] = []
-  if (query.status) filters.push({ status: query.status })
-  if (query.targetType) filters.push({ targetType: query.targetType })
-  if (!query.q) return filters.length ? { AND: filters } : {}
+function ilikePattern(value: string): string {
+  return `%${value.replace(/[\\%_]/g, (char) => `\\${char}`)}%`
+}
 
-  const q = query.q
-  const text: Prisma.ReviewWhereInput = {
-    OR: [
-      { comment: { contains: q, mode: 'insensitive' } },
-      { author: { email: { contains: q, mode: 'insensitive' } } },
-      { author: { profile: { displayName: { contains: q, mode: 'insensitive' } } } },
-      { author: { profile: { firstName: { contains: q, mode: 'insensitive' } } } },
-      { author: { profile: { lastName: { contains: q, mode: 'insensitive' } } } },
-    ],
-  }
+function reviewSearchFilter(query: ListReviewsQuery): Prisma.Sql {
+  const pattern = ilikePattern(query.q ?? '')
+  const status = query.status ?? null
+  const targetType = query.targetType ?? null
+  return Prisma.sql`
+    (${status}::text IS NULL OR r.status = ${status}::"ReviewStatus")
+    AND (${targetType}::text IS NULL OR r."targetType" = ${targetType}::"ReviewTargetType")
+    AND (
+      r.comment ILIKE ${pattern} ESCAPE '\\'
+      OR u.email ILIKE ${pattern} ESCAPE '\\'
+      OR p."displayName" ILIKE ${pattern} ESCAPE '\\'
+      OR p."firstName" ILIKE ${pattern} ESCAPE '\\'
+      OR p."lastName" ILIKE ${pattern} ESCAPE '\\'
+      OR EXISTS (
+        SELECT 1 FROM providers pr
+        WHERE r."targetType" = 'PROVIDER'
+          AND pr.id = r."targetId"
+          AND pr.name ILIKE ${pattern} ESCAPE '\\'
+      )
+      OR EXISTS (
+        SELECT 1 FROM users w
+        LEFT JOIN profiles wp ON wp."userId" = w.id
+        WHERE r."targetType" = 'WORKER'
+          AND w.id = r."targetId"
+          AND w.role = 'WORKER'
+          AND (
+            w.email ILIKE ${pattern} ESCAPE '\\'
+            OR wp."displayName" ILIKE ${pattern} ESCAPE '\\'
+            OR wp."firstName" ILIKE ${pattern} ESCAPE '\\'
+            OR wp."lastName" ILIKE ${pattern} ESCAPE '\\'
+          )
+      )
+      OR EXISTS (
+        SELECT 1 FROM listings l
+        WHERE r."targetType" = 'LISTING'
+          AND l.id = r."targetId"
+          AND l.name ILIKE ${pattern} ESCAPE '\\'
+      )
+    )
+  `
+}
 
-  const [providers, workers, listings] = await Promise.all([
-    prisma.provider.findMany({
-      where: { name: { contains: q, mode: 'insensitive' } },
-      select: { id: true },
-      take: 100,
-    }),
-    prisma.user.findMany({
-      where: {
-        role: 'WORKER',
-        OR: [
-          { email: { contains: q, mode: 'insensitive' } },
-          { profile: { displayName: { contains: q, mode: 'insensitive' } } },
-          { profile: { firstName: { contains: q, mode: 'insensitive' } } },
-          { profile: { lastName: { contains: q, mode: 'insensitive' } } },
-        ],
-      },
-      select: { id: true },
-      take: 100,
-    }),
-    searchListingIdsByName(q, 100),
+async function searchReviews(query: ListReviewsQuery): Promise<{ items: ReviewRecord[]; total: number }> {
+  const filter = reviewSearchFilter(query)
+  const limit = query.limit
+  const offset = (query.page - 1) * query.limit
+  const [idRows, countRows] = await Promise.all([
+    prisma.$queryRaw<{ id: string }[]>`
+      SELECT r.id
+      FROM reviews r
+      LEFT JOIN users u ON u.id = r."authorId"
+      LEFT JOIN profiles p ON p."userId" = u.id
+      WHERE ${filter}
+      ORDER BY r."createdAt" DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `,
+    prisma.$queryRaw<{ total: number }[]>`
+      SELECT COUNT(*)::int AS total
+      FROM reviews r
+      LEFT JOIN users u ON u.id = r."authorId"
+      LEFT JOIN profiles p ON p."userId" = u.id
+      WHERE ${filter}
+    `,
   ])
+  const ids = idRows.map((row) => row.id)
+  if (ids.length === 0) return { items: [], total: Number(countRows[0]?.total ?? 0) }
+  const rows = await prisma.review.findMany({
+    where: { id: { in: ids } },
+    include: reviewInclude,
+  })
+  const byId = new Map(rows.map((row) => [row.id, row]))
+  const ordered = ids.flatMap((id) => {
+    const row = byId.get(id)
+    return row ? [row] : []
+  })
+  return { items: await withNames(ordered), total: Number(countRows[0]?.total ?? 0) }
+}
 
-  const or = text.OR ?? []
-  if (providers.length) or.push({ targetType: 'PROVIDER', targetId: { in: providers.map((row) => row.id) } })
-  if (workers.length) or.push({ targetType: 'WORKER', targetId: { in: workers.map((row) => row.id) } })
-  if (listings.length) or.push({ targetType: 'LISTING', targetId: { in: listings } })
-  filters.push({ OR: or })
-  return { AND: filters }
+async function listReviews(query: ListReviewsQuery): Promise<{ items: ReviewRecord[]; total: number }> {
+  if (query.q) return searchReviews(query)
+  const where: Prisma.ReviewWhereInput = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.targetType ? { targetType: query.targetType } : {}),
+  }
+  const skip = (query.page - 1) * query.limit
+  const [rows, total] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: query.limit,
+      include: reviewInclude,
+    }),
+    prisma.review.count({ where }),
+  ])
+  return { items: await withNames(rows), total }
 }
 
 export function createReviewsRepository(): ReviewsRepository {
   return {
     async findMany(query) {
-      const where = await searchWhere(query)
-      const skip = (query.page - 1) * query.limit
-      const [rows, total] = await Promise.all([
-        prisma.review.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: query.limit,
-          include: reviewInclude,
-        }),
-        prisma.review.count({ where }),
-      ])
-      return { items: await withNames(rows), total }
+      return listReviews(query)
     },
 
     async countByStatus() {
+      return readThroughCache(cacheKeys.reviewStatusCounts(), 60, async () => {
       const groups = await prisma.review.groupBy({
         by: ['status'],
         _count: { _all: true },
@@ -208,6 +253,7 @@ export function createReviewsRepository(): ReviewsRepository {
         counts[group.status] = group._count._all
       }
       return counts
+      })
     },
 
     async findById(id) {
@@ -278,6 +324,7 @@ export function createReviewsRepository(): ReviewsRepository {
       if (!record) {
         throw new Error('Created review could not be loaded')
       }
+      await invalidateCache(cacheKeys.reviewStatusCounts())
       return record
     },
 
@@ -297,11 +344,13 @@ export function createReviewsRepository(): ReviewsRepository {
       if (!record) {
         throw new Error('Updated review could not be loaded')
       }
+      await invalidateCache(cacheKeys.reviewStatusCounts())
       return record
     },
 
     async delete(id) {
       await prisma.review.delete({ where: { id } })
+      await invalidateCache(cacheKeys.reviewStatusCounts())
     },
   }
 }

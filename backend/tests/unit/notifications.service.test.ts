@@ -32,7 +32,11 @@ function setup(notification: Notification | null = makeNotification()) {
     countStates: vi.fn(async () => ({ active: 1, unread: 1, deleted: 0 })),
     findMany: vi.fn(async () => ({
       notifications: notification
-        ? [{ ...notification, sender: { id: 'super-1', email: 's@example.com', role: 'SUPER' } }]
+        ? [{
+            ...notification,
+            sender: { id: 'super-1', email: 's@example.com', role: 'SUPER' },
+            receiver: { id: notification.receiverId, email: 'o@example.com', name: 'Owner' },
+          }]
         : [],
       total: notification ? 1 : 0,
     })),

@@ -13,7 +13,7 @@ type UseRemoteDataOptions = {
   enabled?: boolean
   /**
    * Stable cache key. Screens that pass the same key share one result.
-   * A refetch invalidates every active query under the first key segment.
+   * A refetch reloads this query key only.
    */
   queryKey?: QueryKey
 }
@@ -37,7 +37,7 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   const [instanceId] = useState(() => nextInstanceId++)
   const [trackedLoad, setTrackedLoad] = useState(() => load)
   const [loadVersion, setLoadVersion] = useState(0)
-  if (load !== trackedLoad) {
+  if (queryKey === undefined && load !== trackedLoad) {
     setTrackedLoad(() => load)
     setLoadVersion((current) => current + 1)
   }
@@ -69,7 +69,7 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     if (isFresh) setFresh(true)
     try {
       if (isFresh) client.removeQueries({ queryKey: currentKey, exact: true })
-      await client.invalidateQueries({ queryKey: [currentKey[0]] })
+      await client.invalidateQueries({ queryKey: currentKey, exact: true })
     } finally {
       if (isFresh) setFresh(false)
     }

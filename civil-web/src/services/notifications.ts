@@ -25,6 +25,11 @@ export type Notification = {
     email: string
     role: string
   } | null
+  receiver?: {
+    id: string
+    email: string
+    name: string
+  }
 }
 
 export type PaginatedNotifications = {

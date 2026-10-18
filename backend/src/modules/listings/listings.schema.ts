@@ -52,6 +52,11 @@ export const listingIdParamsSchema = z.object({
 
 export const listListingsQuerySchema = paginationQuerySchema.extend({
   q: optionalQueryText,
+  counts: z.preprocess((value) => {
+    if (value === 'false' || value === '0' || value === false) return false
+    if (value === 'true' || value === '1' || value === true) return true
+    return value
+  }, z.boolean().optional()),
   type: listingTypeSchema.optional(),
   status: listingStatusSchema.optional(),
   providerId: z.preprocess(

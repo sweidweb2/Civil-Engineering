@@ -65,49 +65,85 @@ function workerItem(user: User): DirectoryItem {
   }
 }
 
-async function loadDirectoryStats(includeWorkers: boolean): Promise<DirectoryStats> {
-  const [materials, equipment, workers] = await Promise.all([
-    listListings(1, 1, { type: 'MATERIAL', status: 'ACTIVE' }),
-    listListings(1, 1, { type: 'EQUIPMENT', status: 'ACTIVE' }),
-    includeWorkers ? listVerifications({ page: 1, limit: 1 }) : Promise.resolve(null),
-  ])
-  return {
-    materials: materials.meta.total,
-    equipment: equipment.meta.total,
-    workers: workers?.meta.counts.workers ?? 0,
-  }
+async function listingSlice(type: ListingType, page: number, limit: number, q?: string) {
+  const result = await listListings(page, limit, { type, status: 'ACTIVE', q, counts: false })
+  return { total: result.meta.total, items: result.data.map(listingItem) }
 }
 
-async function loadDirectoryPage(input: {
+async function loadDirectory(input: {
   page: number
   query: string
   kind: DirectoryFilter
   includeWorkers: boolean
-}): Promise<{ items: DirectoryItem[]; total: number }> {
+}): Promise<{ stats: DirectoryStats; items: DirectoryItem[]; total: number }> {
   const q = input.query || undefined
-  if (input.kind === 'material' || input.kind === 'equipment') {
-    const type: ListingType = input.kind === 'material' ? 'MATERIAL' : 'EQUIPMENT'
-    const result = await listListings(input.page, PAGE_SIZE, { type, status: 'ACTIVE', q })
-    return { items: result.data.map(listingItem), total: result.meta.total }
-  }
-  if (input.kind === 'worker') {
-    const result = await listVerifications({ page: input.page, limit: PAGE_SIZE, q })
-    return { items: result.data.map(workerItem), total: result.meta.total }
-  }
+  const materialIsList = !q && input.kind === 'material'
+  const equipmentIsList = !q && input.kind === 'equipment'
+  const workerIsList = !q && input.kind === 'worker'
+  const materialLimit = materialIsList || (!q && input.kind === 'all' && input.page === 1) ? PAGE_SIZE : 1
+  const materialPage = materialIsList ? input.page : 1
 
   const [materials, equipment, workers] = await Promise.all([
-    listListings(1, 1, { type: 'MATERIAL', status: 'ACTIVE', q }),
-    listListings(1, 1, { type: 'EQUIPMENT', status: 'ACTIVE', q }),
-    input.includeWorkers ? listVerifications({ page: 1, limit: 1, q }) : Promise.resolve(null),
+    listingSlice('MATERIAL', materialPage, materialLimit),
+    listingSlice('EQUIPMENT', equipmentIsList ? input.page : 1, equipmentIsList ? PAGE_SIZE : 1),
+    input.includeWorkers
+      ? listVerifications({
+          page: workerIsList ? input.page : 1,
+          limit: workerIsList ? PAGE_SIZE : 1,
+        })
+      : Promise.resolve(null),
   ])
+
+  const stats: DirectoryStats = {
+    materials: materials.total,
+    equipment: equipment.total,
+    workers: workers?.meta.counts.workers ?? 0,
+  }
+
+  if (materialIsList) return { stats, items: materials.items, total: materials.total }
+  if (equipmentIsList) return { stats, items: equipment.items, total: equipment.total }
+  if (workerIsList && workers) {
+    return { stats, items: workers.data.map(workerItem), total: workers.meta.total }
+  }
+
+  if (q && (input.kind === 'material' || input.kind === 'equipment')) {
+    const type: ListingType = input.kind === 'material' ? 'MATERIAL' : 'EQUIPMENT'
+    const page = await listingSlice(type, input.page, PAGE_SIZE, q)
+    return { stats, items: page.items, total: page.total }
+  }
+  if (q && input.kind === 'worker') {
+    const page = await listVerifications({ page: input.page, limit: PAGE_SIZE, q })
+    return { stats, items: page.data.map(workerItem), total: page.meta.total }
+  }
+
+  const filtered = q
+    ? await Promise.all([
+        listingSlice('MATERIAL', 1, 1, q),
+        listingSlice('EQUIPMENT', 1, 1, q),
+        input.includeWorkers ? listVerifications({ page: 1, limit: 1, q }) : Promise.resolve(null),
+      ])
+    : null
+
   const totals: Array<{ source: DirectorySource; total: number }> = [
-    { source: 'materials', total: materials.meta.total },
-    { source: 'equipment', total: equipment.meta.total },
+    { source: 'materials', total: filtered ? filtered[0].total : materials.total },
+    { source: 'equipment', total: filtered ? filtered[1].total : equipment.total },
   ]
-  if (workers) totals.push({ source: 'workers', total: workers.meta.total })
-  const plan = directoryWindows(totals, (input.page - 1) * PAGE_SIZE, PAGE_SIZE)
+  if (input.includeWorkers) {
+    totals.push({ source: 'workers', total: filtered ? (filtered[2]?.meta.total ?? 0) : (workers?.meta.total ?? 0) })
+  }
+
+  const pageStart = (input.page - 1) * PAGE_SIZE
+  const combinedTotal = totals.reduce((sum, entry) => sum + entry.total, 0)
+  if (!q && input.page === 1 && materials.total >= PAGE_SIZE) {
+    return { stats, items: materials.items.slice(0, PAGE_SIZE), total: combinedTotal }
+  }
+
+  const plan = directoryWindows(totals, pageStart, PAGE_SIZE)
   const chunks = await Promise.all(
     plan.map(async (window) => {
+      if (!q && input.page === 1 && window.source === 'materials') {
+        return materials.items.slice(window.skip, window.skip + window.take)
+      }
       if (window.source === 'workers') {
         const users = await readPageWindow(
           async (page, limit) => (await listVerifications({ page, limit, q })).data,
@@ -118,17 +154,15 @@ async function loadDirectoryPage(input: {
       }
       const type: ListingType = window.source === 'materials' ? 'MATERIAL' : 'EQUIPMENT'
       const listings = await readPageWindow(
-        async (page, limit) => (await listListings(page, limit, { type, status: 'ACTIVE', q })).data,
+        async (page, limit) =>
+          (await listListings(page, limit, { type, status: 'ACTIVE', q, counts: false })).data,
         window.skip,
         window.take,
       )
       return listings.map(listingItem)
     }),
   )
-  return {
-    items: chunks.flat(),
-    total: totals.reduce((sum, entry) => sum + entry.total, 0),
-  }
+  return { stats, items: chunks.flat(), total: combinedTotal }
 }
 
 function DirectoryCards({ items }: { items: DirectoryItem[] }) {
@@ -181,17 +215,21 @@ export function DirectoryPage() {
       ]
   const activeKind = kinds.some((tab) => tab.value === kind) ? kind : 'all'
 
-  const loadStats = useCallback(() => loadDirectoryStats(includeWorkers), [includeWorkers])
-  const statsRemote = useRemoteData(loadStats, { queryKey: ['directory', 'stats', includeWorkers] })
-  const loadPage = useCallback(
-    () => loadDirectoryPage({ page, query: debouncedQuery, kind: activeKind, includeWorkers }),
+  const [heldStats, setHeldStats] = useState<DirectoryStats | null>(null)
+
+  const load = useCallback(
+    () => loadDirectory({ page, query: debouncedQuery, kind: activeKind, includeWorkers }),
     [activeKind, debouncedQuery, includeWorkers, page],
   )
-  const remote = useRemoteData(loadPage, {
-    queryKey: ['directory', 'page', includeWorkers, activeKind, page, debouncedQuery],
+  const remote = useRemoteData(load, {
+    queryKey: ['directory', includeWorkers, activeKind, page, debouncedQuery],
   })
 
-  const stats = statsRemote.status === 'success' ? statsRemote.data : null
+  if (remote.status === 'success' && heldStats !== remote.data.stats) {
+    setHeldStats(remote.data.stats)
+  }
+
+  const stats = remote.status === 'success' ? remote.data.stats : heldStats
   const items = remote.status === 'success' ? remote.data.items : []
   const total = remote.status === 'success' ? remote.data.total : 0
 
@@ -214,7 +252,7 @@ export function DirectoryPage() {
           <StatCard icon={Wrench} label="Equipment" value={stats.equipment} />
           {includeWorkers ? <StatCard icon={HardHat} label="Workers" value={stats.workers} /> : null}
         </div>
-      ) : statsRemote.isLoading ? (
+      ) : remote.isLoading ? (
         <StatGridSkeleton count={includeWorkers ? 4 : 3} />
       ) : null}
 

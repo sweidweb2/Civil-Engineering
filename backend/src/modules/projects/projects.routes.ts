@@ -16,6 +16,8 @@ export function createProjectsRoutes(controller: ProjectsController): Router {
   router.use(authenticate)
 
   router.get('/', validate({ query: listProjectsQuerySchema }), controller.list)
+  router.get('/summary', controller.summary)
+  router.get('/timeline', controller.timeline)
   router.get('/:id', validate({ params: projectIdParamsSchema }), controller.getById)
   router.post('/', validate({ body: createProjectBodySchema }), controller.create)
   router.patch(

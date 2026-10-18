@@ -80,8 +80,13 @@ export type UserLookup = {
   name: string
 }
 
-export function listUserLookups() {
-  return apiRequest<{ data: UserLookup[] }>('/users/lookup', { cache: 'no-store' })
+export function listUserLookups(page = 1, limit = 20, q?: string) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (q) params.set('q', q)
+  return apiRequest<{
+    data: UserLookup[]
+    meta: { page: number; limit: number; total: number; totalPages: number }
+  }>(`/users/lookup?${params.toString()}`, { cache: 'no-store' })
 }
 
 export function listUsers(page = 1, limit = 100, q?: string) {

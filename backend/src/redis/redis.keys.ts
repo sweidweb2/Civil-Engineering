@@ -33,4 +33,20 @@ export const cacheKeys = {
   refreshDeny(jti: string): string {
     return `${PREFIX}:auth:refresh:deny:${jti}`
   },
+
+  userDirectoryCounts(): string {
+    return `${PREFIX}:users:counts:directory`
+  },
+
+  userApprovalCounts(): string {
+    return `${PREFIX}:users:counts:approvals`
+  },
+
+  userVerificationCounts(): string {
+    return `${PREFIX}:users:counts:verifications`
+  },
+
+  reviewStatusCounts(): string {
+    return `${PREFIX}:reviews:counts:status`
+  },
 } as const

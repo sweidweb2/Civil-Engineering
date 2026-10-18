@@ -4,7 +4,7 @@ export function CtaSection() {
   return (
     <section id="cta" aria-labelledby="cta-title" className="relative scroll-mt-6 overflow-hidden border-b border-border bg-background">
       <img
-        src="/illustrations/cta-civil-sketch.png?v=1"
+        src="/illustrations/cta-civil-sketch.png?v=2"
         alt="A sketched figure holding a line up to a bridge truss"
         className="pointer-events-none absolute top-1/2 left-16 hidden w-72 -translate-y-1/2 xl:block"
       />

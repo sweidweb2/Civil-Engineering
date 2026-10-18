@@ -2,19 +2,19 @@ import { PublicHomeAction } from './public-home-shared'
 
 const principles = [
   {
-    src: '/illustrations/principle-scope.png?v=1',
+    src: '/illustrations/principle-scope.png?v=2',
     alt: 'A site plan on a clipboard beside a rolled drawing',
     title: 'Scope the need first',
     text: 'Materials, equipment, and people belong on the project plan before anyone settles a final number.',
   },
   {
-    src: '/illustrations/principle-plan-actual.png?v=1',
+    src: '/illustrations/principle-plan-actual.png?v=2',
     alt: 'A pale plan card kept beside a teal record of actual cost',
     title: 'Keep plan and actual apart',
     text: 'The estimate stays next to recorded expenses, so the difference is visible instead of buried in a spreadsheet.',
   },
   {
-    src: '/illustrations/principle-contact.png?v=1',
+    src: '/illustrations/principle-contact.png?v=2',
     alt: 'A supplier card beside a telephone handset',
     title: 'Leave the deal off-platform',
     text: 'Providers and workers are found here, then contacted directly. The app does not take orders, payments, or hires.',

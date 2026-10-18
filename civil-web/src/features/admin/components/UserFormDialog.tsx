@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useAuthStore } from '@/stores/authStore'
 
 import {
   EMPTY_USER_FORM,
@@ -56,6 +57,9 @@ function FieldLabel({
 export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: UserFormDialogProps) {
   const [form, setForm] = useState<UserFormValues>(EMPTY_USER_FORM)
   const [isSaving, setIsSaving] = useState(false)
+  const viewerRole = useAuthStore((state) => state.user?.role)
+  const roleOptions =
+    viewerRole === 'SUPER' ? USER_ROLE_OPTIONS : USER_ROLE_OPTIONS.filter((option) => option.value !== 'SUPER')
 
   useEffect(() => {
     if (open) setForm(initial ?? EMPTY_USER_FORM)
@@ -119,7 +123,7 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
             <div className="grid gap-1.5">
               <FieldLabel htmlFor="user-role" label="Role" restriction="required" />
               <Select
-                items={USER_ROLE_OPTIONS}
+                items={roleOptions}
                 value={form.role}
                 onValueChange={(value) => {
                   if (value && isUserRole(value)) setForm((current) => ({ ...current, role: value }))
@@ -129,7 +133,7 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {USER_ROLE_OPTIONS.map((role) => (
+                  {roleOptions.map((role) => (
                     <SelectItem key={role.value} value={role.value}>
                       {role.label}
                     </SelectItem>

@@ -6,7 +6,7 @@ import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsRepository } from './projects.repository.js'
 import { scheduleProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
-import type { Project } from './projects.types.js'
+import type { Project, ProjectStatus } from './projects.types.js'
 
 export type ProjectsServiceDeps = {
   config?: AppConfig
@@ -24,6 +24,38 @@ export type ProjectsService = {
   createProject: (input: CreateProjectBody, ownerId: string) => Promise<Project>
   updateProject: (id: string, input: UpdateProjectBody, actor: AuthActor) => Promise<Project>
   archiveProject: (id: string, actor: AuthActor) => Promise<void>
+  getSummary: (actor: AuthActor) => Promise<{ data: ProjectSummary }>
+  listTimeline: (actor: AuthActor) => Promise<{ data: ProjectTimelineItem[]; meta: { total: number } }>
+}
+
+export type ProjectSummary = {
+  total: number
+  averageProgress: number
+  counts: Record<ProjectStatus, number>
+}
+
+export type ProjectTimelineItem = {
+  id: string
+  name: string
+  status: ProjectStatus
+  progress: number
+  startDate: string | null
+  endDate: string | null
+  actualStartDate: string | null
+  actualEndDate: string | null
+  createdAt: string
+}
+
+function emptyStatusCounts(): Record<ProjectStatus, number> {
+  return {
+    DRAFT: 0,
+    PLANNING: 0,
+    APPROVED: 0,
+    IN_PROGRESS: 0,
+    ON_HOLD: 0,
+    COMPLETED: 0,
+    CANCELLED: 0,
+  }
 }
 
 export function createProjectsService(
@@ -94,6 +126,37 @@ export function createProjectsService(
           limit,
           totalPages: Math.ceil(total / limit),
         },
+      }
+    },
+
+    async getSummary(actor) {
+      const ownerScope = isAdmin(actor.roles) ? undefined : actor.id
+      const rows = await repository.findScheduleRows(ownerScope)
+      const counts = emptyStatusCounts()
+      let progressSum = 0
+      for (const row of rows) {
+        counts[row.status] += 1
+        progressSum += scheduleProgress(row.startDate, row.endDate)
+      }
+      const total = rows.length
+      return {
+        data: {
+          total,
+          averageProgress: total === 0 ? 0 : Math.round(progressSum / total),
+          counts,
+        },
+      }
+    },
+
+    async listTimeline(actor) {
+      const ownerScope = isAdmin(actor.roles) ? undefined : actor.id
+      const rows = await repository.findTimeline(ownerScope)
+      return {
+        data: rows.map((row) => ({
+          ...row,
+          progress: scheduleProgress(row.startDate, row.endDate),
+        })),
+        meta: { total: rows.length },
       }
     },
 

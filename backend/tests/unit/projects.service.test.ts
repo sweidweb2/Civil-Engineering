@@ -50,6 +50,8 @@ function setup(existing: Project | null = makeProject()) {
     create: vi.fn(async (input) => makeProject({ ...input, id: 'p-new' })),
     update: vi.fn(async (id, input) => makeProject({ id, ...input })),
     delete: vi.fn(async () => undefined),
+    findScheduleRows: vi.fn(async () => []),
+    findTimeline: vi.fn(async () => []),
   }
   return { repository, service: createProjectsService(repository) }
 }

@@ -9,6 +9,7 @@ vi.mock('../../src/modules/auth/auth.tokens.js', () => ({
 }))
 
 const admin = { id: 'admin-1', roles: ['ADMIN'] }
+const superAdmin = { id: 'super-1', roles: ['SUPER'] }
 const self = { id: 'user-1', roles: ['CLIENT'] }
 const other = { id: 'user-2', roles: ['CLIENT'] }
 
@@ -39,9 +40,10 @@ describe('usersService', () => {
   beforeEach(() => {
     repository = {
       findMany: vi.fn(async () => ({ users: [makeUser()], total: 1 })),
-      findLookup: vi.fn(async () => [
-        { id: 'user-1', email: 'user@example.com', name: 'Ada Lovelace' },
-      ]),
+      findLookup: vi.fn(async () => ({
+        users: [{ id: 'user-1', email: 'user@example.com', name: 'Ada Lovelace' }],
+        total: 1,
+      })),
       countDirectory: vi.fn(async () => ({
         accounts: 4,
         active: 4,
@@ -103,8 +105,9 @@ describe('usersService', () => {
 
   it('returns lean lookup rows for recipient pickers', async () => {
     const service = createUsersService(repository)
-    await expect(service.listLookup()).resolves.toEqual({
+    await expect(service.listLookup({ page: 1, limit: 20 })).resolves.toEqual({
       data: [{ id: 'user-1', email: 'user@example.com', name: 'Ada Lovelace' }],
+      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
     })
   })
 
@@ -123,13 +126,16 @@ describe('usersService', () => {
 
   it('creates a user when email is free', async () => {
     const service = createUsersService(repository)
-    const created = await service.createUser({
-      email: 'new@example.com',
-      password: 'password1',
-      role: 'MANAGER',
-      firstName: 'New',
-      lastName: 'User',
-    })
+    const created = await service.createUser(
+      {
+        email: 'new@example.com',
+        password: 'password1',
+        role: 'MANAGER',
+        firstName: 'New',
+        lastName: 'User',
+      },
+      admin,
+    )
     expect(created.email).toBe('new@example.com')
     expect(repository.create).toHaveBeenCalled()
   })
@@ -138,11 +144,14 @@ describe('usersService', () => {
     vi.mocked(repository.findByEmail).mockResolvedValue(makeUser())
     const service = createUsersService(repository)
     await expect(
-      service.createUser({
-        email: 'user@example.com',
-        password: 'password1',
-        role: 'CLIENT',
-      }),
+      service.createUser(
+        {
+          email: 'user@example.com',
+          password: 'password1',
+          role: 'CLIENT',
+        },
+        admin,
+      ),
     ).rejects.toMatchObject({ code: 'EMAIL_IN_USE', status: 409 })
   })
 
@@ -191,6 +200,36 @@ describe('usersService', () => {
       'user-1',
       expect.objectContaining({ role: 'MANAGER', status: 'INACTIVE' }),
     )
+  })
+
+  it('only a super admin can create, change, or deactivate a super account', async () => {
+    const service = createUsersService(repository)
+    await expect(
+      service.createUser(
+        { email: 'root@example.com', password: 'password1', role: 'SUPER' },
+        admin,
+      ),
+    ).rejects.toMatchObject({ status: 403, code: 'SUPER_ROLE_REQUIRED' })
+
+    await expect(
+      service.createUser(
+        { email: 'root@example.com', password: 'password1', role: 'SUPER' },
+        superAdmin,
+      ),
+    ).resolves.toMatchObject({ email: 'root@example.com' })
+
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'SUPER' }))
+    await expect(service.updateUser('user-1', { firstName: 'Ada' }, admin)).rejects.toMatchObject({
+      status: 403,
+      code: 'SUPER_ROLE_REQUIRED',
+    })
+    await expect(service.deactivateUser('user-1', admin)).rejects.toMatchObject({
+      status: 403,
+      code: 'SUPER_ROLE_REQUIRED',
+    })
+    await expect(service.deactivateUser('user-1', superAdmin)).resolves.toMatchObject({
+      status: 'INACTIVE',
+    })
   })
 
   it('approves a pending manager and rejects other roles', async () => {

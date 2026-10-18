@@ -42,6 +42,8 @@ describe('projectsService.assertAccessible', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      findScheduleRows: vi.fn(async () => []),
+      findTimeline: vi.fn(async () => []),
     }
     return createProjectsService(repository, {})
   }

@@ -1,6 +1,8 @@
 import { prisma } from '../../database/prisma.js'
 import type { Prisma, Role, UserStatus, VerificationStatus } from '../../generated/prisma/client.js'
-import type { ListApprovalsQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
+import { cacheKeys } from '../../redis/redis.keys.js'
+import { invalidateCache, readThroughCache } from '../../redis/redis.cache.js'
+import type { ListApprovalsQuery, ListLookupQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
 import { APPROVAL_ROLES, type User, type UserLookup } from './users.types.js'
 
 type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>
@@ -94,7 +96,7 @@ type DirectoryCountRow = {
 
 export type UsersRepository = {
   findMany: (query: ListUsersQuery) => Promise<{ users: User[]; total: number }>
-  findLookup: () => Promise<UserLookup[]>
+  findLookup: (query: ListLookupQuery) => Promise<{ users: UserLookup[]; total: number }>
   countDirectory: () => Promise<UserDirectoryCounts>
   findApprovals: (query: ListApprovalsQuery) => Promise<{ users: User[]; total: number }>
   countApprovals: () => Promise<ApprovalCounts>
@@ -107,6 +109,18 @@ export type UsersRepository = {
   update: (id: string, input: UpdateUserInput) => Promise<User>
   updateStatus: (id: string, status: UserStatus) => Promise<User>
   delete: (id: string) => Promise<'deleted' | 'in_use'>
+}
+
+const USER_COUNT_TTL_SECONDS = 60
+
+const userCountKeys = [
+  cacheKeys.userDirectoryCounts(),
+  cacheKeys.userApprovalCounts(),
+  cacheKeys.userVerificationCounts(),
+]
+
+function invalidateUserCounts(): Promise<void> {
+  return invalidateCache(...userCountKeys)
 }
 
 const approvalRoles: Role[] = [...APPROVAL_ROLES]
@@ -211,29 +225,42 @@ export function createUsersRepository(): UsersRepository {
       }
     },
 
-    async findLookup() {
-      const users = await prisma.user.findMany({
-        select: {
-          id: true,
-          email: true,
-          profile: {
-            select: {
-              displayName: true,
-              firstName: true,
-              lastName: true,
+    async findLookup(query) {
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      const where = userSearchWhere(query.q)
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                displayName: true,
+                firstName: true,
+                lastName: true,
+              },
             },
           },
-        },
-        orderBy: { email: 'asc' },
-      })
-      return users.map((user) => ({
-        id: user.id,
-        email: user.email,
-        name: profileName(user.profile),
-      }))
+          orderBy: { email: 'asc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.user.count({ where }),
+      ])
+      return {
+        users: users.map((user) => ({
+          id: user.id,
+          email: user.email,
+          name: profileName(user.profile),
+        })),
+        total,
+      }
     },
 
     async countDirectory() {
+      return readThroughCache(cacheKeys.userDirectoryCounts(), USER_COUNT_TTL_SECONDS, async () => {
       const now = new Date()
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
@@ -242,23 +269,23 @@ export function createUsersRepository(): UsersRepository {
       const [row] = await prisma.$queryRaw<DirectoryCountRow[]>`
         SELECT
           COUNT(*)::int AS accounts,
-          COUNT(*) FILTER (WHERE status::text = 'ACTIVE')::int AS active,
-          COUNT(*) FILTER (WHERE status::text = 'INACTIVE')::int AS inactive,
-          COUNT(*) FILTER (WHERE role::text = 'MANAGER')::int AS managers,
+          COUNT(*) FILTER (WHERE status = 'ACTIVE'::"UserStatus")::int AS active,
+          COUNT(*) FILTER (WHERE status = 'INACTIVE'::"UserStatus")::int AS inactive,
+          COUNT(*) FILTER (WHERE role = 'MANAGER'::"Role")::int AS managers,
           COUNT(*) FILTER (WHERE "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "createdThisMonth",
           COUNT(*) FILTER (WHERE "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "createdLastMonth",
-          COUNT(*) FILTER (WHERE status::text = 'ACTIVE' AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "activeCreatedThisMonth",
-          COUNT(*) FILTER (WHERE status::text = 'ACTIVE' AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "activeCreatedLastMonth",
-          COUNT(*) FILTER (WHERE status::text = 'INACTIVE' AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "inactiveCreatedThisMonth",
-          COUNT(*) FILTER (WHERE status::text = 'INACTIVE' AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "inactiveCreatedLastMonth",
-          COUNT(*) FILTER (WHERE role::text = 'MANAGER' AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "managersCreatedThisMonth",
-          COUNT(*) FILTER (WHERE role::text = 'MANAGER' AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "managersCreatedLastMonth",
-          COUNT(*) FILTER (WHERE role::text = 'SUPER')::int AS "roleSuper",
-          COUNT(*) FILTER (WHERE role::text = 'ADMIN')::int AS "roleAdmin",
-          COUNT(*) FILTER (WHERE role::text = 'MANAGER')::int AS "roleManager",
-          COUNT(*) FILTER (WHERE role::text = 'PROVIDER')::int AS "roleProvider",
-          COUNT(*) FILTER (WHERE role::text = 'WORKER')::int AS "roleWorker",
-          COUNT(*) FILTER (WHERE role::text = 'CLIENT')::int AS "roleClient"
+          COUNT(*) FILTER (WHERE status = 'ACTIVE'::"UserStatus" AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "activeCreatedThisMonth",
+          COUNT(*) FILTER (WHERE status = 'ACTIVE'::"UserStatus" AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "activeCreatedLastMonth",
+          COUNT(*) FILTER (WHERE status = 'INACTIVE'::"UserStatus" AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "inactiveCreatedThisMonth",
+          COUNT(*) FILTER (WHERE status = 'INACTIVE'::"UserStatus" AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "inactiveCreatedLastMonth",
+          COUNT(*) FILTER (WHERE role = 'MANAGER'::"Role" AND "createdAt" >= ${thisMonth} AND "createdAt" < ${nextMonth})::int AS "managersCreatedThisMonth",
+          COUNT(*) FILTER (WHERE role = 'MANAGER'::"Role" AND "createdAt" >= ${lastMonth} AND "createdAt" < ${thisMonth})::int AS "managersCreatedLastMonth",
+          COUNT(*) FILTER (WHERE role = 'SUPER'::"Role")::int AS "roleSuper",
+          COUNT(*) FILTER (WHERE role = 'ADMIN'::"Role")::int AS "roleAdmin",
+          COUNT(*) FILTER (WHERE role = 'MANAGER'::"Role")::int AS "roleManager",
+          COUNT(*) FILTER (WHERE role = 'PROVIDER'::"Role")::int AS "roleProvider",
+          COUNT(*) FILTER (WHERE role = 'WORKER'::"Role")::int AS "roleWorker",
+          COUNT(*) FILTER (WHERE role = 'CLIENT'::"Role")::int AS "roleClient"
         FROM users
       `
 
@@ -306,6 +333,7 @@ export function createUsersRepository(): UsersRepository {
           CLIENT: count(current.roleClient),
         },
       }
+      })
     },
 
     async findApprovals(query) {
@@ -330,12 +358,14 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countApprovals() {
+      return readThroughCache(cacheKeys.userApprovalCounts(), USER_COUNT_TTL_SECONDS, async () => {
       const [pending, approved, providersPending] = await Promise.all([
         prisma.user.count({ where: { role: { in: approvalRoles }, status: 'PENDING' } }),
         prisma.user.count({ where: { role: { in: approvalRoles }, status: 'ACTIVE' } }),
         prisma.user.count({ where: { role: 'PROVIDER', status: 'PENDING' } }),
       ])
       return { pending, approved, providersPending }
+      })
     },
 
     async findVerifications(query) {
@@ -360,6 +390,7 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countVerifications() {
+      return readThroughCache(cacheKeys.userVerificationCounts(), USER_COUNT_TTL_SECONDS, async () => {
       const workers = { role: 'WORKER' as const }
       const [total, unverified, requested, verified] = await Promise.all([
         prisma.user.count({ where: workers }),
@@ -368,6 +399,7 @@ export function createUsersRepository(): UsersRepository {
         prisma.user.count({ where: { ...workers, verificationStatus: 'VERIFIED' } }),
       ])
       return { workers: total, unverified, requested, verified }
+      })
     },
 
     async updateVerification(id, verificationStatus) {
@@ -379,6 +411,7 @@ export function createUsersRepository(): UsersRepository {
         },
         include: { profile: true },
       })
+      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -424,6 +457,7 @@ export function createUsersRepository(): UsersRepository {
         },
         include: { profile: true },
       })
+      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -455,6 +489,7 @@ export function createUsersRepository(): UsersRepository {
         },
         include: { profile: true },
       })
+      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -464,12 +499,14 @@ export function createUsersRepository(): UsersRepository {
         data: { status },
         include: { profile: true },
       })
+      await invalidateUserCounts()
       return mapToUser(user)
     },
 
     async delete(id) {
       try {
         await prisma.user.delete({ where: { id } })
+        await invalidateUserCounts()
         return 'deleted'
       } catch (error) {
         if (isPrismaCode(error, 'P2003') || isPrismaCode(error, 'P2014')) {

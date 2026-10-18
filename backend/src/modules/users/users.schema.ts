@@ -15,6 +15,10 @@ export const listUsersQuerySchema = paginationQuerySchema.extend({
   q: optionalSearchQuery,
 })
 
+export const listLookupQuerySchema = paginationQuerySchema.extend({
+  q: optionalSearchQuery,
+})
+
 export const approvalStatusSchema = z.enum(['pending', 'approved'])
 
 export const approvalRoleSchema = z.enum(['MANAGER', 'PROVIDER', 'WORKER'])
@@ -107,6 +111,7 @@ export const createApprovalBodySchema = z.object({
 })
 
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>
+export type ListLookupQuery = z.infer<typeof listLookupQuerySchema>
 export type ListApprovalsQuery = z.infer<typeof listApprovalsQuerySchema>
 export type CreateUserBody = z.infer<typeof createUserBodySchema>
 export type CreateApprovalBody = z.infer<typeof createApprovalBodySchema>

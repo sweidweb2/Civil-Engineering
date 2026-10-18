@@ -93,9 +93,13 @@ const unifiedStages = [
   },
 ]
 
+const SCATTERED_PARTICLES = scatteredParticles()
+const CLUSTERED_PARTICLES = clusteredParticles()
+const NETWORK_PARTICLES = networkParticles()
+
 function UnifiedArt({ kind }: { kind: (typeof unifiedStages)[number]['art'] }) {
   if (kind === 'unified') {
-    const { nodes, links, raw } = networkParticles()
+    const { nodes, links, raw } = NETWORK_PARTICLES
     return (
       <svg viewBox="0 0 320 180" className="h-40 w-full text-primary" aria-hidden>
         {links.map(([from, to]) => (
@@ -117,7 +121,7 @@ function UnifiedArt({ kind }: { kind: (typeof unifiedStages)[number]['art'] }) {
     )
   }
 
-  const particles = kind === 'scattered' ? scatteredParticles() : clusteredParticles()
+  const particles = kind === 'scattered' ? SCATTERED_PARTICLES : CLUSTERED_PARTICLES
   return (
     <svg viewBox="0 0 320 180" className="h-40 w-full text-primary" aria-hidden>
       {particles.map((particle, index) => (

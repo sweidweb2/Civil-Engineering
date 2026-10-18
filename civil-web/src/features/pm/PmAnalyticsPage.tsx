@@ -9,34 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
-  listProjects,
+  getProjectSummary,
   PROJECT_STATUS_OPTIONS,
-  type Project,
-  type ProjectStatus,
+  type ProjectSummary,
   projectStatusLabel,
 } from '@/services/projects'
 
-async function loadProjects(): Promise<Project[]> {
-  const first = await listProjects(1, 100)
-  if (first.meta.totalPages <= 1) return first.data
-  const rest = await Promise.all(
-    Array.from({ length: first.meta.totalPages - 1 }, (_, index) => listProjects(index + 2, 100)),
-  )
-  return [first.data, ...rest.map((page) => page.data)].flat()
-}
-
-function countStatus(projects: Project[], status: ProjectStatus): number {
-  return projects.filter((project) => project.status === status).length
-}
-
 export function PmAnalyticsPage() {
   useDocumentTitle('Analytics')
-  const load = useCallback(() => loadProjects(), [])
-  const remote = useRemoteData(load, { queryKey: ['projects', 'pm-analytics'] })
-  const projects = remote.status === 'success' ? remote.data : []
-  const averageProgress = projects.length
-    ? Math.round(projects.reduce((sum, project) => sum + project.progress, 0) / projects.length)
-    : 0
+  const load = useCallback(() => getProjectSummary(), [])
+  const remote = useRemoteData(load, { queryKey: ['project-summary'] })
+  const summary: ProjectSummary | null = remote.status === 'success' ? remote.data.data : null
+  const total = summary?.total ?? 0
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -53,18 +37,18 @@ export function PmAnalyticsPage() {
         loadingFallback={<StatGridSkeleton count={4} />}
       >
         <div className={STAT_GRID_CLASS}>
-          <StatCard icon={FolderKanban} label="Projects" value={projects.length} />
+          <StatCard icon={FolderKanban} label="Projects" value={total} />
           <StatCard
             icon={TrendingUp}
             label="In progress"
-            value={countStatus(projects, 'IN_PROGRESS')}
+            value={summary?.counts.IN_PROGRESS ?? 0}
           />
           <StatCard
             icon={CheckCircle2}
             label="Completed"
-            value={countStatus(projects, 'COMPLETED')}
+            value={summary?.counts.COMPLETED ?? 0}
           />
-          <StatCard icon={PauseCircle} label="Average progress" value={`${averageProgress}%`} />
+          <StatCard icon={PauseCircle} label="Average progress" value={`${summary?.averageProgress ?? 0}%`} />
         </div>
 
         <Card size="sm">
@@ -72,12 +56,12 @@ export function PmAnalyticsPage() {
             <CardTitle>By status</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {projects.length === 0 ? (
+            {total === 0 ? (
               <p className="text-sm text-muted-foreground">No projects yet.</p>
             ) : (
               PROJECT_STATUS_OPTIONS.map((option) => {
-                const count = countStatus(projects, option.value)
-                const width = projects.length ? Math.round((count / projects.length) * 100) : 0
+                const count = summary?.counts[option.value] ?? 0
+                const width = total ? Math.round((count / total) * 100) : 0
                 return (
                   <div key={option.value} className="grid grid-cols-[8rem_minmax(0,1fr)_2.5rem] items-center gap-3">
                     <span className="truncate text-sm text-muted-foreground">

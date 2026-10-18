@@ -7,10 +7,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
-import { listProjects, type Project } from '@/services/projects'
+import { listProjectTimeline, type ProjectTimelineItem } from '@/services/projects'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const EMPTY_PROJECTS: Project[] = []
+const EMPTY_PROJECTS: ProjectTimelineItem[] = []
 const ROW_CLASS = 'h-10'
 const AXIS_CLASS = 'h-8'
 
@@ -78,7 +78,7 @@ function parseTime(iso: string | null | undefined) {
   return Number.isNaN(time) ? null : time
 }
 
-function toLane(project: Project, now: number): Omit<TimelineLane, 'lane'> | null {
+function toLane(project: ProjectTimelineItem, now: number): Omit<TimelineLane, 'lane'> | null {
   const start = parseTime(project.startDate) ?? parseTime(project.actualStartDate) ?? parseTime(project.createdAt)
   if (start == null) return null
 
@@ -182,11 +182,11 @@ export function ProjectProgressTimeline({ refreshKey = 0 }: ProjectProgressTimel
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(true)
-  const [snapshot, setSnapshot] = useState<{ projects: Project[]; total: number } | null>(null)
+  const [snapshot, setSnapshot] = useState<{ projects: ProjectTimelineItem[]; total: number } | null>(null)
   const [now, setNow] = useState<number | null>(null)
 
-  const load = useCallback(() => listProjects(1, 100, 'IN_PROGRESS'), [])
-  const remote = useRemoteData(load, { queryKey: ['projects', 'timeline'] })
+  const load = useCallback(() => listProjectTimeline(), [])
+  const remote = useRemoteData(load, { queryKey: ['project-timeline'] })
   const refetch = remote.refetch
 
   useEffect(() => {

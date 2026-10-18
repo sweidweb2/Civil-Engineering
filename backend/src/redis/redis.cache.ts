@@ -1,4 +1,4 @@
-import type { AppConfig } from '../config/index.js'
+import { type AppConfig, loadConfig } from '../config/index.js'
 import { getRedis } from './redis.client.js'
 
 const DEFAULT_TTL_SECONDS = 120
@@ -54,6 +54,40 @@ export async function bumpListVersion(
   const redis = getRedis(config)
   if (!redis) return 0
   return redis.incr(versionKey)
+}
+
+/**
+ * Return a cached JSON value, or load it and store it with a TTL.
+ * A cache miss or Redis outage falls through to `load`.
+ */
+export async function readThroughCache<T>(
+  key: string,
+  ttlSeconds: number,
+  load: () => Promise<T>,
+): Promise<T> {
+  const config = loadConfig()
+  try {
+    const hit = await cacheGetJson<T>(config, key)
+    if (hit !== null) return hit
+  } catch {
+    return load()
+  }
+
+  const value = await load()
+  try {
+    await cacheSetJson(config, key, value, ttlSeconds)
+  } catch {
+    // The database value is still authoritative when Redis cannot store it.
+  }
+  return value
+}
+
+export async function invalidateCache(...keys: string[]): Promise<void> {
+  try {
+    await cacheDel(loadConfig(), ...keys)
+  } catch {
+    // Counts expire on their TTL when invalidation cannot reach Redis.
+  }
 }
 
 export async function getListVersion(

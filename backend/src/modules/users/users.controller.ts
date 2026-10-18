@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
-import type { ListApprovalsQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
+import type { ListApprovalsQuery, ListLookupQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
 import type { UsersService } from './users.service.js'
 
 export type UsersController = {
@@ -33,9 +33,10 @@ export function createUsersController(service: UsersService): UsersController {
         next(error)
       }
     },
-    async listLookup(_req, res, next) {
+    async listLookup(req, res, next) {
       try {
-        const result = await service.listLookup()
+        const query = req.query as unknown as ListLookupQuery
+        const result = await service.listLookup(query)
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -52,7 +53,7 @@ export function createUsersController(service: UsersService): UsersController {
     },
     async create(req, res, next) {
       try {
-        const user = await service.createUser(req.body)
+        const user = await service.createUser(req.body, parseAuthActor(req))
         res.status(201).json({ data: user })
       } catch (error) {
         next(error)

@@ -144,3 +144,30 @@ export function archiveProject(id: string) {
     method: 'POST',
   })
 }
+
+export type ProjectSummary = {
+  total: number
+  averageProgress: number
+  counts: Record<ProjectStatus, number>
+}
+
+export type ProjectTimelineItem = Pick<
+  Project,
+  | 'id'
+  | 'name'
+  | 'status'
+  | 'progress'
+  | 'startDate'
+  | 'endDate'
+  | 'actualStartDate'
+  | 'actualEndDate'
+  | 'createdAt'
+>
+
+export function getProjectSummary() {
+  return apiRequest<{ data: ProjectSummary }>('/projects/summary')
+}
+
+export function listProjectTimeline() {
+  return apiRequest<{ data: ProjectTimelineItem[]; meta: { total: number } }>('/projects/timeline')
+}

@@ -3,12 +3,14 @@
 // Generator output: src/generated/prisma (imported from src/database only)
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [pg_trgm]
 }
 
 // =============================================================================
@@ -60,7 +62,10 @@ model User {
   receivedNotifications Notification[] @relation("ReceivedNotifications")
 
   @@index([role, status])
+  @@index([status])
+  @@index([createdAt])
   @@index([role, verificationStatus])
+  @@index([email(ops: raw("gin_trgm_ops"))], map: "users_email_trgm_idx", type: Gin)
   @@map("users")
 }
 
@@ -76,6 +81,10 @@ model Profile {
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([firstName(ops: raw("gin_trgm_ops"))], map: "profiles_firstName_trgm_idx", type: Gin)
+  @@index([lastName(ops: raw("gin_trgm_ops"))], map: "profiles_lastName_trgm_idx", type: Gin)
+  @@index([displayName(ops: raw("gin_trgm_ops"))], map: "profiles_displayName_trgm_idx", type: Gin)
+  @@index([phone(ops: raw("gin_trgm_ops"))], map: "profiles_phone_trgm_idx", type: Gin)
   @@map("profiles")
 }
 
@@ -217,6 +226,7 @@ model Provider {
 
   @@index([status])
   @@index([city, country])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "providers_name_trgm_idx", type: Gin)
   @@map("providers")
 }
 
@@ -309,6 +319,7 @@ model Listing {
   @@index([providerId])
   @@index([categoryId])
   @@index([type, status])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "listings_name_trgm_idx", type: Gin)
   @@map("listings")
 }
 
@@ -490,6 +501,7 @@ model Review {
   @@unique([authorId, targetType, targetId])
   @@index([status, createdAt])
   @@index([targetType, targetId])
+  @@index([comment(ops: raw("gin_trgm_ops"))], map: "reviews_comment_trgm_idx", type: Gin)
   @@map("reviews")
 }
 

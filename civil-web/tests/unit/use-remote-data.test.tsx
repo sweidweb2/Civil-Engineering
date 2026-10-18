@@ -88,4 +88,43 @@ describe('useRemoteData', () => {
     if (second.result.current.status === 'success') expect(second.result.current.data).toBe('shared')
     expect(calls).toBe(1)
   })
+
+  it('refetches only the query that asked', async () => {
+    let listings = 0
+    let details = 0
+    const queryClient = client()
+    const wrapper = wrapperFor(queryClient)
+    const listingsHook = renderHook(
+      () =>
+        useRemoteData(
+          () => {
+            listings += 1
+            return Promise.resolve('listings')
+          },
+          { queryKey: ['listings', 'page', 1] },
+        ),
+      { wrapper },
+    )
+    const detailsHook = renderHook(
+      () =>
+        useRemoteData(
+          () => {
+            details += 1
+            return Promise.resolve('detail')
+          },
+          { queryKey: ['listings', 'detail'] },
+        ),
+      { wrapper },
+    )
+
+    await waitFor(() => expect(listingsHook.result.current.status).toBe('success'))
+    await waitFor(() => expect(detailsHook.result.current.status).toBe('success'))
+
+    await act(async () => {
+      await listingsHook.result.current.refetch()
+    })
+
+    await waitFor(() => expect(listings).toBe(2))
+    expect(details).toBe(1)
+  })
 })

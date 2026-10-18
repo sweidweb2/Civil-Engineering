@@ -3,7 +3,7 @@ import { isAdmin } from '../../authz/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
 import type { ListingRecord, ListingsRepository } from './listings.repository.js'
 import type { CreateListingBody, ListListingsQuery, ListingType, UpdateListingBody } from './listings.schema.js'
-import type { Listing, PaginatedListings } from './listings.types.js'
+import type { Listing, ListingTypeCounts, PaginatedListings } from './listings.types.js'
 
 export type ListingsService = {
   listListings: (query: ListListingsQuery, actor: AuthActor) => Promise<PaginatedListings>
@@ -82,10 +82,11 @@ export function createListingsService(repository: ListingsRepository): ListingsS
   return {
     async listListings(query, actor) {
       assertCanView(actor)
-      const [{ items, total }, typeCounts] = await Promise.all([
-        repository.findMany(query),
-        repository.countByType(query.providerId),
-      ])
+      const emptyCounts: ListingTypeCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 }
+      const [{ items, total }, typeCounts] =
+        query.counts === false
+          ? [await repository.findMany(query), emptyCounts]
+          : await Promise.all([repository.findMany(query), repository.countByType(query.providerId)])
       return {
         data: items.map(toListingDto),
         meta: {

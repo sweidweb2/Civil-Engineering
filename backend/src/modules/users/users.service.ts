@@ -1,6 +1,6 @@
 import { hashPassword } from '../auth/auth.tokens.js'
 import type { AuthActor } from '../../authz/index.js'
-import { assertSelfOrAdmin, isAdmin } from '../../authz/index.js'
+import { assertSelfOrAdmin, isAdmin, isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound } from '../../errors/app-error.js'
 import type { UserDirectoryCounts, UsersRepository } from './users.repository.js'
 import type {
@@ -8,6 +8,7 @@ import type {
   CreateUserBody,
   CreateVerificationBody,
   ListApprovalsQuery,
+  ListLookupQuery,
   ListUsersQuery,
   ListVerificationsQuery,
   SetVerificationBody,
@@ -28,11 +29,14 @@ export type UsersService = {
     data: User[]
     meta: { total: number; page: number; limit: number; totalPages: number; counts: UserDirectoryCounts }
   }>
-  listLookup: () => Promise<{ data: UserLookup[] }>
+  listLookup: (query: ListLookupQuery) => Promise<{
+    data: UserLookup[]
+    meta: { total: number; page: number; limit: number; totalPages: number }
+  }>
   getUserById: (id: string) => Promise<User>
   /** Self or admin may read a user record. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<User>
-  createUser: (input: CreateUserBody) => Promise<User>
+  createUser: (input: CreateUserBody, actor: AuthActor) => Promise<User>
   updateUser: (id: string, input: UpdateUserBody, actor: AuthActor) => Promise<User>
   deactivateUser: (id: string, actor: AuthActor) => Promise<User>
   listApprovals: (query: ListApprovalsQuery) => Promise<{
@@ -89,6 +93,13 @@ export function createUsersService(repository: UsersRepository): UsersService {
     return (APPROVAL_ROLES as readonly string[]).includes(role)
   }
 
+  function assertSuperBoundary(actor: AuthActor, currentRole?: string, nextRole?: string): void {
+    const touchesSuper = currentRole === 'SUPER' || nextRole === 'SUPER'
+    if (touchesSuper && !isSuper(actor.roles)) {
+      throw forbidden('Only a super admin can change a super account', 'SUPER_ROLE_REQUIRED')
+    }
+  }
+
   async function loadApprovalTarget(id: string, actor: AuthActor): Promise<User> {
     assertAdmin(actor)
     const user = await loadOrThrow(id)
@@ -127,8 +138,19 @@ export function createUsersService(repository: UsersRepository): UsersService {
       }
     },
 
-    async listLookup() {
-      return { data: await repository.findLookup() }
+    async listLookup(query) {
+      const { users, total } = await repository.findLookup(query)
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      return {
+        data: users,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      }
     },
     
     async getUserById(id) {
@@ -137,7 +159,8 @@ export function createUsersService(repository: UsersRepository): UsersService {
     
     assertAccessible,
     
-    async createUser(input) {
+    async createUser(input, actor) {
+      assertSuperBoundary(actor, undefined, input.role ?? 'CLIENT')
       const existing = await repository.findByEmail(input.email)
       if (existing) {
         throw conflict('Email already in use', 'EMAIL_IN_USE')
@@ -162,7 +185,8 @@ export function createUsersService(repository: UsersRepository): UsersService {
     },
     
     async updateUser(id, input, actor) {
-      await assertAccessible(id, actor)
+      const user = await assertAccessible(id, actor)
+      assertSuperBoundary(actor, user.role, input.role)
 
       const wantsPrivilegedChange =
         input.role !== undefined || input.status !== undefined || input.isVerified !== undefined
@@ -190,7 +214,8 @@ export function createUsersService(repository: UsersRepository): UsersService {
       if (!isAdmin(actor.roles)) {
         throw forbidden('Only admins can deactivate users')
       }
-      await loadOrThrow(id)
+      const user = await loadOrThrow(id)
+      assertSuperBoundary(actor, user.role)
       return repository.updateStatus(id, 'INACTIVE')
     },
 

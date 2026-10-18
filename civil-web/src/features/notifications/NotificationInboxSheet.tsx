@@ -1,5 +1,5 @@
 import { AlertCircle, AlertTriangle, Bell, CheckCheck, Circle, Info, Megaphone, Settings } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -57,7 +57,6 @@ export function NotificationInboxSheet() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [isMarkingAll, setIsMarkingAll] = useState(false)
-  const skipPathRefresh = useRef(true)
 
   const load = useCallback(async () => {
     const [page, unread] = await Promise.all([
@@ -68,23 +67,23 @@ export function NotificationInboxSheet() {
   }, [])
   const remote = useRemoteData(load, { queryKey: ['notifications', 'inbox-sheet'] })
 
-  useEffect(() => {
-    if (skipPathRefresh.current) {
-      skipPathRefresh.current = false
-      return
-    }
-    void remote.refetch()
-  }, [location.pathname, remote.refetch])
-
   const items = remote.status === 'success' ? remote.data.items : []
   const unread = remote.status === 'success' ? remote.data.unread : 0
   const inboxPath = portalNotificationsPath(location.pathname)
 
   async function openItem(item: Notification) {
     if (!item.isRead) {
+      remote.mutate((current) => ({
+        unread: Math.max(0, current.unread - 1),
+        items: current.items.map((row) => (row.id === item.id ? { ...row, isRead: true } : row)),
+      }))
       try {
         await markAsRead(item.id)
       } catch (error) {
+        remote.mutate((current) => ({
+          unread: current.unread + 1,
+          items: current.items.map((row) => (row.id === item.id ? item : row)),
+        }))
         toast.error(errorMessage(error, 'Could not mark notification as read'))
       }
     }

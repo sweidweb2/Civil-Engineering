@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 
-import { wrap } from '../../errors/async-handler.js'
 import { unauthorized } from '../../errors/app-error.js'
+import { wrap } from '../../errors/async-handler.js'
 import type { ManagerProfilesService } from './manager-profiles.service.js'
 
 export type ManagerProfilesController = {

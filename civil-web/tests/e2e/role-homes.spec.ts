@@ -1,29 +1,38 @@
 import { expect, test } from '@playwright/test'
 
-import { expectSignedInHome, loginAs, SEED_USERS } from './helpers/auth'
+import { authStatePath, openSeedHome, SEED_USERS } from './helpers/auth'
 
 test.describe('role home redirects', () => {
-  test('SUPER lands on /super', async ({ page }) => {
-    await loginAs(page, SEED_USERS.super.email)
-    await expectSignedInHome(page, SEED_USERS.super.home)
+  test('SUPER lands on /super', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: authStatePath('super') })
+    const page = await context.newPage()
+    await openSeedHome(page, 'super')
+    await expect(page).toHaveURL(SEED_USERS.super.home)
     await expect(page.getByRole('heading', { name: /super home/i })).toBeVisible()
+    await context.close()
   })
 
-  test('ADMIN lands on /admin dashboard', async ({ page }) => {
-    await loginAs(page, SEED_USERS.admin.email)
-    await expectSignedInHome(page, SEED_USERS.admin.home)
+  test('ADMIN lands on /admin dashboard', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: authStatePath('admin') })
+    const page = await context.newPage()
+    await openSeedHome(page, 'admin')
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await context.close()
   })
 
-  test('MANAGER lands on /pm analytics', async ({ page }) => {
-    await loginAs(page, SEED_USERS.pm.email)
-    await expectSignedInHome(page, SEED_USERS.pm.home)
+  test('MANAGER lands on /pm analytics', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: authStatePath('pm') })
+    const page = await context.newPage()
+    await openSeedHome(page, 'pm')
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
+    await context.close()
   })
 
-  test('PROVIDER lands on /provider', async ({ page }) => {
-    await loginAs(page, SEED_USERS.provider.email)
-    await expectSignedInHome(page, SEED_USERS.provider.home)
+  test('PROVIDER lands on /provider', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: authStatePath('provider') })
+    const page = await context.newPage()
+    await openSeedHome(page, 'provider')
     await expect(page.getByRole('heading', { name: /provider home/i })).toBeVisible()
+    await context.close()
   })
 })

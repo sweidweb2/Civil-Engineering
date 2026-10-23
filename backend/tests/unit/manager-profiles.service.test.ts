@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Prisma } from '../../src/generated/prisma/client.js'
 import type { ManagerProfilesRepository } from '../../src/modules/manager-profiles/manager-profiles.repository.js'
-import { createManagerProfilesService } from '../../src/modules/manager-profiles/manager-profiles.service.js'
 import type { UpsertManagerProfileBody } from '../../src/modules/manager-profiles/manager-profiles.schema.js'
+import { createManagerProfilesService } from '../../src/modules/manager-profiles/manager-profiles.service.js'
 import type { ManagerProfile } from '../../src/modules/manager-profiles/manager-profiles.types.js'
 
 function makeProfile(overrides: Partial<ManagerProfile> = {}): ManagerProfile {

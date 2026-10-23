@@ -1,7 +1,8 @@
 import request from 'supertest'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createApp } from '../../src/app.js'
+import { setAccessPrincipalResolver } from '../../src/middleware/access-principal.js'
 import { signAccessToken } from '../../src/modules/auth/auth.tokens.js'
 import { ensureTestJwtEnv, loadTestConfig } from '../helpers/test-config.js'
 
@@ -10,6 +11,18 @@ describe('Zod request validation', () => {
   const config = loadTestConfig()
   const app = createApp({ config })
   const accessToken = signAccessToken(config, 'user-validation-1', 'MANAGER')
+
+  beforeAll(() => {
+    setAccessPrincipalResolver(async (userId) => ({
+      id: userId,
+      role: 'MANAGER',
+      status: 'ACTIVE',
+    }))
+  })
+
+  afterAll(() => {
+    setAccessPrincipalResolver(null)
+  })
 
   it('rejects invalid body with 400 VALIDATION_ERROR', async () => {
     const res = await request(app)

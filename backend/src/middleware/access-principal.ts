@@ -1,5 +1,5 @@
-import type { RoleName } from '../modules/auth/auth.schema.js'
 import { createAuthRepository } from '../modules/auth/auth.repository.js'
+import type { RoleName } from '../modules/auth/auth.schema.js'
 
 export type AccessPrincipal = {
   id: string

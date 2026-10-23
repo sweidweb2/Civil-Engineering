@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
 
-import { expectSignedInHome, loginAs, SEED_USERS } from './helpers/auth'
+import { authStatePath, openSeedHome } from './helpers/auth'
 
 test.describe('admin shell navigation', () => {
+  test.use({ storageState: authStatePath('admin') })
+
   test.beforeEach(async ({ page }) => {
-    await loginAs(page, SEED_USERS.admin.email)
-    await expectSignedInHome(page, SEED_USERS.admin.home)
+    await openSeedHome(page, 'admin')
   })
 
   test('opens queue, users, projects, directory, steps', async ({ page }) => {

@@ -2,8 +2,8 @@ import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import {
-  runInTransaction as defaultRunInTransaction,
   type DbClient,
+  runInTransaction as defaultRunInTransaction,
 } from '../../database/transaction.js'
 import { conflict, notFound, validationError } from '../../errors/app-error.js'
 import { cacheKeys, readThroughCache } from '../../redis/index.js'

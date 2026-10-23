@@ -81,6 +81,7 @@ civil-web/test-results/
 civil-web/playwright-report/
 civil-web/blob-report/
 civil-web/playwright/.cache/
+civil-web/playwright/.auth/
 
 # Misc
 example

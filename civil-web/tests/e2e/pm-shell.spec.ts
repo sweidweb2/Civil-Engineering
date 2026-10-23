@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
 
-import { expectSignedInHome, loginAs, SEED_USERS } from './helpers/auth'
+import { authStatePath, openSeedHome } from './helpers/auth'
 
 test.describe('PM shell navigation', () => {
+  test.use({ storageState: authStatePath('pm') })
+
   test.beforeEach(async ({ page }) => {
-    await loginAs(page, SEED_USERS.pm.email)
-    await expectSignedInHome(page, SEED_USERS.pm.home)
+    await openSeedHome(page, 'pm')
   })
 
   test('opens projects and directory', async ({ page }) => {
@@ -50,9 +51,7 @@ test.describe('PM shell navigation', () => {
     const res = await createResponse
     expect(res.ok()).toBeTruthy()
 
-    // Create navigates into the new project detail (steppers tab).
     await expect(page).toHaveURL(/\/pm\/projects\/[^/]+/, { timeout: 20_000 })
     await expect(page.getByRole('tab', { name: 'Steppers' })).toBeVisible()
   })
 })
-

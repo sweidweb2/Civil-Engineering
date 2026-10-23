@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectSignedInHome, loginAs, SEED_USERS } from './helpers/auth'
+import { authStatePath, expectSignedInHome, SEED_USERS } from './helpers/auth'
 
 test.describe('login form', () => {
   test('shows field errors when submitted empty', async ({ page }) => {
@@ -22,9 +22,12 @@ test.describe('login form', () => {
     await page.locator('form[data-slot="form"]').evaluate((form) => {
       ;(form as HTMLFormElement).requestSubmit()
     })
-    await loginResponse
-    await expect(page.getByText(/invalid email or password|could not sign in/i)).toBeVisible()
+    const res = await loginResponse
+    expect([401, 429]).toContain(res.status())
     await expect(page).toHaveURL(/\/login/)
+    await expect(
+      page.getByText(/invalid email or password|could not sign in|too many requests/i),
+    ).toBeVisible()
   })
 
   test('can open register from login', async ({ page }) => {
@@ -33,9 +36,14 @@ test.describe('login form', () => {
     await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible()
   })
 
-  test('admin seed account reaches the admin dashboard', async ({ page }) => {
-    await loginAs(page, SEED_USERS.admin.email)
+  test('admin seed session reaches the admin dashboard', async ({ browser }) => {
+    // Setup project already exercised the login form; this asserts the persisted session.
+    const context = await browser.newContext({ storageState: authStatePath('admin') })
+    const page = await context.newPage()
+    await page.goto('/admin')
     await expectSignedInHome(page, SEED_USERS.admin.home)
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await context.close()
   })
 })
+

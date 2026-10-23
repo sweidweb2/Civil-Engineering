@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { passwordSchema } from '../auth/password.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
+import { passwordSchema } from '../auth/password.schema.js'
 
 const optionalSearchQuery = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),

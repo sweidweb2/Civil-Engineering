@@ -1,5 +1,5 @@
-import { CheckCircle2, FolderKanban, PauseCircle, TrendingUp } from 'lucide-react'
 import { useCallback } from 'react'
+import { CheckCircle2, FolderKanban, PauseCircle, TrendingUp } from 'lucide-react'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { StatGridSkeleton } from '@/components/feedback/skeletons'
@@ -12,8 +12,8 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import {
   getProjectSummary,
   PROJECT_STATUS_OPTIONS,
-  type ProjectSummary,
   projectStatusLabel,
+  type ProjectSummary,
 } from '@/services/projects'
 
 export function PmAnalyticsPage() {

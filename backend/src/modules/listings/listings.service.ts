@@ -2,7 +2,7 @@ import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
 import type { ListingRecord, ListingsRepository } from './listings.repository.js'
-import type { CreateListingBody, ListListingsQuery, ListingType, UpdateListingBody } from './listings.schema.js'
+import type { CreateListingBody, ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
 import type { Listing, ListingTypeCounts, PaginatedListings } from './listings.types.js'
 
 export type ListingsService = {

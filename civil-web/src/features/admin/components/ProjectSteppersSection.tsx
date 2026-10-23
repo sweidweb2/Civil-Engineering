@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { cn } from 'cn'
 import { Check, Plus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -20,13 +21,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { cn } from 'cn'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import {
   INPUT_TYPES_PICKER_QUERY_KEY,
-  listInputTypesForPicker,
   type InputType,
+  listInputTypesForPicker,
 } from '@/services/input-types'
 import {
   addProjectStepInput,
@@ -101,8 +101,8 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
 
   const loadNodes = useCallback(() => listProjectSteppers(projectId), [projectId])
   const nodesRemote = useRemoteData(loadNodes, { queryKey: ['project-steppers', projectId] })
-  const nodes: ProjectStepNode[] =
-    nodesRemote.status === 'success' ? nodesRemote.data.data : []
+  const nodesData = nodesRemote.status === 'success' ? nodesRemote.data.data : null
+  const nodes = useMemo<ProjectStepNode[]>(() => nodesData ?? [], [nodesData])
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -146,7 +146,8 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     queryKey: [...INPUT_TYPES_PICKER_QUERY_KEY],
     enabled: addOpen,
   })
-  const types: InputType[] = typesRemote.status === 'success' ? typesRemote.data.data : []
+  const typesData = typesRemote.status === 'success' ? typesRemote.data.data : null
+  const types = useMemo<InputType[]>(() => typesData ?? [], [typesData])
 
   useEffect(() => {
     if (!addOpen || types.length === 0) return

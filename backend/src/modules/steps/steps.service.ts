@@ -4,7 +4,7 @@ import { forbidden, notFound } from '../../errors/app-error.js'
 import type { RoleName } from '../auth/auth.schema.js'
 import type { InputTypesService } from '../input-types/index.js'
 import { allocateOrdered, allocateOrderedWithActiveType } from './steps.order.js'
-import { toStepDto, toStepInputDto, type StepsRepository } from './steps.repository.js'
+import { type StepsRepository,toStepDto, toStepInputDto } from './steps.repository.js'
 import type {
   CreateStepBody,
   CreateStepInputBody,

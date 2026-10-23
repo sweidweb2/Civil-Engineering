@@ -3,6 +3,8 @@ import os from 'node:os'
 import path from 'node:path'
 import EmbeddedPostgres from 'embedded-postgres'
 
+import { DEFAULT_TEST_DATABASE_URL } from '../helpers/test-db.js'
+
 const PORT = Number(process.env.TEST_PG_PORT ?? 55432)
 const dataDir = path.join(os.tmpdir(), `civil-pg-e2e-${process.pid}-${Date.now()}`)
 
@@ -22,12 +24,11 @@ async function canConnect(url: string) {
 
 /**
  * Real Test Postgres for e2e:
- * 1) Reuse Docker/`DATABASE_URL` if already up
+ * 1) Reuse Docker (`docker-compose.test.yml` :5433) / `DATABASE_URL` if already up
  * 2) Else start embedded-postgres in a temp dir
  */
 export async function setup() {
-  const url =
-    process.env.DATABASE_URL ?? `postgresql://postgres:postgres@127.0.0.1:${PORT}/civil_test`
+  const url = process.env.DATABASE_URL ?? DEFAULT_TEST_DATABASE_URL
 
   if (process.env.SKIP_EMBEDDED_PG === '1') {
     process.env.DATABASE_URL = url

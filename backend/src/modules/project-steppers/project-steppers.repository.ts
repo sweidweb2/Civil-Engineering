@@ -1,5 +1,5 @@
-import { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../database/prisma.js'
+import { Prisma } from '../../generated/prisma/client.js'
 import type {
   CreateProjectStepInputBody,
   StepperInputValuePayload,

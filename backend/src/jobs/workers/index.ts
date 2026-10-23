@@ -19,10 +19,10 @@
  */
 
 export {
+  defaultJobOptions,
   JOB_ATTEMPTS,
   JOB_BACKOFF,
   JOB_BACKOFF_DELAY_MS,
   JOB_REMOVE_ON_COMPLETE,
   JOB_REMOVE_ON_FAIL,
-  defaultJobOptions,
 } from './job.defaults.js'

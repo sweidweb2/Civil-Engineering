@@ -1,11 +1,11 @@
-export { getRedis, pingRedis, closeRedis } from './redis.client.js'
-export { cacheKeys } from './redis.keys.js'
 export {
+  bumpListVersion,
+  cacheDel,
   cacheGetJson,
   cacheSetJson,
-  cacheDel,
-  readThroughCache,
-  invalidateCache,
-  bumpListVersion,
   getListVersion,
+  invalidateCache,
+  readThroughCache,
 } from './redis.cache.js'
+export { closeRedis,getRedis, pingRedis } from './redis.client.js'
+export { cacheKeys } from './redis.keys.js'

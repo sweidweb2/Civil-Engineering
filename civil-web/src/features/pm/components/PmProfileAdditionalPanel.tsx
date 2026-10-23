@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { type FormEvent,useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -25,8 +25,8 @@ import { ApiError } from '@/services/api'
 import {
   deleteMyManagerProfile,
   getMyManagerProfile,
-  upsertMyManagerProfile,
   type ManagerProfile,
+  upsertMyManagerProfile,
 } from '@/services/manager-profiles'
 
 const optionalUrl = z

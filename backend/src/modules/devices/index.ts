@@ -2,8 +2,8 @@ import { loadConfig } from '../../config/index.js'
 import { createDevicesController } from './devices.controller.js'
 import { createDevicesRepository } from './devices.repository.js'
 import { createDevicesRoutes } from './devices.routes.js'
-import { createDevicesService } from './devices.service.js'
 import type { DevicesService } from './devices.service.js'
+import { createDevicesService } from './devices.service.js'
 import type { NotifyUserPayload } from './devices.types.js'
 
 let devicesServiceSingleton: DevicesService | null = null

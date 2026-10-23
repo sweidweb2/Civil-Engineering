@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Image as ImageIcon, Loader2, Star, Trash2, Upload, X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, Image as ImageIcon, Loader2, Star, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -19,9 +19,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
-  type ProjectImage,
   deleteProjectImage,
   listProjectImages,
+  type ProjectImage,
   updateProjectImage,
   uploadProjectImage,
 } from '@/services/projectImages'

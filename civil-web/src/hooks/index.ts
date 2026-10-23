@@ -1,6 +1,6 @@
 export { useDocumentTitle } from './useDocumentTitle'
-export { usePagedQuery } from './usePagedQuery'
 export { useMediaQuery } from './useMediaQuery'
+export { usePagedQuery } from './usePagedQuery'
 export { usePermissions } from './usePermissions'
 export type {
   RemoteError,

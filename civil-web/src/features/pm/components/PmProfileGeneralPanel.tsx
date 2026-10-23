@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { type FormEvent,useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -12,9 +12,9 @@ import { Field, FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { optimizeIfImage } from '@/lib/optimizeImage'
 import { ApiError } from '@/services/api'
 import { changePassword } from '@/services/auth'
-import { optimizeIfImage } from '@/lib/optimizeImage'
 import {
   clearUserAvatar,
   getUser,
@@ -305,132 +305,131 @@ export function PmProfileGeneralPanel() {
       <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
         <Card size="sm" className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>Photo</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Upload a profile photo. Stored privately in Cloudflare R2.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="relative size-20 shrink-0">
-                <Avatar size="lg" className="size-20 data-[size=lg]:size-20">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile photo" /> : null}
-                  <AvatarFallback className="text-base">{avatarInitials()}</AvatarFallback>
-                </Avatar>
-                {isUploadingAvatar ? (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70"
-                    aria-hidden
-                  >
-                    <Loader2 className="size-6 animate-spin text-primary" />
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={AVATAR_ACCEPT}
-                  className="sr-only"
-                  disabled={isUploadingAvatar || isRemovingAvatar}
-                  onChange={(event) => void onAvatarSelected(event.target.files?.[0])}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isUploadingAvatar || isRemovingAvatar}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {isUploadingAvatar ? (
-                      <Loader2 className="animate-spin" />
-                    ) : (
-                      <Camera />
-                    )}
-                    {isUploadingAvatar
-                      ? 'Uploading…'
-                      : avatarUrl
-                        ? 'Change photo'
-                        : 'Upload photo'}
-                  </Button>
-                  {account?.profile?.avatarUrl ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      disabled={isUploadingAvatar || isRemovingAvatar}
-                      onClick={() => void onRemoveAvatar()}
-                    >
-                      {isRemovingAvatar ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                      {isRemovingAvatar ? 'Removing…' : 'Remove'}
-                    </Button>
-                  ) : null}
-                </div>
-                <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP · up to 8 MB</p>
-              </div>
-            </div>
-            {isUploadingAvatar ? <AvatarUploadProgress value={avatarUploadProgress} /> : null}
-          </CardContent>
-        </Card>
-
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
+            <CardTitle>Personal details</CardTitle>
             <p className="text-sm text-muted-foreground">
               {account?.email} · {account?.role}
             </p>
           </CardHeader>
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={(event) => void onSubmit(event)}>
-              <Field data-invalid={Boolean(fieldErrors.firstName) || undefined}>
-                <Label htmlFor="profile-first-name">First name</Label>
-                <Input
-                  id="profile-first-name"
-                  value={form.firstName}
-                  maxLength={100}
-                  placeholder="e.g. Layla"
-                  aria-invalid={Boolean(fieldErrors.firstName) || undefined}
-                  onChange={(event) => setField('firstName', event.target.value)}
-                />
-                <FieldError errors={[{ message: fieldErrors.firstName }]} />
-              </Field>
-              <Field data-invalid={Boolean(fieldErrors.lastName) || undefined}>
-                <Label htmlFor="profile-last-name">Last name</Label>
-                <Input
-                  id="profile-last-name"
-                  value={form.lastName}
-                  maxLength={100}
-                  placeholder="e.g. Hassan"
-                  aria-invalid={Boolean(fieldErrors.lastName) || undefined}
-                  onChange={(event) => setField('lastName', event.target.value)}
-                />
-                <FieldError errors={[{ message: fieldErrors.lastName }]} />
-              </Field>
-              <Field data-invalid={Boolean(fieldErrors.displayName) || undefined}>
-                <Label htmlFor="profile-display-name">Display name</Label>
-                <Input
-                  id="profile-display-name"
-                  value={form.displayName}
-                  maxLength={120}
-                  placeholder="Name shown in the app"
-                  aria-invalid={Boolean(fieldErrors.displayName) || undefined}
-                  onChange={(event) => setField('displayName', event.target.value)}
-                />
-                <FieldError errors={[{ message: fieldErrors.displayName }]} />
-              </Field>
-              <Field data-invalid={Boolean(fieldErrors.phone) || undefined}>
-                <Label htmlFor="profile-phone">Phone</Label>
-                <Input
-                  id="profile-phone"
-                  value={form.phone}
-                  maxLength={20}
-                  placeholder="+961 03 000 000"
-                  aria-invalid={Boolean(fieldErrors.phone) || undefined}
-                  onChange={(event) => setField('phone', event.target.value)}
-                />
-                <FieldError errors={[{ message: fieldErrors.phone }]} />
-              </Field>
+              <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_13rem] md:items-start">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field data-invalid={Boolean(fieldErrors.firstName) || undefined}>
+                    <Label htmlFor="profile-first-name">First name</Label>
+                    <Input
+                      id="profile-first-name"
+                      value={form.firstName}
+                      maxLength={100}
+                      placeholder="e.g. Layla"
+                      aria-invalid={Boolean(fieldErrors.firstName) || undefined}
+                      onChange={(event) => setField('firstName', event.target.value)}
+                    />
+                    <FieldError errors={[{ message: fieldErrors.firstName }]} />
+                  </Field>
+                  <Field data-invalid={Boolean(fieldErrors.lastName) || undefined}>
+                    <Label htmlFor="profile-last-name">Last name</Label>
+                    <Input
+                      id="profile-last-name"
+                      value={form.lastName}
+                      maxLength={100}
+                      placeholder="e.g. Hassan"
+                      aria-invalid={Boolean(fieldErrors.lastName) || undefined}
+                      onChange={(event) => setField('lastName', event.target.value)}
+                    />
+                    <FieldError errors={[{ message: fieldErrors.lastName }]} />
+                  </Field>
+                  <Field data-invalid={Boolean(fieldErrors.displayName) || undefined}>
+                    <Label htmlFor="profile-display-name">Display name</Label>
+                    <Input
+                      id="profile-display-name"
+                      value={form.displayName}
+                      maxLength={120}
+                      placeholder="Name shown in the app"
+                      aria-invalid={Boolean(fieldErrors.displayName) || undefined}
+                      onChange={(event) => setField('displayName', event.target.value)}
+                    />
+                    <FieldError errors={[{ message: fieldErrors.displayName }]} />
+                  </Field>
+                  <Field data-invalid={Boolean(fieldErrors.phone) || undefined}>
+                    <Label htmlFor="profile-phone">Phone</Label>
+                    <Input
+                      id="profile-phone"
+                      value={form.phone}
+                      maxLength={20}
+                      placeholder="+961 03 000 000"
+                      aria-invalid={Boolean(fieldErrors.phone) || undefined}
+                      onChange={(event) => setField('phone', event.target.value)}
+                    />
+                    <FieldError errors={[{ message: fieldErrors.phone }]} />
+                  </Field>
+                </div>
+
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-4 md:sticky md:top-4">
+                  <div className="relative size-24 shrink-0">
+                    <Avatar size="lg" className="size-24 data-[size=lg]:size-24">
+                      {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile photo" /> : null}
+                      <AvatarFallback className="text-base">{avatarInitials()}</AvatarFallback>
+                    </Avatar>
+                    {isUploadingAvatar ? (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70"
+                        aria-hidden
+                      >
+                        <Loader2 className="size-6 animate-spin text-primary" />
+                      </div>
+                    ) : null}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={AVATAR_ACCEPT}
+                    className="sr-only"
+                    disabled={isUploadingAvatar || isRemovingAvatar}
+                    onChange={(event) => void onAvatarSelected(event.target.files?.[0])}
+                  />
+                  <div className="flex w-full flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isUploadingAvatar || isRemovingAvatar}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Camera />
+                      )}
+                      {isUploadingAvatar
+                        ? 'Uploading…'
+                        : avatarUrl
+                          ? 'Change photo'
+                          : 'Upload photo'}
+                    </Button>
+                    {account?.profile?.avatarUrl ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full"
+                        disabled={isUploadingAvatar || isRemovingAvatar}
+                        onClick={() => void onRemoveAvatar()}
+                      >
+                        {isRemovingAvatar ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                        {isRemovingAvatar ? 'Removing…' : 'Remove'}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <p className="text-center text-xs text-muted-foreground">
+                    JPEG, PNG, or WebP · up to 8 MB
+                  </p>
+                  {isUploadingAvatar ? (
+                    <AvatarUploadProgress value={avatarUploadProgress} />
+                  ) : null}
+                </div>
+              </div>
+
               <div className="flex justify-end">
-                <Button type="submit" disabled={isSaving}>
+                <Button type="submit" disabled={isSaving || isUploadingAvatar}>
                   {isSaving ? 'Saving…' : 'Save'}
                 </Button>
               </div>
@@ -438,7 +437,7 @@ export function PmProfileGeneralPanel() {
           </CardContent>
         </Card>
 
-        <Card size="sm">
+        <Card size="sm" className="xl:col-span-2">
           <CardHeader>
             <CardTitle>Security</CardTitle>
             <p className="text-sm text-muted-foreground">

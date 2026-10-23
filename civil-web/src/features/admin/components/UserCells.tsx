@@ -1,6 +1,6 @@
+import { cn } from 'cn'
 import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from 'cn'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

@@ -1,5 +1,5 @@
-import { Pencil } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
-import { getProvider, providerStatusLabel, type Provider } from '@/services/providers'
+import { getProvider, type Provider,providerStatusLabel } from '@/services/providers'
 
 import { formFromProvider, ProviderFormDialog } from './components/ProviderFormDialog'
 import { formatWhen } from './lib/text'

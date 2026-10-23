@@ -9,10 +9,10 @@
  * - Storage object delete runs sync until BullMQ (Docs/[3] Decisions/[10] Storage)
  */
 
-import { getLogger } from '../logging/index.js'
-import { notifyUser } from '../modules/devices/index.js'
-import type { NotifyUserPayload } from '../modules/devices/devices.types.js'
 import { loadConfig } from '../config/index.js'
+import { getLogger } from '../logging/index.js'
+import type { NotifyUserPayload } from '../modules/devices/devices.types.js'
+import { notifyUser } from '../modules/devices/index.js'
 import { getStorageService } from '../storage/index.js'
 
 export type JobName = 'notify-user' | 'delete-storage-object'

@@ -23,10 +23,10 @@ import {
   type Project,
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
-  projectStatusLabel,
-  projectTypeLabel,
   type ProjectStatus,
+  projectStatusLabel,
   type ProjectType,
+  projectTypeLabel,
   updateProject,
   type UpdateProjectInput,
 } from '@/services/projects'

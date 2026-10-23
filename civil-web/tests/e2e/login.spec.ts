@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { expectSignedInHome, loginAs, SEED_USERS } from './helpers/auth'
+
 test.describe('login form', () => {
   test('shows field errors when submitted empty', async ({ page }) => {
     await page.goto('/login')
@@ -17,12 +19,15 @@ test.describe('login form', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('admin seed account reaches the admin panel', async ({ page }) => {
+  test('can open register from login', async ({ page }) => {
     await page.goto('/login')
-    await page.locator('#email').fill('admin@example.com')
-    await page.locator('#password').fill('password')
-    await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page).toHaveURL(/\/admin\/?$/)
+    await page.getByRole('link', { name: 'Register' }).click()
+    await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible()
+  })
+
+  test('admin seed account reaches the admin dashboard', async ({ page }) => {
+    await loginAs(page, SEED_USERS.admin.email)
+    await expectSignedInHome(page, SEED_USERS.admin.home)
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   })
 })

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-
 import bcrypt from 'bcrypt'
 import type { SignOptions } from 'jsonwebtoken'
 import jwt from 'jsonwebtoken'

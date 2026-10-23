@@ -1,6 +1,6 @@
-import { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../database/prisma.js'
 import type { StepStatus as PrismaStepStatus } from '../../generated/prisma/client.js'
+import { Prisma } from '../../generated/prisma/client.js'
 import type {
   CreateStepBody,
   CreateStepInputBody,

@@ -1,5 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -31,7 +31,7 @@ import {
 
 import { UserFormDialog } from './components/UserFormDialog'
 import { formatWhen } from './lib/text'
-import { formFromUser, roleLabel, toAdminUserRow, userStatusLabel, type UserFormValues } from './users.rows'
+import { formFromUser, roleLabel, toAdminUserRow, type UserFormValues,userStatusLabel } from './users.rows'
 
 export function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>()

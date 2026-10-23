@@ -1,19 +1,21 @@
+import { useCallback, useEffect, useState } from 'react'
 import {
   Bell,
+  Edit,
   Mail,
   Plus,
+  RotateCcw,
   Send,
   Trash2,
-  RotateCcw,
-  Edit,
   User as UserIcon,
   Users,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { StatGridSkeleton, TableSkeleton } from '@/components/feedback/skeletons'
+import { PageHeader, TablePager } from '@/components/layout'
+import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,23 +43,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { PageHeader, TablePager } from '@/components/layout'
-import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { cn } from '@/lib/utils'
 import {
+  broadcastNotification,
+  createNotification,
+  hardDeleteNotification,
+  listNotifications,
   type Notification,
   type NotificationType,
-  listNotifications,
-  createNotification,
-  broadcastNotification,
-  hardDeleteNotification,
-  softDeleteNotification,
   restoreNotification,
+  softDeleteNotification,
   updateNotification,
 } from '@/services/notifications'
 import { listUserLookups, type UserLookup } from '@/services/users'
-import { cn } from '@/lib/utils'
 
 type CreateMode = 'single' | 'broadcast'
 

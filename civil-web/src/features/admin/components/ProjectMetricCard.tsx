@@ -1,5 +1,5 @@
-import type { LucideIcon } from 'lucide-react'
 import { cn } from 'cn'
+import type { LucideIcon } from 'lucide-react'
 
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Project } from '@/services/projects'

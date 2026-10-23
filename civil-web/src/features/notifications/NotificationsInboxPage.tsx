@@ -1,21 +1,23 @@
+import { useCallback, useState } from 'react'
 import {
+  AlertCircle,
+  AlertTriangle,
   Bell,
   BellOff,
   Check,
   CheckCheck,
   Info,
-  AlertTriangle,
-  AlertCircle,
   Megaphone,
   Settings,
   Trash2,
   X,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ListSkeleton } from '@/components/feedback/skeletons'
+import { PageHeader } from '@/components/layout/page-header'
+import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,19 +31,17 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { PageHeader } from '@/components/layout/page-header'
-import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { cn } from '@/lib/utils'
 import {
-  type Notification,
-  type NotificationType,
   listNotifications,
   markAsRead,
   markAsUnread,
+  type Notification,
+  type NotificationType,
   softDeleteNotification,
 } from '@/services/notifications'
-import { cn } from '@/lib/utils'
 
 function getTypeIcon(type: NotificationType) {
   switch (type) {

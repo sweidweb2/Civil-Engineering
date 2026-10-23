@@ -1,6 +1,5 @@
 import { prisma } from '../../database/prisma.js'
 import type { ManagerProfile as PrismaManagerProfile } from '../../generated/prisma/client.js'
-
 import type { ManagerProfile } from './manager-profiles.types.js'
 
 export type ManagerProfileWriteInput = {

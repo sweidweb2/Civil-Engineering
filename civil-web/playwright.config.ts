@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Web E2E — starts Vite preview/dev via webServer.
+ * Web E2E — starts Vite via webServer; API must already be up (seeded).
  * Run: npm run test:e2e
+ * Prereq: Docker Postgres/Redis + `cd backend && npm run prisma:seed && npm run dev`
  */
 export default defineConfig({
   testDir: './tests/e2e',
+  globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

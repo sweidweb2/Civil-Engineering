@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { cn } from 'cn'
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
@@ -12,20 +14,18 @@ import {
   ListOrdered,
   LogOut,
   Menu,
-  Package,
   Moon,
+  Package,
   Palette,
   Settings,
   Star,
-  Sun,
   Store,
+  Sun,
   UserCheck,
   Users,
 } from 'lucide-react'
-import { cn } from 'cn'
-import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import type { ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'

@@ -3,7 +3,7 @@ import { loadConfig, requireStorageConfig } from '../config/index.js'
 import { createStorageService, type StorageService } from './storage.service.js'
 
 export { buildObjectKey, sanitizeOriginalName, storageEnvSegment } from './object-key.js'
-export type { StorageService, HeadObjectResult } from './storage.service.js'
+export type { HeadObjectResult,StorageService } from './storage.service.js'
 export { createStorageService } from './storage.service.js'
 
 let storageSingleton: StorageService | null = null

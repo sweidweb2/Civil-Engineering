@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from 'cn'
 import {
   Building2,
@@ -54,12 +54,12 @@ import {
   type CreateProjectInput,
   listProjects,
   type Project,
-  type ProjectStatus,
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
+  type ProjectStatus,
   projectStatusLabel,
-  projectTypeLabel,
   type ProjectType,
+  projectTypeLabel,
 } from '@/services/projects'
 
 import { ProjectProgressTimeline } from './components/ProjectProgressTimeline'
@@ -146,7 +146,6 @@ function ProjectCard({
   const navigate = useNavigate()
   const location = useLocation()
   const projectPath = `${portalBaseFromPath(location.pathname)}/projects/${project.id}`
-  const Icon = getTypeIcon(project.type)
   const mainImageUrl = project.mainImageUrl ?? null
 
   return (
@@ -163,7 +162,7 @@ function ProjectCard({
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="rounded-lg bg-primary/10 p-2">
-              <Icon className="size-5 text-primary" />
+              {createElement(getTypeIcon(project.type), { className: 'size-5 text-primary' })}
             </div>
             <div className="min-w-0 flex-1">
               <CardTitle className="line-clamp-1 text-base">{project.name}</CardTitle>

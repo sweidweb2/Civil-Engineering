@@ -43,9 +43,9 @@ export function createProjectImagesModule(deps: ProjectImagesModuleDeps = {}) {
   return createProjectImagesRouter({ controller })
 }
 
-export * from './project-images.types.js'
-export * from './project-images.schema.js'
-export * from './project-images.repository.js'
-export * from './project-images.service.js'
 export * from './project-images.controller.js'
+export * from './project-images.repository.js'
 export * from './project-images.routes.js'
+export * from './project-images.schema.js'
+export * from './project-images.service.js'
+export * from './project-images.types.js'

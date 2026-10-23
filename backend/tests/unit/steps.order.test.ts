@@ -60,7 +60,7 @@ describe('allocateOrdered', () => {
     })
 
     expect(persist).toHaveBeenCalledTimes(2)
-    expect(result.data.orderNb).toBe(2)
+    expect(result.data).toEqual({ id: 'row-2', orderNb: 2 })
     expect(result.meta?.orderAdjusted).toBe(true)
   })
 

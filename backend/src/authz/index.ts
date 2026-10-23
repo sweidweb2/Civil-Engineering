@@ -14,9 +14,9 @@ export {
 } from './ownership.js'
 export {
   ADMIN_ROLES,
-  STAFF_ROLES,
   hasAnyRole,
   isAdmin,
   isStaff,
   isSuper,
+  STAFF_ROLES,
 } from './roles.js'

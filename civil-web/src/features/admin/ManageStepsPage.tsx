@@ -41,8 +41,8 @@ import {
 } from '@/services/steps'
 
 import { AdminConfirmDeleteDialog } from './components/AdminConfirmDeleteDialog'
-import { StepInputsPanel } from './components/StepInputsPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
+import { StepInputsPanel } from './components/StepInputsPanel'
 import { useAdminCrudPage } from './hooks/useAdminCrudPage'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 

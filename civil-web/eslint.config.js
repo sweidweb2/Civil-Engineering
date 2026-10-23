@@ -36,9 +36,14 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/ui/**/*.{ts,tsx}', 'src/features/panels/**/*.{ts,tsx}'],
+    files: [
+      'src/components/ui/**/*.{ts,tsx}',
+      'src/components/feedback/**/*.{ts,tsx}',
+      'src/features/panels/**/*.{ts,tsx}',
+      'src/features/admin/components/**/*.{ts,tsx}',
+    ],
     rules: {
-      // shadcn/ui + panel shells co-export helpers with components
+      // shadcn/ui + shared feature helpers co-export constants with components
       'react-refresh/only-export-components': 'off',
     },
   },

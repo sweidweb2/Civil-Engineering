@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-
 import sharp from 'sharp'
 
 import type { AuthActor } from '../../authz/index.js'

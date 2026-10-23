@@ -1,11 +1,9 @@
 import { prisma } from '../../database/prisma.js'
 import type { Prisma } from '../../generated/prisma/client.js'
 import type {
-  CreateNotificationData,
   Notification,
-  NotificationWithSender,
   NotificationsRepository,
-  UpdateNotificationData,
+  NotificationWithSender,
 } from './notifications.types.js'
 
 type NotificationRow = Prisma.NotificationGetPayload<object>

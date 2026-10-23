@@ -1,7 +1,7 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
-import type { ProvidersRepository, ProviderRecord } from './providers.repository.js'
+import type { ProviderRecord,ProvidersRepository } from './providers.repository.js'
 import type { CreateProviderBody, ListProvidersQuery, UpdateProviderBody } from './providers.schema.js'
 import type {
   PaginatedProviders,

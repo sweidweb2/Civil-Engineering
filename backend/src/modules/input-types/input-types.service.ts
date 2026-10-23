@@ -3,8 +3,8 @@ import { isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import type {
   ActiveInputTypeRef,
-  InputTypesRepository,
   InputTypeRecord,
+  InputTypesRepository,
 } from './input-types.repository.js'
 import type {
   CreateInputTypeBody,

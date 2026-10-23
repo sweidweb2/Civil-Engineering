@@ -37,8 +37,8 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import {
   INPUT_TYPES_PICKER_QUERY_KEY,
-  listInputTypesForPicker,
   type InputType,
+  listInputTypesForPicker,
 } from '@/services/input-types'
 import {
   createStepInput,

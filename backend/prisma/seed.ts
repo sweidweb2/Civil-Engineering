@@ -13,11 +13,11 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcrypt'
 
 import {
-  Prisma,
-  PrismaClient,
   type CategoryKind,
   type ListingStatus,
   type ListingType,
+  Prisma,
+  PrismaClient,
   type ProjectStatus,
   type ProjectType,
   type ProviderStatus,

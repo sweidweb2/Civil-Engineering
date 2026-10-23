@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppError } from '../../src/errors/app-error.js'
-import { createFilesService } from '../../src/modules/files/files.service.js'
 import type { FilesRepository } from '../../src/modules/files/files.repository.js'
+import { createFilesService } from '../../src/modules/files/files.service.js'
 import type { FileRecord } from '../../src/modules/files/files.types.js'
 import type { ProjectsService } from '../../src/modules/projects/projects.service.js'
 import type { StorageService } from '../../src/storage/storage.service.js'

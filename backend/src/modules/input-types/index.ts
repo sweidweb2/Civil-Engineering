@@ -21,5 +21,5 @@ export function createInputTypesModule() {
 
 export { createInputTypesService }
 export type { InputTypesService }
-export type { ActiveInputTypeRef } from './input-types.repository.js'
 export { INPUT_TYPE_CODE_OPTIONS, INPUT_TYPE_CODES } from './input-type-codes.js'
+export type { ActiveInputTypeRef } from './input-types.repository.js'

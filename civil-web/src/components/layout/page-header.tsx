@@ -1,7 +1,7 @@
 import { cn } from 'cn'
 import type { ReactNode } from 'react'
 
-import { PageBreadcrumbs, type PageBreadcrumbItem } from './page-breadcrumbs'
+import { type PageBreadcrumbItem,PageBreadcrumbs } from './page-breadcrumbs'
 
 type PageHeaderProps = {
   title?: ReactNode

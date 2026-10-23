@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import { Prisma, type ReviewStatus, type ReviewTargetType } from '../../generated/prisma/client.js'
-import { cacheKeys } from '../../redis/redis.keys.js'
 import { invalidateCache, readThroughCache } from '../../redis/redis.cache.js'
+import { cacheKeys } from '../../redis/redis.keys.js'
 import {
   findListingNames,
   listingExists,

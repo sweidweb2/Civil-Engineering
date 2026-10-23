@@ -1,4 +1,4 @@
--- Progress is the elapsed share of startDate → endDate, not a manually entered percent.
+-- Progress is the elapsed share of startDate -> endDate, not a manually entered percent.
 UPDATE "projects"
 SET "progress" = CASE
   WHEN "startDate" IS NULL OR "endDate" IS NULL OR "endDate" <= "startDate" THEN 0

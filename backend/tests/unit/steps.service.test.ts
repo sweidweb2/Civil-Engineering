@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type Mock,vi } from 'vitest'
 
 import { validationError } from '../../src/errors/app-error.js'
+import type { InputTypesService } from '../../src/modules/input-types/index.js'
 import type { StepRecord, StepsRepository } from '../../src/modules/steps/steps.repository.js'
 import { createStepsService } from '../../src/modules/steps/steps.service.js'
 
@@ -23,7 +24,8 @@ function stepRecord(overrides: Partial<StepRecord> = {}): StepRecord {
 
 describe('stepsService', () => {
   let repository: StepsRepository
-  let inputTypes: { requireActiveInputType: ReturnType<typeof vi.fn> }
+  let requireActiveInputType: Mock<InputTypesService['requireActiveInputType']>
+  let inputTypes: Pick<InputTypesService, 'requireActiveInputType'>
 
   beforeEach(() => {
     repository = {
@@ -42,9 +44,8 @@ describe('stepsService', () => {
       updateInput: vi.fn(),
       deleteInput: vi.fn(),
     }
-    inputTypes = {
-      requireActiveInputType: vi.fn(),
-    }
+    requireActiveInputType = vi.fn()
+    inputTypes = { requireActiveInputType }
   })
 
   it('forbids clients from listing steps', async () => {
@@ -99,9 +100,7 @@ describe('stepsService', () => {
 
   it('rejects step inputs when the input type is inactive', async () => {
     vi.mocked(repository.findById).mockResolvedValue(stepRecord())
-    inputTypes.requireActiveInputType.mockRejectedValue(
-      validationError('Select an active input type'),
-    )
+    requireActiveInputType.mockRejectedValue(validationError('Select an active input type'))
     const service = createStepsService(repository, inputTypes)
 
     await expect(

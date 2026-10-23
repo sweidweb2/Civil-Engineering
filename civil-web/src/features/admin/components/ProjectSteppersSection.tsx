@@ -23,14 +23,19 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from 'cn'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
-import { listInputTypes, type InputType } from '@/services/input-types'
+import {
+  INPUT_TYPES_PICKER_QUERY_KEY,
+  listInputTypesForPicker,
+  type InputType,
+} from '@/services/input-types'
 import {
   addProjectStepInput,
   deleteProjectStepInput,
   getProjectStepper,
   listProjectSteppers,
-  type ProjectStepperDetail,
-  type ProjectStepperNode,
+  type ProjectStepDetail,
+  type ProjectStepInputField,
+  type ProjectStepNode,
   saveProjectStepperValues,
   type StepperValue,
 } from '@/services/project-steppers'
@@ -41,7 +46,7 @@ type ProjectSteppersSectionProps = {
 
 type NodePhase = 'done' | 'current' | 'upcoming'
 
-function resolveNodePhase(nodes: ProjectStepperNode[], nodeId: string): NodePhase {
+function resolveNodePhase(nodes: ProjectStepNode[], nodeId: string): NodePhase {
   const firstOpenIndex = nodes.findIndex((node) => !node.isComplete)
   const nodeIndex = nodes.findIndex((node) => node.id === nodeId)
   if (nodeIndex < 0) return 'upcoming'
@@ -65,12 +70,30 @@ function formatDateValue(date: Date | undefined): string | null {
   return `${year}-${month}-${day}`
 }
 
+function nodeStatsFromInputs(inputs: ProjectStepInputField[]) {
+  const inputCount = inputs.length
+  const filledCount = inputs.filter((input) => input.value !== null).length
+  return {
+    inputCount,
+    filledCount,
+    isComplete: filledCount === inputCount,
+  }
+}
+
+function patchNode(
+  nodes: ProjectStepNode[],
+  projectStepId: string,
+  inputs: ProjectStepInputField[],
+): ProjectStepNode[] {
+  const stats = nodeStatsFromInputs(inputs)
+  return nodes.map((node) => (node.id === projectStepId ? { ...node, ...stats } : node))
+}
+
 export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<string, StepperValue>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
-  const [types, setTypes] = useState<InputType[]>([])
   const [addLabel, setAddLabel] = useState('')
   const [addTypeId, setAddTypeId] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -78,7 +101,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
 
   const loadNodes = useCallback(() => listProjectSteppers(projectId), [projectId])
   const nodesRemote = useRemoteData(loadNodes, { queryKey: ['project-steppers', projectId] })
-  const nodes: ProjectStepperNode[] =
+  const nodes: ProjectStepNode[] =
     nodesRemote.status === 'success' ? nodesRemote.data.data : []
 
   useEffect(() => {
@@ -95,7 +118,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   const completedCount = nodes.filter((node) => node.isComplete).length
 
   const loadDetail = useCallback(async () => {
-    if (!selectedId) return { data: null as ProjectStepperDetail | null }
+    if (!selectedId) return { data: null as ProjectStepDetail | null }
     return getProjectStepper(projectId, selectedId)
   }, [projectId, selectedId])
 
@@ -118,30 +141,31 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     setDraft(next)
   }, [detail])
 
+  const loadPickerTypes = useCallback(() => listInputTypesForPicker(), [])
+  const typesRemote = useRemoteData(loadPickerTypes, {
+    queryKey: [...INPUT_TYPES_PICKER_QUERY_KEY],
+    enabled: addOpen,
+  })
+  const types: InputType[] = typesRemote.status === 'success' ? typesRemote.data.data : []
+
   useEffect(() => {
-    if (!addOpen) return
-    let cancelled = false
-    void listInputTypes(1, 100)
-      .then((result) => {
-        if (cancelled) return
-        setTypes(result.data)
-        setAddTypeId((current) => current || result.data[0]?.id || '')
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          toast.error(error instanceof ApiError ? error.message : 'Could not load input types')
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [addOpen])
+    if (!addOpen || types.length === 0) return
+    setAddTypeId((current) => current || types[0]?.id || '')
+  }, [addOpen, types])
+
+  function applyDetail(next: ProjectStepDetail) {
+    detailRemote.mutate(() => ({ data: next }))
+    nodesRemote.mutate((current) => ({
+      ...current,
+      data: patchNode(current.data, next.id, next.inputs),
+    }))
+  }
 
   async function save() {
     if (!selectedId || !detail) return
     setIsSaving(true)
     try {
-      await saveProjectStepperValues(
+      const result = await saveProjectStepperValues(
         projectId,
         selectedId,
         detail.inputs.map((input) => ({
@@ -150,8 +174,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         })),
       )
       toast.success('Stepper values saved')
-      await detailRemote.refetch()
-      await nodesRemote.refetch()
+      applyDetail(result.data)
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not save values')
     } finally {
@@ -160,7 +183,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   }
 
   async function addInput() {
-    if (!selectedId) return
+    if (!selectedId || !detail) return
     const label = addLabel.trim()
     if (!label) {
       toast.error('Label is required')
@@ -182,8 +205,10 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       toast.message('Project input added')
       setAddOpen(false)
       setAddLabel('')
-      await detailRemote.refetch()
-      await nodesRemote.refetch()
+      const nextInputs = [...detail.inputs, result.data].sort(
+        (a, b) => a.orderNb - b.orderNb || a.label.localeCompare(b.label),
+      )
+      applyDetail({ ...detail, inputs: nextInputs })
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not add input')
     } finally {
@@ -192,13 +217,13 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   }
 
   async function removeInput(inputId: string) {
-    if (!selectedId) return
+    if (!selectedId || !detail) return
     setBusyInputId(inputId)
     try {
       await deleteProjectStepInput(projectId, selectedId, inputId)
-      toast.message('Input removed from this project stepper')
-      await detailRemote.refetch()
-      await nodesRemote.refetch()
+      toast.message('Input removed from this project step')
+      const nextInputs = detail.inputs.filter((input) => input.id !== inputId)
+      applyDetail({ ...detail, inputs: nextInputs })
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not remove input')
     } finally {

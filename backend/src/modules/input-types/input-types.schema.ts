@@ -16,9 +16,18 @@ export const inputTypeIdParamsSchema = z.object({
   id: z.string().trim().min(1).max(64),
 })
 
+const booleanQuery = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (value === true || value === 'true' || value === '1') return true
+  if (value === false || value === 'false' || value === '0') return false
+  return value
+}, z.boolean().optional())
+
 export const listInputTypesQuerySchema = paginationQuerySchema.extend({
   q: optionalQueryText,
   status: inputTypeStatusSchema.optional(),
+  /** When true, include usage counts (admin). Pickers omit this for a leaner query. */
+  includeUsage: booleanQuery,
 })
 
 export const createInputTypeBodySchema = z.object({
@@ -47,6 +56,7 @@ export type ListInputTypesQuery = {
   limit: number
   q?: string
   status?: InputTypeStatus
+  includeUsage?: boolean
 }
 
 export type CreateInputTypeBody = {

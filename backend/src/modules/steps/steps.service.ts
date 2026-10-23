@@ -1,10 +1,9 @@
-import { Prisma } from '../../generated/prisma/client.js'
-
 import type { AuthActor } from '../../authz/index.js'
 import { hasAnyRole } from '../../authz/index.js'
-import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { forbidden, notFound } from '../../errors/app-error.js'
 import type { RoleName } from '../auth/auth.schema.js'
-import { resolveOrderNb } from './steps.order.js'
+import type { InputTypesService } from '../input-types/index.js'
+import { allocateOrdered, allocateOrderedWithActiveType } from './steps.order.js'
 import { toStepDto, toStepInputDto, type StepsRepository } from './steps.repository.js'
 import type {
   CreateStepBody,
@@ -53,28 +52,16 @@ function assertCanManageSteps(actor: AuthActor) {
   }
 }
 
-function orderMeta(orderNb: number, orderAdjusted: boolean) {
-  return orderAdjusted ? { orderAdjusted: true, orderNb } : undefined
-}
-
-function isUniqueOrderConflict(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
-}
-
-export function createStepsService(repository: StepsRepository): StepsService {
+export function createStepsService(
+  repository: StepsRepository,
+  inputTypes: Pick<InputTypesService, 'requireActiveInputType'>,
+): StepsService {
   async function loadOwnOrThrow(id: string, actor: AuthActor) {
     const step = await repository.findById(id)
     if (!step || step.userId !== actor.id) {
       throw notFound('Step not found', 'STEP_NOT_FOUND')
     }
     return step
-  }
-
-  async function assertActiveInputType(inputTypeId: string) {
-    const inputType = await repository.findActiveInputType(inputTypeId)
-    if (!inputType) {
-      throw validationError('Select an active input type')
-    }
   }
 
   async function loadOwnInputOrThrow(stepId: string, inputId: string, actor: AuthActor) {
@@ -113,19 +100,14 @@ export function createStepsService(repository: StepsRepository): StepsService {
 
     async createStep(input, actor) {
       assertCanManageSteps(actor)
-      let requested = input.orderNb
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const used = await repository.listUsedStepOrders(actor.id)
-        const { orderNb, orderAdjusted } = resolveOrderNb(used, requested)
-        try {
-          const created = await repository.create(actor.id, { ...input, orderNb })
-          return { data: toStepDto(created), meta: orderMeta(orderNb, orderAdjusted || attempt > 0) }
-        } catch (error) {
-          if (!isUniqueOrderConflict(error)) throw error
-          requested = undefined
-        }
-      }
-      throw conflict('Could not allocate a free step order. Retry.', 'STEP_ORDER_CONFLICT')
+      const result = await allocateOrdered({
+        listUsed: () => repository.listUsedStepOrders(actor.id),
+        requested: input.orderNb,
+        persist: (orderNb) => repository.create(actor.id, { ...input, orderNb }),
+        conflictMessage: 'Could not allocate a free step order. Retry.',
+        conflictCode: 'STEP_ORDER_CONFLICT',
+      })
+      return { data: toStepDto(result.data), meta: result.meta }
     },
 
     async updateStep(id, input, actor) {
@@ -135,22 +117,14 @@ export function createStepsService(repository: StepsRepository): StepsService {
         const updated = await repository.update(id, input)
         return { data: toStepDto(updated) }
       }
-      let requested: number | undefined = input.orderNb
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const used = await repository.listUsedStepOrders(actor.id, id)
-        const { orderNb, orderAdjusted } = resolveOrderNb(used, requested)
-        try {
-          const updated = await repository.update(id, { ...input, orderNb })
-          return {
-            data: toStepDto(updated),
-            meta: orderMeta(orderNb, orderAdjusted || attempt > 0),
-          }
-        } catch (error) {
-          if (!isUniqueOrderConflict(error)) throw error
-          requested = undefined
-        }
-      }
-      throw conflict('Could not allocate a free step order. Retry.', 'STEP_ORDER_CONFLICT')
+      const result = await allocateOrdered({
+        listUsed: () => repository.listUsedStepOrders(actor.id, id),
+        requested: input.orderNb,
+        persist: (orderNb) => repository.update(id, { ...input, orderNb }),
+        conflictMessage: 'Could not allocate a free step order. Retry.',
+        conflictCode: 'STEP_ORDER_CONFLICT',
+      })
+      return { data: toStepDto(result.data), meta: result.meta }
     },
 
     async deleteStep(id, actor) {
@@ -174,52 +148,37 @@ export function createStepsService(repository: StepsRepository): StepsService {
     async createStepInput(stepId, input, actor) {
       assertCanManageSteps(actor)
       await loadOwnOrThrow(stepId, actor)
-      await assertActiveInputType(input.inputTypeId)
-      let requested = input.orderNb
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const used = await repository.listUsedInputOrders(stepId)
-        const { orderNb, orderAdjusted } = resolveOrderNb(used, requested)
-        try {
-          const created = await repository.createInput(stepId, { ...input, orderNb })
-          return {
-            data: toStepInputDto(created),
-            meta: orderMeta(orderNb, orderAdjusted || attempt > 0),
-          }
-        } catch (error) {
-          if (!isUniqueOrderConflict(error)) throw error
-          requested = undefined
-        }
-      }
-      throw conflict('Could not allocate a free input order. Retry.', 'STEP_INPUT_ORDER_CONFLICT')
+      const result = await allocateOrderedWithActiveType({
+        requireActiveInputType: (id) => inputTypes.requireActiveInputType(id),
+        inputTypeId: input.inputTypeId,
+        listUsed: () => repository.listUsedInputOrders(stepId),
+        requested: input.orderNb,
+        persist: (orderNb) => repository.createInput(stepId, { ...input, orderNb }),
+        conflictMessage: 'Could not allocate a free input order. Retry.',
+        conflictCode: 'STEP_INPUT_ORDER_CONFLICT',
+      })
+      return { data: toStepInputDto(result.data), meta: result.meta }
     },
 
     async updateStepInput(stepId, inputId, input, actor) {
       assertCanManageSteps(actor)
       const current = await loadOwnInputOrThrow(stepId, inputId, actor)
       if (input.inputTypeId && input.inputTypeId !== current.inputTypeId) {
-        await assertActiveInputType(input.inputTypeId)
+        await inputTypes.requireActiveInputType(input.inputTypeId)
       }
       if (input.orderNb === undefined) {
         const updated = await repository.updateInput(inputId, input)
         return { data: toStepInputDto(updated) }
       }
 
-      let requested: number | undefined = input.orderNb
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const used = await repository.listUsedInputOrders(stepId, inputId)
-        const { orderNb, orderAdjusted } = resolveOrderNb(used, requested)
-        try {
-          const updated = await repository.updateInput(inputId, { ...input, orderNb })
-          return {
-            data: toStepInputDto(updated),
-            meta: orderMeta(orderNb, orderAdjusted || attempt > 0),
-          }
-        } catch (error) {
-          if (!isUniqueOrderConflict(error)) throw error
-          requested = undefined
-        }
-      }
-      throw conflict('Could not allocate a free input order. Retry.', 'STEP_INPUT_ORDER_CONFLICT')
+      const result = await allocateOrdered({
+        listUsed: () => repository.listUsedInputOrders(stepId, inputId),
+        requested: input.orderNb,
+        persist: (orderNb) => repository.updateInput(inputId, { ...input, orderNb }),
+        conflictMessage: 'Could not allocate a free input order. Retry.',
+        conflictCode: 'STEP_INPUT_ORDER_CONFLICT',
+      })
+      return { data: toStepInputDto(result.data), meta: result.meta }
     },
 
     async deleteStepInput(stepId, inputId, actor) {

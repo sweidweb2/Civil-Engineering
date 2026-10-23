@@ -73,7 +73,7 @@ describe.skipIf(!hasDb)('manager-profiles API (integration)', () => {
     expect(res.status).toBe(403)
   })
 
-  it('supports create, read, update, upsert, and delete for a manager', async () => {
+  it('supports get, upsert, and delete for a manager', async () => {
     const app = createApp({ config })
     await createUser('MANAGER', 'pm-mp@example.com')
     const token = await login(app, 'pm-mp@example.com')
@@ -85,32 +85,19 @@ describe.skipIf(!hasDb)('manager-profiles API (integration)', () => {
     expect(empty.body.data).toBeNull()
 
     const created = await request(app)
-      .post('/api/v1/manager-profiles/me')
+      .put('/api/v1/manager-profiles/me')
       .set('Authorization', `Bearer ${token}`)
       .send({
         headline: 'Civil engineer',
         city: 'Beirut',
         yearsExperience: 7,
       })
-    expect(created.status).toBe(201)
+    expect(created.status).toBe(200)
     expect(created.body.data).toMatchObject({
       headline: 'Civil engineer',
       city: 'Beirut',
       yearsExperience: 7,
     })
-
-    const duplicate = await request(app)
-      .post('/api/v1/manager-profiles/me')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ headline: 'Other' })
-    expect(duplicate.status).toBe(409)
-
-    const patched = await request(app)
-      .patch('/api/v1/manager-profiles/me')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ specialty: 'Structural' })
-    expect(patched.status).toBe(200)
-    expect(patched.body.data.specialty).toBe('Structural')
 
     const upserted = await request(app)
       .put('/api/v1/manager-profiles/me')

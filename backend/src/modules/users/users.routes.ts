@@ -102,6 +102,12 @@ export function createUsersRoutes(controller: UsersController): Router {
     validate({ params: userIdParamsSchema }),
     controller.getAvatarUrl,
   )
+  router.post(
+    '/:id/avatar/upload',
+    validate({ params: userIdParamsSchema }),
+    controller.uploadAvatarMiddleware,
+    controller.uploadAvatar,
+  )
   router.put(
     '/:id/avatar',
     validate({ params: userIdParamsSchema, body: setAvatarBodySchema }),

@@ -37,12 +37,12 @@ export function createProjectsRoutes(
       steppersController.list,
     )
     router.get(
-      '/:id/steppers/:stepperProjectId',
+      '/:id/steppers/:projectStepId',
       validate({ params: projectStepperIdParamsSchema }),
       steppersController.getById,
     )
     router.put(
-      '/:id/steppers/:stepperProjectId/values',
+      '/:id/steppers/:projectStepId/values',
       validate({
         params: projectStepperIdParamsSchema,
         body: upsertStepperValuesBodySchema,
@@ -50,7 +50,7 @@ export function createProjectsRoutes(
       steppersController.saveValues,
     )
     router.post(
-      '/:id/steppers/:stepperProjectId/inputs',
+      '/:id/steppers/:projectStepId/inputs',
       validate({
         params: projectStepperIdParamsSchema,
         body: createProjectStepInputBodySchema,
@@ -58,7 +58,7 @@ export function createProjectsRoutes(
       steppersController.addInput,
     )
     router.delete(
-      '/:id/steppers/:stepperProjectId/inputs/:inputId',
+      '/:id/steppers/:projectStepId/inputs/:inputId',
       validate({ params: projectStepInputIdParamsSchema }),
       steppersController.removeInput,
     )

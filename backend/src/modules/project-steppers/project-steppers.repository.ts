@@ -5,32 +5,42 @@ import type {
   StepperInputValuePayload,
 } from './project-steppers.schema.js'
 import type {
-  ProjectStepperDetail,
-  ProjectStepperInputField,
-  ProjectStepperNode,
+  ProjectStepDetail,
+  ProjectStepInputField,
+  ProjectStepNode,
 } from './project-steppers.types.js'
 
+/** Soft caps — typical projects stay well below these. */
+export const MAX_PROJECT_STEPS = 100
+export const MAX_PROJECT_STEP_INPUTS = 200
+
+export type ProjectStepInputMeta = {
+  id: string
+  label: string
+  inputTypeCode: string
+}
+
 export type ProjectSteppersRepository = {
-  listByProject: (projectId: string) => Promise<ProjectStepperNode[]>
+  listByProject: (projectId: string) => Promise<ProjectStepNode[]>
   findById: (id: string) => Promise<{ id: string; projectId: string } | null>
-  getDetail: (stepperProjectId: string) => Promise<ProjectStepperDetail | null>
+  getDetail: (projectStepId: string) => Promise<ProjectStepDetail | null>
+  /** Lean fields needed to validate a values payload (no JSON values). */
+  listInputMeta: (projectStepId: string) => Promise<ProjectStepInputMeta[]>
+  findInputId: (id: string, projectStepId: string) => Promise<{ id: string } | null>
   upsertValues: (
-    stepperProjectId: string,
+    projectStepId: string,
     values: Array<{ id: string; value: StepperInputValuePayload }>,
   ) => Promise<void>
-  listUsedOrders: (stepperProjectId: string) => Promise<number[]>
-  findActiveInputType: (
-    id: string,
-  ) => Promise<{ id: string; code: string; label: string } | null>
+  listUsedOrders: (projectStepId: string) => Promise<number[]>
   createInput: (
-    stepperProjectId: string,
+    projectStepId: string,
     input: CreateProjectStepInputBody & {
       orderNb: number
       inputTypeCode: string
       inputTypeLabel: string
     },
-  ) => Promise<ProjectStepperInputField>
-  deleteInput: (id: string, stepperProjectId: string) => Promise<void>
+  ) => Promise<ProjectStepInputField>
+  deleteInput: (id: string, projectStepId: string) => Promise<void>
 }
 
 function asPayload(value: Prisma.JsonValue | null | undefined): StepperInputValuePayload {
@@ -55,7 +65,7 @@ function toField(row: {
   inputTypeLabel: string
   value: Prisma.JsonValue | null
   isProjectOnly: boolean
-}): ProjectStepperInputField {
+}): ProjectStepInputField {
   return {
     id: row.id,
     label: row.label,
@@ -74,21 +84,45 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
       const rows = await prisma.stepperProject.findMany({
         where: { projectId },
         orderBy: [{ orderNb: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          inputs: { select: { value: true } },
+        take: MAX_PROJECT_STEPS,
+        select: {
+          id: true,
+          projectId: true,
+          name: true,
+          orderNb: true,
         },
       })
+      if (rows.length === 0) return []
+
+      const counts = await prisma.$queryRaw<
+        Array<{ stepperProjectId: string; inputCount: number; filledCount: number }>
+      >`
+        SELECT
+          "stepperProjectId",
+          COUNT(*)::int AS "inputCount",
+          COUNT(*) FILTER (WHERE value IS NOT NULL)::int AS "filledCount"
+        FROM project_step_inputs
+        WHERE "stepperProjectId" IN (${Prisma.join(rows.map((row) => row.id))})
+        GROUP BY "stepperProjectId"
+      `
+
+      const byId = new Map(
+        counts.map((row) => [
+          row.stepperProjectId,
+          { inputCount: row.inputCount, filledCount: row.filledCount },
+        ]),
+      )
+
       return rows.map((row) => {
-        const inputCount = row.inputs.length
-        const filledCount = row.inputs.filter((input) => input.value !== null).length
+        const stats = byId.get(row.id) ?? { inputCount: 0, filledCount: 0 }
         return {
           id: row.id,
           projectId: row.projectId,
           name: row.name,
           orderNb: row.orderNb,
-          inputCount,
-          filledCount,
-          isComplete: filledCount === inputCount,
+          inputCount: stats.inputCount,
+          filledCount: stats.filledCount,
+          isComplete: stats.filledCount === stats.inputCount,
         }
       })
     },
@@ -100,12 +134,13 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
       })
     },
 
-    async getDetail(stepperProjectId) {
+    async getDetail(projectStepId) {
       const row = await prisma.stepperProject.findUnique({
-        where: { id: stepperProjectId },
+        where: { id: projectStepId },
         include: {
           inputs: {
             orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
+            take: MAX_PROJECT_STEP_INPUTS,
           },
         },
       })
@@ -120,36 +155,49 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
       }
     },
 
-    async upsertValues(stepperProjectId, values) {
-      await prisma.$transaction(
-        values.map((entry) =>
-          prisma.projectStepInput.updateMany({
-            where: { id: entry.id, stepperProjectId },
-            data: { value: toJsonInput(entry.value) },
-          }),
-        ),
-      )
+    async listInputMeta(projectStepId) {
+      return prisma.projectStepInput.findMany({
+        where: { stepperProjectId: projectStepId },
+        orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
+        take: MAX_PROJECT_STEP_INPUTS,
+        select: { id: true, label: true, inputTypeCode: true },
+      })
     },
 
-    async listUsedOrders(stepperProjectId) {
+    async findInputId(id, projectStepId) {
+      return prisma.projectStepInput.findFirst({
+        where: { id, stepperProjectId: projectStepId },
+        select: { id: true },
+      })
+    },
+
+    async upsertValues(projectStepId, values) {
+      if (values.length === 0) return
+      await prisma.$transaction(async (tx) => {
+        await Promise.all(
+          values.map((entry) =>
+            tx.projectStepInput.updateMany({
+              where: { id: entry.id, stepperProjectId: projectStepId },
+              data: { value: toJsonInput(entry.value) },
+            }),
+          ),
+        )
+      })
+    },
+
+    async listUsedOrders(projectStepId) {
       const rows = await prisma.projectStepInput.findMany({
-        where: { stepperProjectId },
+        where: { stepperProjectId: projectStepId },
         select: { orderNb: true },
+        take: MAX_PROJECT_STEP_INPUTS,
       })
       return rows.map((row) => row.orderNb)
     },
 
-    async findActiveInputType(id) {
-      return prisma.inputType.findFirst({
-        where: { id, status: 'ACTIVE' },
-        select: { id: true, code: true, label: true },
-      })
-    },
-
-    async createInput(stepperProjectId, input) {
+    async createInput(projectStepId, input) {
       const row = await prisma.projectStepInput.create({
         data: {
-          stepperProjectId,
+          stepperProjectId: projectStepId,
           inputTypeId: input.inputTypeId,
           inputTypeCode: input.inputTypeCode,
           inputTypeLabel: input.inputTypeLabel,
@@ -165,9 +213,9 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
       return toField(row)
     },
 
-    async deleteInput(id, stepperProjectId) {
+    async deleteInput(id, projectStepId) {
       await prisma.projectStepInput.deleteMany({
-        where: { id, stepperProjectId },
+        where: { id, stepperProjectId: projectStepId },
       })
     },
   }

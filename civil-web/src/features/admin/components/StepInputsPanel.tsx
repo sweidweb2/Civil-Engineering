@@ -35,7 +35,11 @@ import {
 } from '@/components/ui/table'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
-import { listInputTypes, type InputType } from '@/services/input-types'
+import {
+  INPUT_TYPES_PICKER_QUERY_KEY,
+  listInputTypesForPicker,
+  type InputType,
+} from '@/services/input-types'
 import {
   createStepInput,
   deleteStepInput,
@@ -67,7 +71,6 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<StepInput | null>(null)
   const [form, setForm] = useState<InputForm>(EMPTY_FORM)
-  const [types, setTypes] = useState<InputType[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const load = useCallback(async () => {
@@ -81,22 +84,22 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
   })
   const rows = remote.status === 'success' ? remote.data.data : []
 
+  const loadPickerTypes = useCallback(() => listInputTypesForPicker(), [])
+  const typesRemote = useRemoteData(loadPickerTypes, {
+    queryKey: [...INPUT_TYPES_PICKER_QUERY_KEY],
+    enabled: open,
+  })
+  const types: InputType[] = typesRemote.status === 'success' ? typesRemote.data.data : []
+
   useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    void listInputTypes(1, 100)
-      .then((result) => {
-        if (!cancelled) setTypes(result.data)
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          toast.error(error instanceof ApiError ? error.message : 'Could not load input types')
-        }
-      })
-    return () => {
-      cancelled = true
+    if (typesRemote.isError) {
+      toast.error(
+        typesRemote.error instanceof ApiError
+          ? typesRemote.error.message
+          : 'Could not load input types',
+      )
     }
-  }, [open])
+  }, [typesRemote.error, typesRemote.isError])
 
   function openCreate() {
     setEditing(null)

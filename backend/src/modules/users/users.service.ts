@@ -25,7 +25,7 @@ import {
   type VerificationStatus,
 } from './users.types.js'
 
-const AVATAR_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const AVATAR_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
 
 export type UsersService = {
   listUsers: (
@@ -44,6 +44,11 @@ export type UsersService = {
   createUser: (input: CreateUserBody, actor: AuthActor) => Promise<User>
   updateUser: (id: string, input: UpdateUserBody, actor: AuthActor) => Promise<User>
   setAvatar: (id: string, input: SetAvatarBody, actor: AuthActor) => Promise<UserAvatarResult>
+  uploadAvatar: (
+    id: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    actor: AuthActor,
+  ) => Promise<UserAvatarResult>
   clearAvatar: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
   getAvatarUrl: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
   deactivateUser: (id: string, actor: AuthActor) => Promise<User>
@@ -78,7 +83,7 @@ export type UsersService = {
 
 export type UsersFilesGateway = Pick<
   FilesService,
-  'requireReadyAttachment' | 'downloadUrl' | 'softDelete'
+  'requireReadyAttachment' | 'downloadUrl' | 'softDelete' | 'uploadBytes'
 >
 
 const unavailableFiles: UsersFilesGateway = {
@@ -89,6 +94,9 @@ const unavailableFiles: UsersFilesGateway = {
     throw validationError('Storage is not configured')
   },
   async softDelete() {
+    throw validationError('Storage is not configured')
+  },
+  async uploadBytes() {
     throw validationError('Storage is not configured')
   },
 }
@@ -265,6 +273,37 @@ export function createUsersService(
           await filesService.softDelete(actor, previousFileId)
         } catch {
           // Previous object cleanup is best-effort; new avatar is already linked.
+        }
+      }
+
+      return resolveAvatar(updated, actor)
+    },
+
+    async uploadAvatar(id, file, actor) {
+      const user = await assertAccessible(id, actor)
+      if (!AVATAR_MIMES.has(file.mimetype)) {
+        throw validationError('Avatar must be a JPEG, PNG, or WebP image')
+      }
+      if (file.size <= 0 || file.size > 8 * 1024 * 1024) {
+        throw validationError('Avatar must be between 1 byte and 8 MB')
+      }
+
+      const uploaded = await filesService.uploadBytes(actor, {
+        entityType: 'USER',
+        entityId: id,
+        mime: file.mimetype,
+        originalName: file.originalname || 'avatar.jpg',
+        body: file.buffer,
+      })
+
+      const previousFileId = user.profile?.avatarUrl
+      const updated = await repository.setAvatarFileId(id, uploaded.id)
+
+      if (previousFileId && previousFileId !== uploaded.id) {
+        try {
+          await filesService.softDelete(actor, previousFileId)
+        } catch {
+          // Best-effort cleanup of the previous avatar object.
         }
       }
 

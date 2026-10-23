@@ -1,68 +1,64 @@
-import { Prisma } from '../../generated/prisma/client.js'
-
 import type { AuthActor } from '../../authz/index.js'
-import { conflict, notFound, validationError } from '../../errors/app-error.js'
+import { notFound, validationError } from '../../errors/app-error.js'
+import type { InputTypesService } from '../input-types/index.js'
 import type { ProjectsService } from '../projects/projects.service.js'
-import { resolveOrderNb } from '../steps/steps.order.js'
+import { allocateOrderedWithActiveType } from '../steps/steps.order.js'
 import type { ProjectSteppersRepository } from './project-steppers.repository.js'
 import type {
   CreateProjectStepInputBody,
   UpsertStepperValuesBody,
 } from './project-steppers.schema.js'
 import type {
-  ProjectStepperDetail,
-  ProjectStepperInputField,
-  ProjectStepperNode,
+  ProjectStepDetail,
+  ProjectStepInputField,
+  ProjectStepNode,
 } from './project-steppers.types.js'
 import { assertValidStepperValue } from './project-steppers.values.js'
 
 export type ProjectSteppersService = {
-  listSteppers: (projectId: string, actor: AuthActor) => Promise<ProjectStepperNode[]>
+  listSteppers: (projectId: string, actor: AuthActor) => Promise<ProjectStepNode[]>
   getStepper: (
     projectId: string,
-    stepperProjectId: string,
+    projectStepId: string,
     actor: AuthActor,
-  ) => Promise<ProjectStepperDetail>
+  ) => Promise<ProjectStepDetail>
   saveValues: (
     projectId: string,
-    stepperProjectId: string,
+    projectStepId: string,
     body: UpsertStepperValuesBody,
     actor: AuthActor,
-  ) => Promise<ProjectStepperDetail>
+  ) => Promise<ProjectStepDetail>
   addInput: (
     projectId: string,
-    stepperProjectId: string,
+    projectStepId: string,
     body: CreateProjectStepInputBody,
     actor: AuthActor,
-  ) => Promise<{ data: ProjectStepperInputField; meta?: { orderAdjusted: boolean; orderNb: number } }>
+  ) => Promise<{ data: ProjectStepInputField; meta?: { orderAdjusted: boolean; orderNb: number } }>
   removeInput: (
     projectId: string,
-    stepperProjectId: string,
+    projectStepId: string,
     inputId: string,
     actor: AuthActor,
   ) => Promise<void>
 }
 
-function isUniqueOrderConflict(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
-}
-
 export function createProjectSteppersService(
   repository: ProjectSteppersRepository,
   projectsService: Pick<ProjectsService, 'assertAccessible'>,
+  inputTypes: Pick<InputTypesService, 'requireActiveInputType'>,
 ): ProjectSteppersService {
-  async function loadOwnedStepper(projectId: string, stepperProjectId: string, actor: AuthActor) {
+  async function loadOwnedStep(projectId: string, projectStepId: string, actor: AuthActor) {
     await projectsService.assertAccessible(projectId, actor)
-    const link = await repository.findById(stepperProjectId)
+    const link = await repository.findById(projectStepId)
     if (!link || link.projectId !== projectId) {
-      throw notFound('Project stepper not found', 'PROJECT_STEPPER_NOT_FOUND')
+      throw notFound('Project step not found', 'PROJECT_STEPPER_NOT_FOUND')
     }
     return link
   }
 
-  async function loadDetailOrThrow(stepperProjectId: string) {
-    const detail = await repository.getDetail(stepperProjectId)
-    if (!detail) throw notFound('Project stepper not found', 'PROJECT_STEPPER_NOT_FOUND')
+  async function loadDetailOrThrow(projectStepId: string) {
+    const detail = await repository.getDetail(projectStepId)
+    if (!detail) throw notFound('Project step not found', 'PROJECT_STEPPER_NOT_FOUND')
     return detail
   }
 
@@ -72,74 +68,59 @@ export function createProjectSteppersService(
       return repository.listByProject(projectId)
     },
 
-    async getStepper(projectId, stepperProjectId, actor) {
-      await loadOwnedStepper(projectId, stepperProjectId, actor)
-      return loadDetailOrThrow(stepperProjectId)
+    async getStepper(projectId, projectStepId, actor) {
+      await loadOwnedStep(projectId, projectStepId, actor)
+      return loadDetailOrThrow(projectStepId)
     },
 
-    async saveValues(projectId, stepperProjectId, body, actor) {
-      const link = await loadOwnedStepper(projectId, stepperProjectId, actor)
-      const detail = await loadDetailOrThrow(stepperProjectId)
-      const byId = new Map(detail.inputs.map((input) => [input.id, input]))
+    async saveValues(projectId, projectStepId, body, actor) {
+      const link = await loadOwnedStep(projectId, projectStepId, actor)
+      const meta = await repository.listInputMeta(link.id)
+      const byId = new Map(meta.map((input) => [input.id, input]))
 
       for (const entry of body.values) {
         const field = byId.get(entry.id)
         if (!field) {
-          throw validationError('One or more inputs do not belong to this stepper')
+          throw validationError('One or more inputs do not belong to this project step')
         }
         assertValidStepperValue(field.inputTypeCode, field.label, entry.value)
       }
 
       await repository.upsertValues(link.id, body.values)
-      return loadDetailOrThrow(stepperProjectId)
+      return loadDetailOrThrow(projectStepId)
     },
 
-    async addInput(projectId, stepperProjectId, body, actor) {
-      await loadOwnedStepper(projectId, stepperProjectId, actor)
-      await loadDetailOrThrow(stepperProjectId)
+    async addInput(projectId, projectStepId, body, actor) {
+      await loadOwnedStep(projectId, projectStepId, actor)
 
-      const inputType = await repository.findActiveInputType(body.inputTypeId)
-      if (!inputType) {
-        throw validationError('Select an active input type')
-      }
-      if (body.value !== undefined) {
-        assertValidStepperValue(inputType.code, body.label, body.value ?? null)
-      }
-
-      let requested = body.orderNb
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const used = await repository.listUsedOrders(stepperProjectId)
-        const { orderNb, orderAdjusted } = resolveOrderNb(used, requested)
-        try {
-          const created = await repository.createInput(stepperProjectId, {
+      return allocateOrderedWithActiveType({
+        requireActiveInputType: (id) => inputTypes.requireActiveInputType(id),
+        inputTypeId: body.inputTypeId,
+        listUsed: () => repository.listUsedOrders(projectStepId),
+        requested: body.orderNb,
+        persist: (orderNb, inputType) => {
+          if (body.value !== undefined) {
+            assertValidStepperValue(inputType.code, body.label, body.value ?? null)
+          }
+          return repository.createInput(projectStepId, {
             ...body,
             orderNb,
             inputTypeCode: inputType.code,
             inputTypeLabel: inputType.label,
           })
-          return {
-            data: created,
-            meta:
-              orderAdjusted || attempt > 0
-                ? { orderAdjusted: true, orderNb }
-                : undefined,
-          }
-        } catch (error) {
-          if (!isUniqueOrderConflict(error)) throw error
-          requested = undefined
-        }
-      }
-      throw conflict('Could not allocate a free input order. Retry.', 'PROJECT_STEP_INPUT_ORDER_CONFLICT')
+        },
+        conflictMessage: 'Could not allocate a free input order. Retry.',
+        conflictCode: 'PROJECT_STEP_INPUT_ORDER_CONFLICT',
+      })
     },
 
-    async removeInput(projectId, stepperProjectId, inputId, actor) {
-      await loadOwnedStepper(projectId, stepperProjectId, actor)
-      const detail = await repository.getDetail(stepperProjectId)
-      const field = detail?.inputs.find((input) => input.id === inputId)
+    async removeInput(projectId, projectStepId, inputId, actor) {
+      await loadOwnedStep(projectId, projectStepId, actor)
+      const field = await repository.findInputId(inputId, projectStepId)
       if (!field) {
         throw notFound('Project step input not found', 'PROJECT_STEP_INPUT_NOT_FOUND')
       }
-      await repository.deleteInput(inputId, stepperProjectId)
+      await repository.deleteInput(inputId, projectStepId)
     },
   }
 }

@@ -125,6 +125,21 @@ export function setUserAvatar(id: string, fileId: string) {
   })
 }
 
+/** API → R2 upload (avoids browser CORS on the R2 endpoint). */
+export function uploadUserAvatar(
+  id: string,
+  file: File,
+  options?: { onProgress?: (percent: number) => void },
+) {
+  const body = new FormData()
+  body.append('image', file)
+  return apiRequest<UserAvatarResponse>(`/users/${id}/avatar/upload`, {
+    method: 'POST',
+    body,
+    onUploadProgress: options?.onProgress,
+  })
+}
+
 export function clearUserAvatar(id: string) {
   return apiRequest<UserAvatarResponse>(`/users/${id}/avatar`, {
     method: 'DELETE',

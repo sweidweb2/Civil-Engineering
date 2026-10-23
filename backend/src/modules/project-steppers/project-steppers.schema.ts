@@ -4,14 +4,15 @@ export const projectStepperParamsSchema = z.object({
   id: z.string().trim().min(1).max(64),
 })
 
+/** Path params for a project step instance (`:projectStepId` = StepperProject.id). */
 export const projectStepperIdParamsSchema = z.object({
   id: z.string().trim().min(1).max(64),
-  stepperProjectId: z.string().trim().min(1).max(64),
+  projectStepId: z.string().trim().min(1).max(64),
 })
 
 export const projectStepInputIdParamsSchema = z.object({
   id: z.string().trim().min(1).max(64),
-  stepperProjectId: z.string().trim().min(1).max(64),
+  projectStepId: z.string().trim().min(1).max(64),
   inputId: z.string().trim().min(1).max(64),
 })
 

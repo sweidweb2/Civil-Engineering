@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { validationError } from '../../src/errors/app-error.js'
 import type { StepRecord, StepsRepository } from '../../src/modules/steps/steps.repository.js'
 import { createStepsService } from '../../src/modules/steps/steps.service.js'
 
@@ -22,6 +23,7 @@ function stepRecord(overrides: Partial<StepRecord> = {}): StepRecord {
 
 describe('stepsService', () => {
   let repository: StepsRepository
+  let inputTypes: { requireActiveInputType: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     repository = {
@@ -36,15 +38,17 @@ describe('stepsService', () => {
       listInputs: vi.fn(),
       findInputById: vi.fn(),
       listUsedInputOrders: vi.fn(),
-      findActiveInputType: vi.fn(),
       createInput: vi.fn(),
       updateInput: vi.fn(),
       deleteInput: vi.fn(),
     }
+    inputTypes = {
+      requireActiveInputType: vi.fn(),
+    }
   })
 
   it('forbids clients from listing steps', async () => {
-    const service = createStepsService(repository)
+    const service = createStepsService(repository, inputTypes)
     await expect(service.listSteps({ page: 1, limit: 20 }, client)).rejects.toMatchObject({
       status: 403,
     })
@@ -57,7 +61,7 @@ describe('stepsService', () => {
       inactiveCount: 0,
       archivedCount: 0,
     })
-    const service = createStepsService(repository)
+    const service = createStepsService(repository, inputTypes)
 
     const result = await service.listSteps({ page: 1, limit: 20 }, manager)
     expect(result.data).toHaveLength(1)
@@ -68,7 +72,7 @@ describe('stepsService', () => {
   it('creates a step with a free order', async () => {
     vi.mocked(repository.listUsedStepOrders).mockResolvedValue([0])
     vi.mocked(repository.create).mockResolvedValue(stepRecord({ orderNb: 1, name: 'Structure' }))
-    const service = createStepsService(repository)
+    const service = createStepsService(repository, inputTypes)
 
     const result = await service.createStep({ name: 'Structure' }, manager)
     expect(result.data.orderNb).toBe(1)
@@ -77,7 +81,7 @@ describe('stepsService', () => {
 
   it('hides other users steps', async () => {
     vi.mocked(repository.findById).mockResolvedValue(stepRecord({ userId: 'other-pm' }))
-    const service = createStepsService(repository)
+    const service = createStepsService(repository, inputTypes)
 
     await expect(service.getStepById('step-1', manager)).rejects.toMatchObject({
       status: 404,
@@ -87,7 +91,7 @@ describe('stepsService', () => {
 
   it('assigns active templates to a project', async () => {
     vi.mocked(repository.assignActiveToProject).mockResolvedValue(3)
-    const service = createStepsService(repository)
+    const service = createStepsService(repository, inputTypes)
 
     await service.assignActiveToProject('project-1', manager.id)
     expect(repository.assignActiveToProject).toHaveBeenCalledWith('project-1', manager.id)
@@ -95,8 +99,10 @@ describe('stepsService', () => {
 
   it('rejects step inputs when the input type is inactive', async () => {
     vi.mocked(repository.findById).mockResolvedValue(stepRecord())
-    vi.mocked(repository.findActiveInputType).mockResolvedValue(null)
-    const service = createStepsService(repository)
+    inputTypes.requireActiveInputType.mockRejectedValue(
+      validationError('Select an active input type'),
+    )
+    const service = createStepsService(repository, inputTypes)
 
     await expect(
       service.createStepInput('step-1', { label: 'Note', inputTypeId: 'it-1' }, manager),

@@ -1,17 +1,24 @@
 import type { StepperInputValuePayload } from './project-steppers.schema.js'
 
-export type ProjectStepperNode = {
+/**
+ * Project-owned step instance (Prisma model: `StepperProject` / table `stepper_project`).
+ * Not a `Project` row — a cloned step attached to one project.
+ */
+export type ProjectStepNode = {
   id: string
   projectId: string
   name: string
   orderNb: number
   inputCount: number
   filledCount: number
-  /** True when every input has a non-null value (empty steppers count as complete). */
+  /** True when every input has a non-null value (empty steps count as complete). */
   isComplete: boolean
 }
 
-export type ProjectStepperInputField = {
+/** @deprecated Prefer `ProjectStepNode`. */
+export type ProjectStepperNode = ProjectStepNode
+
+export type ProjectStepInputField = {
   id: string
   label: string
   orderNb: number
@@ -22,10 +29,16 @@ export type ProjectStepperInputField = {
   isProjectOnly: boolean
 }
 
-export type ProjectStepperDetail = {
+/** @deprecated Prefer `ProjectStepInputField`. */
+export type ProjectStepperInputField = ProjectStepInputField
+
+export type ProjectStepDetail = {
   id: string
   projectId: string
   name: string
   orderNb: number
-  inputs: ProjectStepperInputField[]
+  inputs: ProjectStepInputField[]
 }
+
+/** @deprecated Prefer `ProjectStepDetail`. */
+export type ProjectStepperDetail = ProjectStepDetail

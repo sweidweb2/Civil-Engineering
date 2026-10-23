@@ -43,12 +43,20 @@ export type InputTypeWriteInput = {
 export function listInputTypes(
   page = 1,
   limit = 50,
-  filters?: { q?: string; status?: InputTypeStatus },
+  filters?: { q?: string; status?: InputTypeStatus; includeUsage?: boolean },
 ) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters?.q) params.set('q', filters.q)
   if (filters?.status) params.set('status', filters.status)
+  if (filters?.includeUsage) params.set('includeUsage', 'true')
   return apiRequest<PaginatedInputTypes>(`/input-types?${params.toString()}`)
+}
+
+/** Shared picker catalog key — StepInputsPanel + project step add-field dialog. */
+export const INPUT_TYPES_PICKER_QUERY_KEY = ['input-types', 'picker', 1, 100] as const
+
+export function listInputTypesForPicker() {
+  return listInputTypes(1, 100, { status: 'ACTIVE' })
 }
 
 export function createInputType(input: InputTypeWriteInput) {

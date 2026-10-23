@@ -61,7 +61,6 @@ export type StepsRepository = {
   listInputs: (stepId: string) => Promise<StepInputRecord[]>
   findInputById: (id: string) => Promise<StepInputRecord | null>
   listUsedInputOrders: (stepId: string, exceptId?: string) => Promise<number[]>
-  findActiveInputType: (id: string) => Promise<{ id: string } | null>
   createInput: (
     stepId: string,
     input: CreateStepInputBody & { orderNb: number },
@@ -245,27 +244,36 @@ export function createStepsRepository(): StepsRepository {
         })
         if (templates.length === 0) return 0
 
-        for (const template of templates) {
-          const link = await tx.stepperProject.create({
-            data: {
-              projectId,
-              name: template.name,
-              orderNb: template.orderNb,
-            },
-          })
-          if (template.inputs.length === 0) continue
-          await tx.projectStepInput.createMany({
-            data: template.inputs.map((input) => ({
-              stepperProjectId: link.id,
-              inputTypeId: input.inputTypeId,
-              inputTypeCode: input.inputType.code,
-              inputTypeLabel: input.inputType.label,
-              label: input.label,
-              orderNb: input.orderNb,
-              value: Prisma.DbNull,
-              isProjectOnly: false,
-            })),
-          })
+        // Batch-insert project steps, then batch-insert all cloned inputs.
+        await tx.stepperProject.createMany({
+          data: templates.map((template) => ({
+            projectId,
+            name: template.name,
+            orderNb: template.orderNb,
+          })),
+        })
+        const links = await tx.stepperProject.findMany({
+          where: { projectId },
+          select: { id: true, orderNb: true },
+        })
+        const linkIdByOrder = new Map(links.map((link) => [link.orderNb, link.id]))
+
+        const inputRows = templates.flatMap((template) => {
+          const stepperProjectId = linkIdByOrder.get(template.orderNb)
+          if (!stepperProjectId) return []
+          return template.inputs.map((input) => ({
+            stepperProjectId,
+            inputTypeId: input.inputTypeId,
+            inputTypeCode: input.inputType.code,
+            inputTypeLabel: input.inputType.label,
+            label: input.label,
+            orderNb: input.orderNb,
+            value: Prisma.DbNull,
+            isProjectOnly: false,
+          }))
+        })
+        if (inputRows.length > 0) {
+          await tx.projectStepInput.createMany({ data: inputRows })
         }
         return templates.length
       })
@@ -297,13 +305,6 @@ export function createStepsRepository(): StepsRepository {
         select: { orderNb: true },
       })
       return rows.map((row) => row.orderNb)
-    },
-
-    async findActiveInputType(id) {
-      return prisma.inputType.findFirst({
-        where: { id, status: 'ACTIVE' },
-        select: { id: true },
-      })
     },
 
     async createInput(stepId, input) {

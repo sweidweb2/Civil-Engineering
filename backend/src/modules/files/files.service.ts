@@ -27,6 +27,20 @@ export type FilesService = {
     entityType: PresignFileBody['entityType'],
     entityId: string,
   ) => Promise<FileRecord>
+  /**
+   * Small trusted uploads (e.g. avatars): API puts bytes to R2 then marks READY.
+   * Avoids browser→R2 CORS for profiles while keeping the File metadata row.
+   */
+  uploadBytes: (
+    actor: AuthActor,
+    input: {
+      entityType: PresignFileBody['entityType']
+      entityId: string
+      mime: string
+      originalName: string
+      body: Buffer
+    },
+  ) => Promise<FileRecord>
 }
 
 export type FilesServiceDeps = {
@@ -169,6 +183,50 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         throw forbidden('File does not belong to this resource')
       }
       return file
+    },
+
+    async uploadBytes(actor, input) {
+      if (!actor.id) {
+        throw unauthorized()
+      }
+      const size = input.body.byteLength
+      if (size <= 0) {
+        throw validationError('File is empty')
+      }
+      if (size > maxBytes) {
+        throw validationError(`File exceeds max size of ${maxBytes} bytes`)
+      }
+
+      await assertCanAttachToEntity(actor, input.entityType, input.entityId, projectsService)
+
+      const fileId = randomUUID().replace(/-/g, '')
+      const key = buildObjectKey({
+        env: config.env,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        fileId,
+        originalName: input.originalName,
+      })
+
+      await storage.putObject({
+        key,
+        body: input.body,
+        contentType: input.mime,
+      })
+
+      await repository.createPending({
+        id: fileId,
+        key,
+        bucket: storage.bucket,
+        mime: input.mime,
+        size,
+        originalName: input.originalName.trim(),
+        uploadedById: actor.id,
+        entityType: input.entityType,
+        entityId: input.entityId,
+      })
+
+      return repository.markReady(fileId, size)
     },
   }
 }

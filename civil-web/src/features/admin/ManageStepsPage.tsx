@@ -5,16 +5,6 @@ import { toast } from 'sonner'
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
 import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,7 +30,6 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { ApiError } from '@/services/api'
 import {
   createStep,
   deleteStep,
@@ -51,8 +40,10 @@ import {
   updateStep,
 } from '@/services/steps'
 
+import { AdminConfirmDeleteDialog } from './components/AdminConfirmDeleteDialog'
 import { StepInputsPanel } from './components/StepInputsPanel'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
+import { useAdminCrudPage } from './hooks/useAdminCrudPage'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 type StepForm = {
@@ -91,12 +82,24 @@ type ManageStepsPageProps = {
 export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
   useDocumentTitle(embedded ? 'Settings' : 'Manage steps')
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<Step | null>(null)
-  const [form, setForm] = useState<StepForm>(EMPTY_FORM)
-  const [isSaving, setIsSaving] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<Step | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
+  const {
+    dialogOpen,
+    setDialogOpen,
+    editing,
+    form,
+    setForm,
+    isSaving,
+    pendingDelete,
+    setPendingDelete,
+    busyId,
+    openCreate,
+    openEdit,
+    withSaving,
+    withBusy,
+  } = useAdminCrudPage<Step, StepForm>({
+    emptyForm: EMPTY_FORM,
+    formFromRow: formFromStep,
+  })
   const [inputsStep, setInputsStep] = useState<Step | null>(null)
 
   const load = useCallback(
@@ -110,18 +113,6 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
   const inactiveCount = remote.status === 'success' ? remote.data.meta.inactiveCount : 0
   const archivedCount = remote.status === 'success' ? remote.data.meta.archivedCount : 0
   const totalPages = pageCount(total)
-
-  function openCreate() {
-    setEditing(null)
-    setForm(EMPTY_FORM)
-    setDialogOpen(true)
-  }
-
-  function openEdit(row: Step) {
-    setEditing(row)
-    setForm(formFromStep(row))
-    setDialogOpen(true)
-  }
 
   async function save() {
     const name = form.name.trim()
@@ -148,8 +139,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       payload.orderNb = orderNb
     }
 
-    setIsSaving(true)
-    try {
+    await withSaving(async () => {
       const result = editing ? await updateStep(editing.id, payload) : await createStep(payload)
       setDialogOpen(false)
       toast.message(editing ? 'Step updated' : 'Step created')
@@ -157,59 +147,52 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       if (adjusted) toast.message(adjusted)
       if (!editing) setPage(1)
       await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save step')
-    } finally {
-      setIsSaving(false)
-    }
+    }, 'Could not save step')
   }
 
   async function toggleActive(row: Step) {
     if (row.status === 'ARCHIVED') return
     const next: StepStatus = row.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-    setBusyId(row.id)
-    try {
-      await updateStep(row.id, { status: next })
-      toast.message(
-        next === 'ACTIVE'
-          ? 'Step enabled for new projects'
-          : 'Step disabled for new projects (existing projects unchanged)',
-      )
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not update status')
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      row.id,
+      async () => {
+        await updateStep(row.id, { status: next })
+        toast.message(
+          next === 'ACTIVE'
+            ? 'Step enabled for new projects'
+            : 'Step disabled for new projects (existing projects unchanged)',
+        )
+        await remote.refetch()
+      },
+      'Could not update status',
+    )
   }
 
   async function archiveStep(row: Step) {
-    setBusyId(row.id)
-    try {
-      await updateStep(row.id, { status: 'ARCHIVED' })
-      toast.message('Step archived — it will not be added to new projects')
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not archive step')
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      row.id,
+      async () => {
+        await updateStep(row.id, { status: 'ARCHIVED' })
+        toast.message('Step archived — it will not be added to new projects')
+        await remote.refetch()
+      },
+      'Could not archive step',
+    )
   }
 
   async function confirmDelete() {
     if (!pendingDelete) return
     const id = pendingDelete.id
-    setBusyId(id)
-    try {
-      await deleteStep(id)
-      toast.message('Step removed (existing projects keep their cloned steppers)')
-      setPendingDelete(null)
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not remove step')
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      id,
+      async () => {
+        await deleteStep(id)
+        toast.message('Step removed (existing projects keep their cloned project steps)')
+        setPendingDelete(null)
+        await remote.refetch()
+      },
+      'Could not remove step',
+    )
   }
 
   return (
@@ -434,21 +417,13 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove step</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently removes {pendingDelete?.name ?? 'the step'} from your templates.
-              Existing projects keep their own cloned steppers and inputs.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>Remove</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AdminConfirmDeleteDialog
+        open={pendingDelete !== null}
+        title="Remove step"
+        description={`This permanently removes ${pendingDelete?.name ?? 'the step'} from your templates. Existing projects keep their own cloned project steps and inputs.`}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        onConfirm={() => void confirmDelete()}
+      />
 
       <StepInputsPanel
         step={inputsStep}

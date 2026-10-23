@@ -2,7 +2,7 @@ import { prisma } from '../../database/prisma.js'
 import type { InputTypeStatus as PrismaInputTypeStatus } from '../../generated/prisma/client.js'
 import type { CreateInputTypeBody, ListInputTypesQuery, UpdateInputTypeBody } from './input-types.schema.js'
 
-const include = {
+const usageInclude = {
   _count: { select: { stepInputs: true, projectStepInputs: true } },
 } as const
 
@@ -17,10 +17,21 @@ export type InputTypeRecord = {
   updatedAt: Date
 }
 
+export type ActiveInputTypeRef = {
+  id: string
+  code: string
+  label: string
+}
+
 export type InputTypesRepository = {
-  findMany: (query: ListInputTypesQuery) => Promise<{ items: InputTypeRecord[]; total: number }>
+  findMany: (
+    query: ListInputTypesQuery,
+    options?: { includeUsage?: boolean },
+  ) => Promise<{ items: InputTypeRecord[]; total: number }>
   countByStatus: () => Promise<{ activeCount: number; inactiveCount: number }>
   findById: (id: string) => Promise<InputTypeRecord | null>
+  /** Lean lookup for other modules attaching fields to an ACTIVE catalog type. */
+  findActiveById: (id: string) => Promise<ActiveInputTypeRef | null>
   findByCode: (code: string, exceptId?: string) => Promise<{ id: string } | null>
   create: (input: CreateInputTypeBody) => Promise<InputTypeRecord>
   update: (id: string, input: UpdateInputTypeBody) => Promise<InputTypeRecord>
@@ -35,7 +46,7 @@ function toRecord(row: {
   sortOrder: number
   createdAt: Date
   updatedAt: Date
-  _count: { stepInputs: number; projectStepInputs: number }
+  _count?: { stepInputs: number; projectStepInputs: number }
 }): InputTypeRecord {
   return {
     id: row.id,
@@ -43,7 +54,9 @@ function toRecord(row: {
     label: row.label,
     status: row.status,
     sortOrder: row.sortOrder,
-    usageCount: row._count.stepInputs + row._count.projectStepInputs,
+    usageCount: row._count
+      ? row._count.stepInputs + row._count.projectStepInputs
+      : 0,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -51,7 +64,8 @@ function toRecord(row: {
 
 export function createInputTypesRepository(): InputTypesRepository {
   return {
-    async findMany(query) {
+    async findMany(query, options) {
+      const includeUsage = options?.includeUsage === true
       const where = {
         ...(query.status ? { status: query.status } : {}),
         ...(query.q
@@ -70,7 +84,7 @@ export function createInputTypesRepository(): InputTypesRepository {
           orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
           skip,
           take: query.limit,
-          include,
+          ...(includeUsage ? { include: usageInclude } : {}),
         }),
         prisma.inputType.count({ where }),
       ])
@@ -92,8 +106,15 @@ export function createInputTypesRepository(): InputTypesRepository {
     },
 
     async findById(id) {
-      const row = await prisma.inputType.findUnique({ where: { id }, include })
+      const row = await prisma.inputType.findUnique({ where: { id }, include: usageInclude })
       return row ? toRecord(row) : null
+    },
+
+    async findActiveById(id) {
+      return prisma.inputType.findFirst({
+        where: { id, status: 'ACTIVE' },
+        select: { id: true, code: true, label: true },
+      })
     },
 
     async findByCode(code, exceptId) {
@@ -114,7 +135,7 @@ export function createInputTypesRepository(): InputTypesRepository {
           status: input.status ?? 'ACTIVE',
           sortOrder: input.sortOrder ?? 0,
         },
-        include,
+        include: usageInclude,
       })
       return toRecord(row)
     },
@@ -128,7 +149,7 @@ export function createInputTypesRepository(): InputTypesRepository {
           status: input.status,
           sortOrder: input.sortOrder,
         },
-        include,
+        include: usageInclude,
       })
       return toRecord(row)
     },

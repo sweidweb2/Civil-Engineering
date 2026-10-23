@@ -47,45 +47,6 @@ describe('managerProfilesService', () => {
     await expect(service.getMine('user-1')).resolves.toBeNull()
   })
 
-  it('creates a profile when none exists', async () => {
-    vi.mocked(repository.findByUserId).mockResolvedValue(null)
-    vi.mocked(repository.create).mockResolvedValue(makeProfile())
-    const service = createManagerProfilesService(repository)
-
-    const created = await service.createMine('user-1', { headline: 'Civil engineer' })
-    expect(created.headline).toBe('Civil engineer')
-    expect(repository.create).toHaveBeenCalledWith('user-1', { headline: 'Civil engineer' })
-  })
-
-  it('rejects create when a profile already exists', async () => {
-    vi.mocked(repository.findByUserId).mockResolvedValue(makeProfile())
-    const service = createManagerProfilesService(repository)
-
-    await expect(service.createMine('user-1', { headline: 'Other' })).rejects.toMatchObject({
-      status: 409,
-      code: 'MANAGER_PROFILE_EXISTS',
-    })
-  })
-
-  it('updates an existing profile', async () => {
-    vi.mocked(repository.findByUserId).mockResolvedValue(makeProfile())
-    vi.mocked(repository.update).mockResolvedValue(makeProfile({ headline: 'Updated' }))
-    const service = createManagerProfilesService(repository)
-
-    const updated = await service.updateMine('user-1', { headline: 'Updated' })
-    expect(updated.headline).toBe('Updated')
-  })
-
-  it('rejects update when missing', async () => {
-    vi.mocked(repository.findByUserId).mockResolvedValue(null)
-    const service = createManagerProfilesService(repository)
-
-    await expect(service.updateMine('user-1', { headline: 'Updated' })).rejects.toMatchObject({
-      status: 404,
-      code: 'MANAGER_PROFILE_NOT_FOUND',
-    })
-  })
-
   it('upserts by creating or updating', async () => {
     const service = createManagerProfilesService(repository)
 

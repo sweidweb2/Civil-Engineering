@@ -1,3 +1,4 @@
+import { getInputTypesService } from '../input-types/index.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import { createProjectSteppersController } from './project-steppers.controller.js'
 import { createProjectSteppersRepository } from './project-steppers.repository.js'
@@ -7,7 +8,11 @@ export function createProjectSteppersControllerForProjects(
   projectsService: Pick<ProjectsService, 'assertAccessible'>,
 ) {
   const repository = createProjectSteppersRepository()
-  const service = createProjectSteppersService(repository, projectsService)
+  const service = createProjectSteppersService(
+    repository,
+    projectsService,
+    getInputTypesService(),
+  )
   return createProjectSteppersController(service)
 }
 

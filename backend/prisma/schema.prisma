@@ -505,7 +505,8 @@ model StepperProject {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   inputs    ProjectStepInput[]
 
-  @@index([projectId, orderNb])
+  @@unique([projectId, orderNb])
+  @@index([projectId])
   @@map("stepper_project")
 }
 

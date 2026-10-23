@@ -24,7 +24,7 @@ export function createProjectSteppersController(
     getById: wrap(async (req, res) => {
       const data = await service.getStepper(
         String(req.params.id),
-        String(req.params.stepperProjectId),
+        String(req.params.projectStepId),
         parseAuthActor(req),
       )
       res.status(200).json({ data })
@@ -33,7 +33,7 @@ export function createProjectSteppersController(
     saveValues: wrap(async (req, res) => {
       const data = await service.saveValues(
         String(req.params.id),
-        String(req.params.stepperProjectId),
+        String(req.params.projectStepId),
         req.body,
         parseAuthActor(req),
       )
@@ -43,7 +43,7 @@ export function createProjectSteppersController(
     addInput: wrap(async (req, res) => {
       const result = await service.addInput(
         String(req.params.id),
-        String(req.params.stepperProjectId),
+        String(req.params.projectStepId),
         req.body,
         parseAuthActor(req),
       )
@@ -53,7 +53,7 @@ export function createProjectSteppersController(
     removeInput: wrap(async (req, res) => {
       await service.removeInput(
         String(req.params.id),
-        String(req.params.stepperProjectId),
+        String(req.params.projectStepId),
         String(req.params.inputId),
         parseAuthActor(req),
       )

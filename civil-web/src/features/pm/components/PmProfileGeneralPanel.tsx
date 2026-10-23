@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Camera, Trash2 } from 'lucide-react'
+import { Camera, Loader2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -14,18 +14,46 @@ import { Label } from '@/components/ui/label'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { changePassword } from '@/services/auth'
-import { uploadFile } from '@/services/files'
+import { optimizeIfImage } from '@/lib/optimizeImage'
 import {
   clearUserAvatar,
   getUser,
   getUserAvatarUrl,
-  setUserAvatar,
   updateUser,
+  uploadUserAvatar,
 } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 
-const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp'
+const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp,image/jpg'
 const AVATAR_MAX_BYTES = 8 * 1024 * 1024
+
+function AvatarUploadProgress({ value }: { value: number }) {
+  const label = value >= 100 ? 'Finishing…' : 'Uploading photo…'
+  return (
+    <div className="flex w-full min-w-[12rem] max-w-sm flex-col gap-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          {label}
+        </span>
+        <span className="tabular-nums">{value}%</span>
+      </div>
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+        aria-label="Photo upload progress"
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
+  )
+}
 
 const profileSchema = z.object({
   firstName: z.string().trim().max(100, 'First name must be at most 100 characters'),
@@ -81,6 +109,7 @@ export function PmProfileGeneralPanel() {
   const [isSavingPassword, setIsSavingPassword] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState(0)
   const [isRemovingAvatar, setIsRemovingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -196,13 +225,20 @@ export function PmProfileGeneralPanel() {
     }
 
     setIsUploadingAvatar(true)
+    setAvatarUploadProgress(0)
     try {
-      const uploaded = await uploadFile({
-        file,
-        entityType: 'USER',
-        entityId: userId,
+      const optimized = await optimizeIfImage(file)
+      setAvatarUploadProgress(8)
+      const uploadFile = new File([optimized.blob], optimized.originalName, {
+        type: optimized.mime,
       })
-      const result = await setUserAvatar(userId, uploaded.id)
+      const result = await uploadUserAvatar(userId, uploadFile, {
+        onProgress: (percent) => {
+          // Reserve ~8% for optimize, map transfer into 8–100.
+          setAvatarUploadProgress(Math.max(8, Math.min(100, Math.round(8 + percent * 0.92))))
+        },
+      })
+      setAvatarUploadProgress(100)
       setAvatarUrl(result.meta.avatarDownloadUrl)
       await remote.refetch()
       toast.success('Photo updated')
@@ -210,6 +246,7 @@ export function PmProfileGeneralPanel() {
       toast.error(error instanceof ApiError ? error.message : 'Could not upload photo')
     } finally {
       setIsUploadingAvatar(false)
+      setAvatarUploadProgress(0)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -273,43 +310,65 @@ export function PmProfileGeneralPanel() {
               Upload a profile photo. Stored privately in Cloudflare R2.
             </p>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-4">
-            <Avatar size="lg" className="size-20 data-[size=lg]:size-20">
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile photo" /> : null}
-              <AvatarFallback className="text-base">{avatarInitials()}</AvatarFallback>
-            </Avatar>
-            <div className="flex min-w-0 flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={AVATAR_ACCEPT}
-                className="sr-only"
-                onChange={(event) => void onAvatarSelected(event.target.files?.[0])}
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isUploadingAvatar || isRemovingAvatar}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Camera />
-                  {isUploadingAvatar ? 'Uploading…' : avatarUrl ? 'Change photo' : 'Upload photo'}
-                </Button>
-                {account?.profile?.avatarUrl ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={isUploadingAvatar || isRemovingAvatar}
-                    onClick={() => void onRemoveAvatar()}
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative size-20 shrink-0">
+                <Avatar size="lg" className="size-20 data-[size=lg]:size-20">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile photo" /> : null}
+                  <AvatarFallback className="text-base">{avatarInitials()}</AvatarFallback>
+                </Avatar>
+                {isUploadingAvatar ? (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70"
+                    aria-hidden
                   >
-                    <Trash2 />
-                    {isRemovingAvatar ? 'Removing…' : 'Remove'}
-                  </Button>
+                    <Loader2 className="size-6 animate-spin text-primary" />
+                  </div>
                 ) : null}
               </div>
-              <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP · up to 8 MB</p>
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={AVATAR_ACCEPT}
+                  className="sr-only"
+                  disabled={isUploadingAvatar || isRemovingAvatar}
+                  onChange={(event) => void onAvatarSelected(event.target.files?.[0])}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isUploadingAvatar || isRemovingAvatar}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploadingAvatar ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Camera />
+                    )}
+                    {isUploadingAvatar
+                      ? 'Uploading…'
+                      : avatarUrl
+                        ? 'Change photo'
+                        : 'Upload photo'}
+                  </Button>
+                  {account?.profile?.avatarUrl ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={isUploadingAvatar || isRemovingAvatar}
+                      onClick={() => void onRemoveAvatar()}
+                    >
+                      {isRemovingAvatar ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                      {isRemovingAvatar ? 'Removing…' : 'Remove'}
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP · up to 8 MB</p>
+              </div>
             </div>
+            {isUploadingAvatar ? <AvatarUploadProgress value={avatarUploadProgress} /> : null}
           </CardContent>
         </Card>
 

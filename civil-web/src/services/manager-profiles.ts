@@ -46,20 +46,6 @@ export function getMyManagerProfile() {
   })
 }
 
-export function createMyManagerProfile(input: ManagerProfileInput) {
-  return apiRequest<{ data: ManagerProfile }>('/manager-profiles/me', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  })
-}
-
-export function updateMyManagerProfile(input: ManagerProfileInput) {
-  return apiRequest<{ data: ManagerProfile }>('/manager-profiles/me', {
-    method: 'PATCH',
-    body: JSON.stringify(input),
-  })
-}
-
 export function upsertMyManagerProfile(input: ManagerProfileInput) {
   return apiRequest<{ data: ManagerProfile }>('/manager-profiles/me', {
     method: 'PUT',

@@ -1,20 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { FormInput, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
 import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,7 +30,6 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { ApiError } from '@/services/api'
 import {
   createInputType,
   deleteInputType,
@@ -52,7 +41,9 @@ import {
   updateInputType,
 } from '@/services/input-types'
 
+import { AdminConfirmDeleteDialog } from './components/AdminConfirmDeleteDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
+import { useAdminCrudPage } from './hooks/useAdminCrudPage'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 type FormState = {
@@ -77,36 +68,42 @@ function formFromRow(row: InputType): FormState {
 export function ManageInputTypesPage() {
   useDocumentTitle('Input types')
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<InputType | null>(null)
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [isSaving, setIsSaving] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<InputType | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
+  const {
+    dialogOpen,
+    setDialogOpen,
+    editing,
+    form,
+    setForm,
+    isSaving,
+    pendingDelete,
+    setPendingDelete,
+    busyId,
+    openCreate,
+    openEdit,
+    withSaving,
+    withBusy,
+  } = useAdminCrudPage<InputType, FormState>({
+    emptyForm: EMPTY_FORM,
+    formFromRow,
+  })
 
   const load = useCallback(
-    () => listInputTypes(page, PAGE_SIZE, { q: debouncedQuery || undefined }),
+    () =>
+      listInputTypes(page, PAGE_SIZE, {
+        q: debouncedQuery || undefined,
+        includeUsage: true,
+      }),
     [debouncedQuery, page],
   )
-  const remote = useRemoteData(load, { queryKey: ['input-types', page, debouncedQuery] })
+  const remote = useRemoteData(load, {
+    queryKey: ['input-types', 'admin', page, debouncedQuery],
+  })
   const rows = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const activeCount = remote.status === 'success' ? remote.data.meta.activeCount : 0
   const inactiveCount = remote.status === 'success' ? remote.data.meta.inactiveCount : 0
   const totalPages = pageCount(total)
   const isIdentityLocked = Boolean(editing && editing.usageCount > 0)
-
-  function openCreate() {
-    setEditing(null)
-    setForm(EMPTY_FORM)
-    setDialogOpen(true)
-  }
-
-  function openEdit(row: InputType) {
-    setEditing(row)
-    setForm(formFromRow(row))
-    setDialogOpen(true)
-  }
 
   async function save() {
     const label = form.label.trim()
@@ -117,17 +114,12 @@ export function ManageInputTypesPage() {
     }
 
     if (isIdentityLocked) {
-      setIsSaving(true)
-      try {
+      await withSaving(async () => {
         await updateInputType(editing!.id, { sortOrder, status: form.status })
         setDialogOpen(false)
         toast.message('Input type updated')
         await remote.refetch()
-      } catch (error) {
-        toast.error(error instanceof ApiError ? error.message : 'Could not save input type')
-      } finally {
-        setIsSaving(false)
-      }
+      }, 'Could not save input type')
       return
     }
 
@@ -137,50 +129,42 @@ export function ManageInputTypesPage() {
     }
 
     const payload = { code: form.code, label, sortOrder, status: form.status }
-    setIsSaving(true)
-    try {
+    await withSaving(async () => {
       if (editing) await updateInputType(editing.id, payload)
       else await createInputType(payload)
       setDialogOpen(false)
       toast.message(editing ? 'Input type updated' : 'Input type created')
       if (!editing) setPage(1)
       await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save input type')
-    } finally {
-      setIsSaving(false)
-    }
+    }, 'Could not save input type')
   }
 
   async function toggleStatus(row: InputType) {
     const next: InputTypeStatus = row.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-    setBusyId(row.id)
-    try {
-      await updateInputType(row.id, { status: next })
-      toast.message(next === 'ACTIVE' ? 'Input type enabled' : 'Input type disabled')
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not update status')
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      row.id,
+      async () => {
+        await updateInputType(row.id, { status: next })
+        toast.message(next === 'ACTIVE' ? 'Input type enabled' : 'Input type disabled')
+        await remote.refetch()
+      },
+      'Could not update status',
+    )
   }
 
   async function confirmDelete() {
-    if (!pendingDelete) return
-    if (pendingDelete.usageCount > 0) return
+    if (!pendingDelete || pendingDelete.usageCount > 0) return
     const id = pendingDelete.id
-    setBusyId(id)
-    try {
-      await deleteInputType(id)
-      toast.message('Input type removed')
-      setPendingDelete(null)
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not remove input type')
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      id,
+      async () => {
+        await deleteInputType(id)
+        toast.message('Input type removed')
+        setPendingDelete(null)
+        await remote.refetch()
+      },
+      'Could not remove input type',
+    )
   }
 
   return (
@@ -378,27 +362,18 @@ export function ManageInputTypesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove input type</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDelete && pendingDelete.usageCount > 0
-                ? 'This type is still used by step inputs or projects. Disable it instead.'
-                : `This permanently removes ${pendingDelete?.label ?? 'the type'} and cannot be recovered.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={Boolean(pendingDelete && pendingDelete.usageCount > 0)}
-              onClick={() => void confirmDelete()}
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AdminConfirmDeleteDialog
+        open={pendingDelete !== null}
+        title="Remove input type"
+        description={
+          pendingDelete && pendingDelete.usageCount > 0
+            ? 'This type is still used by step inputs or projects. Disable it instead.'
+            : `This permanently removes ${pendingDelete?.label ?? 'the type'} and cannot be recovered.`
+        }
+        confirmDisabled={Boolean(pendingDelete && pendingDelete.usageCount > 0)}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   )
 }

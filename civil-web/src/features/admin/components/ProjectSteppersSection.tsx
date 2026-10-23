@@ -20,7 +20,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import {
@@ -56,9 +55,15 @@ function resolveNodePhase(nodes: ProjectStepNode[], nodeId: string): NodePhase {
   return 'upcoming'
 }
 
+/** Parse YYYY-MM-DD as a local calendar date (avoid UTC off-by-one). */
 function toDate(value: StepperValue): Date | undefined {
   if (typeof value !== 'string' || !value) return undefined
-  const date = new Date(value)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return undefined
+  const year = Number(match[1])
+  const month = Number(match[2]) - 1
+  const day = Number(match[3])
+  const date = new Date(year, month, day)
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
@@ -70,9 +75,15 @@ function formatDateValue(date: Date | undefined): string | null {
   return `${year}-${month}-${day}`
 }
 
+function isFilledValue(value: StepperValue): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim() !== ''
+  return true
+}
+
 function nodeStatsFromInputs(inputs: ProjectStepInputField[]) {
   const inputCount = inputs.length
-  const filledCount = inputs.filter((input) => input.value !== null).length
+  const filledCount = inputs.filter((input) => isFilledValue(input.value)).length
   return {
     inputCount,
     filledCount,
@@ -413,37 +424,55 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                     <Badge variant="outline" className="text-[10px]">
                                       Project
                                     </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      Template
+                                    </Badge>
+                                  )}
+                                  {input.isProjectOnly ? (
+                                    <Button
+                                      type="button"
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      aria-label={`Remove ${input.label}`}
+                                      disabled={busyInputId === input.id}
+                                      onClick={() => void removeInput(input.id)}
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </Button>
                                   ) : null}
-                                  <Button
-                                    type="button"
-                                    size="icon-sm"
-                                    variant="ghost"
-                                    aria-label={`Remove ${input.label}`}
-                                    disabled={busyInputId === input.id}
-                                    onClick={() => void removeInput(input.id)}
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </Button>
                                 </div>
                               </div>
                             )
 
                             if (code === 'YES_NO') {
+                              const yesNoValue =
+                                value === true ? 'yes' : value === false ? 'no' : 'unset'
                               return (
                                 <div
                                   key={input.id}
                                   className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2"
                                 >
                                   {header}
-                                  <div className="flex justify-end">
-                                    <Switch
-                                      id={`stepper-${input.id}`}
-                                      checked={value === true}
-                                      onCheckedChange={(checked) =>
-                                        setDraft((current) => ({ ...current, [input.id]: checked }))
-                                      }
-                                    />
-                                  </div>
+                                  <Select
+                                    value={yesNoValue}
+                                    onValueChange={(next) =>
+                                      setDraft((current) => ({
+                                        ...current,
+                                        [input.id]:
+                                          next === 'yes' ? true : next === 'no' ? false : null,
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger id={`stepper-${input.id}`}>
+                                      <SelectValue placeholder="Unset" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unset">Unset</SelectItem>
+                                      <SelectItem value="yes">Yes</SelectItem>
+                                      <SelectItem value="no">No</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               )
                             }

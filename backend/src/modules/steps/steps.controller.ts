@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
-import type { ListStepsQuery } from './steps.schema.js'
+import type { ListStepInputsQuery, ListStepsQuery } from './steps.schema.js'
 import type { StepsService } from './steps.service.js'
 
 export type StepsController = {
@@ -48,8 +48,12 @@ export function createStepsController(service: StepsService): StepsController {
     }),
 
     listInputs: wrap(async (req, res) => {
-      const data = await service.listStepInputs(String(req.params.id), parseAuthActor(req))
-      res.status(200).json({ data })
+      const result = await service.listStepInputs(
+        String(req.params.id),
+        req.query as unknown as ListStepInputsQuery,
+        parseAuthActor(req),
+      )
+      res.status(200).json(result)
     }),
 
     createInput: wrap(async (req, res) => {

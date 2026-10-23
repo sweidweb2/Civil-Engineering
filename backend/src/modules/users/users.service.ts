@@ -30,17 +30,20 @@ const AVATAR_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/web
 export type UsersService = {
   listUsers: (
     query: ListUsersQuery,
+    actor: AuthActor,
   ) => Promise<{
     data: User[]
     meta: { total: number; page: number; limit: number; totalPages: number; counts: UserDirectoryCounts }
   }>
-  listLookup: (query: ListLookupQuery) => Promise<{
+  listLookup: (query: ListLookupQuery, actor: AuthActor) => Promise<{
     data: UserLookup[]
     meta: { total: number; page: number; limit: number; totalPages: number }
   }>
   getUserById: (id: string) => Promise<User>
   /** Self or admin may read a user record. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<User>
+  /** Profile read with avatar download URL in one round-trip. */
+  getUserWithAvatar: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
   createUser: (input: CreateUserBody, actor: AuthActor) => Promise<User>
   updateUser: (id: string, input: UpdateUserBody, actor: AuthActor) => Promise<User>
   setAvatar: (id: string, input: SetAvatarBody, actor: AuthActor) => Promise<UserAvatarResult>
@@ -52,7 +55,10 @@ export type UsersService = {
   clearAvatar: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
   getAvatarUrl: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
   deactivateUser: (id: string, actor: AuthActor) => Promise<User>
-  listApprovals: (query: ListApprovalsQuery) => Promise<{
+  listApprovals: (
+    query: ListApprovalsQuery,
+    actor: AuthActor,
+  ) => Promise<{
     data: User[]
     meta: {
       total: number
@@ -66,7 +72,10 @@ export type UsersService = {
   approveUser: (id: string, actor: AuthActor) => Promise<User>
   unapproveUser: (id: string, actor: AuthActor) => Promise<User>
   deleteApproval: (id: string, actor: AuthActor) => Promise<void>
-  listVerifications: (query: ListVerificationsQuery) => Promise<{
+  listVerifications: (
+    query: ListVerificationsQuery,
+    actor: AuthActor,
+  ) => Promise<{
     data: User[]
     meta: {
       total: number
@@ -167,7 +176,8 @@ export function createUsersService(
   }
 
   return {
-    async listUsers(query) {
+    async listUsers(query, actor) {
+      assertAdmin(actor)
       const [{ users, total }, counts] = await Promise.all([
         repository.findMany(query),
         repository.countDirectory(),
@@ -186,7 +196,8 @@ export function createUsersService(
       }
     },
 
-    async listLookup(query) {
+    async listLookup(query, actor) {
+      assertAdmin(actor)
       const { users, total } = await repository.findLookup(query)
       const page = query.page ?? 1
       const limit = query.limit ?? 20
@@ -204,8 +215,13 @@ export function createUsersService(
     async getUserById(id) {
       return loadOrThrow(id)
     },
-    
+
     assertAccessible,
+
+    async getUserWithAvatar(id, actor) {
+      const user = await assertAccessible(id, actor)
+      return resolveAvatar(user, actor)
+    },
     
     async createUser(input, actor) {
       assertSuperBoundary(actor, undefined, input.role ?? 'CLIENT')
@@ -338,7 +354,8 @@ export function createUsersService(
       return repository.updateStatus(id, 'INACTIVE')
     },
 
-    async listApprovals(query) {
+    async listApprovals(query, actor) {
+      assertAdmin(actor)
       const page = query.page ?? 1
       const limit = query.limit ?? 20
       const [{ users, total }, counts] = await Promise.all([
@@ -406,7 +423,8 @@ export function createUsersService(
       }
     },
 
-    async listVerifications(query) {
+    async listVerifications(query, actor) {
+      assertAdmin(actor)
       const page = query.page ?? 1
       const limit = query.limit ?? 20
       const [{ users, total }, counts] = await Promise.all([

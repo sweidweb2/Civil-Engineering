@@ -104,7 +104,13 @@ describe.skipIf(!hasDb)('manager-profiles API (integration)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ city: 'Tripoli', country: 'Lebanon' })
     expect(upserted.status).toBe(200)
-    expect(upserted.body.data).toMatchObject({ city: 'Tripoli', country: 'Lebanon' })
+    // PUT clears omitted fields (full replace).
+    expect(upserted.body.data).toMatchObject({
+      city: 'Tripoli',
+      country: 'Lebanon',
+      headline: null,
+      yearsExperience: null,
+    })
 
     const deleted = await request(app)
       .delete('/api/v1/manager-profiles/me')

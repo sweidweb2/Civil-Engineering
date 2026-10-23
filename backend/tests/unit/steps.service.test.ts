@@ -95,7 +95,11 @@ describe('stepsService', () => {
     const service = createStepsService(repository, inputTypes)
 
     await service.assignActiveToProject('project-1', manager.id)
-    expect(repository.assignActiveToProject).toHaveBeenCalledWith('project-1', manager.id)
+    expect(repository.assignActiveToProject).toHaveBeenCalledWith(
+      'project-1',
+      manager.id,
+      undefined,
+    )
   })
 
   it('rejects step inputs when the input type is inactive', async () => {

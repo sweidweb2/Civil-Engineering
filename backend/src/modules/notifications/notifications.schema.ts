@@ -17,7 +17,7 @@ export const createNotificationBodySchema = z.object({
 })
 
 export const broadcastNotificationBodySchema = z.object({
-  receiverIds: z.array(z.string()).min(1, 'At least one receiver is required').max(1000),
+  receiverIds: z.array(z.string()).min(1, 'At least one receiver is required').max(100),
   type: notificationTypeSchema.optional().default('INFO'),
   title: z.string().min(1, 'Title is required').max(200),
   message: z.string().min(1, 'Message is required').max(2000),

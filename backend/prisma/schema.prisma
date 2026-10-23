@@ -117,8 +117,18 @@ model ManagerProfile {
 }
 
 // =============================================================================
-// auth — RefreshToken / AuthSession (TBD — refresh is JWT-only for now)
+// auth — JWT refresh denylist (rotation + logout); no full session table yet
 // =============================================================================
+
+/// Denied refresh jti values until natural JWT expiry (survives Redis outages).
+model DeniedRefreshToken {
+  jti       String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("denied_refresh_tokens")
+}
 
 // =============================================================================
 // devices — Expo push tokens (mobile notification bedrock)

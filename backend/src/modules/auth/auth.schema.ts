@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { passwordSchema } from './password.schema.js'
+
 export const roleSchema = z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT'])
 
 export type RoleName = z.infer<typeof roleSchema>
@@ -9,7 +11,7 @@ export const registerBodySchema = z.object({
     .string()
     .email()
     .transform((value) => value.trim().toLowerCase()),
-  password: z.string().min(8).max(128),
+  password: passwordSchema,
   firstName: z.string().min(1).max(80).optional(),
   lastName: z.string().min(1).max(80).optional(),
 })
@@ -22,17 +24,15 @@ export const loginBodySchema = z.object({
   password: z.string().min(1).max(128),
 })
 
+/** Body token optional when httpOnly refresh cookie is present. */
 export const refreshBodySchema = z.object({
-  refreshToken: z.string().min(1),
+  refreshToken: z.string().min(1).optional(),
 })
 
 export const changePasswordBodySchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required').max(128),
-    newPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .max(128, 'Password must be at most 128 characters'),
+    newPassword: passwordSchema,
     confirmPassword: z.string().min(1, 'Confirm password is required').max(128),
   })
   .refine((value) => value.newPassword === value.confirmPassword, {
@@ -46,5 +46,5 @@ export const changePasswordBodySchema = z
 
 export type RegisterBody = z.infer<typeof registerBodySchema>
 export type LoginBody = z.infer<typeof loginBodySchema>
-export type RefreshBody = z.infer<typeof refreshBodySchema>
+export type RefreshBody = { refreshToken: string }
 export type ChangePasswordBody = z.infer<typeof changePasswordBodySchema>

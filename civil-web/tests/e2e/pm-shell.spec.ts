@@ -25,9 +25,10 @@ test.describe('PM shell navigation', () => {
     await expect(page).toHaveURL(/\/pm\/settings/)
     await expect(page.getByRole('heading', { name: 'Settings' }).first()).toBeVisible()
 
-    await page.getByRole('button', { name: /Steps/ }).click()
+    await page.getByRole('button', { name: /Steps Templates/ }).click()
     await expect(page).toHaveURL(/tab=steps/)
-    await expect(page.getByRole('heading', { name: 'Manage steps' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Steps' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Add step' })).toBeVisible()
   })
 
   test('creates a project from the PM projects page', async ({ page }) => {
@@ -37,9 +38,21 @@ test.describe('PM shell navigation', () => {
     await expect(page.getByText('Create New Project')).toBeVisible()
 
     await page.locator('#create-name').fill(name)
-    await page.getByRole('button', { name: 'Create Project' }).last().click()
+    const createResponse = page.waitForResponse(
+      (res) =>
+        res.url().includes('/api/v1/projects') &&
+        res.request().method() === 'POST' &&
+        !res.url().includes('/steppers'),
+    )
+    await page.locator('#create-name').locator('xpath=ancestor::form').evaluate((form) => {
+      ;(form as HTMLFormElement).requestSubmit()
+    })
+    const res = await createResponse
+    expect(res.ok()).toBeTruthy()
 
-    await expect(page.getByText(name).first()).toBeVisible({ timeout: 20_000 })
+    // Create navigates into the new project detail (steppers tab).
+    await expect(page).toHaveURL(/\/pm\/projects\/[^/]+/, { timeout: 20_000 })
+    await expect(page.getByRole('tab', { name: 'Steppers' })).toBeVisible()
   })
 })
 

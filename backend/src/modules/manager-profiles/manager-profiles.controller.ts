@@ -1,15 +1,16 @@
-import type { NextFunction, Request, Response } from 'express'
+import type { RequestHandler } from 'express'
 
+import { wrap } from '../../errors/async-handler.js'
 import { unauthorized } from '../../errors/app-error.js'
 import type { ManagerProfilesService } from './manager-profiles.service.js'
 
 export type ManagerProfilesController = {
-  getMine: (req: Request, res: Response, next: NextFunction) => Promise<void>
-  upsertMine: (req: Request, res: Response, next: NextFunction) => Promise<void>
-  deleteMine: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  getMine: RequestHandler
+  upsertMine: RequestHandler
+  deleteMine: RequestHandler
 }
 
-function requireUserId(req: Request): string {
+function requireUserId(req: { user?: { id?: string } }): string {
   if (!req.user?.id) {
     throw unauthorized()
   }
@@ -20,31 +21,19 @@ export function createManagerProfilesController(
   service: ManagerProfilesService,
 ): ManagerProfilesController {
   return {
-    async getMine(req, res, next) {
-      try {
-        const data = await service.getMine(requireUserId(req))
-        res.status(200).json({ data })
-      } catch (error) {
-        next(error)
-      }
-    },
+    getMine: wrap(async (req, res) => {
+      const data = await service.getMine(requireUserId(req))
+      res.status(200).json({ data })
+    }),
 
-    async upsertMine(req, res, next) {
-      try {
-        const data = await service.upsertMine(requireUserId(req), req.body)
-        res.status(200).json({ data })
-      } catch (error) {
-        next(error)
-      }
-    },
+    upsertMine: wrap(async (req, res) => {
+      const data = await service.upsertMine(requireUserId(req), req.body)
+      res.status(200).json({ data })
+    }),
 
-    async deleteMine(req, res, next) {
-      try {
-        await service.deleteMine(requireUserId(req))
-        res.status(204).send()
-      } catch (error) {
-        next(error)
-      }
-    },
+    deleteMine: wrap(async (req, res) => {
+      await service.deleteMine(requireUserId(req))
+      res.status(204).send()
+    }),
   }
 }

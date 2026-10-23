@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import type { DbClient } from '../../database/transaction.js'
 import type { StepStatus as PrismaStepStatus } from '../../generated/prisma/client.js'
 import { Prisma } from '../../generated/prisma/client.js'
 import type {
@@ -57,8 +58,15 @@ export type StepsRepository = {
   ) => Promise<StepRecord>
   update: (id: string, input: UpdateStepBody & { orderNb?: number }) => Promise<StepRecord>
   delete: (id: string) => Promise<void>
-  assignActiveToProject: (projectId: string, userId: string) => Promise<number>
-  listInputs: (stepId: string) => Promise<StepInputRecord[]>
+  assignActiveToProject: (
+    projectId: string,
+    userId: string,
+    db?: DbClient,
+  ) => Promise<number>
+  listInputs: (
+    stepId: string,
+    query: { page: number; limit: number },
+  ) => Promise<{ items: StepInputRecord[]; total: number }>
   findInputById: (id: string) => Promise<StepInputRecord | null>
   listUsedInputOrders: (stepId: string, exceptId?: string) => Promise<number[]>
   createInput: (
@@ -228,64 +236,71 @@ export function createStepsRepository(): StepsRepository {
       await prisma.step.delete({ where: { id } })
     },
 
-    async assignActiveToProject(projectId, userId) {
-      return prisma.$transaction(async (tx) => {
-        const templates = await tx.step.findMany({
-          where: { userId, status: 'ACTIVE' },
-          orderBy: [{ orderNb: 'asc' }, { name: 'asc' }],
-          include: {
-            inputs: {
-              orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
-              include: {
-                inputType: { select: { code: true, label: true } },
-              },
+    async assignActiveToProject(projectId, userId, db: DbClient = prisma) {
+      const templates = await db.step.findMany({
+        where: { userId, status: 'ACTIVE' },
+        orderBy: [{ orderNb: 'asc' }, { name: 'asc' }],
+        include: {
+          inputs: {
+            orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
+            include: {
+              inputType: { select: { code: true, label: true } },
             },
           },
-        })
-        if (templates.length === 0) return 0
-
-        // Batch-insert project steps, then batch-insert all cloned inputs.
-        await tx.stepperProject.createMany({
-          data: templates.map((template) => ({
-            projectId,
-            name: template.name,
-            orderNb: template.orderNb,
-          })),
-        })
-        const links = await tx.stepperProject.findMany({
-          where: { projectId },
-          select: { id: true, orderNb: true },
-        })
-        const linkIdByOrder = new Map(links.map((link) => [link.orderNb, link.id]))
-
-        const inputRows = templates.flatMap((template) => {
-          const stepperProjectId = linkIdByOrder.get(template.orderNb)
-          if (!stepperProjectId) return []
-          return template.inputs.map((input) => ({
-            stepperProjectId,
-            inputTypeId: input.inputTypeId,
-            inputTypeCode: input.inputType.code,
-            inputTypeLabel: input.inputType.label,
-            label: input.label,
-            orderNb: input.orderNb,
-            value: Prisma.DbNull,
-            isProjectOnly: false,
-          }))
-        })
-        if (inputRows.length > 0) {
-          await tx.projectStepInput.createMany({ data: inputRows })
-        }
-        return templates.length
+        },
       })
+      if (templates.length === 0) return 0
+
+      // Batch-insert project steps, then batch-insert all cloned inputs.
+      await db.stepperProject.createMany({
+        data: templates.map((template) => ({
+          projectId,
+          name: template.name,
+          orderNb: template.orderNb,
+        })),
+      })
+      const links = await db.stepperProject.findMany({
+        where: { projectId },
+        select: { id: true, orderNb: true },
+      })
+      const linkIdByOrder = new Map(links.map((link) => [link.orderNb, link.id]))
+
+      const inputRows = templates.flatMap((template) => {
+        const stepperProjectId = linkIdByOrder.get(template.orderNb)
+        if (!stepperProjectId) return []
+        return template.inputs.map((input) => ({
+          stepperProjectId,
+          inputTypeId: input.inputTypeId,
+          inputTypeCode: input.inputType.code,
+          inputTypeLabel: input.inputType.label,
+          label: input.label,
+          orderNb: input.orderNb,
+          value: Prisma.DbNull,
+          isProjectOnly: false,
+        }))
+      })
+      if (inputRows.length > 0) {
+        await db.projectStepInput.createMany({ data: inputRows })
+      }
+      return templates.length
     },
 
-    async listInputs(stepId) {
-      const rows = await prisma.stepInput.findMany({
-        where: { stepId },
-        orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
-        include: stepInputInclude,
-      })
-      return rows.map(toStepInputRecord)
+    async listInputs(stepId, query) {
+      const page = query.page ?? 1
+      const limit = query.limit ?? 20
+      const skip = (page - 1) * limit
+      const where = { stepId }
+      const [rows, total] = await Promise.all([
+        prisma.stepInput.findMany({
+          where,
+          orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
+          skip,
+          take: limit,
+          include: stepInputInclude,
+        }),
+        prisma.stepInput.count({ where }),
+      ])
+      return { items: rows.map(toStepInputRecord), total }
     },
 
     async findInputById(id) {

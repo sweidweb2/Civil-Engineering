@@ -21,17 +21,31 @@ export type ProjectStepInputMeta = {
 }
 
 export type ProjectSteppersRepository = {
-  listByProject: (projectId: string) => Promise<ProjectStepNode[]>
+  listByProject: (projectId: string) => Promise<{
+    items: ProjectStepNode[]
+    total: number
+    truncated: boolean
+  }>
   findById: (id: string) => Promise<{ id: string; projectId: string } | null>
-  getDetail: (projectStepId: string) => Promise<ProjectStepDetail | null>
+  getDetail: (projectStepId: string) => Promise<{
+    detail: ProjectStepDetail | null
+    truncated: boolean
+  }>
   /** Lean fields needed to validate a values payload (no JSON values). */
-  listInputMeta: (projectStepId: string) => Promise<ProjectStepInputMeta[]>
-  findInputId: (id: string, projectStepId: string) => Promise<{ id: string } | null>
+  listInputMeta: (projectStepId: string) => Promise<{
+    items: ProjectStepInputMeta[]
+    truncated: boolean
+  }>
+  findInput: (
+    id: string,
+    projectStepId: string,
+  ) => Promise<{ id: string; isProjectOnly: boolean } | null>
   upsertValues: (
     projectStepId: string,
     values: Array<{ id: string; value: StepperInputValuePayload }>,
   ) => Promise<void>
   listUsedOrders: (projectStepId: string) => Promise<number[]>
+  countInputs: (projectStepId: string) => Promise<number>
   createInput: (
     projectStepId: string,
     input: CreateProjectStepInputBody & {
@@ -81,6 +95,7 @@ function toField(row: {
 export function createProjectSteppersRepository(): ProjectSteppersRepository {
   return {
     async listByProject(projectId) {
+      const total = await prisma.stepperProject.count({ where: { projectId } })
       const rows = await prisma.stepperProject.findMany({
         where: { projectId },
         orderBy: [{ orderNb: 'asc' }, { createdAt: 'asc' }],
@@ -92,15 +107,21 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
           orderNb: true,
         },
       })
-      if (rows.length === 0) return []
+      if (rows.length === 0) {
+        return { items: [], total, truncated: total > MAX_PROJECT_STEPS }
+      }
 
+      // Empty TEXT ("") must not count as filled — only non-null, non-blank scalars.
       const counts = await prisma.$queryRaw<
         Array<{ stepperProjectId: string; inputCount: number; filledCount: number }>
       >`
         SELECT
           "stepperProjectId",
           COUNT(*)::int AS "inputCount",
-          COUNT(*) FILTER (WHERE value IS NOT NULL)::int AS "filledCount"
+          COUNT(*) FILTER (
+            WHERE value IS NOT NULL
+              AND NOT (jsonb_typeof(value) = 'string' AND value #>> '{}' = '')
+          )::int AS "filledCount"
         FROM project_step_inputs
         WHERE "stepperProjectId" IN (${Prisma.join(rows.map((row) => row.id))})
         GROUP BY "stepperProjectId"
@@ -113,18 +134,22 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
         ]),
       )
 
-      return rows.map((row) => {
-        const stats = byId.get(row.id) ?? { inputCount: 0, filledCount: 0 }
-        return {
-          id: row.id,
-          projectId: row.projectId,
-          name: row.name,
-          orderNb: row.orderNb,
-          inputCount: stats.inputCount,
-          filledCount: stats.filledCount,
-          isComplete: stats.filledCount === stats.inputCount,
-        }
-      })
+      return {
+        items: rows.map((row) => {
+          const stats = byId.get(row.id) ?? { inputCount: 0, filledCount: 0 }
+          return {
+            id: row.id,
+            projectId: row.projectId,
+            name: row.name,
+            orderNb: row.orderNb,
+            inputCount: stats.inputCount,
+            filledCount: stats.filledCount,
+            isComplete: stats.filledCount === stats.inputCount,
+          }
+        }),
+        total,
+        truncated: total > MAX_PROJECT_STEPS,
+      }
     },
 
     async findById(id) {
@@ -135,6 +160,9 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
     },
 
     async getDetail(projectStepId) {
+      const totalInputs = await prisma.projectStepInput.count({
+        where: { stepperProjectId: projectStepId },
+      })
       const row = await prisma.stepperProject.findUnique({
         where: { id: projectStepId },
         include: {
@@ -144,45 +172,62 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
           },
         },
       })
-      if (!row) return null
+      if (!row) return { detail: null, truncated: false }
 
       return {
-        id: row.id,
-        projectId: row.projectId,
-        name: row.name,
-        orderNb: row.orderNb,
-        inputs: row.inputs.map(toField),
+        detail: {
+          id: row.id,
+          projectId: row.projectId,
+          name: row.name,
+          orderNb: row.orderNb,
+          inputs: row.inputs.map(toField),
+        },
+        truncated: totalInputs > MAX_PROJECT_STEP_INPUTS,
       }
     },
 
     async listInputMeta(projectStepId) {
-      return prisma.projectStepInput.findMany({
+      const total = await prisma.projectStepInput.count({
+        where: { stepperProjectId: projectStepId },
+      })
+      const items = await prisma.projectStepInput.findMany({
         where: { stepperProjectId: projectStepId },
         orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
         take: MAX_PROJECT_STEP_INPUTS,
         select: { id: true, label: true, inputTypeCode: true },
       })
+      return { items, truncated: total > MAX_PROJECT_STEP_INPUTS }
     },
 
-    async findInputId(id, projectStepId) {
+    async findInput(id, projectStepId) {
       return prisma.projectStepInput.findFirst({
         where: { id, stepperProjectId: projectStepId },
-        select: { id: true },
+        select: { id: true, isProjectOnly: true },
       })
     },
 
     async upsertValues(projectStepId, values) {
       if (values.length === 0) return
-      await prisma.$transaction(async (tx) => {
-        await Promise.all(
-          values.map((entry) =>
-            tx.projectStepInput.updateMany({
-              where: { id: entry.id, stepperProjectId: projectStepId },
-              data: { value: toJsonInput(entry.value) },
+
+      // Single statement instead of N updateMany calls.
+      await prisma.$executeRaw`
+        UPDATE project_step_inputs AS p
+        SET
+          value = data.value,
+          "updatedAt" = NOW()
+        FROM (
+          VALUES ${Prisma.join(
+            values.map((entry) => {
+              if (entry.value === null) {
+                return Prisma.sql`(${entry.id}::text, NULL::jsonb)`
+              }
+              return Prisma.sql`(${entry.id}::text, ${JSON.stringify(entry.value)}::jsonb)`
             }),
-          ),
-        )
-      })
+          )}
+        ) AS data(id, value)
+        WHERE p.id = data.id
+          AND p."stepperProjectId" = ${projectStepId}
+      `
     },
 
     async listUsedOrders(projectStepId) {
@@ -192,6 +237,12 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
         take: MAX_PROJECT_STEP_INPUTS,
       })
       return rows.map((row) => row.orderNb)
+    },
+
+    async countInputs(projectStepId) {
+      return prisma.projectStepInput.count({
+        where: { stepperProjectId: projectStepId },
+      })
     },
 
     async createInput(projectStepId, input) {
@@ -215,7 +266,7 @@ export function createProjectSteppersRepository(): ProjectSteppersRepository {
 
     async deleteInput(id, projectStepId) {
       await prisma.projectStepInput.deleteMany({
-        where: { id, stepperProjectId: projectStepId },
+        where: { id, stepperProjectId: projectStepId, isProjectOnly: true },
       })
     },
   }

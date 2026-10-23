@@ -89,8 +89,18 @@ export function deleteStep(id: string) {
   return apiRequest<void>(`/steps/${id}`, { method: 'DELETE' })
 }
 
-export function listStepInputs(stepId: string) {
-  return apiRequest<{ data: StepInput[] }>(`/steps/${stepId}/inputs`)
+export type PaginatedStepInputs = {
+  data: StepInput[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
+}
+
+export function listStepInputs(stepId: string, page = 1, limit = 100) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  return apiRequest<PaginatedStepInputs>(`/steps/${stepId}/inputs?${params.toString()}`)
 }
 
 export function createStepInput(stepId: string, input: StepInputWriteInput) {

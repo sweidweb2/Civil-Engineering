@@ -22,22 +22,23 @@ export type ManagerProfile = {
   updatedAt: string
 }
 
+/** Full PUT payload — every field is sent (null clears). */
 export type ManagerProfileInput = {
-  headline?: string | null
-  bio?: string | null
-  yearsExperience?: number | null
-  specialty?: string | null
-  education?: string | null
-  certifications?: string | null
-  skills?: string | null
-  languages?: string | null
-  city?: string | null
-  country?: string | null
-  website?: string | null
-  linkedinUrl?: string | null
-  cvUrl?: string | null
-  availability?: string | null
-  projectTypes?: string | null
+  headline: string | null
+  bio: string | null
+  yearsExperience: number | null
+  specialty: string | null
+  education: string | null
+  certifications: string | null
+  skills: string | null
+  languages: string | null
+  city: string | null
+  country: string | null
+  website: string | null
+  linkedinUrl: string | null
+  cvUrl: string | null
+  availability: string | null
+  projectTypes: string | null
 }
 
 export function getMyManagerProfile() {

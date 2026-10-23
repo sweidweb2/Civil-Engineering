@@ -96,7 +96,7 @@ export function listUsers(page = 1, limit = 100, q?: string) {
 }
 
 export function getUser(id: string) {
-  return apiRequest<{ data: User }>(`/users/${id}`)
+  return apiRequest<{ data: User; meta: { avatarDownloadUrl: string | null } }>(`/users/${id}`)
 }
 
 export function createUser(input: CreateUserInput) {

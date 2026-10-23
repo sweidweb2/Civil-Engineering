@@ -9,7 +9,7 @@ import { createAuthService } from './auth.service.js'
 export function createAuthModule(config: AppConfig = loadConfig()) {
   const repository = createAuthRepository()
   const service = createAuthService(repository, config, getLoggingService())
-  const controller = createAuthController(service)
+  const controller = createAuthController(service, config)
   return createAuthRoutes(controller, config)
 }
 

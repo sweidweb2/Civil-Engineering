@@ -74,8 +74,10 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
   const [isSaving, setIsSaving] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const load = useCallback(async () => {
-    if (!step) return { data: [] as StepInput[] }
-    return listStepInputs(step.id)
+    if (!step) {
+      return { data: [] as StepInput[], meta: { page: 1, limit: 100, total: 0 } }
+    }
+    return listStepInputs(step.id, 1, 100)
   }, [step])
 
   const remote = useRemoteData(load, {
@@ -83,6 +85,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
     enabled: open && Boolean(step),
   })
   const rows = remote.status === 'success' ? remote.data.data : []
+  const totalInputs = remote.status === 'success' ? remote.data.meta.total : 0
 
   const loadPickerTypes = useCallback(() => listInputTypesForPicker(), [])
   const typesRemote = useRemoteData(loadPickerTypes, {
@@ -213,7 +216,10 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
           </SheetHeader>
 
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">{rows.length} input(s)</p>
+            <p className="text-sm text-muted-foreground">
+              {rows.length}
+              {totalInputs > rows.length ? ` of ${totalInputs}` : ''} input(s)
+            </p>
             <Button type="button" size="sm" onClick={openCreate} disabled={types.length === 0}>
               <Plus />
               Add input

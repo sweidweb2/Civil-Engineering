@@ -1,6 +1,13 @@
 import type { NextFunction, Request, Response } from 'express'
 
-import { unauthorized } from '../../errors/app-error.js'
+import type { AppConfig } from '../../config/index.js'
+import { unauthorized, validationError } from '../../errors/app-error.js'
+import {
+  clearAuthCookies,
+  parseCookieHeader,
+  REFRESH_COOKIE,
+  setAuthCookies,
+} from './auth.cookies.js'
 import type { AuthService } from './auth.service.js'
 
 export type AuthController = {
@@ -18,11 +25,29 @@ function requireUserId(req: Request): string {
   return req.user.id
 }
 
-export function createAuthController(service: AuthService): AuthController {
+function resolveRefreshToken(req: Request): string {
+  const fromBody =
+    typeof req.body?.refreshToken === 'string' && req.body.refreshToken.trim()
+      ? String(req.body.refreshToken).trim()
+      : ''
+  if (fromBody) return fromBody
+
+  const cookies = parseCookieHeader(req.headers.cookie)
+  const fromCookie = cookies[REFRESH_COOKIE]?.trim()
+  if (fromCookie) return fromCookie
+
+  throw validationError('Refresh token is required')
+}
+
+export function createAuthController(
+  service: AuthService,
+  config: AppConfig,
+): AuthController {
   return {
     async register(req, res, next) {
       try {
         const result = await service.register(req.body)
+        setAuthCookies(res, result.tokens, config)
         res.status(201).json(result)
       } catch (error) {
         next(error)
@@ -31,6 +56,7 @@ export function createAuthController(service: AuthService): AuthController {
     async login(req, res, next) {
       try {
         const result = await service.login(req.body)
+        setAuthCookies(res, result.tokens, config)
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -38,15 +64,23 @@ export function createAuthController(service: AuthService): AuthController {
     },
     async refresh(req, res, next) {
       try {
-        const result = await service.refreshTokens(req.body)
-        res.status(200).json(result)
+        const refreshToken = resolveRefreshToken(req)
+        const tokens = await service.refreshTokens({ refreshToken })
+        setAuthCookies(res, tokens, config)
+        res.status(200).json(tokens)
       } catch (error) {
         next(error)
       }
     },
     async logout(req, res, next) {
       try {
-        await service.logout(req.body)
+        try {
+          const refreshToken = resolveRefreshToken(req)
+          await service.logout({ refreshToken })
+        } catch {
+          // Still clear cookies when the client has already discarded tokens.
+        }
+        clearAuthCookies(res, config)
         res.status(204).send()
       } catch (error) {
         next(error)

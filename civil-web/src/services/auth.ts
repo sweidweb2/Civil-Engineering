@@ -46,10 +46,10 @@ export function refresh(refreshToken: string) {
   return refreshTokens(refreshToken)
 }
 
-export function logout(refreshToken: string) {
+export function logout(refreshToken?: string | null) {
   return apiRequest<void>('/auth/logout', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     skipAuthRefresh: true,
   })
 }

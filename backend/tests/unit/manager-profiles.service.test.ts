@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { Prisma } from '../../src/generated/prisma/client.js'
 import type { ManagerProfilesRepository } from '../../src/modules/manager-profiles/manager-profiles.repository.js'
 import { createManagerProfilesService } from '../../src/modules/manager-profiles/manager-profiles.service.js'
+import type { UpsertManagerProfileBody } from '../../src/modules/manager-profiles/manager-profiles.schema.js'
 import type { ManagerProfile } from '../../src/modules/manager-profiles/manager-profiles.types.js'
 
 function makeProfile(overrides: Partial<ManagerProfile> = {}): ManagerProfile {
@@ -29,6 +31,27 @@ function makeProfile(overrides: Partial<ManagerProfile> = {}): ManagerProfile {
   }
 }
 
+function fullPut(overrides: Partial<UpsertManagerProfileBody> = {}): UpsertManagerProfileBody {
+  return {
+    headline: null,
+    bio: null,
+    yearsExperience: null,
+    specialty: null,
+    education: null,
+    certifications: null,
+    skills: null,
+    languages: null,
+    city: null,
+    country: null,
+    website: null,
+    linkedinUrl: null,
+    cvUrl: null,
+    availability: null,
+    projectTypes: null,
+    ...overrides,
+  }
+}
+
 describe('managerProfilesService', () => {
   let repository: ManagerProfilesRepository
 
@@ -52,13 +75,30 @@ describe('managerProfilesService', () => {
 
     vi.mocked(repository.findByUserId).mockResolvedValueOnce(null)
     vi.mocked(repository.create).mockResolvedValue(makeProfile())
-    await service.upsertMine('user-1', { city: 'Beirut' })
+    await service.upsertMine('user-1', fullPut({ city: 'Beirut' }))
     expect(repository.create).toHaveBeenCalled()
 
     vi.mocked(repository.findByUserId).mockResolvedValueOnce(makeProfile())
     vi.mocked(repository.update).mockResolvedValue(makeProfile({ city: 'Tripoli' }))
-    await service.upsertMine('user-1', { city: 'Tripoli' })
-    expect(repository.update).toHaveBeenCalledWith('user-1', { city: 'Tripoli' })
+    await service.upsertMine('user-1', fullPut({ city: 'Tripoli' }))
+    expect(repository.update).toHaveBeenCalledWith('user-1', fullPut({ city: 'Tripoli' }))
+  })
+
+  it('retries as update when create hits a unique race', async () => {
+    const service = createManagerProfilesService(repository)
+    vi.mocked(repository.findByUserId).mockResolvedValue(null)
+    vi.mocked(repository.create).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    )
+    vi.mocked(repository.update).mockResolvedValue(makeProfile({ city: 'Beirut' }))
+
+    await expect(service.upsertMine('user-1', fullPut({ city: 'Beirut' }))).resolves.toMatchObject({
+      city: 'Beirut',
+    })
+    expect(repository.update).toHaveBeenCalledWith('user-1', fullPut({ city: 'Beirut' }))
   })
 
   it('deletes an existing profile', async () => {

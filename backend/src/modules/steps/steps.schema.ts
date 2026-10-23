@@ -25,6 +25,8 @@ export const listStepsQuerySchema = paginationQuerySchema.extend({
   status: stepStatusSchema.optional(),
 })
 
+export const listStepInputsQuerySchema = paginationQuerySchema
+
 export const createStepBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   orderNb: orderNbField.optional(),
@@ -64,6 +66,11 @@ export type ListStepsQuery = {
   limit: number
   q?: string
   status?: StepStatus
+}
+
+export type ListStepInputsQuery = {
+  page: number
+  limit: number
 }
 
 export type CreateStepBody = {

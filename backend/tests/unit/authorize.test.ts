@@ -1,8 +1,9 @@
 import express from 'express'
 import request from 'supertest'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { errorHandler } from '../../src/errors/error.middleware.js'
+import { setAccessPrincipalResolver } from '../../src/middleware/access-principal.js'
 import { authenticate } from '../../src/middleware/authenticate.js'
 import { authorize } from '../../src/middleware/authorize.js'
 import type { RoleName } from '../../src/modules/auth/auth.schema.js'
@@ -14,6 +15,19 @@ describe('authorize middleware', () => {
 
   beforeAll(() => {
     ensureTestJwtEnv()
+  })
+
+  beforeEach(() => {
+    setAccessPrincipalResolver(async (userId) => {
+      if (userId === 'admin-1') {
+        return { id: userId, role: 'ADMIN', status: 'ACTIVE' }
+      }
+      return { id: userId, role: 'CLIENT', status: 'ACTIVE' }
+    })
+  })
+
+  afterEach(() => {
+    setAccessPrincipalResolver(null)
   })
 
   function gatedApp(...roles: RoleName[]) {
@@ -40,7 +54,7 @@ describe('authorize middleware', () => {
   })
 
   it('allows matching roles', async () => {
-    const access = signAccessToken(config, 'user-1', 'ADMIN')
+    const access = signAccessToken(config, 'admin-1', 'ADMIN')
     const res = await request(gatedApp('ADMIN', 'SUPER'))
       .get('/admin')
       .set('Authorization', `Bearer ${access}`)

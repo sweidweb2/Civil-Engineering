@@ -34,6 +34,11 @@ export const cacheKeys = {
     return `${PREFIX}:auth:refresh:deny:${jti}`
   },
 
+  /** Cached R2/S3 GET presign for an object key. */
+  storagePresignGet(key: string): string {
+    return `${PREFIX}:storage:presign:get:${key}`
+  },
+
   userDirectoryCounts(): string {
     return `${PREFIX}:users:counts:directory`
   },

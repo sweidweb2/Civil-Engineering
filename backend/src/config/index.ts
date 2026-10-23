@@ -5,10 +5,7 @@ const nodeEnvSchema = z.enum(['development', 'test', 'staging', 'production'])
 const baseEnvSchema = z.object({
   NODE_ENV: nodeEnvSchema.default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  TRUST_PROXY: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((value) => value === 'true'),
+  TRUST_PROXY: z.enum(['true', 'false']).optional(),
   DATABASE_URL: z.string().min(1).optional(),
   JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
   JWT_REFRESH_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
@@ -171,11 +168,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     }
   }
 
+  // Behind Nginx in staging/production; explicit TRUST_PROXY wins when set.
+  const trustProxy =
+    data.TRUST_PROXY === 'true'
+      ? true
+      : data.TRUST_PROXY === 'false'
+        ? false
+        : data.NODE_ENV === 'staging' || data.NODE_ENV === 'production'
+
   return {
     env: data.NODE_ENV,
     port: data.PORT,
     corsOrigins: parseCorsOrigins(env.CORS_ORIGINS, data.NODE_ENV),
-    trustProxy: data.TRUST_PROXY,
+    trustProxy,
     databaseUrl: data.DATABASE_URL,
     redisUrl: data.REDIS_URL,
     jwtAccessSecret: data.JWT_ACCESS_SECRET,

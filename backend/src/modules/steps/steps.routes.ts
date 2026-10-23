@@ -7,6 +7,7 @@ import type { StepsController } from './steps.controller.js'
 import {
   createStepBodySchema,
   createStepInputBodySchema,
+  listStepInputsQuerySchema,
   listStepsQuerySchema,
   stepIdParamsSchema,
   stepInputParamsSchema,
@@ -26,7 +27,7 @@ export function createStepsRoutes(controller: StepsController): Router {
 
   router.get(
     '/:id/inputs',
-    validate({ params: stepIdParamsSchema }),
+    validate({ params: stepIdParamsSchema, query: listStepInputsQuerySchema }),
     controller.listInputs,
   )
   router.post(

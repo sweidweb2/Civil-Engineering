@@ -15,6 +15,7 @@ import { assertCanAttachToEntity, assertCanCompleteUpload } from './files.authz.
 import type { FilesRepository } from './files.repository.js'
 import type { PresignFileBody } from './files.schema.js'
 import type { DownloadUrlResult, FileRecord, PresignFileResult } from './files.types.js'
+import { assertMimeMatchesContent } from './mime-sniff.js'
 
 export type FilesService = {
   presign: (actor: AuthActor, input: PresignFileBody) => Promise<PresignFileResult>
@@ -199,6 +200,12 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
 
       await assertCanAttachToEntity(actor, input.entityType, input.entityId, projectsService)
 
+      try {
+        assertMimeMatchesContent(input.mime, input.body)
+      } catch {
+        throw validationError('File content does not match the declared MIME type')
+      }
+
       const fileId = randomUUID().replace(/-/g, '')
       const key = buildObjectKey({
         env: config.env,
@@ -208,12 +215,7 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         originalName: input.originalName,
       })
 
-      await storage.putObject({
-        key,
-        body: input.body,
-        contentType: input.mime,
-      })
-
+      // Persist metadata first so any R2 object is always tracked; compensate on failure.
       await repository.createPending({
         id: fileId,
         key,
@@ -226,7 +228,18 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         entityId: input.entityId,
       })
 
-      return repository.markReady(fileId, size)
+      try {
+        await storage.putObject({
+          key,
+          body: input.body,
+          contentType: input.mime,
+        })
+        return await repository.markReady(fileId, size)
+      } catch (error) {
+        await repository.markDeleted(fileId).catch(() => undefined)
+        await enqueueDelete({ fileId, key }).catch(() => undefined)
+        throw error
+      }
     },
   }
 }

@@ -28,6 +28,9 @@ export type AuthRepository = {
   findById: (id: string) => Promise<AuthUserRecord | null>
   createUserWithProfile: (input: CreateAuthUserInput) => Promise<AuthUserRecord>
   updatePasswordHash: (userId: string, passwordHash: string) => Promise<void>
+  /** Persist a denied refresh jti until expiresAt (idempotent). */
+  denyRefreshJti: (jti: string, expiresAt: Date) => Promise<void>
+  isRefreshJtiDenied: (jti: string) => Promise<boolean>
 }
 
 export function createAuthRepository(): AuthRepository {
@@ -84,6 +87,27 @@ export function createAuthRepository(): AuthRepository {
         data: { passwordHash },
         select: { id: true },
       })
+    },
+
+    async denyRefreshJti(jti, expiresAt) {
+      await prisma.deniedRefreshToken.upsert({
+        where: { jti },
+        create: { jti, expiresAt },
+        update: { expiresAt },
+      })
+    },
+
+    async isRefreshJtiDenied(jti) {
+      const row = await prisma.deniedRefreshToken.findUnique({
+        where: { jti },
+        select: { expiresAt: true },
+      })
+      if (!row) return false
+      if (row.expiresAt.getTime() <= Date.now()) {
+        await prisma.deniedRefreshToken.delete({ where: { jti } }).catch(() => undefined)
+        return false
+      }
+      return true
     },
   }
 }

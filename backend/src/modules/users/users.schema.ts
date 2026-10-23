@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { passwordSchema } from '../auth/password.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 
 const optionalSearchQuery = z.preprocess(
@@ -42,10 +43,7 @@ export const createUserBodySchema = z.object({
     .min(1, 'Email is required')
     .max(255, 'Email must be at most 255 characters')
     .email('Invalid email format'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password must be at most 100 characters'),
+  password: passwordSchema,
   role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).default('CLIENT'),
   isVerified: z.boolean().optional(),
   firstName: z.string().trim().min(1).max(100, 'First name must be at most 100 characters').optional().or(z.literal('')),
@@ -92,10 +90,7 @@ export const createVerificationBodySchema = z.object({
     .max(255, 'Email must be at most 255 characters')
     .email('Invalid email format')
     .transform((value) => value.toLowerCase()),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password must be at most 100 characters'),
+  password: passwordSchema,
   ...profileFields,
 })
 
@@ -107,10 +102,7 @@ export const createApprovalBodySchema = z.object({
     .max(255, 'Email must be at most 255 characters')
     .email('Invalid email format')
     .transform((value) => value.toLowerCase()),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password must be at most 100 characters'),
+  password: passwordSchema,
   role: approvalRoleSchema,
   ...profileFields,
 })

@@ -1,5 +1,6 @@
 import type { AuthActor } from '../../authz/index.js'
 import { hasAnyRole } from '../../authz/index.js'
+import type { DbClient } from '../../database/transaction.js'
 import { forbidden, notFound } from '../../errors/app-error.js'
 import type { RoleName } from '../auth/auth.schema.js'
 import type { InputTypesService } from '../input-types/index.js'
@@ -8,14 +9,15 @@ import { type StepsRepository,toStepDto, toStepInputDto } from './steps.reposito
 import type {
   CreateStepBody,
   CreateStepInputBody,
+  ListStepInputsQuery,
   ListStepsQuery,
   UpdateStepBody,
   UpdateStepInputBody,
 } from './steps.schema.js'
 import type {
+  PaginatedStepInputs,
   PaginatedSteps,
   Step,
-  StepInput,
   StepInputMutationResult,
   StepMutationResult,
 } from './steps.types.js'
@@ -30,8 +32,16 @@ export type StepsService = {
   updateStep: (id: string, input: UpdateStepBody, actor: AuthActor) => Promise<StepMutationResult>
   deleteStep: (id: string, actor: AuthActor) => Promise<void>
   /** Assign the owner's ACTIVE step templates onto a newly created project. */
-  assignActiveToProject: (projectId: string, ownerId: string) => Promise<void>
-  listStepInputs: (stepId: string, actor: AuthActor) => Promise<StepInput[]>
+  assignActiveToProject: (
+    projectId: string,
+    ownerId: string,
+    db?: DbClient,
+  ) => Promise<void>
+  listStepInputs: (
+    stepId: string,
+    query: ListStepInputsQuery,
+    actor: AuthActor,
+  ) => Promise<PaginatedStepInputs>
   createStepInput: (
     stepId: string,
     input: CreateStepInputBody,
@@ -134,15 +144,22 @@ export function createStepsService(
       await repository.delete(id)
     },
 
-    async assignActiveToProject(projectId, ownerId) {
-      await repository.assignActiveToProject(projectId, ownerId)
+    async assignActiveToProject(projectId, ownerId, db) {
+      await repository.assignActiveToProject(projectId, ownerId, db)
     },
 
-    async listStepInputs(stepId, actor) {
+    async listStepInputs(stepId, query, actor) {
       assertCanManageSteps(actor)
       await loadOwnOrThrow(stepId, actor)
-      const items = await repository.listInputs(stepId)
-      return items.map(toStepInputDto)
+      const { items, total } = await repository.listInputs(stepId, query)
+      return {
+        data: items.map(toStepInputDto),
+        meta: {
+          page: query.page,
+          limit: query.limit,
+          total,
+        },
+      }
     },
 
     async createStepInput(stepId, input, actor) {

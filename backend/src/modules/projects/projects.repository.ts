@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import type { DbClient } from '../../database/transaction.js'
 import type { ProjectStatus, ProjectType } from '../../generated/prisma/client.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
 import type { Project, ProjectListRow } from './projects.types.js'
@@ -38,7 +39,7 @@ export type ProjectsRepository = {
   findTimeline: (ownerId?: string) => Promise<ProjectTimelineRow[]>
   findById: (id: string) => Promise<Project | null>
   findByCode: (code: string) => Promise<Project | null>
-  create: (input: CreateProjectInput) => Promise<Project>
+  create: (input: CreateProjectInput, db?: DbClient) => Promise<Project>
   update: (id: string, input: UpdateProjectInput) => Promise<Project>
   delete: (id: string) => Promise<void>
 }
@@ -149,9 +150,13 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async findScheduleRows(ownerId) {
+      // Hard cap — summary aggregates must not load unbounded project sets.
+      const MAX_SUMMARY_ROWS = 2_000
       const rows = await prisma.project.findMany({
         where: { archivedAt: null, ...(ownerId ? { ownerId } : {}) },
         select: { status: true, startDate: true, endDate: true },
+        take: MAX_SUMMARY_ROWS,
+        orderBy: { createdAt: 'desc' },
       })
       return rows.map((row) => ({
         status: row.status,
@@ -161,6 +166,7 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async findTimeline(ownerId) {
+      const MAX_TIMELINE_ROWS = 50
       const rows = await prisma.project.findMany({
         where: {
           archivedAt: null,
@@ -178,6 +184,7 @@ export function createProjectsRepository(): ProjectsRepository {
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: MAX_TIMELINE_ROWS,
       })
       return rows.map((row) => ({
         id: row.id,
@@ -205,8 +212,8 @@ export function createProjectsRepository(): ProjectsRepository {
       return project ? mapToProject(project) : null
     },
 
-    async create(input) {
-      const project = await prisma.project.create({
+    async create(input, db: DbClient = prisma) {
+      const project = await db.project.create({
         data: {
           name: input.name,
           description: input.description?.trim() || null,

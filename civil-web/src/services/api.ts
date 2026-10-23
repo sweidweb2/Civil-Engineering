@@ -53,11 +53,12 @@ function shouldSkipRefresh(path: string): boolean {
   return SKIP_REFRESH_PATHS.has(pathname)
 }
 
-async function exchangeRefreshToken(refreshToken: string): Promise<AuthTokens> {
+async function exchangeRefreshToken(refreshToken?: string | null): Promise<AuthTokens> {
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
   })
 
   const data = (await response.json().catch(() => ({}))) as ApiErrorBody & AuthTokens
@@ -80,13 +81,13 @@ async function tryRefreshSession(): Promise<boolean> {
   }
 
   refreshInFlight = (async () => {
-    const refreshToken = authSession?.getRefreshToken()
-    if (!refreshToken || !authSession) {
+    if (!authSession) {
       return false
     }
 
     try {
-      const tokens = await exchangeRefreshToken(refreshToken)
+      // Prefer in-memory refresh; otherwise rely on httpOnly refresh cookie.
+      const tokens = await exchangeRefreshToken(authSession.getRefreshToken())
       authSession.setTokens(tokens)
       return true
     } catch {
@@ -137,6 +138,7 @@ function uploadWithProgress(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open(init.method, url)
+    xhr.withCredentials = true
     xhr.responseType = 'text'
     for (const [key, value] of Object.entries(init.headers)) {
       xhr.setRequestHeader(key, value)
@@ -206,6 +208,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
     return fetch(`${API_BASE_URL}${path}`, {
       ...rest,
+      credentials: 'include',
       headers: requestHeaders,
     })
   }
@@ -214,10 +217,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   let response = await execute(token)
 
   const canRefresh =
-    response.status === 401 &&
-    !skipAuthRefresh &&
-    !shouldSkipRefresh(path) &&
-    Boolean(authSession?.getRefreshToken())
+    response.status === 401 && !skipAuthRefresh && !shouldSkipRefresh(path) && Boolean(authSession)
 
   if (canRefresh) {
     const refreshed = await tryRefreshSession()
@@ -242,6 +242,6 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 }
 
 /** Low-level refresh used by auth service; does not touch session bridge. */
-export async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
+export async function refreshTokens(refreshToken?: string | null): Promise<AuthTokens> {
   return exchangeRefreshToken(refreshToken)
 }

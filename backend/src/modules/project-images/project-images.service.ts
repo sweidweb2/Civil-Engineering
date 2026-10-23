@@ -6,6 +6,8 @@ import type { AppConfig } from '../../config/index.js'
 import { notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
+import { cacheKeys, readThroughCache } from '../../redis/index.js'
+import { assertMimeMatchesContent } from '../files/mime-sniff.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import type {
   ReorderProjectImagesBody,
@@ -56,11 +58,18 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
   }
 
   async function getImageUrl(storagePath: string): Promise<string> {
-    const url = await storage.presignGet({
-      key: storagePath,
-      expiresInSec: config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec,
-    })
-    return url
+    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
+    if (publicBase) {
+      return `${publicBase}/${storagePath.replace(/^\//, '')}`
+    }
+    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
+    const cacheTtlSec = Math.max(30, Math.min(expiresInSec - 60, 240))
+    return readThroughCache(cacheKeys.storagePresignGet(storagePath), cacheTtlSec, () =>
+      storage.presignGet({
+        key: storagePath,
+        expiresInSec,
+      }),
+    )
   }
 
   async function processAndUploadImage(
@@ -117,6 +126,12 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
 
       if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
         throw validationError('Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP')
+      }
+
+      try {
+        assertMimeMatchesContent(file.mimetype, file.buffer, { imagesOnly: true })
+      } catch {
+        throw validationError('File content does not match the declared image type')
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {

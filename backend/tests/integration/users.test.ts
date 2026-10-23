@@ -149,6 +149,7 @@ describe.skipIf(!hasDb)('users API (integration)', () => {
       .set('Authorization', `Bearer ${token}`)
     expect(own.status).toBe(200)
     expect(own.body.data.email).toBe('self@example.com')
+    expect(own.body.meta).toEqual({ avatarDownloadUrl: null })
 
     const denied = await request(app)
       .get(`/api/v1/users/${other.id}`)

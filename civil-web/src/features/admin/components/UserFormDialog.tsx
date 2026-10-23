@@ -106,7 +106,11 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
           </div>
           {mode === 'create' ? (
             <div className="grid gap-1.5">
-              <FieldLabel htmlFor="user-password" label="Password" restriction="required · min 8" />
+              <FieldLabel
+                htmlFor="user-password"
+                label="Password"
+                restriction="required · min 8 · letter + number"
+              />
               <Input
                 id="user-password"
                 type="password"

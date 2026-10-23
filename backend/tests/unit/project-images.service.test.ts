@@ -103,6 +103,9 @@ describe('projectImagesService', () => {
     ).rejects.toMatchObject({ status: 400 })
   })
 
+  /** Minimal JPEG SOI marker — enough for magic-byte sniffing. */
+  const jpegBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46])
+
   it('rejects uploads when the project is at the image cap', async () => {
     vi.mocked(repository.countByProjectId).mockResolvedValue(15)
     await expect(
@@ -110,7 +113,7 @@ describe('projectImagesService', () => {
         owner,
         'p1',
         {
-          buffer: Buffer.from('x'),
+          buffer: jpegBuffer,
           originalname: 'site.jpg',
           mimetype: 'image/jpeg',
           size: 100,
@@ -125,7 +128,7 @@ describe('projectImagesService', () => {
       owner,
       'p1',
       {
-        buffer: Buffer.from('jpeg-bytes'),
+        buffer: jpegBuffer,
         originalname: 'site.jpg',
         mimetype: 'image/jpeg',
         size: 2048,

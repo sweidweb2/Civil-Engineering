@@ -117,7 +117,7 @@ describe('usersService', () => {
 
   it('returns lean lookup rows for recipient pickers', async () => {
     const service = createUsersService(repository)
-    await expect(service.listLookup({ page: 1, limit: 20 })).resolves.toEqual({
+    await expect(service.listLookup({ page: 1, limit: 20 }, admin)).resolves.toEqual({
       data: [{ id: 'user-1', email: 'user@example.com', name: 'Ada Lovelace' }],
       meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
     })
@@ -125,7 +125,7 @@ describe('usersService', () => {
 
   it('lists users with pagination meta', async () => {
     const service = createUsersService(repository)
-    const result = await service.listUsers({ page: 1, limit: 20 })
+    const result = await service.listUsers({ page: 1, limit: 20 }, admin)
     expect(result.data).toHaveLength(1)
     expect(result.meta).toMatchObject({
       total: 1,

@@ -61,6 +61,8 @@ describe('auth.service', () => {
       findById: vi.fn(),
       createUserWithProfile: vi.fn(),
       updatePasswordHash: vi.fn(),
+      denyRefreshJti: vi.fn(async () => undefined),
+      isRefreshJtiDenied: vi.fn(async () => false),
     }
   })
 
@@ -143,7 +145,7 @@ describe('auth.service', () => {
     ).rejects.toMatchObject({ status: 401 })
   })
 
-  it('refreshes tokens for an active user', async () => {
+  it('refreshes tokens for an active user and rotates the old refresh jti', async () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser())
     const service = createAuthService(repository, config)
 
@@ -152,6 +154,7 @@ describe('auth.service', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     })
+    expect(repository.denyRefreshJti).toHaveBeenCalledWith('jti-1', expect.any(Date))
   })
 
   it('rejects invalid refresh tokens', async () => {
@@ -169,12 +172,14 @@ describe('auth.service', () => {
 
   it('rejects refresh after logout denylists the jti', async () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser())
+    vi.mocked(repository.isRefreshJtiDenied).mockResolvedValue(true)
     const service = createAuthService(repository, config)
 
     await service.logout({ refreshToken: 'good' })
     await expect(service.refreshTokens({ refreshToken: 'good' })).rejects.toMatchObject({
       status: 401,
     })
+    expect(repository.denyRefreshJti).toHaveBeenCalled()
   })
 
   it('changes password when current password is correct', async () => {

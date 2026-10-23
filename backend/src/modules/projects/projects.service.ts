@@ -1,7 +1,12 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
+import {
+  runInTransaction as defaultRunInTransaction,
+  type DbClient,
+} from '../../database/transaction.js'
 import { conflict, notFound, validationError } from '../../errors/app-error.js'
+import { cacheKeys, readThroughCache } from '../../redis/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { StepsService } from '../steps/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
@@ -13,6 +18,8 @@ export type ProjectsServiceDeps = {
   config?: AppConfig
   storage?: StorageService
   stepsService?: Pick<StepsService, 'assignActiveToProject'>
+  /** Injectable for tests — defaults to Prisma interactive transaction. */
+  runInTransaction?: <T>(fn: (tx: DbClient) => Promise<T>) => Promise<T>
 }
 
 export type ProjectsService = {
@@ -65,6 +72,7 @@ export function createProjectsService(
   deps: ProjectsServiceDeps = {},
 ): ProjectsService {
   const { config, storage, stepsService } = deps
+  const runInTransaction = deps.runInTransaction ?? defaultRunInTransaction
 
   async function loadOrThrow(id: string): Promise<Project> {
     const project = await repository.findById(id)
@@ -96,11 +104,24 @@ export function createProjectsService(
 
   async function resolveMainImageUrl(storagePath: string | null): Promise<string | null> {
     if (!storagePath || !storage || !config) return null
+    // Prefer public base URL (no per-row signing) when the bucket is publicly readable.
+    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
+    if (publicBase) {
+      return `${publicBase}/${storagePath.replace(/^\//, '')}`
+    }
+    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
+    // Cache below URL expiry so clients never receive a near-expired signed URL from Redis.
+    const cacheTtlSec = Math.max(30, Math.min(expiresInSec - 60, 240))
     try {
-      return await storage.presignGet({
-        key: storagePath,
-        expiresInSec: config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec,
-      })
+      return await readThroughCache(
+        cacheKeys.storagePresignGet(storagePath),
+        cacheTtlSec,
+        () =>
+          storage.presignGet({
+            key: storagePath,
+            expiresInSec,
+          }),
+      )
     } catch {
       return null
     }
@@ -113,12 +134,27 @@ export function createProjectsService(
       const page = query.page ?? 1
       const limit = query.limit ?? 20
 
-      const data = await Promise.all(
-        projects.map(async ({ mainImageStoragePath, ...project }) => ({
-          ...presentProject(project),
-          mainImageUrl: await resolveMainImageUrl(mainImageStoragePath),
-        })),
+      // Dedupe storage paths so a page of N cards does not sign the same key N times.
+      const uniquePaths = [
+        ...new Set(
+          projects
+            .map((row) => row.mainImageStoragePath)
+            .filter((path): path is string => Boolean(path)),
+        ),
+      ]
+      const urlByPath = new Map<string, string | null>()
+      await Promise.all(
+        uniquePaths.map(async (path) => {
+          urlByPath.set(path, await resolveMainImageUrl(path))
+        }),
       )
+
+      const data = projects.map(({ mainImageStoragePath, ...project }) => ({
+        ...presentProject(project),
+        mainImageUrl: mainImageStoragePath
+          ? (urlByPath.get(mainImageStoragePath) ?? null)
+          : null,
+      }))
 
       return {
         data,
@@ -177,14 +213,23 @@ export function createProjectsService(
       }
 
       assertSchedule(input.startDate, input.endDate)
-      const created = await repository.create({
+      const payload = {
         ...input,
         ownerId,
         progress: scheduleProgress(input.startDate, input.endDate),
-      })
-      if (stepsService) {
-        await stepsService.assignActiveToProject(created.id, ownerId)
       }
+
+      // Create + template clone must share one transaction so a failed clone
+      // never leaves an orphan project (and a stuck unique `code`).
+      if (!stepsService) {
+        return presentProject(await repository.create(payload))
+      }
+
+      const created = await runInTransaction(async (tx) => {
+        const project = await repository.create(payload, tx)
+        await stepsService.assignActiveToProject(project.id, ownerId, tx)
+        return project
+      })
       return presentProject(created)
     },
 

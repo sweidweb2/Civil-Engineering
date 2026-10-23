@@ -7,6 +7,7 @@ import * as authApi from '@/services/auth'
 
 type AuthState = {
   user: AuthUser | null
+  /** In-memory only — never persisted (XSS cannot steal refresh/access from localStorage). */
   tokens: AuthTokens | null
   isHydrated: boolean
   setHydrated: (value: boolean) => void
@@ -24,7 +25,7 @@ type AuthState = {
 
 /**
  * Client auth session only — not an API cache.
- * Persist key + partialize: Docs/[3] Decisions/[5] Client State (Zustand).md
+ * Persist user profile only; JWTs live in httpOnly cookies + memory.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -46,9 +47,7 @@ export const useAuthStore = create<AuthState>()(
       async logout() {
         const refreshToken = get().tokens?.refreshToken
         try {
-          if (refreshToken) {
-            await authApi.logout(refreshToken)
-          }
+          await authApi.logout(refreshToken)
         } finally {
           set({ user: null, tokens: null })
         }
@@ -58,13 +57,15 @@ export const useAuthStore = create<AuthState>()(
       name: 'civil-web-auth',
       partialize: (state) => ({
         user: state.user,
-        tokens: state.tokens,
       }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           console.warn('auth rehydrate failed', error)
         }
-        useAuthStore.setState({ isHydrated: true })
+        // Defer: persist may finish during `create()`, before `useAuthStore` is assigned.
+        queueMicrotask(() => {
+          useAuthStore.setState({ isHydrated: true })
+        })
       },
     },
   ),

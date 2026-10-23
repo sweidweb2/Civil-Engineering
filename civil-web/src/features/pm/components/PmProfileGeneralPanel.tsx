@@ -18,7 +18,6 @@ import { changePassword } from '@/services/auth'
 import {
   clearUserAvatar,
   getUser,
-  getUserAvatarUrl,
   updateUser,
   uploadUserAvatar,
 } from '@/services/users'
@@ -68,7 +67,9 @@ const passwordSchema = z
     newPassword: z
       .string()
       .min(8, 'Password must be at least 8 characters')
-      .max(128, 'Password must be at most 128 characters'),
+      .max(128, 'Password must be at most 128 characters')
+      .regex(/[A-Za-z]/, 'Password must contain a letter')
+      .regex(/[0-9]/, 'Password must contain a number'),
     confirmPassword: z.string().min(1, 'Confirm password is required').max(128),
   })
   .refine((value) => value.newPassword === value.confirmPassword, {
@@ -115,10 +116,12 @@ export function PmProfileGeneralPanel() {
 
   const loadProfile = useCallback(() => {
     if (!userId) return Promise.reject(new Error('Sign in to view your profile'))
-    return getUser(userId).then((result) => result.data)
+    return getUser(userId)
   }, [userId])
   const remote = useRemoteData(loadProfile, { queryKey: ['users', 'profile', userId ?? ''] })
-  const account = remote.status === 'success' ? remote.data : null
+  const account = remote.status === 'success' ? remote.data.data : null
+  const avatarFromMeta =
+    remote.status === 'success' ? remote.data.meta.avatarDownloadUrl : null
 
   useEffect(() => {
     if (!account) return
@@ -129,25 +132,8 @@ export function PmProfileGeneralPanel() {
       displayName: profile?.displayName ?? '',
       phone: profile?.phone ?? '',
     })
-  }, [account])
-
-  useEffect(() => {
-    if (!userId || !account?.profile?.avatarUrl) {
-      setAvatarUrl(null)
-      return
-    }
-    let cancelled = false
-    void getUserAvatarUrl(userId)
-      .then((result) => {
-        if (!cancelled) setAvatarUrl(result.data.avatarDownloadUrl)
-      })
-      .catch(() => {
-        if (!cancelled) setAvatarUrl(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [account?.profile?.avatarUrl, userId])
+    setAvatarUrl(avatarFromMeta)
+  }, [account, avatarFromMeta])
 
   useEffect(() => {
     if (remote.status !== 'error') return

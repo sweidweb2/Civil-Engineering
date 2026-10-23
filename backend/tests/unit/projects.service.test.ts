@@ -81,9 +81,29 @@ describe('projectsService', () => {
   it('assigns the owner active steps when creating a project', async () => {
     const { repository } = setup(null)
     const assignActiveToProject = vi.fn(async () => undefined)
-    const service = createProjectsService(repository, { stepsService: { assignActiveToProject } })
+    const tx = { kind: 'tx' }
+    const service = createProjectsService(repository, {
+      stepsService: { assignActiveToProject },
+      runInTransaction: async (fn) => fn(tx as never),
+    })
     await service.createProject({ name: 'Tower C' }, owner.id)
-    expect(assignActiveToProject).toHaveBeenCalledWith('p-new', owner.id)
+    expect(assignActiveToProject).toHaveBeenCalledWith('p-new', owner.id, tx)
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerId: owner.id }),
+      tx,
+    )
+  })
+
+  it('surfaces step assignment failures from the create transaction', async () => {
+    const { repository } = setup(null)
+    const assignActiveToProject = vi.fn(async () => {
+      throw new Error('clone failed')
+    })
+    const service = createProjectsService(repository, {
+      stepsService: { assignActiveToProject },
+      runInTransaction: async (fn) => fn({} as never),
+    })
+    await expect(service.createProject({ name: 'Tower D' }, owner.id)).rejects.toThrow('clone failed')
   })
 
   it('rejects duplicate project codes on create', async () => {

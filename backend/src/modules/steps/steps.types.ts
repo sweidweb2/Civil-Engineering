@@ -35,6 +35,15 @@ export type PaginatedSteps = {
   }
 }
 
+export type PaginatedStepInputs = {
+  data: StepInput[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
+}
+
 export type StepMutationResult = {
   data: Step
   meta?: OrderAdjustMeta

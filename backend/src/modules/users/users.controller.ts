@@ -41,7 +41,7 @@ export function createUsersController(service: UsersService): UsersController {
     async list(req, res, next) {
       try {
         const query = req.query as unknown as ListUsersQuery
-        const result = await service.listUsers(query)
+        const result = await service.listUsers(query, parseAuthActor(req))
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -50,7 +50,7 @@ export function createUsersController(service: UsersService): UsersController {
     async listLookup(req, res, next) {
       try {
         const query = req.query as unknown as ListLookupQuery
-        const result = await service.listLookup(query)
+        const result = await service.listLookup(query, parseAuthActor(req))
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -59,8 +59,11 @@ export function createUsersController(service: UsersService): UsersController {
     async getById(req, res, next) {
       try {
         const actor = parseAuthActor(req)
-        const user = await service.assertAccessible(String(req.params.id), actor)
-        res.status(200).json({ data: user })
+        const result = await service.getUserWithAvatar(String(req.params.id), actor)
+        res.status(200).json({
+          data: result.user,
+          meta: { avatarDownloadUrl: result.avatarDownloadUrl },
+        })
       } catch (error) {
         next(error)
       }
@@ -94,7 +97,7 @@ export function createUsersController(service: UsersService): UsersController {
     async listApprovals(req, res, next) {
       try {
         const query = req.query as unknown as ListApprovalsQuery
-        const result = await service.listApprovals(query)
+        const result = await service.listApprovals(query, parseAuthActor(req))
         res.status(200).json(result)
       } catch (error) {
         next(error)
@@ -139,7 +142,7 @@ export function createUsersController(service: UsersService): UsersController {
     async listVerifications(req, res, next) {
       try {
         const query = req.query as unknown as ListVerificationsQuery
-        const result = await service.listVerifications(query)
+        const result = await service.listVerifications(query, parseAuthActor(req))
         res.status(200).json(result)
       } catch (error) {
         next(error)

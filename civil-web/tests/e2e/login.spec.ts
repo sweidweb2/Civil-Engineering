@@ -5,7 +5,9 @@ import { expectSignedInHome, loginAs, SEED_USERS } from './helpers/auth'
 test.describe('login form', () => {
   test('shows field errors when submitted empty', async ({ page }) => {
     await page.goto('/login')
-    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.locator('form[data-slot="form"]').evaluate((form) => {
+      ;(form as HTMLFormElement).requestSubmit()
+    })
     await expect(page.getByText('Email is required')).toBeVisible()
     await expect(page.getByText('Password is required')).toBeVisible()
   })
@@ -14,7 +16,13 @@ test.describe('login form', () => {
     await page.goto('/login')
     await page.locator('#email').fill('nobody@example.com')
     await page.locator('#password').fill('password')
-    await page.getByRole('button', { name: 'Sign in' }).click()
+    const loginResponse = page.waitForResponse(
+      (res) => res.url().includes('/auth/login') && res.request().method() === 'POST',
+    )
+    await page.locator('form[data-slot="form"]').evaluate((form) => {
+      ;(form as HTMLFormElement).requestSubmit()
+    })
+    await loginResponse
     await expect(page.getByText(/invalid email or password|could not sign in/i)).toBeVisible()
     await expect(page).toHaveURL(/\/login/)
   })

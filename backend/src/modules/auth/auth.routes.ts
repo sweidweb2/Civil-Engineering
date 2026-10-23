@@ -1,10 +1,16 @@
 import { Router } from 'express'
 
 import type { AppConfig } from '../../config/index.js'
+import { authenticate } from '../../middleware/authenticate.js'
 import { createAuthRateLimiter } from '../../middleware/rate-limit.js'
 import { validate } from '../../middleware/validate.js'
 import type { AuthController } from './auth.controller.js'
-import { loginBodySchema, refreshBodySchema, registerBodySchema } from './auth.schema.js'
+import {
+  changePasswordBodySchema,
+  loginBodySchema,
+  refreshBodySchema,
+  registerBodySchema,
+} from './auth.schema.js'
 
 export function createAuthRoutes(controller: AuthController, config: AppConfig): Router {
   const router = Router()
@@ -14,6 +20,13 @@ export function createAuthRoutes(controller: AuthController, config: AppConfig):
   router.post('/login', authLimiter, validate({ body: loginBodySchema }), controller.login)
   router.post('/refresh', authLimiter, validate({ body: refreshBodySchema }), controller.refresh)
   router.post('/logout', authLimiter, validate({ body: refreshBodySchema }), controller.logout)
+  router.post(
+    '/change-password',
+    authenticate,
+    authLimiter,
+    validate({ body: changePasswordBodySchema }),
+    controller.changePassword,
+  )
 
   return router
 }

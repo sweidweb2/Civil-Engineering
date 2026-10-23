@@ -17,6 +17,7 @@ export type UserProfile = {
   lastName: string | null
   displayName: string | null
   phone: string | null
+  /** File.id in the R2 files pipeline when set (not a public URL). */
   avatarUrl: string | null
 }
 
@@ -30,6 +31,12 @@ export type User = {
   profile: UserProfile | null
   createdAt: string
   updatedAt: string
+}
+
+export type UserAvatarResult = {
+  user: User
+  /** Short-lived presigned GET for display. */
+  avatarDownloadUrl: string | null
 }
 
 /** Lean row for recipient pickers. */

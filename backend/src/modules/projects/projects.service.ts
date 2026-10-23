@@ -3,6 +3,7 @@ import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { conflict, notFound, validationError } from '../../errors/app-error.js'
 import type { StorageService } from '../../storage/storage.service.js'
+import type { StepsService } from '../steps/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
 import { scheduleProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
@@ -11,6 +12,7 @@ import type { Project, ProjectStatus } from './projects.types.js'
 export type ProjectsServiceDeps = {
   config?: AppConfig
   storage?: StorageService
+  stepsService?: Pick<StepsService, 'assignActiveToProject'>
 }
 
 export type ProjectsService = {
@@ -62,7 +64,7 @@ export function createProjectsService(
   repository: ProjectsRepository,
   deps: ProjectsServiceDeps = {},
 ): ProjectsService {
-  const { config, storage } = deps
+  const { config, storage, stepsService } = deps
 
   async function loadOrThrow(id: string): Promise<Project> {
     const project = await repository.findById(id)
@@ -175,13 +177,15 @@ export function createProjectsService(
       }
 
       assertSchedule(input.startDate, input.endDate)
-      return presentProject(
-        await repository.create({
-          ...input,
-          ownerId,
-          progress: scheduleProgress(input.startDate, input.endDate),
-        }),
-      )
+      const created = await repository.create({
+        ...input,
+        ownerId,
+        progress: scheduleProgress(input.startDate, input.endDate),
+      })
+      if (stepsService) {
+        await stepsService.assignActiveToProject(created.id, ownerId)
+      }
+      return presentProject(created)
     },
 
     async updateProject(id, input, actor) {

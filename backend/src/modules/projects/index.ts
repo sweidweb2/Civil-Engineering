@@ -1,5 +1,7 @@
 import type { AppConfig } from '../../config/index.js'
 import { loadConfig } from '../../config/index.js'
+import { createProjectSteppersControllerForProjects } from '../project-steppers/index.js'
+import type { StepsService } from '../steps/index.js'
 import { getStorageService, type StorageService } from '../../storage/index.js'
 import { createProjectsController } from './projects.controller.js'
 import { createProjectsRepository } from './projects.repository.js'
@@ -11,6 +13,7 @@ let projectsServiceSingleton: ProjectsService | null = null
 export type ProjectsModuleDeps = {
   config?: AppConfig
   storage?: StorageService
+  stepsService?: Pick<StepsService, 'assignActiveToProject'>
 }
 
 export function getProjectsService(deps: ProjectsModuleDeps = {}): ProjectsService {
@@ -19,7 +22,11 @@ export function getProjectsService(deps: ProjectsModuleDeps = {}): ProjectsServi
     const storage =
       deps.storage ?? (config.storage ? getStorageService(config) : undefined)
     const repository = createProjectsRepository()
-    projectsServiceSingleton = createProjectsService(repository, { config, storage })
+    projectsServiceSingleton = createProjectsService(repository, {
+      config,
+      storage,
+      stepsService: deps.stepsService,
+    })
   }
   return projectsServiceSingleton
 }
@@ -27,7 +34,8 @@ export function getProjectsService(deps: ProjectsModuleDeps = {}): ProjectsServi
 export function createProjectsModule(deps: ProjectsModuleDeps = {}) {
   const service = getProjectsService(deps)
   const controller = createProjectsController(service)
-  return createProjectsRoutes(controller)
+  const steppersController = createProjectSteppersControllerForProjects(service)
+  return createProjectsRoutes(controller, steppersController)
 }
 
 export { projectsDomain } from './projects.domain.js'

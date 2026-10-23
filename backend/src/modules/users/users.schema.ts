@@ -11,6 +11,11 @@ export const userIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'User ID is required'),
 })
 
+/** After R2 upload + files complete — link READY image file as profile photo. */
+export const setAvatarBodySchema = z.object({
+  fileId: z.string().trim().min(1).max(64),
+})
+
 export const listUsersQuerySchema = paginationQuerySchema.extend({
   q: optionalSearchQuery,
 })
@@ -119,3 +124,4 @@ export type ListVerificationsQuery = z.infer<typeof listVerificationsQuerySchema
 export type CreateVerificationBody = z.infer<typeof createVerificationBodySchema>
 export type SetVerificationBody = z.infer<typeof setVerificationBodySchema>
 export type UpdateUserBody = z.infer<typeof updateUserBodySchema>
+export type SetAvatarBody = z.infer<typeof setAvatarBodySchema>

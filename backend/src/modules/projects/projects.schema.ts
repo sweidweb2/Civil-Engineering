@@ -6,10 +6,19 @@ export const projectIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'Project ID is required'),
 })
 
+const optionalSearchQuery = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().max(120).optional(),
+)
+
 export const listProjectsQuerySchema = paginationQuerySchema.extend({
   status: z
     .enum(['DRAFT', 'PLANNING', 'APPROVED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED'])
     .optional(),
+  type: z
+    .enum(['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL', 'INFRASTRUCTURE', 'RENOVATION', 'OTHER'])
+    .optional(),
+  q: optionalSearchQuery,
 })
 
 // Minimal create - just essential info

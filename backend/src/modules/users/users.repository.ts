@@ -108,6 +108,8 @@ export type UsersRepository = {
   create: (input: CreateUserInput) => Promise<User>
   update: (id: string, input: UpdateUserInput) => Promise<User>
   updateStatus: (id: string, status: UserStatus) => Promise<User>
+  /** Stores File.id in Profile.avatarUrl (private R2 object; resolve via files download URL). */
+  setAvatarFileId: (userId: string, fileId: string | null) => Promise<User>
   delete: (id: string) => Promise<'deleted' | 'in_use'>
 }
 
@@ -500,6 +502,22 @@ export function createUsersRepository(): UsersRepository {
         include: { profile: true },
       })
       await invalidateUserCounts()
+      return mapToUser(user)
+    },
+
+    async setAvatarFileId(userId, fileId) {
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          profile: {
+            upsert: {
+              create: { avatarUrl: fileId },
+              update: { avatarUrl: fileId },
+            },
+          },
+        },
+        include: { profile: true },
+      })
       return mapToUser(user)
     },
 

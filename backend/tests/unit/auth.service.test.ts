@@ -60,6 +60,7 @@ describe('auth.service', () => {
       findByEmail: vi.fn(),
       findById: vi.fn(),
       createUserWithProfile: vi.fn(),
+      updatePasswordHash: vi.fn(),
     }
   })
 
@@ -174,5 +175,35 @@ describe('auth.service', () => {
     await expect(service.refreshTokens({ refreshToken: 'good' })).rejects.toMatchObject({
       status: 401,
     })
+  })
+
+  it('changes password when current password is correct', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser())
+    vi.mocked(repository.updatePasswordHash).mockResolvedValue(undefined)
+    const service = createAuthService(repository, config)
+
+    await expect(
+      service.changePassword('user-1', {
+        currentPassword: 'secret123',
+        newPassword: 'newsecret1',
+        confirmPassword: 'newsecret1',
+      }),
+    ).resolves.toBeUndefined()
+
+    expect(repository.updatePasswordHash).toHaveBeenCalledWith('user-1', 'hash:newsecret1')
+  })
+
+  it('rejects change password when current password is wrong', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser())
+    const service = createAuthService(repository, config)
+
+    await expect(
+      service.changePassword('user-1', {
+        currentPassword: 'wrong',
+        newPassword: 'newsecret1',
+        confirmPassword: 'newsecret1',
+      }),
+    ).rejects.toMatchObject({ status: 401 })
+    expect(repository.updatePasswordHash).not.toHaveBeenCalled()
   })
 })

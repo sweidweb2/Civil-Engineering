@@ -45,6 +45,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import {
@@ -53,6 +54,8 @@ import {
   type CreateProjectInput,
   listProjects,
   type Project,
+  type ProjectStatus,
+  PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   projectStatusLabel,
   projectTypeLabel,
@@ -244,16 +247,41 @@ function ProjectCard({
   )
 }
 
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'All statuses' },
+  ...PROJECT_STATUS_OPTIONS,
+]
+
+const TYPE_FILTER_OPTIONS = [
+  { value: 'all', label: 'All types' },
+  ...PROJECT_TYPE_OPTIONS,
+]
+
 export function ProjectsListPage() {
   useDocumentTitle('Manage projects')
   const navigate = useNavigate()
   const location = useLocation()
-  const [page, setPage] = useState(1)
+  const isPmPortal = location.pathname.startsWith('/pm')
+  const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
+  const [statusFilter, setStatusFilter] = useState<'all' | ProjectStatus>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | ProjectType>('all')
   const [timelineVersion, setTimelineVersion] = useState(0)
   const limit = 20
 
-  const load = useCallback(() => listProjects(page, limit), [page])
-  const remote = useRemoteData(load, { queryKey: ['projects', 'list', page] })
+  const load = useCallback(
+    () =>
+      listProjects({
+        page,
+        limit,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        type: typeFilter === 'all' ? undefined : typeFilter,
+        q: debouncedQuery || undefined,
+      }),
+    [debouncedQuery, page, statusFilter, typeFilter],
+  )
+  const remote = useRemoteData(load, {
+    queryKey: ['projects', 'list', page, debouncedQuery, statusFilter, typeFilter],
+  })
 
   const projects: Project[] = remote.status === 'success' ? remote.data.data : []
   const total = remote.status === 'success' ? remote.data.meta.total : 0
@@ -342,23 +370,84 @@ export function ProjectsListPage() {
         </Button>
       </div>
 
-      <ProjectProgressTimeline refreshKey={timelineVersion} />
+      {isPmPortal ? null : <ProjectProgressTimeline refreshKey={timelineVersion} />}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search by name, code, or city…"
+          aria-label="Filter projects"
+          className="max-w-sm"
+          maxLength={120}
+        />
+        <Select
+          items={STATUS_FILTER_OPTIONS}
+          value={statusFilter}
+          onValueChange={(value) => {
+            if (!value) return
+            if (value === 'all' || PROJECT_STATUS_OPTIONS.some((option) => option.value === value)) {
+              setStatusFilter(value as 'all' | ProjectStatus)
+              setPage(1)
+            }
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-48" aria-label="Filter by status">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          items={TYPE_FILTER_OPTIONS}
+          value={typeFilter}
+          onValueChange={(value) => {
+            if (!value) return
+            if (value === 'all' || PROJECT_TYPE_OPTIONS.some((option) => option.value === value)) {
+              setTypeFilter(value as 'all' | ProjectType)
+              setPage(1)
+            }
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-48" aria-label="Filter by type">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPE_FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <AsyncState
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<CardGridSkeleton media="plain" />}
+        loadingFallback={
+          <CardGridSkeleton media="plain" className="gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />
+        }
       >
         {projects.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FolderKanban className="size-12 text-muted-foreground/50" />
-              <p className="mt-4 text-sm text-muted-foreground">No projects yet. Create your first one!</p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                {debouncedQuery || statusFilter !== 'all' || typeFilter !== 'all'
+                  ? 'No projects match these filters.'
+                  : 'No projects yet. Create your first one!'}
+              </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {projects.map((project, index) => (
               <ProjectCard
                 key={project.id}

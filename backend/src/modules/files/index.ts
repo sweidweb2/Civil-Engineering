@@ -29,19 +29,28 @@ function unavailableStorage(): StorageService {
   }
 }
 
+let filesServiceSingleton: FilesService | null = null
+
+export function getFilesService(deps: FilesModuleDeps = {}): FilesService {
+  if (!filesServiceSingleton) {
+    const config = deps.config ?? loadConfig()
+    const repository = createFilesRepository()
+    const storage =
+      deps.storage ?? (config.storage ? getStorageService(config) : unavailableStorage())
+    const projectsService = deps.projectsService ?? getProjectsService()
+    filesServiceSingleton = createFilesService({
+      repository,
+      storage,
+      projectsService,
+      config,
+      enqueueDelete: deps.enqueueDelete ?? enqueueDeleteStorageObject,
+    })
+  }
+  return filesServiceSingleton
+}
+
 export function createFilesModule(deps: FilesModuleDeps = {}) {
-  const config = deps.config ?? loadConfig()
-  const repository = createFilesRepository()
-  const storage =
-    deps.storage ?? (config.storage ? getStorageService(config) : unavailableStorage())
-  const projectsService = deps.projectsService ?? getProjectsService()
-  const service = createFilesService({
-    repository,
-    storage,
-    projectsService,
-    config,
-    enqueueDelete: deps.enqueueDelete ?? enqueueDeleteStorageObject,
-  })
+  const service = getFilesService(deps)
   const controller = createFilesController(service)
   return createFilesRoutes(controller)
 }

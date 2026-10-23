@@ -3,7 +3,8 @@
  * Passwords are intentional placeholders for local use only — never use in production.
  *
  * Covers registration approvals, worker verification, providers, platform categories,
- * listings (the directory catalog), projects, and reviews.
+ * listings (the directory catalog), projects, reviews, step input types, PM step templates
+ * (+ inputs), project steppers for seeded PM projects, and manager CV profiles.
  * The Directory screen still reads sample cards, not these rows.
  */
 import 'dotenv/config'
@@ -12,11 +13,11 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcrypt'
 
 import {
+  Prisma,
   PrismaClient,
   type CategoryKind,
   type ListingStatus,
   type ListingType,
-  type Prisma,
   type ProjectStatus,
   type ProjectType,
   type ProviderStatus,
@@ -30,6 +31,103 @@ import {
 
 const BCRYPT_ROUNDS = 12
 const PASSWORD = 'password'
+
+const SEED_INPUT_TYPES: Array<{ code: string; label: string; sortOrder: number }> = [
+  { code: 'TEXT', label: 'Text', sortOrder: 10 },
+  { code: 'NUMBER', label: 'Number', sortOrder: 20 },
+  { code: 'YES_NO', label: 'Yes / No', sortOrder: 30 },
+  { code: 'DATE', label: 'Date', sortOrder: 40 },
+]
+
+type SeedManagerProfile = {
+  ownerEmail: string
+  headline: string
+  bio: string
+  yearsExperience: number
+  specialty: string
+  education: string
+  certifications: string
+  skills: string
+  languages: string
+  city: string
+  country: string
+  website: string
+  linkedinUrl: string
+  cvUrl: string
+  availability: string
+  projectTypes: string
+}
+
+const SEED_MANAGER_PROFILES: SeedManagerProfile[] = [
+  {
+    ownerEmail: 'pm@example.com',
+    headline: 'Civil engineer · Project manager',
+    bio: 'Independent project manager focused on residential and light commercial builds across Lebanon. Comfortable owning estimates, site coordination, and variance tracking.',
+    yearsExperience: 9,
+    specialty: 'Structural, residential, fit-out',
+    education: 'B.Eng. Civil Engineering — Lebanese University (2015)',
+    certifications: 'PMP · Site safety induction · AutoCAD professional',
+    skills: 'Estimating, progress tracking, supplier coordination, AutoCAD, Excel cost control',
+    languages: 'Arabic, English, French',
+    city: 'Beirut',
+    country: 'Lebanon',
+    website: 'https://example.com/layla-hassan',
+    linkedinUrl: 'https://www.linkedin.com/in/example-layla-hassan',
+    cvUrl: 'https://example.com/cv/layla-hassan.pdf',
+    availability: 'Open to new projects from Q2 2026',
+    projectTypes: 'Residential towers, warehouses, villa fit-outs',
+  },
+]
+
+type SeedStepTemplate = {
+  ownerEmail: string
+  name: string
+  orderNb: number
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
+  inputs: Array<{ label: string; inputTypeCode: string; orderNb: number }>
+}
+
+const SEED_STEP_TEMPLATES: SeedStepTemplate[] = [
+  {
+    ownerEmail: 'pm@example.com',
+    name: 'Site survey',
+    orderNb: 0,
+    status: 'ACTIVE',
+    inputs: [
+      { label: 'Survey date', inputTypeCode: 'DATE', orderNb: 0 },
+      { label: 'Plot reference', inputTypeCode: 'TEXT', orderNb: 1 },
+      { label: 'Access restricted', inputTypeCode: 'YES_NO', orderNb: 2 },
+    ],
+  },
+  {
+    ownerEmail: 'pm@example.com',
+    name: 'Foundation',
+    orderNb: 1,
+    status: 'ACTIVE',
+    inputs: [
+      { label: 'Concrete grade', inputTypeCode: 'TEXT', orderNb: 0 },
+      { label: 'Pour volume (m³)', inputTypeCode: 'NUMBER', orderNb: 1 },
+      { label: 'Pour completed', inputTypeCode: 'YES_NO', orderNb: 2 },
+    ],
+  },
+  {
+    ownerEmail: 'pm@example.com',
+    name: 'Structure',
+    orderNb: 2,
+    status: 'ACTIVE',
+    inputs: [
+      { label: 'Current level', inputTypeCode: 'TEXT', orderNb: 0 },
+      { label: 'Progress %', inputTypeCode: 'NUMBER', orderNb: 1 },
+    ],
+  },
+  {
+    ownerEmail: 'pm@example.com',
+    name: 'Archived handoff notes',
+    orderNb: 3,
+    status: 'ARCHIVED',
+    inputs: [{ label: 'Archive note', inputTypeCode: 'TEXT', orderNb: 0 }],
+  },
+]
 
 type SeedUser = {
   email: string
@@ -554,11 +652,109 @@ async function main() {
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
 
   try {
+    for (const seed of SEED_INPUT_TYPES) {
+      const inputType = await prisma.inputType.upsert({
+        where: { code: seed.code },
+        create: {
+          code: seed.code,
+          label: seed.label,
+          sortOrder: seed.sortOrder,
+          status: 'ACTIVE',
+        },
+        update: {
+          label: seed.label,
+          sortOrder: seed.sortOrder,
+        },
+      })
+      console.info(`[prisma seed] input type ${inputType.code} ${inputType.status}`)
+    }
+
     const users = new Map<string, { id: string }>()
     for (const seed of SEED_USERS) {
       const user = await upsertUser(prisma, seed)
       users.set(seed.email, user)
       console.info(`[prisma seed] user ${user.role} ${user.email} ${user.status}`)
+    }
+
+    for (const seed of SEED_MANAGER_PROFILES) {
+      const owner = users.get(seed.ownerEmail)
+      if (!owner) throw new Error(`Missing manager profile owner ${seed.ownerEmail}`)
+      const data = {
+        headline: seed.headline,
+        bio: seed.bio,
+        yearsExperience: seed.yearsExperience,
+        specialty: seed.specialty,
+        education: seed.education,
+        certifications: seed.certifications,
+        skills: seed.skills,
+        languages: seed.languages,
+        city: seed.city,
+        country: seed.country,
+        website: seed.website,
+        linkedinUrl: seed.linkedinUrl,
+        cvUrl: seed.cvUrl,
+        availability: seed.availability,
+        projectTypes: seed.projectTypes,
+      }
+      const profile = await prisma.managerProfile.upsert({
+        where: { userId: owner.id },
+        create: { ...data, userId: owner.id },
+        update: data,
+      })
+      console.info(`[prisma seed] manager profile ${seed.ownerEmail} ${profile.id}`)
+    }
+
+    const inputTypes = new Map<string, { id: string; code: string; label: string }>()
+    for (const seed of SEED_INPUT_TYPES) {
+      const row = await prisma.inputType.findUnique({ where: { code: seed.code } })
+      if (row) inputTypes.set(seed.code, row)
+    }
+
+    for (const seed of SEED_STEP_TEMPLATES) {
+      const owner = users.get(seed.ownerEmail)
+      if (!owner) throw new Error(`Missing step owner ${seed.ownerEmail}`)
+      const existing = await prisma.step.findFirst({
+        where: { userId: owner.id, name: seed.name },
+      })
+      const step = existing
+        ? await prisma.step.update({
+            where: { id: existing.id },
+            data: { orderNb: seed.orderNb, status: seed.status },
+          })
+        : await prisma.step.create({
+            data: {
+              userId: owner.id,
+              name: seed.name,
+              orderNb: seed.orderNb,
+              status: seed.status,
+            },
+          })
+
+      for (const input of seed.inputs) {
+        const inputType = inputTypes.get(input.inputTypeCode)
+        if (!inputType) throw new Error(`Missing input type ${input.inputTypeCode}`)
+        const existingInput = await prisma.stepInput.findFirst({
+          where: { stepId: step.id, label: input.label },
+        })
+        if (existingInput) {
+          await prisma.stepInput.update({
+            where: { id: existingInput.id },
+            data: { inputTypeId: inputType.id, orderNb: input.orderNb },
+          })
+        } else {
+          await prisma.stepInput.create({
+            data: {
+              stepId: step.id,
+              inputTypeId: inputType.id,
+              label: input.label,
+              orderNb: input.orderNb,
+            },
+          })
+        }
+      }
+      console.info(
+        `[prisma seed] step ${seed.status} ${seed.name} (${seed.inputs.length} input(s)) for ${seed.ownerEmail}`,
+      )
     }
 
     const providers = new Map<string, { id: string }>()
@@ -687,6 +883,48 @@ async function main() {
         update: data,
       })
       console.info(`[prisma seed] project ${project.status} ${project.code}`)
+
+      const templates = await prisma.step.findMany({
+        where: { userId: owner.id, status: 'ACTIVE' },
+        orderBy: [{ orderNb: 'asc' }, { name: 'asc' }],
+        include: {
+          inputs: {
+            orderBy: [{ orderNb: 'asc' }, { label: 'asc' }],
+            include: { inputType: { select: { code: true, label: true } } },
+          },
+        },
+      })
+      const existingSteppers = await prisma.stepperProject.count({
+        where: { projectId: project.id },
+      })
+      if (templates.length > 0 && existingSteppers !== templates.length) {
+        await prisma.stepperProject.deleteMany({ where: { projectId: project.id } })
+        for (const template of templates) {
+          const link = await prisma.stepperProject.create({
+            data: {
+              projectId: project.id,
+              name: template.name,
+              orderNb: template.orderNb,
+            },
+          })
+          if (template.inputs.length === 0) continue
+          await prisma.projectStepInput.createMany({
+            data: template.inputs.map((input) => ({
+              stepperProjectId: link.id,
+              inputTypeId: input.inputTypeId,
+              inputTypeCode: input.inputType.code,
+              inputTypeLabel: input.inputType.label,
+              label: input.label,
+              orderNb: input.orderNb,
+              value: Prisma.DbNull,
+              isProjectOnly: false,
+            })),
+          })
+        }
+        console.info(
+          `[prisma seed] project steppers ${project.code} ← ${templates.length} active template(s)`,
+        )
+      }
     }
 
     for (const seed of SEED_REVIEWS) {

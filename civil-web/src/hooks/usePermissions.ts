@@ -14,5 +14,6 @@ export function usePermissions() {
     canAny: (allowed: AuthRole[]) => hasAnyRole(role, allowed),
     isStaff: hasAnyRole(role, STAFF_ROLES),
     isAdmin: hasAnyRole(role, ADMIN_ROLES),
+    isSuper: hasRole(role, 'SUPER'),
   }
 }

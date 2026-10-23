@@ -21,6 +21,12 @@ export type FilesService = {
   complete: (actor: AuthActor, fileId: string) => Promise<FileRecord>
   downloadUrl: (actor: AuthActor, fileId: string) => Promise<DownloadUrlResult>
   softDelete: (actor: AuthActor, fileId: string) => Promise<FileRecord>
+  /** READY file attached to entity — used when linking avatars / attachments. */
+  requireReadyAttachment: (
+    fileId: string,
+    entityType: PresignFileBody['entityType'],
+    entityId: string,
+  ) => Promise<FileRecord>
 }
 
 export type FilesServiceDeps = {
@@ -152,6 +158,17 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
       const deleted = await repository.markDeleted(file.id)
       await enqueueDelete({ fileId: deleted.id, key: deleted.key })
       return deleted
+    },
+
+    async requireReadyAttachment(fileId, entityType, entityId) {
+      const file = await loadOrThrow(fileId)
+      if (file.status !== 'READY') {
+        throw validationError('File is not ready — complete the upload first')
+      }
+      if (file.entityType !== entityType || file.entityId !== entityId) {
+        throw forbidden('File does not belong to this resource')
+      }
+      return file
     },
   }
 }

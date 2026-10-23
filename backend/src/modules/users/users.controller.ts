@@ -20,6 +20,9 @@ export type UsersController = {
   createVerification: (req: Request, res: Response, next: NextFunction) => Promise<void>
   setVerification: (req: Request, res: Response, next: NextFunction) => Promise<void>
   deleteVerification: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  setAvatar: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  clearAvatar: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  getAvatarUrl: (req: Request, res: Response, next: NextFunction) => Promise<void>
 }
 
 export function createUsersController(service: UsersService): UsersController {
@@ -154,6 +157,41 @@ export function createUsersController(service: UsersService): UsersController {
         const actor = parseAuthActor(req)
         await service.deleteVerification(String(req.params.id), actor)
         res.status(204).send()
+      } catch (error) {
+        next(error)
+      }
+    },
+    async setAvatar(req, res, next) {
+      try {
+        const actor = parseAuthActor(req)
+        const result = await service.setAvatar(String(req.params.id), req.body, actor)
+        res.status(200).json({
+          data: result.user,
+          meta: { avatarDownloadUrl: result.avatarDownloadUrl },
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+    async clearAvatar(req, res, next) {
+      try {
+        const actor = parseAuthActor(req)
+        const result = await service.clearAvatar(String(req.params.id), actor)
+        res.status(200).json({
+          data: result.user,
+          meta: { avatarDownloadUrl: result.avatarDownloadUrl },
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+    async getAvatarUrl(req, res, next) {
+      try {
+        const actor = parseAuthActor(req)
+        const result = await service.getAvatarUrl(String(req.params.id), actor)
+        res.status(200).json({
+          data: { avatarDownloadUrl: result.avatarDownloadUrl },
+        })
       } catch (error) {
         next(error)
       }

@@ -78,6 +78,14 @@ describe('projectsService', () => {
     expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({ ownerId: owner.id }))
   })
 
+  it('assigns the owner active steps when creating a project', async () => {
+    const { repository } = setup(null)
+    const assignActiveToProject = vi.fn(async () => undefined)
+    const service = createProjectsService(repository, { stepsService: { assignActiveToProject } })
+    await service.createProject({ name: 'Tower C' }, owner.id)
+    expect(assignActiveToProject).toHaveBeenCalledWith('p-new', owner.id)
+  })
+
   it('rejects duplicate project codes on create', async () => {
     const { service } = setup(makeProject({ code: 'SITE-A' }))
     await expect(service.createProject({ name: 'Other', code: 'SITE-A' }, owner.id)).rejects.toMatchObject({

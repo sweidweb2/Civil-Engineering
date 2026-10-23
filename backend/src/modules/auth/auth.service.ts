@@ -4,7 +4,7 @@ import { getLogger } from '../../logging/index.js'
 import { cacheKeys, getRedis } from '../../redis/index.js'
 import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
-import type { LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
+import type { ChangePasswordBody, LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
 import type { RoleName } from './auth.schema.js'
 import {
   hashPassword,
@@ -21,6 +21,7 @@ export type AuthService = {
   login: (input: LoginBody) => Promise<LoginResult>
   refreshTokens: (input: RefreshBody) => Promise<AuthTokens>
   logout: (input: RefreshBody) => Promise<void>
+  changePassword: (userId: string, input: ChangePasswordBody) => Promise<void>
 }
 
 function toUserDto(user: AuthUserRecord): AuthUserDto {
@@ -184,6 +185,32 @@ export function createAuthService(
         })
       } catch (error) {
         getLogger().error({ err: error }, 'failed to write logout activity')
+      }
+    },
+
+    async changePassword(userId, input) {
+      const user = await repository.findById(userId)
+      if (!user || user.status !== 'ACTIVE') {
+        throw unauthorized()
+      }
+
+      const ok = await verifyPassword(input.currentPassword, user.passwordHash)
+      if (!ok) {
+        throw unauthorized('Current password is incorrect')
+      }
+
+      const passwordHash = await hashPassword(input.newPassword)
+      await repository.updatePasswordHash(userId, passwordHash)
+
+      try {
+        await logging?.recordActivity({
+          userId,
+          action: 'auth.change_password',
+          entity: 'user',
+          entityId: userId,
+        })
+      } catch (error) {
+        getLogger().error({ err: error }, 'failed to write change-password activity')
       }
     },
   }

@@ -112,13 +112,28 @@ export type UpdateProjectInput = {
   notes?: string
 }
 
-export function listProjects(page = 1, limit = 20, status?: ProjectStatus) {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
+export type ListProjectsParams = {
+  page?: number
+  limit?: number
+  status?: ProjectStatus
+  type?: ProjectType
+  q?: string
+}
+
+export function listProjects(pageOrParams: number | ListProjectsParams = 1, limit = 20, status?: ProjectStatus) {
+  const params =
+    typeof pageOrParams === 'object'
+      ? pageOrParams
+      : { page: pageOrParams, limit, status }
+
+  const search = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 20),
   })
-  if (status) params.set('status', status)
-  return apiRequest<PaginatedProjects>(`/projects?${params.toString()}`)
+  if (params.status) search.set('status', params.status)
+  if (params.type) search.set('type', params.type)
+  if (params.q?.trim()) search.set('q', params.q.trim())
+  return apiRequest<PaginatedProjects>(`/projects?${search.toString()}`)
 }
 
 export function getProjectById(id: string) {

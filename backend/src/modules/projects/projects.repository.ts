@@ -105,10 +105,21 @@ export function createProjectsRepository(): ProjectsRepository {
       const page = query.page ?? 1
       const limit = query.limit ?? 20
       const skip = (page - 1) * limit
+      const search = query.q?.trim()
       const where = {
         archivedAt: null,
         ...(ownerId ? { ownerId } : {}),
         ...(query.status ? { status: query.status as ProjectStatus } : {}),
+        ...(query.type ? { type: query.type } : {}),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' as const } },
+                { code: { contains: search, mode: 'insensitive' as const } },
+                { city: { contains: search, mode: 'insensitive' as const } },
+              ],
+            }
+          : {}),
       }
 
       const [projects, total] = await Promise.all([

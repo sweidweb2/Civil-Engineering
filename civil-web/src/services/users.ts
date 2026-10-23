@@ -113,6 +113,28 @@ export function updateUser(id: string, input: UpdateUserInput) {
   })
 }
 
+export type UserAvatarResponse = {
+  data: User
+  meta: { avatarDownloadUrl: string | null }
+}
+
+export function setUserAvatar(id: string, fileId: string) {
+  return apiRequest<UserAvatarResponse>(`/users/${id}/avatar`, {
+    method: 'PUT',
+    body: JSON.stringify({ fileId }),
+  })
+}
+
+export function clearUserAvatar(id: string) {
+  return apiRequest<UserAvatarResponse>(`/users/${id}/avatar`, {
+    method: 'DELETE',
+  })
+}
+
+export function getUserAvatarUrl(id: string) {
+  return apiRequest<{ data: { avatarDownloadUrl: string | null } }>(`/users/${id}/avatar`)
+}
+
 export function deactivateUser(id: string) {
   return apiRequest<{ data: User }>(`/users/${id}/deactivate`, {
     method: 'POST',

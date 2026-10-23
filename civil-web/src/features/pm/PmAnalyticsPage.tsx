@@ -6,6 +6,7 @@ import { StatGridSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
 import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ProjectProgressTimeline } from '@/features/admin/components/ProjectProgressTimeline'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
@@ -78,6 +79,8 @@ export function PmAnalyticsPage() {
           </CardContent>
         </Card>
       </AsyncState>
+
+      <ProjectProgressTimeline />
     </div>
   )
 }

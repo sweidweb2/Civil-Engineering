@@ -13,11 +13,14 @@ import { createHealthRoutes } from '../modules/health/health.routes.js'
 import { createHealthService } from '../modules/health/health.service.js'
 import { createListingsModule } from '../modules/listings/index.js'
 import { createLoggingModule } from '../modules/logging/index.js'
+import { createManagerProfilesModule } from '../modules/manager-profiles/index.js'
 import { createNotificationsModule } from '../modules/notifications/index.js'
 import { createProjectImagesModule } from '../modules/project-images/index.js'
 import { createProjectsModule } from '../modules/projects/index.js'
 import { createProvidersModule } from '../modules/providers/index.js'
 import { createReviewsModule } from '../modules/reviews/index.js'
+import { createInputTypesModule } from '../modules/input-types/index.js'
+import { createStepsModule, getStepsService } from '../modules/steps/index.js'
 import { createUsersModule } from '../modules/users/index.js'
 import type { StorageService } from '../storage/index.js'
 
@@ -36,7 +39,11 @@ export function createV1Router(deps: V1Deps = {}): Router {
   const healthController = createHealthController(healthService)
 
   // Projects first so getProjectsService() singleton includes storage for list mainImageUrl
-  const projectsRouter = createProjectsModule({ config, storage: deps.storage })
+  const projectsRouter = createProjectsModule({
+    config,
+    storage: deps.storage,
+    stepsService: getStepsService(),
+  })
 
   router.use('/health', createHealthRoutes(healthController))
   router.use('/auth', createAuthModule(config))
@@ -44,10 +51,13 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use('/files', createFilesModule({ config, storage: deps.storage }))
   router.use(createLoggingModule())
   router.use('/users', createUsersModule())
+  router.use('/manager-profiles', createManagerProfilesModule())
   router.use('/providers', createProvidersModule())
   router.use('/categories', createCategoriesModule())
   router.use('/listings', createListingsModule())
   router.use('/reviews', createReviewsModule())
+  router.use('/input-types', createInputTypesModule())
+  router.use('/steps', createStepsModule())
   router.use('/projects', projectsRouter)
   router.use('/project-images', createProjectImagesModule({ config, storage: deps.storage }))
   router.use('/notifications', createNotificationsModule())

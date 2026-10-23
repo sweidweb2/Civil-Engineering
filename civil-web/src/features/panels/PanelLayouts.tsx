@@ -14,10 +14,10 @@ export function AdminPanelLayout() {
 
 export function PmPanelLayout() {
   useDocumentTitle('PM panel')
-  return <PanelShell title="PM panel" nav={PM_NAV} />
+  return <PanelShell title="PM panel" nav={PM_NAV} variant="navbar" />
 }
 
 export function ProviderPanelLayout() {
   useDocumentTitle('Provider panel')
-  return <PanelShell title="Provider panel" nav={PROVIDER_NAV} />
+  return <PanelShell title="Provider panel" nav={PROVIDER_NAV} variant="navbar" />
 }

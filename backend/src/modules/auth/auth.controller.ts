@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
+import { unauthorized } from '../../errors/app-error.js'
 import type { AuthService } from './auth.service.js'
 
 export type AuthController = {
@@ -7,6 +8,14 @@ export type AuthController = {
   login: (req: Request, res: Response, next: NextFunction) => Promise<void>
   refresh: (req: Request, res: Response, next: NextFunction) => Promise<void>
   logout: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  changePassword: (req: Request, res: Response, next: NextFunction) => Promise<void>
+}
+
+function requireUserId(req: Request): string {
+  if (!req.user?.id) {
+    throw unauthorized()
+  }
+  return req.user.id
 }
 
 export function createAuthController(service: AuthService): AuthController {
@@ -38,6 +47,15 @@ export function createAuthController(service: AuthService): AuthController {
     async logout(req, res, next) {
       try {
         await service.logout(req.body)
+        res.status(204).send()
+      } catch (error) {
+        next(error)
+      }
+    },
+    async changePassword(req, res, next) {
+      try {
+        const userId = requireUserId(req)
+        await service.changePassword(userId, req.body)
         res.status(204).send()
       } catch (error) {
         next(error)

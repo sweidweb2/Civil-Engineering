@@ -126,13 +126,13 @@ export function NotificationInboxSheet() {
         ) : null}
       </div>
       <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-border">
+        <SheetHeader className="border-b border-border px-6 py-5">
           <SheetTitle>Notifications</SheetTitle>
           <SheetDescription>
             {unread === 0 ? 'You are up to date.' : `${unread} unread`}
           </SheetDescription>
         </SheetHeader>
-        <div className="flex items-center justify-end px-4 py-2">
+        <div className="flex items-center justify-end px-6 py-3">
           <Button
             type="button"
             variant="ghost"
@@ -197,7 +197,7 @@ export function NotificationInboxSheet() {
             )}
           </AsyncState>
         </div>
-        <SheetFooter className="border-t border-border">
+        <SheetFooter className="border-t border-border px-6 py-4">
           <Button
             type="button"
             variant="outline"

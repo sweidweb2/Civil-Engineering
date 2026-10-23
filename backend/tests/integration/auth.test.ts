@@ -116,4 +116,47 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
     expect(res.status).toBe(401)
     expect(res.body.code).toBe('UNAUTHORIZED')
   })
+
+  it('changes password for an authenticated user', async () => {
+    const app = createApp({ config })
+
+    const register = await request(app).post('/api/v1/auth/register').send({
+      email: 'pwd@example.com',
+      password: 'password1',
+    })
+    expect(register.status).toBe(201)
+    const accessToken = register.body.tokens.accessToken as string
+
+    const wrong = await request(app)
+      .post('/api/v1/auth/change-password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'wrong-password',
+        newPassword: 'password2',
+        confirmPassword: 'password2',
+      })
+    expect(wrong.status).toBe(401)
+
+    const changed = await request(app)
+      .post('/api/v1/auth/change-password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'password1',
+        newPassword: 'password2',
+        confirmPassword: 'password2',
+      })
+    expect(changed.status).toBe(204)
+
+    const oldLogin = await request(app).post('/api/v1/auth/login').send({
+      email: 'pwd@example.com',
+      password: 'password1',
+    })
+    expect(oldLogin.status).toBe(401)
+
+    const newLogin = await request(app).post('/api/v1/auth/login').send({
+      email: 'pwd@example.com',
+      password: 'password2',
+    })
+    expect(newLogin.status).toBe(200)
+  })
 })

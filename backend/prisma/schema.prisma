@@ -52,11 +52,13 @@ model User {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   profile              Profile?
+  managerProfile       ManagerProfile?
   activityLogs         ActivityLog[]
   deviceTokens         DeviceToken[]
   files                File[]
   provider             Provider?
   projects             Project[]
+  steps                Step[]
   reviews              Review[]
   sentNotifications    Notification[] @relation("SentNotifications")
   receivedNotifications Notification[] @relation("ReceivedNotifications")
@@ -86,6 +88,32 @@ model Profile {
   @@index([displayName(ops: raw("gin_trgm_ops"))], map: "profiles_displayName_trgm_idx", type: Gin)
   @@index([phone(ops: raw("gin_trgm_ops"))], map: "profiles_phone_trgm_idx", type: Gin)
   @@map("profiles")
+}
+
+/// Optional CV / additional info for project managers (civil engineers).
+model ManagerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  headline        String?
+  bio             String?
+  yearsExperience Int?
+  specialty       String?
+  education       String?
+  certifications  String?
+  skills          String?
+  languages       String?
+  city            String?
+  country         String?
+  website         String?
+  linkedinUrl     String?
+  cvUrl           String?
+  availability    String?
+  projectTypes    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("manager_profiles")
 }
 
 // =============================================================================
@@ -410,6 +438,7 @@ model Project {
   archivedAt      DateTime?
   owner           User           @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   images          ProjectImage[]
+  stepperProjects StepperProject[]
 
   @@index([ownerId])
   @@index([status])
@@ -433,6 +462,115 @@ model ProjectImage {
   @@index([projectId, displayOrder])
   @@index([projectId, isMain])
   @@map("project_images")
+}
+
+// =============================================================================
+// steps — Per-user project step templates; copied onto projects at create
+// =============================================================================
+
+enum StepStatus {
+  ACTIVE
+  INACTIVE
+  /// Hidden from new projects (like inactive) but kept for history / soft-retire.
+  ARCHIVED
+}
+
+/// User-owned step templates. Active steps for the project owner are assigned on project create.
+model Step {
+  id        String     @id @default(cuid())
+  name      String
+  orderNb   Int        @default(0)
+  status    StepStatus @default(ACTIVE)
+  userId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputs    StepInput[]
+
+  @@unique([userId, orderNb])
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, orderNb])
+  @@map("steps")
+}
+
+/// Project-owned stepper instance (cloned from a template at create; independent afterward).
+model StepperProject {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  orderNb   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inputs    ProjectStepInput[]
+
+  @@index([projectId, orderNb])
+  @@map("stepper_project")
+}
+
+/// Project-owned stepper field (cloned or added on the project). Independent of templates.
+model ProjectStepInput {
+  id               String   @id @default(cuid())
+  stepperProjectId String
+  inputTypeId      String
+  /// Snapshotted at create so catalog renames cannot change rendering of this field.
+  inputTypeCode    String
+  inputTypeLabel   String
+  label            String
+  orderNb          Int      @default(0)
+  /// Flexible JSON scalar: string | number | boolean | null
+  value            Json?
+  /// True when added on the project (not cloned from a template).
+  isProjectOnly    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  stepperProject   StepperProject @relation(fields: [stepperProjectId], references: [id], onDelete: Cascade)
+  inputType        InputType      @relation(fields: [inputTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([stepperProjectId, orderNb])
+  @@index([stepperProjectId])
+  @@index([inputTypeId])
+  @@map("project_step_inputs")
+}
+
+/// Platform catalog of field kinds for step inputs. SUPER manages; only ACTIVE types are selectable.
+model InputType {
+  id        String         @id @default(cuid())
+  code      String         @unique
+  label     String
+  status    InputTypeStatus @default(ACTIVE)
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  stepInputs StepInput[]
+  projectStepInputs ProjectStepInput[]
+
+  @@index([status, sortOrder])
+  @@map("input_types")
+}
+
+enum InputTypeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Input fields attached to a step template (stepper_inputs). Cloned onto projects at create.
+model StepInput {
+  id          String   @id @default(cuid())
+  stepId      String
+  inputTypeId String
+  label       String
+  orderNb     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  step        Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  inputType   InputType @relation(fields: [inputTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([stepId, orderNb])
+  @@index([stepId])
+  @@index([inputTypeId])
+  @@map("stepper_inputs")
 }
 
 // =============================================================================

@@ -27,6 +27,7 @@ export type AuthRepository = {
   findByEmail: (email: string) => Promise<AuthUserRecord | null>
   findById: (id: string) => Promise<AuthUserRecord | null>
   createUserWithProfile: (input: CreateAuthUserInput) => Promise<AuthUserRecord>
+  updatePasswordHash: (userId: string, passwordHash: string) => Promise<void>
 }
 
 export function createAuthRepository(): AuthRepository {
@@ -74,6 +75,14 @@ export function createAuthRepository(): AuthRepository {
             select: { firstName: true, lastName: true, displayName: true },
           },
         },
+      })
+    },
+
+    async updatePasswordHash(userId, passwordHash) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash },
+        select: { id: true },
       })
     },
   }

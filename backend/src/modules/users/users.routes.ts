@@ -13,6 +13,7 @@ import {
   listLookupQuerySchema,
   listUsersQuerySchema,
   listVerificationsQuerySchema,
+  setAvatarBodySchema,
   setVerificationBodySchema,
   updateUserBodySchema,
   userIdParamsSchema,
@@ -95,6 +96,21 @@ export function createUsersRoutes(controller: UsersController): Router {
     '/:id',
     validate({ params: userIdParamsSchema, body: updateUserBodySchema }),
     controller.update,
+  )
+  router.get(
+    '/:id/avatar',
+    validate({ params: userIdParamsSchema }),
+    controller.getAvatarUrl,
+  )
+  router.put(
+    '/:id/avatar',
+    validate({ params: userIdParamsSchema, body: setAvatarBodySchema }),
+    controller.setAvatar,
+  )
+  router.delete(
+    '/:id/avatar',
+    validate({ params: userIdParamsSchema }),
+    controller.clearAvatar,
   )
   router.post(
     '/:id/deactivate',

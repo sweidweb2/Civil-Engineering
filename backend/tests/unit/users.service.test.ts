@@ -79,6 +79,18 @@ describe('usersService', () => {
         }),
       ),
       updateStatus: vi.fn(async (id, status) => makeUser({ id, status })),
+      setAvatarFileId: vi.fn(async (userId, fileId) =>
+        makeUser({
+          id: userId,
+          profile: {
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            displayName: 'Ada Lovelace',
+            phone: null,
+            avatarUrl: fileId,
+          },
+        }),
+      ),
       findApprovals: vi.fn(async () => ({ users: [makeUser({ role: 'MANAGER', status: 'PENDING' })], total: 1 })),
       countApprovals: vi.fn(async () => ({ pending: 1, approved: 0, providersPending: 0 })),
       findVerifications: vi.fn(async () => ({

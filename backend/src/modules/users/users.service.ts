@@ -1,7 +1,8 @@
 import { hashPassword } from '../auth/auth.tokens.js'
 import type { AuthActor } from '../../authz/index.js'
 import { assertSelfOrAdmin, isAdmin, isSuper } from '../../authz/index.js'
-import { conflict, forbidden, notFound } from '../../errors/app-error.js'
+import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import type { FilesService } from '../files/index.js'
 import type { UserDirectoryCounts, UsersRepository } from './users.repository.js'
 import type {
   CreateApprovalBody,
@@ -11,6 +12,7 @@ import type {
   ListLookupQuery,
   ListUsersQuery,
   ListVerificationsQuery,
+  SetAvatarBody,
   SetVerificationBody,
   UpdateUserBody,
 } from './users.schema.js'
@@ -18,9 +20,12 @@ import {
   APPROVAL_ROLES,
   type ApprovalRole,
   type User,
+  type UserAvatarResult,
   type UserLookup,
   type VerificationStatus,
 } from './users.types.js'
+
+const AVATAR_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 export type UsersService = {
   listUsers: (
@@ -38,6 +43,9 @@ export type UsersService = {
   assertAccessible: (id: string, actor: AuthActor) => Promise<User>
   createUser: (input: CreateUserBody, actor: AuthActor) => Promise<User>
   updateUser: (id: string, input: UpdateUserBody, actor: AuthActor) => Promise<User>
+  setAvatar: (id: string, input: SetAvatarBody, actor: AuthActor) => Promise<UserAvatarResult>
+  clearAvatar: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
+  getAvatarUrl: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
   deactivateUser: (id: string, actor: AuthActor) => Promise<User>
   listApprovals: (query: ListApprovalsQuery) => Promise<{
     data: User[]
@@ -68,7 +76,28 @@ export type UsersService = {
   deleteVerification: (id: string, actor: AuthActor) => Promise<void>
 }
 
-export function createUsersService(repository: UsersRepository): UsersService {
+export type UsersFilesGateway = Pick<
+  FilesService,
+  'requireReadyAttachment' | 'downloadUrl' | 'softDelete'
+>
+
+const unavailableFiles: UsersFilesGateway = {
+  async requireReadyAttachment() {
+    throw validationError('Storage is not configured')
+  },
+  async downloadUrl() {
+    throw validationError('Storage is not configured')
+  },
+  async softDelete() {
+    throw validationError('Storage is not configured')
+  },
+}
+
+export function createUsersService(
+  repository: UsersRepository,
+  filesService: UsersFilesGateway = unavailableFiles,
+): UsersService {
+
   async function loadOrThrow(id: string): Promise<User> {
     const user = await repository.findById(id)
     if (!user) {
@@ -81,6 +110,17 @@ export function createUsersService(repository: UsersRepository): UsersService {
     const user = await loadOrThrow(id)
     assertSelfOrAdmin(actor, user.id)
     return user
+  }
+
+  async function resolveAvatar(user: User, actor: AuthActor): Promise<UserAvatarResult> {
+    const fileId = user.profile?.avatarUrl
+    if (!fileId) return { user, avatarDownloadUrl: null }
+    try {
+      const result = await filesService.downloadUrl(actor, fileId)
+      return { user, avatarDownloadUrl: result.downloadUrl }
+    } catch {
+      return { user, avatarDownloadUrl: null }
+    }
   }
 
   function assertAdmin(actor: AuthActor): void {
@@ -208,6 +248,46 @@ export function createUsersService(repository: UsersRepository): UsersService {
           phone: input.phone,
         },
       })
+    },
+
+    async setAvatar(id, input, actor) {
+      const user = await assertAccessible(id, actor)
+      const file = await filesService.requireReadyAttachment(input.fileId, 'USER', id)
+      if (!AVATAR_MIMES.has(file.mime)) {
+        throw validationError('Avatar must be a JPEG, PNG, or WebP image')
+      }
+
+      const previousFileId = user.profile?.avatarUrl
+      const updated = await repository.setAvatarFileId(id, file.id)
+
+      if (previousFileId && previousFileId !== file.id) {
+        try {
+          await filesService.softDelete(actor, previousFileId)
+        } catch {
+          // Previous object cleanup is best-effort; new avatar is already linked.
+        }
+      }
+
+      return resolveAvatar(updated, actor)
+    },
+
+    async clearAvatar(id, actor) {
+      const user = await assertAccessible(id, actor)
+      const previousFileId = user.profile?.avatarUrl
+      const updated = await repository.setAvatarFileId(id, null)
+      if (previousFileId) {
+        try {
+          await filesService.softDelete(actor, previousFileId)
+        } catch {
+          // Ignore cleanup failures after clearing the profile link.
+        }
+      }
+      return { user: updated, avatarDownloadUrl: null }
+    },
+
+    async getAvatarUrl(id, actor) {
+      const user = await assertAccessible(id, actor)
+      return resolveAvatar(user, actor)
     },
     
     async deactivateUser(id, actor) {

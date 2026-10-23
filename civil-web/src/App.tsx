@@ -19,6 +19,8 @@ import { ManageCategoriesPage } from '@/features/admin/ManageCategoriesPage'
 import { ManageNotificationsPage } from '@/features/admin/ManageNotificationsPage'
 import { ManageProvidersPage } from '@/features/admin/ManageProvidersPage'
 import { ManageReviewsPage } from '@/features/admin/ManageReviewsPage'
+import { ManageInputTypesPage } from '@/features/admin/ManageInputTypesPage'
+import { ManageStepsPage } from '@/features/admin/ManageStepsPage'
 import { MarketDetailsPage } from '@/features/admin/MarketDetailsPage'
 import { ProjectsListPage } from '@/features/admin/ProjectsListPage'
 import { ProjectDetailPage } from '@/features/admin/ProjectDetailPage'
@@ -28,7 +30,7 @@ import { UserQueuePage } from '@/features/admin/UserQueuePage'
 import { UsersPage } from '@/features/admin/UsersPage'
 import { NotificationsInboxPage } from '@/features/notifications/NotificationsInboxPage'
 import { PmAnalyticsPage } from '@/features/pm/PmAnalyticsPage'
-import { PmProfilePage } from '@/features/pm/PmProfilePage'
+import { PmSettingsPage } from '@/features/pm/PmSettingsPage'
 import { PanelHomePage } from '@/features/panels/PanelHomePage'
 import {
   AdminPanelLayout,
@@ -94,6 +96,8 @@ function App() {
             <Route path="activity" element={<ActivityLogsPage />} />
             <Route path="errors" element={<ErrorLogsPage />} />
             <Route path="notifications" element={<ManageNotificationsPage />} />
+            <Route path="steps" element={<ManageStepsPage />} />
+            <Route path="input-types" element={<ManageInputTypesPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
@@ -121,6 +125,7 @@ function App() {
             <Route path="listings" element={<ListingsPage />} />
             <Route path="reviews" element={<ManageReviewsPage />} />
             <Route path="categories" element={<ManageCategoriesPage />} />
+            <Route path="steps" element={<ManageStepsPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 
@@ -135,12 +140,13 @@ function App() {
             }
           >
             <Route index element={<PmAnalyticsPage />} />
-            <Route path="analytics" element={<PmAnalyticsPage />} />
-            <Route path="profile" element={<PmProfilePage />} />
+            <Route path="analytics" element={<Navigate to="/pm" replace />} />
+            <Route path="settings" element={<PmSettingsPage />} />
+            <Route path="profile" element={<Navigate to="/pm/settings" replace />} />
             <Route path="projects" element={<ProjectsListPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />
-            <Route path="categories" element={<ManageCategoriesPage />} />
+            <Route path="steps" element={<Navigate to="/pm/settings?tab=steps" replace />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

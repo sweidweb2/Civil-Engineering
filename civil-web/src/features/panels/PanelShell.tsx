@@ -2,15 +2,16 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
   AlertTriangle,
-  Bell,
   ChartColumn,
-  CircleUser,
   FolderKanban,
   FolderTree,
+  FormInput,
   Home,
   LayoutDashboard,
   Library,
+  ListOrdered,
   LogOut,
+  Menu,
   Package,
   Moon,
   Palette,
@@ -21,7 +22,9 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react'
+import { cn } from 'cn'
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
@@ -38,6 +41,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Sidebar,
   SidebarContent,
@@ -67,9 +76,12 @@ export type PanelNavItem = {
   end?: boolean
 }
 
+type PanelShellVariant = 'sidebar' | 'navbar'
+
 type PanelShellProps = {
   title: string
   nav: PanelNavItem[]
+  variant?: PanelShellVariant
   children?: ReactNode
 }
 
@@ -95,13 +107,213 @@ function userInitials(user: AuthUser | null): string {
   return user.email.slice(0, 2).toUpperCase()
 }
 
-export function PanelShell({ title, nav, children }: PanelShellProps) {
-  const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
+function AccountMenu({
+  user,
+  onLogout,
+}: {
+  user: AuthUser | null
+  onLogout: () => void
+}) {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, setTheme } = useTheme()
   const activeTheme = theme === 'colorful' || theme === 'dark' ? theme : 'light'
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Account menu"
+        className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <Avatar size="lg">
+          <AvatarFallback>{userInitials(user)}</AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuItem onClick={() => navigate('/')}>
+          <Home />
+          Home
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {location.pathname.startsWith('/pm') ? (
+          <>
+            <DropdownMenuItem onClick={() => navigate('/pm/settings')}>
+              <Settings />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={activeTheme}
+            onValueChange={(value) => {
+              if (value === 'light' || value === 'colorful' || value === 'dark') {
+                setTheme(value)
+              }
+            }}
+          >
+            <DropdownMenuRadioItem value="colorful">
+              <Palette />
+              Colorful
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="light">
+              <Sun />
+              Light
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">
+              <Moon />
+              Dark
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onLogout}>
+          <LogOut />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function NavLinkClasses(active: boolean) {
+  return cn(
+    'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors outline-none',
+    'hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
+    active ? 'bg-muted text-foreground' : 'text-muted-foreground',
+  )
+}
+
+function PanelNavLinks({
+  nav,
+  pathname,
+  orientation = 'horizontal',
+}: {
+  nav: PanelNavItem[]
+  pathname: string
+  orientation?: 'horizontal' | 'vertical'
+}) {
+  return (
+    <nav
+      aria-label="Portal"
+      className={cn(
+        'flex gap-1',
+        orientation === 'horizontal'
+          ? 'min-w-0 items-center justify-center overflow-x-auto'
+          : 'flex-col',
+      )}
+    >
+      {nav.map((item) => {
+        const active = navIsActive(pathname, item)
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            aria-current={active ? 'page' : undefined}
+            className={NavLinkClasses(active)}
+          >
+            <item.icon className="size-4 shrink-0" />
+            <span className="whitespace-nowrap">{item.label}</span>
+          </NavLink>
+        )
+      })}
+    </nav>
+  )
+}
+
+function NavbarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'variant'>) {
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location.pathname])
+
+  async function onLogout() {
+    await logout()
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <div className="flex min-h-svh flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-card">
+        <div className="mx-auto flex h-14 w-full items-center gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
+          {/* Left: brand */}
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Open navigation"
+                className="shrink-0 md:hidden"
+                onClick={() => setMobileNavOpen(true)}
+              >
+                <Menu />
+              </Button>
+              <SheetContent side="left" className="w-[min(20rem,85vw)] gap-4 p-4">
+                <SheetHeader className="px-1">
+                  <SheetTitle>Civil Engineering</SheetTitle>
+                  <p className="text-sm text-muted-foreground">{title}</p>
+                </SheetHeader>
+                <div className="sm:hidden">
+                  <PortalPageSearch nav={nav} />
+                </div>
+                <PanelNavLinks
+                  nav={nav}
+                  pathname={location.pathname}
+                  orientation="vertical"
+                />
+              </SheetContent>
+            </Sheet>
+
+            <div className="flex min-w-0 flex-col">
+              <Link
+                to="/"
+                className="truncate text-sm font-semibold text-foreground"
+              >
+                Civil Engineering
+              </Link>
+              <span className="hidden truncate text-xs text-muted-foreground sm:inline">
+                {title}
+              </span>
+            </div>
+          </div>
+
+          {/* Center: nav options */}
+          <div className="hidden min-w-0 shrink-0 justify-center md:flex">
+            <PanelNavLinks nav={nav} pathname={location.pathname} />
+          </div>
+
+          {/* Right: search + actions */}
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <div className="hidden w-40 min-w-0 sm:block md:w-48 lg:w-56">
+              <PortalPageSearch nav={nav} />
+            </div>
+            <NotificationInboxSheet />
+            <AccountMenu user={user} onLogout={() => void onLogout()} />
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        {children ?? <Outlet />}
+      </main>
+    </div>
+  )
+}
+
+function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'variant'>) {
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   async function onLogout() {
     await logout()
@@ -189,65 +401,7 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
           <PortalPageSearch nav={nav} />
           <div className="flex items-center justify-end gap-2">
             <NotificationInboxSheet />
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label="Account menu"
-                className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <Avatar size="lg">
-                  <AvatarFallback>{userInitials(user)}</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-44">
-                <DropdownMenuItem onClick={() => navigate('/')}>
-                  <Home />
-                  Home
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {location.pathname.startsWith('/pm') ? (
-                  <>
-                    <DropdownMenuItem onClick={() => navigate('/pm/analytics')}>
-                      <ChartColumn />
-                      Analytics
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/pm/profile')}>
-                      <CircleUser />
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                ) : null}
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Theme</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup
-                    value={activeTheme}
-                    onValueChange={(value) => {
-                      if (value === 'light' || value === 'colorful' || value === 'dark') {
-                        setTheme(value)
-                      }
-                    }}
-                  >
-                    <DropdownMenuRadioItem value="colorful">
-                      <Palette />
-                      Colorful
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="light">
-                      <Sun />
-                      Light
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="dark">
-                      <Moon />
-                      Dark
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => void onLogout()}>
-                  <LogOut />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <AccountMenu user={user} onLogout={() => void onLogout()} />
           </div>
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
@@ -258,12 +412,20 @@ export function PanelShell({ title, nav, children }: PanelShellProps) {
   )
 }
 
+export function PanelShell({ title, nav, variant = 'sidebar', children }: PanelShellProps) {
+  if (variant === 'navbar') {
+    return <NavbarPanelShell title={title} nav={nav}>{children}</NavbarPanelShell>
+  }
+  return <SidebarPanelShell title={title} nav={nav}>{children}</SidebarPanelShell>
+}
+
 export const SUPER_NAV: PanelNavItem[] = [
   { to: '/super', label: 'Home', icon: Home, end: true },
   { to: '/super/users', label: 'Users', icon: Users },
   { to: '/super/activity', label: 'Activity', icon: Activity },
   { to: '/super/errors', label: 'Errors', icon: AlertTriangle },
-  { to: '/super/notifications', label: 'Notifications', icon: Bell },
+  { to: '/super/steps', label: 'Steps', icon: ListOrdered },
+  { to: '/super/input-types', label: 'Input types', icon: FormInput },
   { to: '/super/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -277,19 +439,15 @@ export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin/listings', label: 'Listings', icon: Package },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
-  { to: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { to: '/admin/steps', label: 'Steps', icon: ListOrdered },
 ]
 
 export const PM_NAV: PanelNavItem[] = [
-  { to: '/pm', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/pm/analytics', label: 'Analytics', icon: ChartColumn },
+  { to: '/pm', label: 'Analytics', icon: ChartColumn, end: true },
   { to: '/pm/projects', label: 'Manage projects', icon: FolderKanban },
   { to: '/pm/directory', label: 'Directory', icon: Library },
-  { to: '/pm/categories', label: 'Categories', icon: FolderTree },
-  { to: '/pm/notifications', label: 'Notifications', icon: Bell },
 ]
 
 export const PROVIDER_NAV: PanelNavItem[] = [
   { to: '/provider', label: 'Home', icon: Home, end: true },
-  { to: '/provider/notifications', label: 'Notifications', icon: Bell },
 ]

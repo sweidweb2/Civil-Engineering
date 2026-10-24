@@ -34,14 +34,14 @@ test.describe('PM project steppers flow', () => {
     await page.getByRole('tab', { name: 'Steppers' }).click()
 
     await expect(page.getByText('Project workflow as connected nodes')).toBeVisible()
-    await expect(page.getByText('Site survey')).toBeVisible({ timeout: 15_000 })
-
-    // First open node is selected by default; ensure Site survey fields are shown.
-    await page.getByRole('button', { name: /Site survey/ }).click()
+    await expect(page.getByRole('heading', { name: 'Site survey' })).toBeVisible({
+      timeout: 15_000,
+    })
     await expect(page.getByText('Fill fields for this stepper')).toBeVisible()
-    await expect(page.getByLabel('Plot reference')).toBeVisible()
+    const plotReference = page.getByRole('textbox', { name: 'Plot reference' })
+    await expect(plotReference).toBeVisible()
 
-    await page.getByLabel('Plot reference').fill('Plot A-12')
+    await plotReference.fill('Plot A-12')
     const saveResponse = page.waitForResponse(
       (res) =>
         res.url().includes('/steppers/') &&
@@ -51,7 +51,7 @@ test.describe('PM project steppers flow', () => {
     await page.getByRole('button', { name: 'Save values' }).click()
     expect((await saveResponse).ok()).toBeTruthy()
 
-    await expect(page.getByText(/1\/3 filled|2\/3 filled|3\/3 filled/)).toBeVisible()
+    await expect(page.getByRole('button', { name: /Site survey.*1\/3 filled/ })).toBeVisible()
 
     await page.getByRole('button', { name: 'Add input' }).click()
     await expect(page.getByRole('heading', { name: 'Add project input' })).toBeVisible()
@@ -68,7 +68,7 @@ test.describe('PM project steppers flow', () => {
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     expect((await addResponse).ok()).toBeTruthy()
 
-    await expect(page.getByLabel('E2E area note')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'E2E area note' })).toBeVisible()
     await expect(page.getByText('Project', { exact: true }).first()).toBeVisible()
 
     const deleteResponse = page.waitForResponse(
@@ -78,6 +78,6 @@ test.describe('PM project steppers flow', () => {
     )
     await page.getByRole('button', { name: 'Remove E2E area note' }).click()
     expect((await deleteResponse).ok()).toBeTruthy()
-    await expect(page.getByLabel('E2E area note')).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: 'E2E area note' })).toHaveCount(0)
   })
 })

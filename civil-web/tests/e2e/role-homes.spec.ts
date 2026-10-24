@@ -32,7 +32,7 @@ test.describe('role home redirects', () => {
     const context = await browser.newContext({ storageState: authStatePath('provider') })
     const page = await context.newPage()
     await openSeedHome(page, 'provider')
-    await expect(page.getByRole('heading', { name: /provider home/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Grow your catalog/i })).toBeVisible()
     await context.close()
   })
 })

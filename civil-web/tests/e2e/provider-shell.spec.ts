@@ -10,11 +10,11 @@ test.describe('provider shell navigation', () => {
   })
 
   test('opens listings, analytics, profile, and notifications', async ({ page }) => {
-    await page.getByRole('link', { name: 'Listings' }).click()
+    await page.getByRole('navigation').getByRole('link', { name: 'Listings', exact: true }).click()
     await expect(page).toHaveURL(/\/provider\/listings/)
     await expect(page.getByRole('heading', { name: 'Listings' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Analytics' }).click()
+    await page.getByRole('navigation').getByRole('link', { name: 'Analytics', exact: true }).click()
     await expect(page).toHaveURL(/\/provider\/analytics/)
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
 

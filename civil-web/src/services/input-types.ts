@@ -7,6 +7,8 @@ export const INPUT_TYPE_CODE_OPTIONS = [
   { value: 'NUMBER', label: 'Number' },
   { value: 'YES_NO', label: 'Yes / No' },
   { value: 'DATE', label: 'Date' },
+  { value: 'CATEGORY', label: 'Category listing' },
+  { value: 'FILE', label: 'File' },
 ] as const
 
 export type InputTypeCode = (typeof INPUT_TYPE_CODE_OPTIONS)[number]['value']

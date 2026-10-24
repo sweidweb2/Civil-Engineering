@@ -1,0 +1,80 @@
+import { Link } from 'react-router-dom'
+
+import { buttonVariants } from '@/components/ui/button'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
+
+import { ProviderAnalyticsSection } from './ProviderAnalyticsSection'
+import { ProviderFocusSection } from './ProviderFocusSection'
+
+/** Matches the prepared hero canvas so the full provider home reads as one surface. */
+const PROVIDER_HOME_BG = 'bg-[#f7fbf9]'
+
+export function ProviderHomePage() {
+  useDocumentTitle('Provider home')
+  const user = useAuthStore((state) => state.user)
+  const displayName =
+    user?.profile?.displayName ||
+    [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') ||
+    user?.email ||
+    'Provider'
+
+  return (
+    <div
+      className={cn(
+        'relative -mx-4 -mt-6 flex min-h-[calc(100svh-3.5rem)] min-w-0 flex-col pb-6 sm:-mx-6 sm:min-h-[calc(100svh-4rem)] lg:-mx-8',
+        PROVIDER_HOME_BG,
+      )}
+    >
+      <section
+        aria-labelledby="provider-hero-title"
+        className="relative flex min-h-[32rem] flex-col items-stretch overflow-hidden lg:min-h-[36rem] lg:flex-row lg:items-center"
+      >
+        <div className="relative z-10 flex w-full max-w-2xl shrink-0 flex-col justify-center gap-5 px-4 py-12 sm:px-6 lg:ml-[10%] lg:max-w-xl lg:px-8 xl:max-w-2xl">
+          <p className="text-sm font-medium tracking-[0.14em] text-primary uppercase">
+            Provider portal
+          </p>
+          <h1
+            id="provider-hero-title"
+            className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+          >
+            Grow your catalog, {displayName.split(' ')[0]}
+          </h1>
+          <p className="max-w-lg text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+            Publish materials, equipment, and services, keep listings current, and stay visible to
+            project managers looking for trusted suppliers.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Link to="/provider/listings" className={cn(buttonVariants({ size: 'lg' }))}>
+              Manage listings
+            </Link>
+            <Link
+              to="/provider/categories"
+              className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
+            >
+              Browse categories
+            </Link>
+          </div>
+          {user ? (
+            <p className="pt-2 text-base text-muted-foreground">
+              Signed in as <span className="font-medium text-foreground">{user.email}</span>
+            </p>
+          ) : null}
+        </div>
+
+        <img
+          src="/illustrations/provider-home-hero.jpg?v=1"
+          alt=""
+          aria-hidden
+          className="mx-auto mt-2 mb-8 h-auto w-[min(100%,26rem)] object-contain px-4 lg:absolute lg:right-0 lg:bottom-0 lg:top-0 lg:mx-0 lg:my-0 lg:mb-0 lg:mt-0 lg:h-full lg:w-auto lg:max-w-[62%] lg:object-contain lg:object-right-bottom lg:pr-0"
+        />
+      </section>
+
+      <div className="px-4 pt-0 sm:px-6 lg:px-8">
+        <ProviderFocusSection />
+        <ProviderAnalyticsSection />
+      </div>
+    </div>
+  )
+}

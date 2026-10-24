@@ -118,7 +118,7 @@ function ProjectCardImage({ src, alt }: { src: string; alt: string }) {
   }, [src])
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden bg-muted">
+    <div className="relative aspect-[2/1] w-full overflow-hidden bg-muted">
       {isLoaded ? null : (
         <Skeleton className="absolute inset-0 size-full rounded-none" aria-hidden />
       )}
@@ -158,14 +158,14 @@ function ProjectCard({
       ) : (
         <ProjectCardMedia variant={variant} />
       )}
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              {createElement(getTypeIcon(project.type), { className: 'size-5 text-primary' })}
+      <CardHeader className="gap-0 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <div className="rounded-md bg-primary/10 p-1.5">
+              {createElement(getTypeIcon(project.type), { className: 'size-4 text-primary' })}
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="line-clamp-1 text-base">{project.name}</CardTitle>
+              <CardTitle className="line-clamp-1 text-sm">{project.name}</CardTitle>
               {project.code && <CardDescription className="text-xs">Code: {project.code}</CardDescription>}
             </div>
           </div>
@@ -200,17 +200,15 @@ function ProjectCard({
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 pt-0 pb-3">
         {project.description && (
-          <p className="line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
+          <p className="line-clamp-1 text-xs text-muted-foreground">{project.description}</p>
         )}
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Badge variant={getStatusColor(project.status)} className="text-xs">
-              {getStatusLabel(project.status)}
-            </Badge>
-          </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <Badge variant={getStatusColor(project.status)} className="text-xs">
+            {getStatusLabel(project.status)}
+          </Badge>
           {project.type && (
             <div className="flex items-center gap-1">
               <Building2 className="size-3" />
@@ -222,7 +220,7 @@ function ProjectCard({
         {project.progress > 0 && (
           <div className="flex items-center gap-2">
             <TrendingUp className="size-3 text-muted-foreground" />
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full bg-primary transition-all" style={{ width: `${project.progress}%` }} />
             </div>
             <span className="text-xs text-muted-foreground">{project.progress}%</span>

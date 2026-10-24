@@ -1,6 +1,10 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
+import {
+  findProviderIdByOwnerUserId,
+  findProviderOwnerUserId,
+} from '../providers/providers.access.js'
 import type { ListingRecord, ListingsRepository } from './listings.repository.js'
 import type { CreateListingBody, ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
 import type { Listing, ListingTypeCounts, PaginatedListings } from './listings.types.js'
@@ -40,15 +44,11 @@ export function toListingDto(record: ListingRecord): Listing {
   }
 }
 
-function assertAdmin(actor: AuthActor) {
-  if (!isAdmin(actor.roles)) {
-    throw forbidden('Only admins can manage listings')
-  }
-}
-
 function assertCanView(actor: AuthActor) {
-  if (isAdmin(actor.roles) || actor.roles.includes('MANAGER')) return
-  throw forbidden('Only admins and project managers can view listings')
+  if (isAdmin(actor.roles) || actor.roles.includes('MANAGER') || actor.roles.includes('PROVIDER')) {
+    return
+  }
+  throw forbidden('Only admins, project managers, and providers can view listings')
 }
 
 function assertRentalPair(price: string | number | null, unit: string | null) {
@@ -79,19 +79,45 @@ export function createListingsService(repository: ListingsRepository): ListingsS
     }
   }
 
+  async function resolveOwnedProviderId(actor: AuthActor): Promise<string> {
+    const providerId = await findProviderIdByOwnerUserId(actor.id)
+    if (!providerId) {
+      throw notFound('Provider profile not found', 'PROVIDER_NOT_FOUND')
+    }
+    return providerId
+  }
+
+  async function assertCanManageListingProvider(actor: AuthActor, providerId: string) {
+    if (isAdmin(actor.roles)) return
+    if (!actor.roles.includes('PROVIDER')) {
+      throw forbidden('Only admins and providers can manage listings')
+    }
+    const ownerUserId = await findProviderOwnerUserId(providerId)
+    if (!ownerUserId || ownerUserId !== actor.id) {
+      throw forbidden('You can only manage listings for your own provider')
+    }
+  }
+
   return {
     async listListings(query, actor) {
       assertCanView(actor)
+      const scopedQuery =
+        actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)
+          ? { ...query, providerId: await resolveOwnedProviderId(actor) }
+          : query
       const emptyCounts: ListingTypeCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 }
       const [{ items, total }, typeCounts] =
-        query.counts === false
-          ? [await repository.findMany(query), emptyCounts]
-          : await Promise.all([repository.findMany(query), repository.countByType(query.providerId)])
+        scopedQuery.counts === false
+          ? [await repository.findMany(scopedQuery), emptyCounts]
+          : await Promise.all([
+              repository.findMany(scopedQuery),
+              repository.countByType(scopedQuery.providerId),
+            ])
       return {
         data: items.map(toListingDto),
         meta: {
-          page: query.page,
-          limit: query.limit,
+          page: scopedQuery.page,
+          limit: scopedQuery.limit,
           total,
           typeCounts,
         },
@@ -100,15 +126,32 @@ export function createListingsService(repository: ListingsRepository): ListingsS
 
     async getListingById(id, actor) {
       assertCanView(actor)
-      return toListingDto(await loadOrThrow(id))
+      const listing = await loadOrThrow(id)
+      if (actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)) {
+        await assertCanManageListingProvider(actor, listing.providerId)
+      }
+      return toListingDto(listing)
     },
 
     async createListing(input, actor) {
-      assertAdmin(actor)
+      const providerId =
+        actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)
+          ? await resolveOwnedProviderId(actor)
+          : input.providerId
+      if (isAdmin(actor.roles)) {
+        // admins may choose any provider
+      } else if (actor.roles.includes('PROVIDER')) {
+        if (input.providerId && input.providerId !== providerId) {
+          throw forbidden('You can only create listings for your own provider')
+        }
+      } else {
+        throw forbidden('Only admins and providers can manage listings')
+      }
+
       assertRentalPair(input.rentalPrice ?? null, input.rentalUnit ?? null)
-      await assertRefs(input.providerId, input.categoryId, input.type)
+      await assertRefs(providerId, input.categoryId, input.type)
       const created = await repository.create({
-        providerId: input.providerId,
+        providerId,
         categoryId: input.categoryId,
         type: input.type,
         name: input.name,
@@ -126,10 +169,18 @@ export function createListingsService(repository: ListingsRepository): ListingsS
     },
 
     async updateListing(id, input, actor) {
-      assertAdmin(actor)
       const listing = await loadOrThrow(id)
+      await assertCanManageListingProvider(actor, listing.providerId)
+
       const nextType = input.type ?? listing.type
-      const nextProviderId = input.providerId ?? listing.providerId
+      let nextProviderId = input.providerId ?? listing.providerId
+      if (actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)) {
+        // Providers cannot reassign listings to another provider.
+        nextProviderId = listing.providerId
+        if (input.providerId !== undefined && input.providerId !== listing.providerId) {
+          throw forbidden('You cannot move a listing to another provider')
+        }
+      }
       const nextCategoryId = input.categoryId ?? listing.categoryId
       const nextRentalPrice = input.rentalPrice === undefined ? listing.rentalPrice : input.rentalPrice
       const nextRentalUnit = input.rentalUnit === undefined ? listing.rentalUnit : input.rentalUnit
@@ -139,14 +190,15 @@ export function createListingsService(repository: ListingsRepository): ListingsS
       }
       const updated = await repository.update(id, {
         ...input,
+        providerId: nextProviderId,
         currency: input.currency?.toUpperCase(),
       })
       return toListingDto(updated)
     },
 
     async deleteListing(id, actor) {
-      assertAdmin(actor)
-      await loadOrThrow(id)
+      const listing = await loadOrThrow(id)
+      await assertCanManageListingProvider(actor, listing.providerId)
       const reviewCount = await repository.countListingReviews(id)
       if (reviewCount > 0) {
         await repository.hide(id)

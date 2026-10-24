@@ -58,34 +58,27 @@ export function deleteFile(fileId: string) {
 }
 
 /**
- * Optimize (images) → presign → PUT to R2 → complete.
- * Bytes never go through Express.
+ * Optimize (images) → API multipart upload → R2 (server-side).
+ * Same path as avatar / project gallery — avoids browser→R2 CORS.
  */
 export async function uploadFile(input: {
   file: File
   entityType: FileEntityType
   entityId: string
+  onProgress?: (percent: number) => void
 }): Promise<CompleteFileResponse> {
   const optimized = await optimizeIfImage(input.file)
-  const presign = await presignFile({
-    entityType: input.entityType,
-    entityId: input.entityId,
-    mime: optimized.mime,
-    size: optimized.size,
-    originalName: optimized.originalName,
+  const body = new FormData()
+  body.append(
+    'file',
+    new File([optimized.blob], optimized.originalName, { type: optimized.mime }),
+  )
+  body.append('entityType', input.entityType)
+  body.append('entityId', input.entityId)
+
+  return apiRequest<CompleteFileResponse>('/files/upload', {
+    method: 'POST',
+    body,
+    onUploadProgress: input.onProgress,
   })
-
-  const put = await fetch(presign.uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': optimized.mime,
-    },
-    body: optimized.blob,
-  })
-
-  if (!put.ok) {
-    throw new Error(`Upload to storage failed (${put.status})`)
-  }
-
-  return completeFile(presign.fileId)
 }

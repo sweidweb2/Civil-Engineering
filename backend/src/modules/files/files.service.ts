@@ -29,8 +29,8 @@ export type FilesService = {
     entityId: string,
   ) => Promise<FileRecord>
   /**
-   * Small trusted uploads (e.g. avatars): API puts bytes to R2 then marks READY.
-   * Avoids browser→R2 CORS for profiles while keeping the File metadata row.
+   * Trusted uploads: API puts bytes to R2 then marks READY.
+   * Avoids browser→R2 CORS (same path as avatars / project gallery).
    */
   uploadBytes: (
     actor: AuthActor,

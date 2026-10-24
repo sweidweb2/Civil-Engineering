@@ -38,6 +38,7 @@ export type StepInputRecord = {
   inputTypeLabel: string
   label: string
   orderNb: number
+  categoryId: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -105,6 +106,7 @@ function toStepInputRecord(row: {
   inputTypeId: string
   label: string
   orderNb: number
+  categoryId: string | null
   createdAt: Date
   updatedAt: Date
   inputType: { code: string; label: string }
@@ -117,6 +119,7 @@ function toStepInputRecord(row: {
     inputTypeLabel: row.inputType.label,
     label: row.label,
     orderNb: row.orderNb,
+    categoryId: row.categoryId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -144,6 +147,7 @@ export function toStepInputDto(record: StepInputRecord): StepInput {
     inputTypeLabel: record.inputTypeLabel,
     label: record.label,
     orderNb: record.orderNb,
+    categoryId: record.categoryId,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   }
@@ -275,6 +279,7 @@ export function createStepsRepository(): StepsRepository {
           inputTypeLabel: input.inputType.label,
           label: input.label,
           orderNb: input.orderNb,
+          categoryId: input.categoryId,
           value: Prisma.DbNull,
           isProjectOnly: false,
         }))
@@ -329,6 +334,7 @@ export function createStepsRepository(): StepsRepository {
           inputTypeId: input.inputTypeId,
           label: input.label,
           orderNb: input.orderNb,
+          categoryId: input.categoryId ?? null,
         },
         include: stepInputInclude,
       })
@@ -342,6 +348,7 @@ export function createStepsRepository(): StepsRepository {
           inputTypeId: input.inputTypeId,
           label: input.label,
           orderNb: input.orderNb,
+          ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
         },
         include: stepInputInclude,
       })

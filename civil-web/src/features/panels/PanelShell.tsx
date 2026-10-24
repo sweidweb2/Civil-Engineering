@@ -450,4 +450,6 @@ export const PM_NAV: PanelNavItem[] = [
 
 export const PROVIDER_NAV: PanelNavItem[] = [
   { to: '/provider', label: 'Home', icon: Home, end: true },
+  { to: '/provider/listings', label: 'Listings', icon: Package },
+  { to: '/provider/categories', label: 'Categories', icon: FolderTree },
 ]

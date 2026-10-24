@@ -1,6 +1,9 @@
 import type { AuthActor } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { findPlatformCategory } from '../categories/categories.access.js'
+import type { FilesService } from '../files/files.service.js'
 import type { InputTypesService } from '../input-types/index.js'
+import { findListingSnapshot } from '../listings/listings.access.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import { allocateOrderedWithActiveType } from '../steps/steps.order.js'
 import {
@@ -10,6 +13,8 @@ import {
 } from './project-steppers.repository.js'
 import type {
   CreateProjectStepInputBody,
+  FileSnapshotPayload,
+  StepperInputValuePayload,
   UpsertStepperValuesBody,
 } from './project-steppers.schema.js'
 import type {
@@ -17,7 +22,30 @@ import type {
   ProjectStepInputField,
   ProjectStepNode,
 } from './project-steppers.types.js'
-import { assertValidStepperValue } from './project-steppers.values.js'
+import {
+  assertListingMatchesCategory,
+  assertValidStepperValue,
+  fileIdFromValue,
+  listingIdFromValue,
+} from './project-steppers.values.js'
+
+export type ProjectSteppersFilesGateway = Pick<
+  FilesService,
+  'requireReadyAttachment' | 'softDelete'
+>
+
+async function softDeleteFileBestEffort(
+  files: ProjectSteppersFilesGateway,
+  actor: AuthActor,
+  fileId: string | null,
+) {
+  if (!fileId) return
+  try {
+    await files.softDelete(actor, fileId)
+  } catch {
+    // Best-effort cleanup — do not fail the primary write.
+  }
+}
 
 export type ProjectSteppersService = {
   listSteppers: (projectId: string, actor: AuthActor) => Promise<ProjectStepNode[]>
@@ -60,11 +88,81 @@ function assertNotTruncated(truncated: boolean, kind: 'steps' | 'inputs') {
   )
 }
 
+async function assertCategoryBinding(inputTypeCode: string, categoryId: string | null | undefined) {
+  const isCategory = inputTypeCode.toUpperCase() === 'CATEGORY'
+  if (isCategory) {
+    if (!categoryId) {
+      throw validationError('Category is required for CATEGORY inputs')
+    }
+    const category = await findPlatformCategory(categoryId)
+    if (!category || category.scope !== 'PLATFORM') {
+      throw notFound('Category not found', 'CATEGORY_NOT_FOUND')
+    }
+    return categoryId
+  }
+  if (categoryId) {
+    throw validationError('categoryId is only allowed for CATEGORY inputs')
+  }
+  return null
+}
+
+function toFileSnapshot(file: {
+  id: string
+  originalName: string
+  mime: string
+  size: number | null
+}): FileSnapshotPayload {
+  return {
+    id: file.id,
+    originalName: file.originalName,
+    mime: file.mime,
+    size: file.size,
+  }
+}
+
 export function createProjectSteppersService(
   repository: ProjectSteppersRepository,
   projectsService: Pick<ProjectsService, 'assertAccessible'>,
   inputTypes: Pick<InputTypesService, 'requireActiveInputType'>,
+  files: ProjectSteppersFilesGateway,
 ): ProjectSteppersService {
+  async function resolveStoredValue(
+    projectId: string,
+    inputTypeCode: string,
+    label: string,
+    categoryId: string | null,
+    value: StepperInputValuePayload,
+  ): Promise<StepperInputValuePayload> {
+    assertValidStepperValue(inputTypeCode, label, value)
+    if (value === null) return null
+
+    const code = inputTypeCode.toUpperCase()
+
+    if (code === 'FILE') {
+      const fileId = fileIdFromValue(value)
+      if (!fileId) {
+        throw validationError(`"${label}" must be a file selection`)
+      }
+      const file = await files.requireReadyAttachment(fileId, 'PROJECT', projectId)
+      return toFileSnapshot(file)
+    }
+
+    if (code !== 'CATEGORY') {
+      return value
+    }
+
+    const listingId = listingIdFromValue(value)
+    if (!listingId) {
+      throw validationError(`"${label}" must be a listing selection`)
+    }
+    const snapshot = await findListingSnapshot(listingId)
+    if (!snapshot) {
+      throw notFound('Listing not found', 'LISTING_NOT_FOUND')
+    }
+    assertListingMatchesCategory(label, snapshot, categoryId)
+    return snapshot
+  }
+
   async function loadOwnedStep(projectId: string, projectStepId: string, actor: AuthActor) {
     await projectsService.assertAccessible(projectId, actor)
     const link = await repository.findById(projectStepId)
@@ -100,15 +198,34 @@ export function createProjectSteppersService(
       assertNotTruncated(truncated, 'inputs')
       const byId = new Map(meta.map((input) => [input.id, input]))
 
+      const resolved: Array<{ id: string; value: StepperInputValuePayload }> = []
+      const obsoleteFileIds: string[] = []
       for (const entry of body.values) {
         const field = byId.get(entry.id)
         if (!field) {
           throw validationError('One or more inputs do not belong to this project step')
         }
-        assertValidStepperValue(field.inputTypeCode, field.label, entry.value)
+        const value = await resolveStoredValue(
+          projectId,
+          field.inputTypeCode,
+          field.label,
+          field.categoryId,
+          entry.value,
+        )
+        if (field.inputTypeCode.toUpperCase() === 'FILE') {
+          const previousFileId = fileIdFromValue(field.value)
+          const nextFileId = fileIdFromValue(value)
+          if (previousFileId && previousFileId !== nextFileId) {
+            obsoleteFileIds.push(previousFileId)
+          }
+        }
+        resolved.push({ id: entry.id, value })
       }
 
-      await repository.upsertValues(link.id, body.values)
+      await repository.upsertValues(link.id, resolved)
+      for (const fileId of obsoleteFileIds) {
+        await softDeleteFileBestEffort(files, actor, fileId)
+      }
       return loadDetailOrThrow(projectStepId)
     },
 
@@ -124,15 +241,25 @@ export function createProjectSteppersService(
         inputTypeId: body.inputTypeId,
         listUsed: () => repository.listUsedOrders(projectStepId),
         requested: body.orderNb,
-        persist: (orderNb, inputType) => {
-          if (body.value !== undefined) {
-            assertValidStepperValue(inputType.code, body.label, body.value ?? null)
+        persist: async (orderNb, inputType) => {
+          const categoryId = await assertCategoryBinding(inputType.code, body.categoryId)
+          let value: StepperInputValuePayload | undefined = body.value
+          if (value !== undefined) {
+            value = await resolveStoredValue(
+              projectId,
+              inputType.code,
+              body.label,
+              categoryId,
+              value ?? null,
+            )
           }
           return repository.createInput(projectStepId, {
             ...body,
             orderNb,
             inputTypeCode: inputType.code,
             inputTypeLabel: inputType.label,
+            categoryId,
+            value,
           })
         },
         conflictMessage: 'Could not allocate a free input order. Retry.',
@@ -152,7 +279,10 @@ export function createProjectSteppersService(
           'PROJECT_STEP_INPUT_LOCKED',
         )
       }
+      const attachedFileId =
+        field.inputTypeCode.toUpperCase() === 'FILE' ? fileIdFromValue(field.value) : null
       await repository.deleteInput(inputId, projectStepId)
+      await softDeleteFileBestEffort(files, actor, attachedFileId)
     },
   }
 }

@@ -1,11 +1,13 @@
 /** Closed set of input type codes SUPER may create (not free-text). */
-export const INPUT_TYPE_CODES = ['TEXT', 'NUMBER', 'YES_NO', 'DATE'] as const
+export const INPUT_TYPE_CODES = ['TEXT', 'NUMBER', 'YES_NO', 'DATE', 'CATEGORY', 'FILE'] as const
 
 export const INPUT_TYPE_CODE_OPTIONS = [
   { code: 'TEXT', label: 'Text' },
   { code: 'NUMBER', label: 'Number' },
   { code: 'YES_NO', label: 'Yes / No' },
   { code: 'DATE', label: 'Date' },
+  { code: 'CATEGORY', label: 'Category listing' },
+  { code: 'FILE', label: 'File' },
 ] as const
 
 export type InputTypeCodeOption = (typeof INPUT_TYPE_CODES)[number]

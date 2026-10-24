@@ -89,6 +89,7 @@ export function listListings(
     type?: ListingType
     status?: ListingStatus
     providerId?: string
+    categoryId?: string
     counts?: boolean
   },
 ) {
@@ -97,6 +98,7 @@ export function listListings(
   if (filters?.type) params.set('type', filters.type)
   if (filters?.status) params.set('status', filters.status)
   if (filters?.providerId) params.set('providerId', filters.providerId)
+  if (filters?.categoryId) params.set('categoryId', filters.categoryId)
   if (filters?.counts === false) params.set('counts', 'false')
   return apiRequest<PaginatedListings>(`/listings?${params.toString()}`)
 }

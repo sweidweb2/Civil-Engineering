@@ -1,6 +1,29 @@
 import { apiRequest } from './api'
 
-export type StepperValue = string | number | boolean | null
+export type ListingSnapshot = {
+  id: string
+  name: string
+  type: string
+  categoryId: string
+  brand: string | null
+  unit: string
+  currency: string
+  price: string
+  rentalPrice: string | null
+  rentalUnit: string | null
+  providerId: string
+  status: string
+  description: string | null
+}
+
+export type FileSnapshot = {
+  id: string
+  originalName: string
+  mime: string
+  size: number | null
+}
+
+export type StepperValue = string | number | boolean | ListingSnapshot | FileSnapshot | null
 
 /** Project-owned step instance (not a Project row). */
 export type ProjectStepNode = {
@@ -23,6 +46,7 @@ export type ProjectStepInputField = {
   inputTypeId: string
   inputTypeCode: string
   inputTypeLabel: string
+  categoryId: string | null
   value: StepperValue
   isProjectOnly: boolean
 }
@@ -44,6 +68,45 @@ export type ProjectStepperDetail = ProjectStepDetail
 export type OrderAdjustMeta = {
   orderAdjusted: boolean
   orderNb: number
+}
+
+export function listingIdFromStepperValue(value: StepperValue): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed === '' ? null : trimmed
+  }
+  if (typeof value === 'object' && 'id' in value && typeof value.id === 'string') {
+    return value.id
+  }
+  return null
+}
+
+export function fileIdFromStepperValue(value: StepperValue): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed === '' ? null : trimmed
+  }
+  if (
+    typeof value === 'object' &&
+    'id' in value &&
+    typeof value.id === 'string' &&
+    'originalName' in value
+  ) {
+    return value.id
+  }
+  return null
+}
+
+export function isFileSnapshot(value: StepperValue): value is FileSnapshot {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'originalName' in value &&
+    typeof value.originalName === 'string'
+  )
 }
 
 export function listProjectSteppers(projectId: string) {
@@ -73,7 +136,13 @@ export function saveProjectStepperValues(
 export function addProjectStepInput(
   projectId: string,
   projectStepId: string,
-  input: { inputTypeId: string; label: string; orderNb?: number; value?: StepperValue },
+  input: {
+    inputTypeId: string
+    label: string
+    orderNb?: number
+    categoryId?: string | null
+    value?: StepperValue
+  },
 ) {
   return apiRequest<{ data: ProjectStepInputField; meta?: OrderAdjustMeta }>(
     `/projects/${projectId}/steppers/${projectStepId}/inputs`,

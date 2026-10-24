@@ -1,5 +1,5 @@
-import { type FormEvent,useCallback, useEffect, useRef, useState } from 'react'
-import { Camera, Loader2, Trash2 } from 'lucide-react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { Camera, Eye, EyeOff, Loader2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -29,7 +29,7 @@ const AVATAR_MAX_BYTES = 8 * 1024 * 1024
 function AvatarUploadProgress({ value }: { value: number }) {
   const label = value >= 100 ? 'Finishing…' : 'Uploading photo…'
   return (
-    <div className="flex w-full min-w-[12rem] max-w-sm flex-col gap-2">
+    <div className="flex w-full flex-col gap-2">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -108,6 +108,11 @@ export function PmProfileGeneralPanel() {
     Partial<Record<keyof PasswordForm, string>>
   >({})
   const [isSavingPassword, setIsSavingPassword] = useState(false)
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  })
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarUploadProgress, setAvatarUploadProgress] = useState(0)
@@ -288,8 +293,8 @@ export function PmProfileGeneralPanel() {
       onRetry={() => void remote.refetch()}
       loadingFallback={<DetailSkeleton />}
     >
-      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
-        <Card size="sm" className="xl:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+        <Card size="sm" className="min-w-0">
           <CardHeader>
             <CardTitle>Personal details</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -298,122 +303,54 @@ export function PmProfileGeneralPanel() {
           </CardHeader>
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={(event) => void onSubmit(event)}>
-              <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_13rem] md:items-start">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field data-invalid={Boolean(fieldErrors.firstName) || undefined}>
-                    <Label htmlFor="profile-first-name">First name</Label>
-                    <Input
-                      id="profile-first-name"
-                      value={form.firstName}
-                      maxLength={100}
-                      placeholder="e.g. Layla"
-                      aria-invalid={Boolean(fieldErrors.firstName) || undefined}
-                      onChange={(event) => setField('firstName', event.target.value)}
-                    />
-                    <FieldError errors={[{ message: fieldErrors.firstName }]} />
-                  </Field>
-                  <Field data-invalid={Boolean(fieldErrors.lastName) || undefined}>
-                    <Label htmlFor="profile-last-name">Last name</Label>
-                    <Input
-                      id="profile-last-name"
-                      value={form.lastName}
-                      maxLength={100}
-                      placeholder="e.g. Hassan"
-                      aria-invalid={Boolean(fieldErrors.lastName) || undefined}
-                      onChange={(event) => setField('lastName', event.target.value)}
-                    />
-                    <FieldError errors={[{ message: fieldErrors.lastName }]} />
-                  </Field>
-                  <Field data-invalid={Boolean(fieldErrors.displayName) || undefined}>
-                    <Label htmlFor="profile-display-name">Display name</Label>
-                    <Input
-                      id="profile-display-name"
-                      value={form.displayName}
-                      maxLength={120}
-                      placeholder="Name shown in the app"
-                      aria-invalid={Boolean(fieldErrors.displayName) || undefined}
-                      onChange={(event) => setField('displayName', event.target.value)}
-                    />
-                    <FieldError errors={[{ message: fieldErrors.displayName }]} />
-                  </Field>
-                  <Field data-invalid={Boolean(fieldErrors.phone) || undefined}>
-                    <Label htmlFor="profile-phone">Phone</Label>
-                    <Input
-                      id="profile-phone"
-                      value={form.phone}
-                      maxLength={20}
-                      placeholder="+961 03 000 000"
-                      aria-invalid={Boolean(fieldErrors.phone) || undefined}
-                      onChange={(event) => setField('phone', event.target.value)}
-                    />
-                    <FieldError errors={[{ message: fieldErrors.phone }]} />
-                  </Field>
-                </div>
-
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-4 md:sticky md:top-4">
-                  <div className="relative size-24 shrink-0">
-                    <Avatar size="lg" className="size-24 data-[size=lg]:size-24">
-                      {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile photo" /> : null}
-                      <AvatarFallback className="text-base">{avatarInitials()}</AvatarFallback>
-                    </Avatar>
-                    {isUploadingAvatar ? (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70"
-                        aria-hidden
-                      >
-                        <Loader2 className="size-6 animate-spin text-primary" />
-                      </div>
-                    ) : null}
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={AVATAR_ACCEPT}
-                    className="sr-only"
-                    disabled={isUploadingAvatar || isRemovingAvatar}
-                    onChange={(event) => void onAvatarSelected(event.target.files?.[0])}
-                  />
-                  <div className="flex w-full flex-col gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      disabled={isUploadingAvatar || isRemovingAvatar}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {isUploadingAvatar ? (
-                        <Loader2 className="animate-spin" />
-                      ) : (
-                        <Camera />
-                      )}
-                      {isUploadingAvatar
-                        ? 'Uploading…'
-                        : avatarUrl
-                          ? 'Change photo'
-                          : 'Upload photo'}
-                    </Button>
-                    {account?.profile?.avatarUrl ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="w-full"
-                        disabled={isUploadingAvatar || isRemovingAvatar}
-                        onClick={() => void onRemoveAvatar()}
-                      >
-                        {isRemovingAvatar ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                        {isRemovingAvatar ? 'Removing…' : 'Remove'}
-                      </Button>
-                    ) : null}
-                  </div>
-                  <p className="text-center text-xs text-muted-foreground">
-                    JPEG, PNG, or WebP · up to 8 MB
-                  </p>
-                  {isUploadingAvatar ? (
-                    <AvatarUploadProgress value={avatarUploadProgress} />
-                  ) : null}
-                </div>
-              </div>
-
+              <Field data-invalid={Boolean(fieldErrors.firstName) || undefined}>
+                <Label htmlFor="profile-first-name">First name</Label>
+                <Input
+                  id="profile-first-name"
+                  value={form.firstName}
+                  maxLength={100}
+                  placeholder="e.g. Layla"
+                  aria-invalid={Boolean(fieldErrors.firstName) || undefined}
+                  onChange={(event) => setField('firstName', event.target.value)}
+                />
+                <FieldError errors={[{ message: fieldErrors.firstName }]} />
+              </Field>
+              <Field data-invalid={Boolean(fieldErrors.lastName) || undefined}>
+                <Label htmlFor="profile-last-name">Last name</Label>
+                <Input
+                  id="profile-last-name"
+                  value={form.lastName}
+                  maxLength={100}
+                  placeholder="e.g. Hassan"
+                  aria-invalid={Boolean(fieldErrors.lastName) || undefined}
+                  onChange={(event) => setField('lastName', event.target.value)}
+                />
+                <FieldError errors={[{ message: fieldErrors.lastName }]} />
+              </Field>
+              <Field data-invalid={Boolean(fieldErrors.displayName) || undefined}>
+                <Label htmlFor="profile-display-name">Display name</Label>
+                <Input
+                  id="profile-display-name"
+                  value={form.displayName}
+                  maxLength={120}
+                  placeholder="Name shown in the app"
+                  aria-invalid={Boolean(fieldErrors.displayName) || undefined}
+                  onChange={(event) => setField('displayName', event.target.value)}
+                />
+                <FieldError errors={[{ message: fieldErrors.displayName }]} />
+              </Field>
+              <Field data-invalid={Boolean(fieldErrors.phone) || undefined}>
+                <Label htmlFor="profile-phone">Phone</Label>
+                <Input
+                  id="profile-phone"
+                  value={form.phone}
+                  maxLength={20}
+                  placeholder="+961 03 000 000"
+                  aria-invalid={Boolean(fieldErrors.phone) || undefined}
+                  onChange={(event) => setField('phone', event.target.value)}
+                />
+                <FieldError errors={[{ message: fieldErrors.phone }]} />
+              </Field>
               <div className="flex justify-end">
                 <Button type="submit" disabled={isSaving || isUploadingAvatar}>
                   {isSaving ? 'Saving…' : 'Save'}
@@ -423,7 +360,7 @@ export function PmProfileGeneralPanel() {
           </CardContent>
         </Card>
 
-        <Card size="sm" className="xl:col-span-2">
+        <Card size="sm" className="min-w-0">
           <CardHeader>
             <CardTitle>Security</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -437,44 +374,105 @@ export function PmProfileGeneralPanel() {
             >
               <Field data-invalid={Boolean(passwordErrors.currentPassword) || undefined}>
                 <Label htmlFor="security-current-password">Current password</Label>
-                <Input
-                  id="security-current-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={passwordForm.currentPassword}
-                  maxLength={128}
-                  placeholder="Enter your current password"
-                  aria-invalid={Boolean(passwordErrors.currentPassword) || undefined}
-                  onChange={(event) => setPasswordField('currentPassword', event.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="security-current-password"
+                    type={passwordVisibility.currentPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={passwordForm.currentPassword}
+                    maxLength={128}
+                    placeholder="Enter your current password"
+                    aria-invalid={Boolean(passwordErrors.currentPassword) || undefined}
+                    className="pr-9"
+                    onChange={(event) => setPasswordField('currentPassword', event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                    aria-label={
+                      passwordVisibility.currentPassword ? 'Hide password' : 'Show password'
+                    }
+                    aria-pressed={passwordVisibility.currentPassword}
+                    onClick={() =>
+                      setPasswordVisibility((current) => ({
+                        ...current,
+                        currentPassword: !current.currentPassword,
+                      }))
+                    }
+                  >
+                    {passwordVisibility.currentPassword ? <EyeOff /> : <Eye />}
+                  </Button>
+                </div>
                 <FieldError errors={[{ message: passwordErrors.currentPassword }]} />
               </Field>
               <Field data-invalid={Boolean(passwordErrors.newPassword) || undefined}>
                 <Label htmlFor="security-new-password">New password</Label>
-                <Input
-                  id="security-new-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={passwordForm.newPassword}
-                  maxLength={128}
-                  placeholder="At least 8 characters"
-                  aria-invalid={Boolean(passwordErrors.newPassword) || undefined}
-                  onChange={(event) => setPasswordField('newPassword', event.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="security-new-password"
+                    type={passwordVisibility.newPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={passwordForm.newPassword}
+                    maxLength={128}
+                    placeholder="At least 8 characters"
+                    aria-invalid={Boolean(passwordErrors.newPassword) || undefined}
+                    className="pr-9"
+                    onChange={(event) => setPasswordField('newPassword', event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                    aria-label={passwordVisibility.newPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={passwordVisibility.newPassword}
+                    onClick={() =>
+                      setPasswordVisibility((current) => ({
+                        ...current,
+                        newPassword: !current.newPassword,
+                      }))
+                    }
+                  >
+                    {passwordVisibility.newPassword ? <EyeOff /> : <Eye />}
+                  </Button>
+                </div>
                 <FieldError errors={[{ message: passwordErrors.newPassword }]} />
               </Field>
               <Field data-invalid={Boolean(passwordErrors.confirmPassword) || undefined}>
                 <Label htmlFor="security-confirm-password">Confirm new password</Label>
-                <Input
-                  id="security-confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={passwordForm.confirmPassword}
-                  maxLength={128}
-                  placeholder="Re-enter your new password"
-                  aria-invalid={Boolean(passwordErrors.confirmPassword) || undefined}
-                  onChange={(event) => setPasswordField('confirmPassword', event.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="security-confirm-password"
+                    type={passwordVisibility.confirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={passwordForm.confirmPassword}
+                    maxLength={128}
+                    placeholder="Re-enter your new password"
+                    aria-invalid={Boolean(passwordErrors.confirmPassword) || undefined}
+                    className="pr-9"
+                    onChange={(event) => setPasswordField('confirmPassword', event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                    aria-label={
+                      passwordVisibility.confirmPassword ? 'Hide password' : 'Show password'
+                    }
+                    aria-pressed={passwordVisibility.confirmPassword}
+                    onClick={() =>
+                      setPasswordVisibility((current) => ({
+                        ...current,
+                        confirmPassword: !current.confirmPassword,
+                      }))
+                    }
+                  >
+                    {passwordVisibility.confirmPassword ? <EyeOff /> : <Eye />}
+                  </Button>
+                </div>
                 <FieldError errors={[{ message: passwordErrors.confirmPassword }]} />
               </Field>
               <div className="flex justify-end">
@@ -483,6 +481,72 @@ export function PmProfileGeneralPanel() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card size="sm" className="min-w-0">
+          <CardHeader>
+            <CardTitle>Profile photo</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              JPEG, PNG, or WebP · up to 8 MB
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative size-24 shrink-0">
+                <Avatar size="lg" className="size-24 data-[size=lg]:size-24">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile photo" /> : null}
+                  <AvatarFallback className="text-base">{avatarInitials()}</AvatarFallback>
+                </Avatar>
+                {isUploadingAvatar ? (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center rounded-full bg-background/70"
+                    aria-hidden
+                  >
+                    <Loader2 className="size-6 animate-spin text-primary" />
+                  </div>
+                ) : null}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={AVATAR_ACCEPT}
+                className="sr-only"
+                disabled={isUploadingAvatar || isRemovingAvatar}
+                onChange={(event) => void onAvatarSelected(event.target.files?.[0])}
+              />
+              <div className="flex w-full flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={isUploadingAvatar || isRemovingAvatar}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploadingAvatar ? <Loader2 className="animate-spin" /> : <Camera />}
+                  {isUploadingAvatar
+                    ? 'Uploading…'
+                    : avatarUrl
+                      ? 'Change photo'
+                      : 'Upload photo'}
+                </Button>
+                {account?.profile?.avatarUrl ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    disabled={isUploadingAvatar || isRemovingAvatar}
+                    onClick={() => void onRemoveAvatar()}
+                  >
+                    {isRemovingAvatar ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                    {isRemovingAvatar ? 'Removing…' : 'Remove'}
+                  </Button>
+                ) : null}
+              </div>
+              {isUploadingAvatar ? (
+                <AvatarUploadProgress value={avatarUploadProgress} />
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       </div>

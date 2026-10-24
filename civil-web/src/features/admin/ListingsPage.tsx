@@ -3,7 +3,7 @@ import { Box, Briefcase, Layers, LayoutGrid, Pencil, Plus, Table2, Trash2, Wrenc
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
-import { CardGridSkeleton, civilIllustrationSrc, TableSkeleton } from '@/components/feedback/skeletons'
+import { CardGridSkeleton, civilIllustrationSrc, ContentSkeleton, TableSkeleton } from '@/components/feedback/skeletons'
 import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
 import {
   AlertDialog,
@@ -39,6 +39,7 @@ import {
   listingTypeLabel,
   listListings,
 } from '@/services/listings'
+import { getMyProvider } from '@/services/providers'
 
 import { ListingFormDialog } from './components/ListingFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
@@ -111,12 +112,44 @@ function ListingActions({
 
 export function ListingsPage() {
   useDocumentTitle('Listings')
+  const { isAdmin, role } = usePermissions()
+  const isProvider = role === 'PROVIDER'
+
+  const loadMine = useCallback(() => getMyProvider(), [])
+  const mineRemote = useRemoteData(loadMine, {
+    queryKey: ['providers', 'me'],
+    enabled: isProvider && !isAdmin,
+  })
+
+  if (isProvider && !isAdmin) {
+    return (
+      <AsyncState
+        isLoading={mineRemote.isLoading}
+        error={mineRemote.isError ? mineRemote.error : undefined}
+        onRetry={() => void mineRemote.refetch()}
+        loadingFallback={<ContentSkeleton />}
+      >
+        {mineRemote.status === 'success' ? (
+          <ListingsBrowser providerId={mineRemote.data.data.id} manageOwn />
+        ) : null}
+      </AsyncState>
+    )
+  }
+
   return <ListingsBrowser />
 }
 
-export function ListingsBrowser({ providerId }: { providerId?: string }) {
-  const embedded = Boolean(providerId)
+export function ListingsBrowser({
+  providerId,
+  manageOwn = false,
+}: {
+  providerId?: string
+  /** Provider portal: manage own listings (create/edit/delete). */
+  manageOwn?: boolean
+}) {
+  const embedded = Boolean(providerId) && !manageOwn
   const { isAdmin } = usePermissions()
+  const canManage = isAdmin || manageOwn
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [view, setView] = useState<ListingView>(embedded ? 'table' : 'cards')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -167,7 +200,7 @@ export function ListingsBrowser({ providerId }: { providerId?: string }) {
   }
 
   const showCards = !embedded && view === 'cards'
-  const addButton = isAdmin ? (
+  const addButton = canManage ? (
     <Button type="button" onClick={openCreate}>
       <Plus />
       Add listing
@@ -208,7 +241,7 @@ export function ListingsBrowser({ providerId }: { providerId?: string }) {
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
         loadingFallback={
-          showCards ? <CardGridSkeleton media="listing" /> : <TableSkeleton columns={isAdmin ? 7 : 6} />
+          showCards ? <CardGridSkeleton media="listing" /> : <TableSkeleton columns={canManage ? 7 : 6} />
         }
       >
         <DataPanel
@@ -272,7 +305,7 @@ export function ListingsBrowser({ providerId }: { providerId?: string }) {
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-medium">{formatPrice(listing)}</p>
-                        {isAdmin ? (
+                        {canManage ? (
                           <div className="shrink-0">
                             <ListingActions
                               listing={listing}
@@ -298,13 +331,13 @@ export function ListingsBrowser({ providerId }: { providerId?: string }) {
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
-                  {isAdmin ? <TableHead className="text-right">Actions</TableHead> : null}
+                  {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 7 : 6} className="text-muted-foreground">
+                    <TableCell colSpan={canManage ? 7 : 6} className="text-muted-foreground">
                       No listings match.
                     </TableCell>
                   </TableRow>
@@ -329,7 +362,7 @@ export function ListingsBrowser({ providerId }: { providerId?: string }) {
                           {listing.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      {isAdmin ? (
+                      {canManage ? (
                         <TableCell className="text-right">
                           <ListingActions
                             listing={listing}

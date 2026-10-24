@@ -37,6 +37,8 @@ const SEED_INPUT_TYPES: Array<{ code: string; label: string; sortOrder: number }
   { code: 'NUMBER', label: 'Number', sortOrder: 20 },
   { code: 'YES_NO', label: 'Yes / No', sortOrder: 30 },
   { code: 'DATE', label: 'Date', sortOrder: 40 },
+  { code: 'CATEGORY', label: 'Category listing', sortOrder: 50 },
+  { code: 'FILE', label: 'File', sortOrder: 60 },
 ]
 
 type SeedManagerProfile = {
@@ -84,7 +86,13 @@ type SeedStepTemplate = {
   name: string
   orderNb: number
   status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
-  inputs: Array<{ label: string; inputTypeCode: string; orderNb: number }>
+  inputs: Array<{
+    label: string
+    inputTypeCode: string
+    orderNb: number
+    /** PLATFORM category slug (required when inputTypeCode is CATEGORY). */
+    categorySlug?: string
+  }>
 }
 
 const SEED_STEP_TEMPLATES: SeedStepTemplate[] = [
@@ -108,6 +116,12 @@ const SEED_STEP_TEMPLATES: SeedStepTemplate[] = [
       { label: 'Concrete grade', inputTypeCode: 'TEXT', orderNb: 0 },
       { label: 'Pour volume (m³)', inputTypeCode: 'NUMBER', orderNb: 1 },
       { label: 'Pour completed', inputTypeCode: 'YES_NO', orderNb: 2 },
+      {
+        label: 'Cement product',
+        inputTypeCode: 'CATEGORY',
+        categorySlug: 'portland-cement',
+        orderNb: 3,
+      },
     ],
   },
   {
@@ -118,6 +132,12 @@ const SEED_STEP_TEMPLATES: SeedStepTemplate[] = [
     inputs: [
       { label: 'Current level', inputTypeCode: 'TEXT', orderNb: 0 },
       { label: 'Progress %', inputTypeCode: 'NUMBER', orderNb: 1 },
+      {
+        label: 'Rebar product',
+        inputTypeCode: 'CATEGORY',
+        categorySlug: 'rebar',
+        orderNb: 2,
+      },
     ],
   },
   {
@@ -710,53 +730,6 @@ async function main() {
       if (row) inputTypes.set(seed.code, row)
     }
 
-    for (const seed of SEED_STEP_TEMPLATES) {
-      const owner = users.get(seed.ownerEmail)
-      if (!owner) throw new Error(`Missing step owner ${seed.ownerEmail}`)
-      const existing = await prisma.step.findFirst({
-        where: { userId: owner.id, name: seed.name },
-      })
-      const step = existing
-        ? await prisma.step.update({
-            where: { id: existing.id },
-            data: { orderNb: seed.orderNb, status: seed.status },
-          })
-        : await prisma.step.create({
-            data: {
-              userId: owner.id,
-              name: seed.name,
-              orderNb: seed.orderNb,
-              status: seed.status,
-            },
-          })
-
-      for (const input of seed.inputs) {
-        const inputType = inputTypes.get(input.inputTypeCode)
-        if (!inputType) throw new Error(`Missing input type ${input.inputTypeCode}`)
-        const existingInput = await prisma.stepInput.findFirst({
-          where: { stepId: step.id, label: input.label },
-        })
-        if (existingInput) {
-          await prisma.stepInput.update({
-            where: { id: existingInput.id },
-            data: { inputTypeId: inputType.id, orderNb: input.orderNb },
-          })
-        } else {
-          await prisma.stepInput.create({
-            data: {
-              stepId: step.id,
-              inputTypeId: inputType.id,
-              label: input.label,
-              orderNb: input.orderNb,
-            },
-          })
-        }
-      }
-      console.info(
-        `[prisma seed] step ${seed.status} ${seed.name} (${seed.inputs.length} input(s)) for ${seed.ownerEmail}`,
-      )
-    }
-
     const providers = new Map<string, { id: string }>()
     for (const seed of SEED_PROVIDERS) {
       const owner = users.get(seed.ownerEmail)
@@ -791,6 +764,73 @@ async function main() {
       const category = await upsertCategory(prisma, seed, parent?.id ?? null)
       categories.set(`${seed.kind}:${seed.slug}`, category)
       console.info(`[prisma seed] category ${seed.kind} ${seed.name}`)
+    }
+
+    function categoryIdBySlug(slug: string): string {
+      for (const [key, category] of categories) {
+        if (key.endsWith(`:${slug}`)) return category.id
+      }
+      throw new Error(`Missing category slug ${slug}`)
+    }
+
+    // Step templates after categories so CATEGORY inputs can bind categoryId.
+    for (const seed of SEED_STEP_TEMPLATES) {
+      const owner = users.get(seed.ownerEmail)
+      if (!owner) throw new Error(`Missing step owner ${seed.ownerEmail}`)
+      const existing = await prisma.step.findFirst({
+        where: { userId: owner.id, name: seed.name },
+      })
+      const step = existing
+        ? await prisma.step.update({
+            where: { id: existing.id },
+            data: { orderNb: seed.orderNb, status: seed.status },
+          })
+        : await prisma.step.create({
+            data: {
+              userId: owner.id,
+              name: seed.name,
+              orderNb: seed.orderNb,
+              status: seed.status,
+            },
+          })
+
+      for (const input of seed.inputs) {
+        const inputType = inputTypes.get(input.inputTypeCode)
+        if (!inputType) throw new Error(`Missing input type ${input.inputTypeCode}`)
+        const categoryId =
+          input.inputTypeCode === 'CATEGORY'
+            ? categoryIdBySlug(input.categorySlug ?? '')
+            : null
+        if (input.inputTypeCode === 'CATEGORY' && !input.categorySlug) {
+          throw new Error(`CATEGORY input "${input.label}" requires categorySlug`)
+        }
+        const existingInput = await prisma.stepInput.findFirst({
+          where: { stepId: step.id, label: input.label },
+        })
+        if (existingInput) {
+          await prisma.stepInput.update({
+            where: { id: existingInput.id },
+            data: {
+              inputTypeId: inputType.id,
+              orderNb: input.orderNb,
+              categoryId,
+            },
+          })
+        } else {
+          await prisma.stepInput.create({
+            data: {
+              stepId: step.id,
+              inputTypeId: inputType.id,
+              label: input.label,
+              orderNb: input.orderNb,
+              categoryId,
+            },
+          })
+        }
+      }
+      console.info(
+        `[prisma seed] step ${seed.status} ${seed.name} (${seed.inputs.length} input(s)) for ${seed.ownerEmail}`,
+      )
     }
 
     const listings = new Map<string, { id: string }>()
@@ -916,6 +956,7 @@ async function main() {
               inputTypeLabel: input.inputType.label,
               label: input.label,
               orderNb: input.orderNb,
+              categoryId: input.categoryId,
               value: Prisma.DbNull,
               isProjectOnly: false,
             })),

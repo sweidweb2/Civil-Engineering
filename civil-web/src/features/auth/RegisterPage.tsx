@@ -54,7 +54,7 @@ export function RegisterPage() {
 
   return (
     <GuestOnly>
-      <div className="flex min-h-svh items-center justify-center bg-background px-4">
+      <div className="home-canvas flex min-h-svh items-center justify-center bg-background px-4 text-foreground">
         <Card className="w-full max-w-sm">
           <CardContent>
         <Form onSubmit={onSubmit} className="gap-4" noValidate>

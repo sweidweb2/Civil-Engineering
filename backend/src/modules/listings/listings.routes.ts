@@ -19,26 +19,31 @@ export function createListingsRoutes(controller: ListingsController): Router {
 
   router.get(
     '/',
-    authorize('SUPER', 'ADMIN', 'MANAGER'),
+    authorize('SUPER', 'ADMIN', 'MANAGER', 'PROVIDER'),
     validate({ query: listListingsQuerySchema }),
     controller.list,
   )
   router.get(
     '/:id',
-    authorize('SUPER', 'ADMIN', 'MANAGER'),
+    authorize('SUPER', 'ADMIN', 'MANAGER', 'PROVIDER'),
     validate({ params: listingIdParamsSchema }),
     controller.getById,
   )
-  router.post('/', authorize(...ADMIN_ROLES), validate({ body: createListingBodySchema }), controller.create)
+  router.post(
+    '/',
+    authorize(...ADMIN_ROLES, 'PROVIDER'),
+    validate({ body: createListingBodySchema }),
+    controller.create,
+  )
   router.patch(
     '/:id',
-    authorize(...ADMIN_ROLES),
+    authorize(...ADMIN_ROLES, 'PROVIDER'),
     validate({ params: listingIdParamsSchema, body: updateListingBodySchema }),
     controller.update,
   )
   router.delete(
     '/:id',
-    authorize(...ADMIN_ROLES),
+    authorize(...ADMIN_ROLES, 'PROVIDER'),
     validate({ params: listingIdParamsSchema }),
     controller.remove,
   )

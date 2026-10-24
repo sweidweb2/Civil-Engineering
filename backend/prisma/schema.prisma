@@ -301,6 +301,8 @@ model Category {
   parent     Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
   children   Category[]    @relation("CategoryTree")
   listings   Listing[]
+  stepInputs StepInput[]
+  projectStepInputs ProjectStepInput[]
 
   @@index([scope, kind])
   @@index([providerId])
@@ -530,7 +532,9 @@ model ProjectStepInput {
   inputTypeLabel   String
   label            String
   orderNb          Int      @default(0)
-  /// Flexible JSON scalar: string | number | boolean | null
+  /// Required when inputTypeCode is CATEGORY; scopes the listing picker.
+  categoryId       String?
+  /// Flexible JSON: scalar (TEXT/NUMBER/YES_NO/DATE) or listing snapshot (CATEGORY).
   value            Json?
   /// True when added on the project (not cloned from a template).
   isProjectOnly    Boolean  @default(false)
@@ -538,10 +542,12 @@ model ProjectStepInput {
   updatedAt        DateTime @updatedAt
   stepperProject   StepperProject @relation(fields: [stepperProjectId], references: [id], onDelete: Cascade)
   inputType        InputType      @relation(fields: [inputTypeId], references: [id], onDelete: Restrict)
+  category         Category?      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@unique([stepperProjectId, orderNb])
   @@index([stepperProjectId])
   @@index([inputTypeId])
+  @@index([categoryId])
   @@map("project_step_inputs")
 }
 
@@ -573,14 +579,18 @@ model StepInput {
   inputTypeId String
   label       String
   orderNb     Int      @default(0)
+  /// Required when input type code is CATEGORY; scopes the listing picker on projects.
+  categoryId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   step        Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
   inputType   InputType @relation(fields: [inputTypeId], references: [id], onDelete: Restrict)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@unique([stepId, orderNb])
   @@index([stepId])
   @@index([inputTypeId])
+  @@index([categoryId])
   @@map("stepper_inputs")
 }
 

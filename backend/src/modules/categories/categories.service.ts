@@ -48,8 +48,10 @@ function assertAdmin(actor: AuthActor) {
 }
 
 function assertCanView(actor: AuthActor) {
-  if (isAdmin(actor.roles) || actor.roles.includes('MANAGER')) return
-  throw forbidden('Only admins and project managers can view categories')
+  if (isAdmin(actor.roles) || actor.roles.includes('MANAGER') || actor.roles.includes('PROVIDER')) {
+    return
+  }
+  throw forbidden('Only admins, project managers, and providers can view categories')
 }
 
 export function createCategoriesService(repository: CategoriesRepository): CategoriesService {

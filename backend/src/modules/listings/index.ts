@@ -12,10 +12,12 @@ export function createListingsModule() {
 
 export {
   findListingNames,
+  findListingSnapshot,
   listingExists,
   listListingChoices,
   searchListingIdsByName,
 } from './listings.access.js'
+export type { ListingSnapshot } from './listings.access.js'
 export { listingsDomain } from './listings.domain.js'
 export { createListingsService }
 export type { ListingsService } from './listings.service.js'

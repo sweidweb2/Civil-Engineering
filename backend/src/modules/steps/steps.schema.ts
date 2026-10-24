@@ -47,6 +47,7 @@ export const createStepInputBodySchema = z.object({
   inputTypeId: z.string().trim().min(1).max(64),
   label: z.string().trim().min(1).max(120),
   orderNb: orderNbField.optional(),
+  categoryId: z.string().trim().min(1).max(64).nullable().optional(),
 })
 
 export const updateStepInputBodySchema = z
@@ -54,6 +55,7 @@ export const updateStepInputBodySchema = z
     inputTypeId: z.string().trim().min(1).max(64).optional(),
     label: z.string().trim().min(1).max(120).optional(),
     orderNb: orderNbField.optional(),
+    categoryId: z.string().trim().min(1).max(64).nullable().optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: 'At least one field is required',
@@ -89,12 +91,14 @@ export type CreateStepInputBody = {
   inputTypeId: string
   label: string
   orderNb?: number
+  categoryId?: string | null
 }
 
 export type UpdateStepInputBody = {
   inputTypeId?: string
   label?: string
   orderNb?: number
+  categoryId?: string | null
 }
 
 export type OrderAdjustMeta = {

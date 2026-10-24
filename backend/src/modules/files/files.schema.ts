@@ -34,6 +34,13 @@ export const presignFileBodySchema = z.object({
   originalName: z.string().trim().min(1).max(255),
 })
 
+/** Multipart field body for POST /files/upload (file bytes in `file`). */
+export const uploadFileFieldsSchema = z.object({
+  entityType: fileEntityTypeSchema,
+  entityId: z.string().min(1).max(64),
+})
+
 export type FileEntityTypeName = z.infer<typeof fileEntityTypeSchema>
 export type PresignFileBody = z.infer<typeof presignFileBodySchema>
+export type UploadFileFields = z.infer<typeof uploadFileFieldsSchema>
 export type AllowedFileMime = z.infer<typeof allowedMimeSchema>

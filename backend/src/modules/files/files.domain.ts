@@ -3,7 +3,7 @@ import type { DomainDefinition } from '../_shared/domain-definition.js'
 export const filesDomain = {
   name: 'files',
   responsibility:
-    'Owns file metadata and presigned upload/download lifecycle. Blobs live in Cloudflare R2; does not proxy bytes through Express.',
+    'Owns file metadata and upload/download lifecycle. Blobs live in Cloudflare R2; browser may upload via API proxy (CORS-safe) or presigned PUT.',
   entities: [
     {
       name: 'File',
@@ -21,7 +21,13 @@ export const filesDomain = {
       description: 'PROJECT | USER | EXPENSE | MATERIAL | WORKER | LISTING',
     },
   ],
-  useCases: ['presignUpload', 'completeUpload', 'getDownloadUrl', 'softDeleteFile'],
+  useCases: [
+    'presignUpload',
+    'uploadBytes',
+    'completeUpload',
+    'getDownloadUrl',
+    'softDeleteFile',
+  ],
   relationships: [
     'File.uploadedById → User.',
     'File.entityType + entityId → owning domain resource (polymorphic).',

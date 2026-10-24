@@ -132,6 +132,10 @@ export function toProviderWriteInput(
   return payload
 }
 
+export function getMyProvider() {
+  return apiRequest<{ data: Provider }>('/providers/me')
+}
+
 export function listProviders(page = 1, limit = 12, q?: string, status?: ProviderStatus) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (q) params.set('q', q)

@@ -25,6 +25,7 @@ export type ProjectStepInputField = {
   inputTypeId: string
   inputTypeCode: string
   inputTypeLabel: string
+  categoryId: string | null
   value: StepperInputValuePayload
   isProjectOnly: boolean
 }

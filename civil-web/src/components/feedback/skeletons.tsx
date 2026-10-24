@@ -8,26 +8,27 @@ type SkeletonPresetProps = {
 
 /**
  * Card art: one calm isometric subject, centered, with a wide empty margin on warm
- * off-white (#f4f1eb). Solid faces only — never a wireframe, blueprint, or see-through
+ * off-white (#fef8ef). Solid faces only — never a wireframe, blueprint, or see-through
  * walls. One even charcoal outline. Flat soft shading in warm stone, pale gray, and a
  * little clay. A single clear scene, no people, no text, no clutter.
+ * Assets are padded top/bottom in-file so they do not read as a tight landscape strip.
  */
 export const CIVIL_ILLUSTRATIONS = [
-  '/illustrations/skeleton-building.jpg?v=2',
-  '/illustrations/skeleton-crane.jpg?v=2',
-  '/illustrations/skeleton-planning.jpg?v=2',
+  '/illustrations/skeleton-building.jpg?v=4',
+  '/illustrations/skeleton-crane.jpg?v=4',
+  '/illustrations/skeleton-planning.jpg?v=4',
 ] as const
 
 const PROVIDER_ILLUSTRATIONS = [
-  '/illustrations/provider-shop.jpg?v=2',
-  '/illustrations/provider-yard.jpg?v=2',
-  '/illustrations/provider-warehouse.jpg?v=2',
+  '/illustrations/provider-shop.jpg?v=4',
+  '/illustrations/provider-yard.jpg?v=4',
+  '/illustrations/provider-warehouse.jpg?v=4',
 ] as const
 
 const PROJECT_ILLUSTRATIONS = [
-  '/illustrations/project-frame.jpg?v=2',
-  '/illustrations/project-house.jpg?v=2',
-  '/illustrations/project-site.jpg?v=2',
+  '/illustrations/project-frame.jpg?v=4',
+  '/illustrations/project-house.jpg?v=4',
+  '/illustrations/project-site.jpg?v=4',
 ] as const
 
 export function civilIllustrationSrc(variant = 0) {
@@ -40,13 +41,19 @@ function IllustrationFrame({
   pulsing = false,
 }: SkeletonPresetProps & { src: string; pulsing?: boolean }) {
   return (
-    <div className={cn('relative aspect-[16/10] w-full overflow-hidden bg-[#f4f1eb]', className)}>
+    <div
+      className={cn(
+        // Square cream canvas (assets are 1:1); keep frame square so art is not letterboxed.
+        'relative aspect-square w-full overflow-hidden bg-[#fef8ef]',
+        className,
+      )}
+    >
       <img
         src={src}
         alt=""
         aria-hidden
         decoding="async"
-        className="size-full object-contain object-center"
+        className="size-full object-cover object-center"
       />
       {pulsing ? <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" /> : null}
     </div>
@@ -68,18 +75,30 @@ export function ProviderCardMedia({
   )
 }
 
-/** Shown on a project card when it has no main photo. */
+/** Shown on a project card when it has no main photo — short strip, zoomed to crop cream padding. */
 export function ProjectCardMedia({
   className,
   variant = 0,
   pulsing = false,
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
   return (
-    <IllustrationFrame
-      className={cn('aspect-video', className)}
-      pulsing={pulsing}
-      src={PROJECT_ILLUSTRATIONS[variant % PROJECT_ILLUSTRATIONS.length]}
-    />
+    <div
+      className={cn(
+        'relative aspect-[2/1] w-full overflow-hidden bg-[#fef8ef]',
+        className,
+      )}
+    >
+      <img
+        src={PROJECT_ILLUSTRATIONS[variant % PROJECT_ILLUSTRATIONS.length]}
+        alt=""
+        aria-hidden
+        decoding="async"
+        className="size-full scale-[1.35] object-cover object-center"
+      />
+      {pulsing ? (
+        <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" />
+      ) : null}
+    </div>
   )
 }
 

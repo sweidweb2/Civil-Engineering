@@ -19,13 +19,13 @@ export function createCategoriesRoutes(controller: CategoriesController): Router
 
   router.get(
     '/',
-    authorize('SUPER', 'ADMIN', 'MANAGER'),
+    authorize('SUPER', 'ADMIN', 'MANAGER', 'PROVIDER'),
     validate({ query: listCategoriesQuerySchema }),
     controller.list,
   )
   router.get(
     '/:id',
-    authorize('SUPER', 'ADMIN', 'MANAGER'),
+    authorize('SUPER', 'ADMIN', 'MANAGER', 'PROVIDER'),
     validate({ params: categoryIdParamsSchema }),
     controller.getById,
   )

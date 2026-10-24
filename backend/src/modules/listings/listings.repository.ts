@@ -68,7 +68,7 @@ export type ListingsRepository = {
   delete: (id: string) => Promise<void>
 }
 
-function decimalToString(value: { toString(): string } | null): string | null {
+export function decimalToString(value: { toString(): string } | null): string | null {
   return value == null ? null : value.toString()
 }
 
@@ -99,6 +99,7 @@ function toRecord(row: ListingRow): ListingRecord {
 function listWhere(query: ListListingsQuery): Prisma.ListingWhereInput {
   return {
     providerId: query.providerId,
+    categoryId: query.categoryId,
     type: query.type,
     status: query.status,
     ...(query.q

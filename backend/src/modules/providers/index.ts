@@ -10,6 +10,10 @@ export function createProvidersModule() {
   return createProvidersRoutes(controller)
 }
 
+export {
+  findProviderIdByOwnerUserId,
+  findProviderOwnerUserId,
+} from './providers.access.js'
 export { providersDomain } from './providers.domain.js'
 export { createProvidersService }
 export type { ProvidersService } from './providers.service.js'

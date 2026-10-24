@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/table'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
+import { type Category, listCategories } from '@/services/categories'
 import {
   INPUT_TYPES_PICKER_QUERY_KEY,
   type InputType,
@@ -63,9 +64,10 @@ type InputForm = {
   label: string
   inputTypeId: string
   orderNb: string
+  categoryId: string
 }
 
-const EMPTY_FORM: InputForm = { label: '', inputTypeId: '', orderNb: '' }
+const EMPTY_FORM: InputForm = { label: '', inputTypeId: '', orderNb: '', categoryId: '' }
 
 export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInputsPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -94,6 +96,14 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
   })
   const types: InputType[] = typesRemote.status === 'success' ? typesRemote.data.data : []
 
+  const loadCategories = useCallback(() => listCategories(1, 100), [])
+  const categoriesRemote = useRemoteData(loadCategories, {
+    queryKey: ['categories', 'step-input-picker'],
+    enabled: open,
+  })
+  const categories: Category[] =
+    categoriesRemote.status === 'success' ? categoriesRemote.data.data : []
+
   useEffect(() => {
     if (typesRemote.isError) {
       toast.error(
@@ -119,6 +129,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
       label: row.label,
       inputTypeId: row.inputTypeId,
       orderNb: String(row.orderNb),
+      categoryId: row.categoryId ?? '',
     })
     setDialogOpen(true)
   }
@@ -138,10 +149,21 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
       toast.error('Input type is required')
       return
     }
+    const typeCode = resolveTypeCode(types, editing, form.inputTypeId)
+    if (typeCode === 'CATEGORY' && !form.categoryId) {
+      toast.error('Category is required for category listing inputs')
+      return
+    }
 
-    const payload: { label: string; inputTypeId: string; orderNb?: number } = {
+    const payload: {
+      label: string
+      inputTypeId: string
+      orderNb?: number
+      categoryId: string | null
+    } = {
       label,
       inputTypeId: form.inputTypeId,
+      categoryId: typeCode === 'CATEGORY' ? form.categoryId : null,
     }
     const orderRaw = form.orderNb.trim()
     if (orderRaw !== '') {
@@ -202,6 +224,28 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
           ...types,
         ]
       : types
+
+  const selectedTypeCode = resolveTypeCode(typeOptions, editing, form.inputTypeId)
+  const categoryOptions =
+    editing?.categoryId && !categories.some((category) => category.id === editing.categoryId)
+      ? [
+          {
+            id: editing.categoryId,
+            kind: 'MATERIAL' as const,
+            name: 'Bound category',
+            slug: '',
+            parentId: null,
+            parentName: null,
+            isActive: true,
+            sortOrder: 0,
+            childCount: 0,
+            listingCount: 0,
+            createdAt: '',
+            updatedAt: '',
+          },
+          ...categories,
+        ]
+      : categories
 
   return (
     <>
@@ -319,7 +363,13 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
                 }))}
                 value={form.inputTypeId || undefined}
                 onValueChange={(value) => {
-                  if (value) setForm((current) => ({ ...current, inputTypeId: value }))
+                  if (!value) return
+                  const nextCode = resolveTypeCode(typeOptions, editing, value)
+                  setForm((current) => ({
+                    ...current,
+                    inputTypeId: value,
+                    categoryId: nextCode === 'CATEGORY' ? current.categoryId : '',
+                  }))
                 }}
               >
                 <SelectTrigger id="step-input-type" className="w-full">
@@ -334,6 +384,36 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
                 </SelectContent>
               </Select>
             </div>
+            {selectedTypeCode === 'CATEGORY' ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="step-input-category">Category</Label>
+                <Select
+                  items={categoryOptions.map((category) => ({
+                    value: category.id,
+                    label: category.parentName
+                      ? `${category.parentName} / ${category.name}`
+                      : category.name,
+                  }))}
+                  value={form.categoryId || undefined}
+                  onValueChange={(value) => {
+                    if (value) setForm((current) => ({ ...current, categoryId: value }))
+                  }}
+                >
+                  <SelectTrigger id="step-input-category" className="w-full">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.parentName
+                          ? `${category.parentName} / ${category.name}`
+                          : category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <div className="grid gap-1.5">
               <Label htmlFor="step-input-order">Order (optional)</Label>
               <Input
@@ -362,4 +442,15 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
 
     </>
   )
+}
+
+function resolveTypeCode(
+  types: InputType[],
+  editing: StepInput | null,
+  inputTypeId: string,
+): string {
+  const fromList = types.find((type) => type.id === inputTypeId)?.code
+  if (fromList) return fromList.toUpperCase()
+  if (editing && editing.inputTypeId === inputTypeId) return editing.inputTypeCode.toUpperCase()
+  return ''
 }

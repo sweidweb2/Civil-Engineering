@@ -12,6 +12,7 @@ import type {
 export type ProvidersService = {
   listProviders: (query: ListProvidersQuery, actor: AuthActor) => Promise<PaginatedProviders>
   listOwnerCandidates: (actor: AuthActor) => Promise<ProviderOwnerCandidate[]>
+  getMyProvider: (actor: AuthActor) => Promise<Provider>
   getProviderById: (id: string, actor: AuthActor) => Promise<Provider>
   createProvider: (input: CreateProviderBody, actor: AuthActor) => Promise<Provider>
   updateProvider: (id: string, input: UpdateProviderBody, actor: AuthActor) => Promise<Provider>
@@ -87,6 +88,17 @@ export function createProvidersService(repository: ProvidersRepository): Provide
         throw forbidden('Only admins can list provider owners')
       }
       return repository.findEligibleOwners()
+    },
+
+    async getMyProvider(actor) {
+      if (!actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)) {
+        throw forbidden('Only providers can load their own provider profile')
+      }
+      const provider = await repository.findByOwnerUserId(actor.id)
+      if (!provider) {
+        throw notFound('Provider profile not found', 'PROVIDER_NOT_FOUND')
+      }
+      return toProviderDto(provider)
     },
 
     async getProviderById(id, actor) {

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from 'cn'
-import { Check, Plus, Save, Trash2 } from 'lucide-react'
+import { Check, ExternalLink, Loader2, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -22,15 +22,21 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
+import { type Category, listCategories } from '@/services/categories'
+import { deleteFile, getDownloadUrl, uploadFile } from '@/services/files'
 import {
   INPUT_TYPES_PICKER_QUERY_KEY,
   type InputType,
   listInputTypesForPicker,
 } from '@/services/input-types'
+import { type Listing, listListings } from '@/services/listings'
 import {
   addProjectStepInput,
   deleteProjectStepInput,
+  fileIdFromStepperValue,
   getProjectStepper,
+  isFileSnapshot,
+  listingIdFromStepperValue,
   listProjectSteppers,
   type ProjectStepDetail,
   type ProjectStepInputField,
@@ -38,6 +44,9 @@ import {
   saveProjectStepperValues,
   type StepperValue,
 } from '@/services/project-steppers'
+
+const STEPPER_FILE_ACCEPT =
+  'image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 type ProjectSteppersSectionProps = {
   projectId: string
@@ -78,7 +87,89 @@ function formatDateValue(date: Date | undefined): string | null {
 function isFilledValue(value: StepperValue): boolean {
   if (value === null || value === undefined) return false
   if (typeof value === 'string') return value.trim() !== ''
+  if (typeof value === 'object') return Boolean(value.id)
   return true
+}
+
+function draftValueForInput(input: ProjectStepInputField): StepperValue {
+  const code = input.inputTypeCode.toUpperCase()
+  if (code === 'CATEGORY') {
+    return listingIdFromStepperValue(input.value)
+  }
+  if (code === 'FILE') {
+    return input.value
+  }
+  return input.value
+}
+
+function fileDisplayName(value: StepperValue): string | null {
+  if (isFileSnapshot(value)) return value.originalName
+  return null
+}
+
+function fileMime(value: StepperValue): string | null {
+  if (isFileSnapshot(value)) return value.mime
+  return null
+}
+
+function isImageMime(mime: string | null | undefined): boolean {
+  return Boolean(mime?.toLowerCase().startsWith('image/'))
+}
+
+/** Small cover thumb for FILE inputs (images only). */
+function StepperFileThumb({
+  fileId,
+  mime,
+  name,
+  isBusy,
+}: {
+  fileId: string
+  mime: string | null
+  name: string | null
+  isBusy?: boolean
+}) {
+  const [url, setUrl] = useState<string | null>(null)
+  const showImage = isImageMime(mime)
+
+  useEffect(() => {
+    if (!showImage || !fileId) {
+      setUrl(null)
+      return
+    }
+    let cancelled = false
+    void getDownloadUrl(fileId)
+      .then((result) => {
+        if (!cancelled) setUrl(result.downloadUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setUrl(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [fileId, showImage])
+
+  if (!showImage) return null
+
+  return (
+    <div className="size-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted shadow-sm">
+      {url ? (
+        <img
+          src={url}
+          alt={name ?? 'Uploaded image'}
+          className="size-full object-cover object-center"
+        />
+      ) : (
+        <div className="flex size-full items-center justify-center" aria-hidden>
+          {isBusy ? (
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          ) : (
+            <div className="size-full animate-pulse bg-muted" />
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function nodeStatsFromInputs(inputs: ProjectStepInputField[]) {
@@ -100,6 +191,15 @@ function patchNode(
   return nodes.map((node) => (node.id === projectStepId ? { ...node, ...stats } : node))
 }
 
+/** Wider columns when few steps; tighten as count grows (track still scrolls when too dense). */
+function stepperColumnWidthRem(count: number): number {
+  if (count <= 3) return 12
+  if (count <= 5) return 10.5
+  if (count <= 7) return 9
+  if (count <= 10) return 7.5
+  return 6.25
+}
+
 export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<string, StepperValue>>({})
@@ -107,6 +207,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   const [addOpen, setAddOpen] = useState(false)
   const [addLabel, setAddLabel] = useState('')
   const [addTypeId, setAddTypeId] = useState('')
+  const [addCategoryId, setAddCategoryId] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [busyInputId, setBusyInputId] = useState<string | null>(null)
 
@@ -140,14 +241,19 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   const detail =
     detailRemote.status === 'success' ? detailRemote.data.data : null
 
+  /** Re-hydrate draft only when switching steps — file auto-save must not wipe other edits. */
+  const hydratedStepIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (!detail) {
+      hydratedStepIdRef.current = null
       setDraft({})
       return
     }
+    if (hydratedStepIdRef.current === detail.id) return
+    hydratedStepIdRef.current = detail.id
     const next: Record<string, StepperValue> = {}
     for (const input of detail.inputs) {
-      next[input.id] = input.value
+      next[input.id] = draftValueForInput(input)
     }
     setDraft(next)
   }, [detail])
@@ -159,6 +265,17 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   })
   const typesData = typesRemote.status === 'success' ? typesRemote.data.data : null
   const types = useMemo<InputType[]>(() => typesData ?? [], [typesData])
+
+  const loadCategories = useCallback(() => listCategories(1, 100), [])
+  const categoriesRemote = useRemoteData(loadCategories, {
+    queryKey: ['categories', 'project-step-input-picker'],
+    enabled: addOpen,
+  })
+  const categories: Category[] =
+    categoriesRemote.status === 'success' ? categoriesRemote.data.data : []
+
+  const addTypeCode =
+    types.find((type) => type.id === addTypeId)?.code.toUpperCase() ?? ''
 
   useEffect(() => {
     if (!addOpen || types.length === 0) return
@@ -173,6 +290,14 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     }))
   }
 
+  function syncDraftFromDetail(next: ProjectStepDetail) {
+    const mapped: Record<string, StepperValue> = {}
+    for (const input of next.inputs) {
+      mapped[input.id] = draftValueForInput(input)
+    }
+    setDraft(mapped)
+  }
+
   async function save() {
     if (!selectedId || !detail) return
     setIsSaving(true)
@@ -180,13 +305,21 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       const result = await saveProjectStepperValues(
         projectId,
         selectedId,
-        detail.inputs.map((input) => ({
-          id: input.id,
-          value: draft[input.id] ?? null,
-        })),
+        detail.inputs.map((input) => {
+          const raw = draft[input.id] ?? null
+          const code = input.inputTypeCode.toUpperCase()
+          if (code === 'CATEGORY') {
+            return { id: input.id, value: listingIdFromStepperValue(raw) }
+          }
+          if (code === 'FILE') {
+            return { id: input.id, value: fileIdFromStepperValue(raw) }
+          }
+          return { id: input.id, value: raw }
+        }),
       )
       toast.success('Stepper values saved')
       applyDetail(result.data)
+      syncDraftFromDetail(result.data)
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not save values')
     } finally {
@@ -205,11 +338,16 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       toast.error('Input type is required')
       return
     }
+    if (addTypeCode === 'CATEGORY' && !addCategoryId) {
+      toast.error('Category is required for category listing inputs')
+      return
+    }
     setIsAdding(true)
     try {
       const result = await addProjectStepInput(projectId, selectedId, {
         label,
         inputTypeId: addTypeId,
+        categoryId: addTypeCode === 'CATEGORY' ? addCategoryId : null,
       })
       if (result.meta?.orderAdjusted) {
         toast.message(`Order set to ${result.meta.orderNb} (next available slot).`)
@@ -217,14 +355,76 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       toast.message('Project input added')
       setAddOpen(false)
       setAddLabel('')
+      setAddCategoryId('')
       const nextInputs = [...detail.inputs, result.data].sort(
         (a, b) => a.orderNb - b.orderNb || a.label.localeCompare(b.label),
       )
       applyDetail({ ...detail, inputs: nextInputs })
+      setDraft((current) => ({
+        ...current,
+        [result.data.id]: draftValueForInput(result.data),
+      }))
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not add input')
     } finally {
       setIsAdding(false)
+    }
+  }
+
+  async function onStepperFileSelected(inputId: string, file: File | undefined) {
+    if (!file || !selectedId) return
+    setBusyInputId(inputId)
+    let uploadedId: string | null = null
+    try {
+      const uploaded = await uploadFile({
+        file,
+        entityType: 'PROJECT',
+        entityId: projectId,
+      })
+      uploadedId = uploaded.id
+      const result = await saveProjectStepperValues(projectId, selectedId, [
+        { id: inputId, value: uploaded.id },
+      ])
+      applyDetail(result.data)
+      const saved = result.data.inputs.find((input) => input.id === inputId)
+      setDraft((current) => ({
+        ...current,
+        [inputId]: saved ? draftValueForInput(saved) : null,
+      }))
+      toast.success('File saved')
+    } catch (error) {
+      if (uploadedId) {
+        void deleteFile(uploadedId).catch(() => undefined)
+      }
+      toast.error(error instanceof ApiError ? error.message : 'Could not upload file')
+    } finally {
+      setBusyInputId(null)
+    }
+  }
+
+  async function clearStepperFile(inputId: string) {
+    if (!selectedId) return
+    setBusyInputId(inputId)
+    try {
+      const result = await saveProjectStepperValues(projectId, selectedId, [
+        { id: inputId, value: null },
+      ])
+      applyDetail(result.data)
+      setDraft((current) => ({ ...current, [inputId]: null }))
+      toast.message('File cleared')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not clear file')
+    } finally {
+      setBusyInputId(null)
+    }
+  }
+
+  async function openStepperFile(fileId: string) {
+    try {
+      const result = await getDownloadUrl(fileId)
+      window.open(result.downloadUrl, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not open file')
     }
   }
 
@@ -236,6 +436,11 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       toast.message('Input removed from this project step')
       const nextInputs = detail.inputs.filter((input) => input.id !== inputId)
       applyDetail({ ...detail, inputs: nextInputs })
+      setDraft((current) => {
+        const next = { ...current }
+        delete next[inputId]
+        return next
+      })
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not remove input')
     } finally {
@@ -278,7 +483,10 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
               </div>
 
               <div className="overflow-x-auto pb-2 pt-2">
-                <ol className="flex min-w-max">
+                <ol
+                  className="mx-auto flex w-max"
+                  style={{ ['--stepper-col' as string]: `${stepperColumnWidthRem(nodes.length)}rem` }}
+                >
                   {nodes.map((node, index) => {
                     const phase = resolveNodePhase(nodes, node.id)
                     const isSelected = node.id === selectedId
@@ -293,12 +501,12 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                     return (
                       <li
                         key={node.id}
-                        className="relative flex w-[7.5rem] shrink-0 flex-col items-center"
+                        className="relative flex w-(--stepper-col) shrink-0 flex-col items-center"
                       >
                         {index < nodes.length - 1 ? (
                           <div
                             aria-hidden
-                            className="pointer-events-none absolute top-5 left-1/2 z-0 h-0.5 w-full overflow-hidden rounded-full bg-border"
+                            className="pointer-events-none absolute top-7 left-1/2 z-0 h-0.5 w-full overflow-hidden rounded-full bg-border"
                           >
                             <div
                               className={cn(
@@ -314,13 +522,13 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                           onClick={() => setSelectedId(node.id)}
                           aria-current={isSelected ? 'step' : undefined}
                           className={cn(
-                            'group relative z-10 flex w-full flex-col items-center gap-2 rounded-xl px-1 py-1 text-center outline-none',
+                            'group relative z-10 flex w-full flex-col items-center gap-2.5 rounded-xl px-1.5 py-1 text-center outline-none',
                             'focus-visible:ring-2 focus-visible:ring-ring',
                           )}
                         >
                           <span
                             className={cn(
-                              'relative flex size-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-300 ease-out',
+                              'relative flex size-12 items-center justify-center rounded-full border-2 text-base font-semibold transition-all duration-300 ease-out',
                               phase === 'done' &&
                                 'border-primary bg-primary text-primary-foreground shadow-sm',
                               phase === 'current' &&
@@ -332,7 +540,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                             )}
                           >
                             {phase === 'done' ? (
-                              <Check className="size-4 transition-transform duration-300" strokeWidth={2.5} />
+                              <Check className="size-5 transition-transform duration-300" strokeWidth={2.5} />
                             ) : (
                               index + 1
                             )}
@@ -340,7 +548,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                           <span className="flex min-w-0 flex-col gap-0.5">
                             <span
                               className={cn(
-                                'truncate text-xs font-semibold leading-tight transition-colors duration-300',
+                                'truncate text-sm font-semibold leading-tight transition-colors duration-300',
                                 phase === 'upcoming' && !isSelected
                                   ? 'text-muted-foreground'
                                   : 'text-foreground',
@@ -349,7 +557,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                             >
                               {node.name}
                             </span>
-                            <span className="text-[10px] tabular-nums text-muted-foreground">
+                            <span className="text-[11px] tabular-nums text-muted-foreground">
                               {node.inputCount === 0
                                 ? 'No inputs'
                                 : `${node.filledCount}/${node.inputCount} filled`}
@@ -527,6 +735,137 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                               )
                             }
 
+                            if (code === 'CATEGORY') {
+                              const selectedListingId = listingIdFromStepperValue(value)
+                              const snapshotName =
+                                typeof input.value === 'object' &&
+                                input.value !== null &&
+                                'name' in input.value &&
+                                input.value.id === selectedListingId
+                                  ? input.value.name
+                                  : null
+                              return (
+                                <div key={input.id} className="grid gap-1.5">
+                                  {header}
+                                  <CategoryListingSelect
+                                    id={`stepper-${input.id}`}
+                                    categoryId={input.categoryId}
+                                    value={selectedListingId}
+                                    snapshotLabel={snapshotName}
+                                    onChange={(listingId) =>
+                                      setDraft((current) => ({
+                                        ...current,
+                                        [input.id]: listingId,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              )
+                            }
+
+                            if (code === 'FILE') {
+                              const selectedFileId = fileIdFromStepperValue(value)
+                              const name =
+                                fileDisplayName(value) ??
+                                (isFileSnapshot(input.value) &&
+                                input.value.id === selectedFileId
+                                  ? input.value.originalName
+                                  : null)
+                              const mime =
+                                fileMime(value) ??
+                                (isFileSnapshot(input.value) &&
+                                input.value.id === selectedFileId
+                                  ? input.value.mime
+                                  : null)
+                              const isBusy = busyInputId === input.id
+                              return (
+                                <div
+                                  key={input.id}
+                                  className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2"
+                                >
+                                  {header}
+                                  <input
+                                    id={`stepper-file-${input.id}`}
+                                    type="file"
+                                    accept={STEPPER_FILE_ACCEPT}
+                                    className="sr-only"
+                                    disabled={isBusy}
+                                    onChange={(event) => {
+                                      const next = event.target.files?.[0]
+                                      event.target.value = ''
+                                      void onStepperFileSelected(input.id, next)
+                                    }}
+                                  />
+                                  <div className="flex items-start gap-3">
+                                    {selectedFileId ? (
+                                      <StepperFileThumb
+                                        fileId={selectedFileId}
+                                        mime={mime}
+                                        name={name}
+                                        isBusy={isBusy}
+                                      />
+                                    ) : null}
+                                    <div className="min-w-0 flex-1 space-y-2">
+                                      {selectedFileId ? (
+                                        <p className="truncate text-sm text-foreground">
+                                          {name ?? selectedFileId}
+                                        </p>
+                                      ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                          No file selected
+                                        </p>
+                                      )}
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={isBusy}
+                                          onClick={() =>
+                                            document
+                                              .getElementById(`stepper-file-${input.id}`)
+                                              ?.click()
+                                          }
+                                        >
+                                          {isBusy ? (
+                                            <Loader2 className="size-3.5 animate-spin" />
+                                          ) : (
+                                            <Upload className="size-3.5" />
+                                          )}
+                                          {selectedFileId ? 'Replace' : 'Upload'}
+                                        </Button>
+                                        {selectedFileId ? (
+                                          <>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              disabled={isBusy}
+                                              onClick={() =>
+                                                void openStepperFile(selectedFileId)
+                                              }
+                                            >
+                                              <ExternalLink className="size-3.5" />
+                                              Open
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              disabled={isBusy}
+                                              onClick={() => void clearStepperFile(input.id)}
+                                            >
+                                              Clear
+                                            </Button>
+                                          </>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            }
+
                             return (
                               <div key={input.id} className="grid gap-1.5">
                                 {header}
@@ -590,7 +929,10 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                 }))}
                 value={addTypeId || undefined}
                 onValueChange={(value) => {
-                  if (value) setAddTypeId(value)
+                  if (!value) return
+                  const nextCode = types.find((type) => type.id === value)?.code.toUpperCase() ?? ''
+                  setAddTypeId(value)
+                  if (nextCode !== 'CATEGORY') setAddCategoryId('')
                 }}
               >
                 <SelectTrigger id="project-input-type" className="w-full">
@@ -605,6 +947,36 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                 </SelectContent>
               </Select>
             </div>
+            {addTypeCode === 'CATEGORY' ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="project-input-category">Category</Label>
+                <Select
+                  items={categories.map((category) => ({
+                    value: category.id,
+                    label: category.parentName
+                      ? `${category.parentName} / ${category.name}`
+                      : category.name,
+                  }))}
+                  value={addCategoryId || undefined}
+                  onValueChange={(value) => {
+                    if (value) setAddCategoryId(value)
+                  }}
+                >
+                  <SelectTrigger id="project-input-category" className="w-full">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.parentName
+                          ? `${category.parentName} / ${category.name}`
+                          : category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={isAdding}>
@@ -617,5 +989,71 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         </DialogContent>
       </Dialog>
     </Card>
+  )
+}
+
+function CategoryListingSelect({
+  id,
+  categoryId,
+  value,
+  snapshotLabel,
+  onChange,
+}: {
+  id: string
+  categoryId: string | null
+  value: string | null
+  snapshotLabel: string | null
+  onChange: (listingId: string | null) => void
+}) {
+  const loadListings = useCallback(async () => {
+    if (!categoryId) {
+      return {
+        data: [] as Listing[],
+        meta: {
+          page: 1,
+          limit: 100,
+          total: 0,
+          typeCounts: { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 },
+        },
+      }
+    }
+    return listListings(1, 100, { categoryId, status: 'ACTIVE', counts: false })
+  }, [categoryId])
+
+  const remote = useRemoteData(loadListings, {
+    queryKey: ['listings', 'stepper-category', categoryId ?? 'none'],
+    enabled: Boolean(categoryId),
+  })
+  const listings = remote.status === 'success' ? remote.data.data : []
+  const options =
+    value && !listings.some((listing) => listing.id === value) && snapshotLabel
+      ? [{ id: value, name: `${snapshotLabel} (saved)` }, ...listings]
+      : listings
+
+  if (!categoryId) {
+    return <p className="text-sm text-muted-foreground">This field has no category binding.</p>
+  }
+
+  return (
+    <Select
+      items={[
+        { value: 'unset', label: 'Unset' },
+        ...options.map((listing) => ({ value: listing.id, label: listing.name })),
+      ]}
+      value={value ?? 'unset'}
+      onValueChange={(next) => onChange(!next || next === 'unset' ? null : next)}
+    >
+      <SelectTrigger id={id} className="w-full">
+        <SelectValue placeholder={remote.isLoading ? 'Loading…' : 'Select listing'} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="unset">Unset</SelectItem>
+        {options.map((listing) => (
+          <SelectItem key={listing.id} value={listing.id}>
+            {listing.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

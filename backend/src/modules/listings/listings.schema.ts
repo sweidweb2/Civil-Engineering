@@ -63,6 +63,10 @@ export const listListingsQuerySchema = paginationQuerySchema.extend({
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z.string().trim().min(1).optional(),
   ),
+  categoryId: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().min(1).optional(),
+  ),
 })
 
 const listingFields = {

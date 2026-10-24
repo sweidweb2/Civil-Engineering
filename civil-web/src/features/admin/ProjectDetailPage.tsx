@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
 import { Building2, Calendar, FileText, MapPin, Save, TrendingUp } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailSkeleton } from '@/components/feedback/skeletons'
+import { PageHeader } from '@/components/layout/page-header'
 import { ProjectGallery } from '@/components/projects/ProjectGallery'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { portalBaseFromPath } from '@/lib/homePath'
 import {
   getProjectById,
   type Project,
@@ -91,6 +93,8 @@ function formatDateTime(iso: string | null) {
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+  const projectsPath = `${portalBaseFromPath(location.pathname)}/projects`
   const [activeTab, setActiveTab] = useState<'steppers' | 'details'>('steppers')
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -104,6 +108,11 @@ export function ProjectDetailPage() {
   const project: Project | null = remote.status === 'success' ? remote.data.data : null
 
   useDocumentTitle(project ? `Project: ${project.name}` : 'Project Details')
+
+  const breadcrumbs = [
+    { label: 'Projects', to: projectsPath },
+    { label: project?.name ?? 'Project details' },
+  ]
 
   const [formData, setFormData] = useState<UpdateProjectInput>({})
 
@@ -163,6 +172,8 @@ export function ProjectDetailPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader className="mb-0" breadcrumbs={breadcrumbs} />
+
       <AsyncState
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}

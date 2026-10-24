@@ -38,6 +38,7 @@ import {
 } from '@/features/panels/PanelLayouts'
 import { PmAnalyticsPage } from '@/features/pm/PmAnalyticsPage'
 import { PmSettingsPage } from '@/features/pm/PmSettingsPage'
+import { ProviderHomePage } from '@/features/provider/ProviderHomePage'
 import { homePathForRole } from '@/lib/homePath'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -160,12 +161,9 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route
-              index
-              element={
-                <PanelHomePage title="Provider home" description="Provider tools will land here." />
-              }
-            />
+            <Route index element={<ProviderHomePage />} />
+            <Route path="listings" element={<ListingsPage />} />
+            <Route path="categories" element={<ManageCategoriesPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

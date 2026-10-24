@@ -1,8 +1,9 @@
 import type { AuthActor } from '../../authz/index.js'
 import { hasAnyRole } from '../../authz/index.js'
 import type { DbClient } from '../../database/transaction.js'
-import { forbidden, notFound } from '../../errors/app-error.js'
+import { forbidden, notFound, validationError } from '../../errors/app-error.js'
 import type { RoleName } from '../auth/auth.schema.js'
+import { findPlatformCategory } from '../categories/categories.access.js'
 import type { InputTypesService } from '../input-types/index.js'
 import { allocateOrdered, allocateOrderedWithActiveType } from './steps.order.js'
 import { type StepsRepository,toStepDto, toStepInputDto } from './steps.repository.js'
@@ -60,6 +61,24 @@ function assertCanManageSteps(actor: AuthActor) {
   if (!hasAnyRole(actor.roles, STEP_MANAGER_ROLES)) {
     throw forbidden('Only admins and project managers can manage steps')
   }
+}
+
+async function assertCategoryBinding(inputTypeCode: string, categoryId: string | null | undefined) {
+  const isCategory = inputTypeCode.toUpperCase() === 'CATEGORY'
+  if (isCategory) {
+    if (!categoryId) {
+      throw validationError('Category is required for CATEGORY inputs')
+    }
+    const category = await findPlatformCategory(categoryId)
+    if (!category || category.scope !== 'PLATFORM') {
+      throw notFound('Category not found', 'CATEGORY_NOT_FOUND')
+    }
+    return categoryId
+  }
+  if (categoryId) {
+    throw validationError('categoryId is only allowed for CATEGORY inputs')
+  }
+  return null
 }
 
 export function createStepsService(
@@ -170,7 +189,10 @@ export function createStepsService(
         inputTypeId: input.inputTypeId,
         listUsed: () => repository.listUsedInputOrders(stepId),
         requested: input.orderNb,
-        persist: (orderNb) => repository.createInput(stepId, { ...input, orderNb }),
+        persist: async (orderNb, inputType) => {
+          const categoryId = await assertCategoryBinding(inputType.code, input.categoryId)
+          return repository.createInput(stepId, { ...input, orderNb, categoryId })
+        },
         conflictMessage: 'Could not allocate a free input order. Retry.',
         conflictCode: 'STEP_INPUT_ORDER_CONFLICT',
       })
@@ -180,18 +202,25 @@ export function createStepsService(
     async updateStepInput(stepId, inputId, input, actor) {
       assertCanManageSteps(actor)
       const current = await loadOwnInputOrThrow(stepId, inputId, actor)
+      let nextCode = current.inputTypeCode
       if (input.inputTypeId && input.inputTypeId !== current.inputTypeId) {
-        await inputTypes.requireActiveInputType(input.inputTypeId)
+        const nextType = await inputTypes.requireActiveInputType(input.inputTypeId)
+        nextCode = nextType.code
       }
+      const nextCategoryId =
+        input.categoryId !== undefined ? input.categoryId : current.categoryId
+      const categoryId = await assertCategoryBinding(nextCode, nextCategoryId)
+      const payload = { ...input, categoryId }
+
       if (input.orderNb === undefined) {
-        const updated = await repository.updateInput(inputId, input)
+        const updated = await repository.updateInput(inputId, payload)
         return { data: toStepInputDto(updated) }
       }
 
       const result = await allocateOrdered({
         listUsed: () => repository.listUsedInputOrders(stepId, inputId),
         requested: input.orderNb,
-        persist: (orderNb) => repository.updateInput(inputId, { ...input, orderNb }),
+        persist: (orderNb) => repository.updateInput(inputId, { ...payload, orderNb }),
         conflictMessage: 'Could not allocate a free input order. Retry.',
         conflictCode: 'STEP_INPUT_ORDER_CONFLICT',
       })

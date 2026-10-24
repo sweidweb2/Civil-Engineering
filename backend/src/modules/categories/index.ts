@@ -10,6 +10,7 @@ export function createCategoriesModule() {
   return createCategoriesRoutes(controller)
 }
 
+export { findPlatformCategory } from './categories.access.js'
 export { categoriesDomain } from './categories.domain.js'
 export { createCategoriesService }
 export type { CategoriesService } from './categories.service.js'

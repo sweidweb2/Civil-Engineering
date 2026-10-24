@@ -19,6 +19,7 @@ export type StepInput = {
   inputTypeLabel: string
   label: string
   orderNb: number
+  categoryId: string | null
   createdAt: string
   updatedAt: string
 }

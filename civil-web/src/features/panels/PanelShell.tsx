@@ -145,6 +145,15 @@ function AccountMenu({
             <DropdownMenuSeparator />
           </>
         ) : null}
+        {location.pathname.startsWith('/provider') ? (
+          <>
+            <DropdownMenuItem onClick={() => navigate('/provider/profile')}>
+              <UserRound />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuGroup>
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <DropdownMenuRadioGroup
@@ -453,5 +462,4 @@ export const PROVIDER_NAV: PanelNavItem[] = [
   { to: '/provider', label: 'Home', icon: Home, end: true },
   { to: '/provider/listings', label: 'Listings', icon: Package },
   { to: '/provider/analytics', label: 'Analytics', icon: ChartColumn },
-  { to: '/provider/profile', label: 'Profile', icon: UserRound },
 ]

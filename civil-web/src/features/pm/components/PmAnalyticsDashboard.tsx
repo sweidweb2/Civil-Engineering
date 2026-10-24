@@ -430,7 +430,7 @@ function PortfolioMixCard({
                 r={bucket.r}
                 fill={bucket.fill}
                 stroke={bucket.stroke}
-                strokeWidth={1.5}
+                strokeWidth={0.6}
               />
             ))}
           {buckets.map((bucket) => (

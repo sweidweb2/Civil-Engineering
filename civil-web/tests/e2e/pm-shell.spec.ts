@@ -54,4 +54,11 @@ test.describe('PM shell navigation', () => {
     await expect(page).toHaveURL(/\/pm\/projects\/[^/]+/, { timeout: 20_000 })
     await expect(page.getByRole('tab', { name: 'Steppers' })).toBeVisible()
   })
+
+  test('opens notifications inbox', async ({ page }) => {
+    await page.goto('/pm/notifications')
+    await expect(page).toHaveURL(/\/pm\/notifications/)
+    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+  })
 })
+

@@ -619,15 +619,25 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                           No inputs on this stepper yet. Add a project-only field above.
                         </p>
                       ) : (
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
                           {detail.inputs.map((input) => {
                             const code = input.inputTypeCode.toUpperCase()
                             const value = draft[input.id] ?? null
 
                             const header = (
-                              <div className="flex items-center justify-between gap-2">
-                                <Label htmlFor={`stepper-${input.id}`}>{input.label}</Label>
-                                <div className="flex items-center gap-1">
+                              <div className="flex min-h-7 items-center justify-between gap-2">
+                                <Label
+                                  htmlFor={
+                                    code === 'FILE'
+                                      ? `stepper-file-${input.id}`
+                                      : `stepper-${input.id}`
+                                  }
+                                  className="min-w-0 truncate"
+                                  title={input.label}
+                                >
+                                  {input.label}
+                                </Label>
+                                <div className="flex shrink-0 items-center gap-1">
                                   {input.isProjectOnly ? (
                                     <Badge variant="outline" className="text-[10px]">
                                       Project
@@ -637,18 +647,16 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       Template
                                     </Badge>
                                   )}
-                                  {input.isProjectOnly ? (
-                                    <Button
-                                      type="button"
-                                      size="icon-sm"
-                                      variant="ghost"
-                                      aria-label={`Remove ${input.label}`}
-                                      disabled={busyInputId === input.id}
-                                      onClick={() => void removeInput(input.id)}
-                                    >
-                                      <Trash2 className="size-3.5" />
-                                    </Button>
-                                  ) : null}
+                                  <Button
+                                    type="button"
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    aria-label={`Remove ${input.label}`}
+                                    disabled={busyInputId === input.id}
+                                    onClick={() => void removeInput(input.id)}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
                                 </div>
                               </div>
                             )
@@ -657,11 +665,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                               const yesNoValue =
                                 value === true ? 'yes' : value === false ? 'no' : 'unset'
                               return (
-                                <div
-                                  key={input.id}
-                                  className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2"
-                                >
-                                  {header}
+                                <StepperInputShell key={input.id} header={header}>
                                   <Select
                                     value={yesNoValue}
                                     onValueChange={(next) =>
@@ -672,7 +676,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       }))
                                     }
                                   >
-                                    <SelectTrigger id={`stepper-${input.id}`}>
+                                    <SelectTrigger id={`stepper-${input.id}`} className="w-full">
                                       <SelectValue placeholder="Unset" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -681,16 +685,16 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       <SelectItem value="no">No</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                </div>
+                                </StepperInputShell>
                               )
                             }
 
                             if (code === 'DATE') {
                               return (
-                                <div key={input.id} className="grid gap-1.5">
-                                  {header}
+                                <StepperInputShell key={input.id} header={header}>
                                   <DatePicker
                                     id={`stepper-${input.id}`}
+                                    className="w-full"
                                     placeholder={input.label}
                                     value={toDate(value)}
                                     onChange={(date) =>
@@ -700,17 +704,17 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       }))
                                     }
                                   />
-                                </div>
+                                </StepperInputShell>
                               )
                             }
 
                             if (code === 'NUMBER') {
                               return (
-                                <div key={input.id} className="grid gap-1.5">
-                                  {header}
+                                <StepperInputShell key={input.id} header={header}>
                                   <Input
                                     id={`stepper-${input.id}`}
                                     type="number"
+                                    className="w-full"
                                     placeholder={input.label}
                                     value={
                                       typeof value === 'number'
@@ -731,7 +735,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       }))
                                     }}
                                   />
-                                </div>
+                                </StepperInputShell>
                               )
                             }
 
@@ -745,8 +749,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                   ? input.value.name
                                   : null
                               return (
-                                <div key={input.id} className="grid gap-1.5">
-                                  {header}
+                                <StepperInputShell key={input.id} header={header}>
                                   <CategoryListingSelect
                                     id={`stepper-${input.id}`}
                                     categoryId={input.categoryId}
@@ -759,7 +762,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       }))
                                     }
                                   />
-                                </div>
+                                </StepperInputShell>
                               )
                             }
 
@@ -779,11 +782,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                   : null)
                               const isBusy = busyInputId === input.id
                               return (
-                                <div
-                                  key={input.id}
-                                  className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2"
-                                >
-                                  {header}
+                                <StepperInputShell key={input.id} header={header}>
                                   <input
                                     id={`stepper-file-${input.id}`}
                                     type="file"
@@ -796,7 +795,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       void onStepperFileSelected(input.id, next)
                                     }}
                                   />
-                                  <div className="flex items-start gap-3">
+                                  <div className="flex min-h-9 items-center gap-2">
                                     {selectedFileId ? (
                                       <StepperFileThumb
                                         fileId={selectedFileId}
@@ -805,72 +804,74 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                         isBusy={isBusy}
                                       />
                                     ) : null}
-                                    <div className="min-w-0 flex-1 space-y-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p
+                                        className={cn(
+                                          'truncate text-sm',
+                                          selectedFileId
+                                            ? 'text-foreground'
+                                            : 'text-muted-foreground',
+                                        )}
+                                      >
+                                        {selectedFileId
+                                          ? (name ?? selectedFileId)
+                                          : 'No file selected'}
+                                      </p>
+                                    </div>
+                                    <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={isBusy}
+                                        onClick={() =>
+                                          document
+                                            .getElementById(`stepper-file-${input.id}`)
+                                            ?.click()
+                                        }
+                                      >
+                                        {isBusy ? (
+                                          <Loader2 className="size-3.5 animate-spin" />
+                                        ) : (
+                                          <Upload className="size-3.5" />
+                                        )}
+                                        {selectedFileId ? 'Replace' : 'Upload'}
+                                      </Button>
                                       {selectedFileId ? (
-                                        <p className="truncate text-sm text-foreground">
-                                          {name ?? selectedFileId}
-                                        </p>
-                                      ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                          No file selected
-                                        </p>
-                                      )}
-                                      <div className="flex flex-wrap gap-2">
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          disabled={isBusy}
-                                          onClick={() =>
-                                            document
-                                              .getElementById(`stepper-file-${input.id}`)
-                                              ?.click()
-                                          }
-                                        >
-                                          {isBusy ? (
-                                            <Loader2 className="size-3.5 animate-spin" />
-                                          ) : (
-                                            <Upload className="size-3.5" />
-                                          )}
-                                          {selectedFileId ? 'Replace' : 'Upload'}
-                                        </Button>
-                                        {selectedFileId ? (
-                                          <>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              disabled={isBusy}
-                                              onClick={() =>
-                                                void openStepperFile(selectedFileId)
-                                              }
-                                            >
-                                              <ExternalLink className="size-3.5" />
-                                              Open
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              disabled={isBusy}
-                                              onClick={() => void clearStepperFile(input.id)}
-                                            >
-                                              Clear
-                                            </Button>
-                                          </>
-                                        ) : null}
-                                      </div>
+                                        <>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            disabled={isBusy}
+                                            aria-label="Open file"
+                                            onClick={() => void openStepperFile(selectedFileId)}
+                                          >
+                                            <ExternalLink className="size-3.5" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            disabled={isBusy}
+                                            aria-label="Clear file"
+                                            onClick={() => void clearStepperFile(input.id)}
+                                          >
+                                            <Trash2 className="size-3.5" />
+                                          </Button>
+                                        </>
+                                      ) : null}
                                     </div>
                                   </div>
-                                </div>
+                                </StepperInputShell>
                               )
                             }
 
                             return (
-                              <div key={input.id} className="grid gap-1.5">
-                                {header}
+                              <StepperInputShell key={input.id} header={header}>
                                 <Input
                                   id={`stepper-${input.id}`}
+                                  className="w-full"
                                   placeholder={input.label}
                                   maxLength={2000}
                                   value={
@@ -887,7 +888,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                     }))
                                   }
                                 />
-                              </div>
+                              </StepperInputShell>
                             )
                           })}
                         </div>
@@ -989,6 +990,21 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         </DialogContent>
       </Dialog>
     </Card>
+  )
+}
+
+function StepperInputShell({
+  header,
+  children,
+}: {
+  header: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex h-full min-h-[5.75rem] flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2.5">
+      {header}
+      <div className="mt-auto min-w-0">{children}</div>
+    </div>
   )
 }
 

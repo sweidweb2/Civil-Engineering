@@ -1,11 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { forbidden } from '../../src/errors/app-error.js'
-import type { ProjectSteppersRepository } from '../../src/modules/project-steppers/project-steppers.repository.js'
+import { findPlatformCategory } from '../../src/modules/categories/categories.access.js'
+import { findListingSnapshot } from '../../src/modules/listings/listings.access.js'
+import {
+  MAX_PROJECT_STEP_INPUTS,
+  type ProjectSteppersRepository,
+} from '../../src/modules/project-steppers/project-steppers.repository.js'
 import {
   createProjectSteppersService,
   type ProjectSteppersFilesGateway,
 } from '../../src/modules/project-steppers/project-steppers.service.js'
+
+vi.mock('../../src/modules/listings/listings.access.js', () => ({
+  findListingSnapshot: vi.fn(),
+}))
+vi.mock('../../src/modules/categories/categories.access.js', () => ({
+  findPlatformCategory: vi.fn(),
+}))
 
 const owner = { id: 'pm-1', roles: ['MANAGER'] }
 
@@ -43,7 +55,7 @@ describe('projectSteppersService', () => {
     return createProjectSteppersService(repository, projectsService, inputTypes, files)
   }
 
-  it('blocks deleting template-cloned inputs', async () => {
+  it('allows deleting template-cloned inputs', async () => {
     vi.mocked(repository.findInput).mockResolvedValue({
       id: 'in-1',
       isProjectOnly: false,
@@ -51,13 +63,11 @@ describe('projectSteppersService', () => {
       inputTypeCode: 'TEXT',
       value: null,
     })
+    vi.mocked(repository.deleteInput).mockResolvedValue(undefined)
     const service = createService()
 
-    await expect(service.removeInput('proj-1', 'step-1', 'in-1', owner)).rejects.toMatchObject({
-      status: 403,
-      code: 'PROJECT_STEP_INPUT_LOCKED',
-    })
-    expect(repository.deleteInput).not.toHaveBeenCalled()
+    await expect(service.removeInput('proj-1', 'step-1', 'in-1', owner)).resolves.toBeUndefined()
+    expect(repository.deleteInput).toHaveBeenCalledWith('in-1', 'step-1')
   })
 
   it('allows deleting project-only inputs', async () => {
@@ -75,7 +85,7 @@ describe('projectSteppersService', () => {
     expect(repository.deleteInput).toHaveBeenCalledWith('in-2', 'step-1')
   })
 
-  it('soft-deletes attached FILE when removing a project-only FILE input', async () => {
+  it('soft-deletes attached FILE when removing a FILE input', async () => {
     vi.mocked(repository.findInput).mockResolvedValue({
       id: 'in-file',
       isProjectOnly: true,
@@ -303,5 +313,202 @@ describe('projectSteppersService', () => {
       { id: 'in-file', value: null },
     ])
     expect(files.softDelete).toHaveBeenCalledWith(owner, 'file-old')
+  })
+
+  it('resolves CATEGORY values to a listing snapshot for the bound category', async () => {
+    vi.mocked(repository.listInputMeta).mockResolvedValue({
+      items: [
+        {
+          id: 'in-cat',
+          inputTypeCode: 'CATEGORY',
+          label: 'Cement product',
+          categoryId: 'cat-1',
+          value: null,
+        },
+      ],
+      truncated: false,
+    })
+    vi.mocked(findListingSnapshot).mockResolvedValue({
+      id: 'list-1',
+      name: 'Portland 42.5',
+      type: 'MATERIAL',
+      categoryId: 'cat-1',
+      brand: null,
+      unit: 'bag',
+      currency: 'USD',
+      price: '12',
+      rentalPrice: null,
+      rentalUnit: null,
+      providerId: 'prov-1',
+      status: 'ACTIVE',
+      description: null,
+    })
+    vi.mocked(repository.upsertValues).mockResolvedValue(undefined)
+    vi.mocked(repository.getDetail).mockResolvedValue({
+      detail: {
+        id: 'step-1',
+        projectId: 'proj-1',
+        name: 'Foundation',
+        orderNb: 0,
+        inputs: [],
+      },
+      truncated: false,
+    })
+    const service = createService()
+
+    await service.saveValues(
+      'proj-1',
+      'step-1',
+      { values: [{ id: 'in-cat', value: 'list-1' }] },
+      owner,
+    )
+
+    expect(findListingSnapshot).toHaveBeenCalledWith('list-1')
+    expect(repository.upsertValues).toHaveBeenCalledWith('step-1', [
+      {
+        id: 'in-cat',
+        value: expect.objectContaining({ id: 'list-1', categoryId: 'cat-1', status: 'ACTIVE' }),
+      },
+    ])
+  })
+
+  it('rejects CATEGORY values when the listing category does not match', async () => {
+    vi.mocked(repository.listInputMeta).mockResolvedValue({
+      items: [
+        {
+          id: 'in-cat',
+          inputTypeCode: 'CATEGORY',
+          label: 'Cement product',
+          categoryId: 'cat-1',
+          value: null,
+        },
+      ],
+      truncated: false,
+    })
+    vi.mocked(findListingSnapshot).mockResolvedValue({
+      id: 'list-2',
+      name: 'Rebar',
+      type: 'MATERIAL',
+      categoryId: 'cat-other',
+      brand: null,
+      unit: 'ton',
+      currency: 'USD',
+      price: '100',
+      rentalPrice: null,
+      rentalUnit: null,
+      providerId: 'prov-1',
+      status: 'ACTIVE',
+      description: null,
+    })
+    const service = createService()
+
+    await expect(
+      service.saveValues(
+        'proj-1',
+        'step-1',
+        { values: [{ id: 'in-cat', value: 'list-2' }] },
+        owner,
+      ),
+    ).rejects.toMatchObject({ status: 400 })
+    expect(repository.upsertValues).not.toHaveBeenCalled()
+  })
+
+  it('adds a project-only TEXT input', async () => {
+    vi.mocked(repository.countInputs).mockResolvedValue(1)
+    vi.mocked(repository.listUsedOrders).mockResolvedValue([])
+    vi.mocked(inputTypes.requireActiveInputType).mockResolvedValue({
+      id: 'type-text',
+      code: 'TEXT',
+      label: 'Text',
+    })
+    vi.mocked(repository.createInput).mockResolvedValue({
+      id: 'in-new',
+      label: 'Extra note',
+      orderNb: 0,
+      inputTypeId: 'type-text',
+      inputTypeCode: 'TEXT',
+      inputTypeLabel: 'Text',
+      categoryId: null,
+      value: 'hello',
+      isProjectOnly: true,
+    })
+    const service = createService()
+
+    const result = await service.addInput(
+      'proj-1',
+      'step-1',
+      { label: 'Extra note', inputTypeId: 'type-text', value: 'hello' },
+      owner,
+    )
+
+    expect(result.data).toMatchObject({
+      id: 'in-new',
+      label: 'Extra note',
+      isProjectOnly: true,
+      value: 'hello',
+    })
+    expect(repository.createInput).toHaveBeenCalled()
+  })
+
+  it('requires a platform category when adding a CATEGORY input', async () => {
+    vi.mocked(repository.countInputs).mockResolvedValue(0)
+    vi.mocked(repository.listUsedOrders).mockResolvedValue([])
+    vi.mocked(inputTypes.requireActiveInputType).mockResolvedValue({
+      id: 'type-cat',
+      code: 'CATEGORY',
+      label: 'Category listing',
+    })
+    vi.mocked(findPlatformCategory).mockResolvedValue({
+      id: 'cat-1',
+      scope: 'PLATFORM',
+      isActive: true,
+    })
+    vi.mocked(repository.createInput).mockResolvedValue({
+      id: 'in-cat',
+      label: 'Product',
+      orderNb: 0,
+      inputTypeId: 'type-cat',
+      inputTypeCode: 'CATEGORY',
+      inputTypeLabel: 'Category listing',
+      categoryId: 'cat-1',
+      value: null,
+      isProjectOnly: true,
+    })
+    const service = createService()
+
+    await expect(
+      service.addInput(
+        'proj-1',
+        'step-1',
+        { label: 'Product', inputTypeId: 'type-cat' },
+        owner,
+      ),
+    ).rejects.toMatchObject({ status: 400 })
+
+    const created = await service.addInput(
+      'proj-1',
+      'step-1',
+      { label: 'Product', inputTypeId: 'type-cat', categoryId: 'cat-1' },
+      owner,
+    )
+    expect(created.data.categoryId).toBe('cat-1')
+    expect(findPlatformCategory).toHaveBeenCalledWith('cat-1')
+  })
+
+  it('rejects addInput when the hard input cap is reached', async () => {
+    vi.mocked(repository.countInputs).mockResolvedValue(MAX_PROJECT_STEP_INPUTS)
+    const service = createService()
+
+    await expect(
+      service.addInput(
+        'proj-1',
+        'step-1',
+        { label: 'Overflow', inputTypeId: 'type-text' },
+        owner,
+      ),
+    ).rejects.toMatchObject({
+      status: 409,
+      code: 'PROJECT_STEP_INPUTS_LIMIT',
+    })
   })
 })

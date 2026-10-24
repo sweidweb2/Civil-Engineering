@@ -48,4 +48,11 @@ test.describe('admin shell navigation', () => {
     await expect(page).toHaveURL(/\/admin\/reviews/)
     await expect(page.getByRole('heading', { name: 'Manage reviews' })).toBeVisible()
   })
+
+  test('opens notifications inbox', async ({ page }) => {
+    await page.goto('/admin/notifications')
+    await expect(page).toHaveURL(/\/admin\/notifications/)
+    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+  })
 })
+

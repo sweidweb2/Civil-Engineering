@@ -38,7 +38,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
         closeButton: true,
         closeButtonAriaLabel: 'Dismiss notification',
         classNames: {
-          toast: 'cn-toast',
+          toast: 'cn-toast border-l-4',
+          success: '!border-l-success',
+          error: '!border-l-destructive',
+          warning: '!border-l-warning',
+          info: '!border-l-info',
           closeButton:
             'border-border bg-background text-foreground hover:bg-muted hover:text-foreground',
         },

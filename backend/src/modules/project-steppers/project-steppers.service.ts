@@ -1,5 +1,5 @@
 import type { AuthActor } from '../../authz/index.js'
-import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { conflict, notFound, validationError } from '../../errors/app-error.js'
 import { findPlatformCategory } from '../categories/categories.access.js'
 import type { FilesService } from '../files/files.service.js'
 import type { InputTypesService } from '../input-types/index.js'
@@ -273,12 +273,8 @@ export function createProjectSteppersService(
       if (!field) {
         throw notFound('Project step input not found', 'PROJECT_STEP_INPUT_NOT_FOUND')
       }
-      if (!field.isProjectOnly) {
-        throw forbidden(
-          'Template-cloned inputs cannot be deleted from a project',
-          'PROJECT_STEP_INPUT_LOCKED',
-        )
-      }
+      // Project copies are independent of step templates — both cloned and
+      // project-only inputs may be removed from this project without affecting templates.
       const attachedFileId =
         field.inputTypeCode.toUpperCase() === 'FILE' ? fileIdFromValue(field.value) : null
       await repository.deleteInput(inputId, projectStepId)

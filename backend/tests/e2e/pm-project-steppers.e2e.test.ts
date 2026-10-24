@@ -115,6 +115,20 @@ describe('backend e2e (pm project steppers)', () => {
       isComplete: true,
     })
 
+    const removed = await request(app)
+      .delete(
+        `/api/v1/projects/${projectId}/steppers/${projectStepId}/inputs/${added.body.data.id}`,
+      )
+      .set(authHeader(pmSession.accessToken))
+    expect(removed.status).toBe(204)
+
+    const afterDelete = await request(app)
+      .get(`/api/v1/projects/${projectId}/steppers/${projectStepId}`)
+      .set(authHeader(pmSession.accessToken))
+    expect(afterDelete.status).toBe(200)
+    expect(afterDelete.body.data.inputs).toHaveLength(1)
+    expect(afterDelete.body.data.inputs[0].id).toBe(clonedInputId)
+
     // Ensure Prisma still sees the cloned rows (not only the HTTP DTO).
     const prisma = getPrisma()
     const dbCount = await prisma.stepperProject.count({ where: { projectId } })

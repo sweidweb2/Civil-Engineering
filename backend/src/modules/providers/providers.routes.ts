@@ -37,6 +37,19 @@ export function createProvidersRoutes(controller: ProvidersController): Router {
     validate({ params: providerIdParamsSchema, body: updateProviderBodySchema }),
     controller.update,
   )
+  router.post(
+    '/:id/logo/upload',
+    authorize('PROVIDER', ...ADMIN_ROLES),
+    validate({ params: providerIdParamsSchema }),
+    controller.uploadLogoMiddleware,
+    controller.uploadLogo,
+  )
+  router.delete(
+    '/:id/logo',
+    authorize('PROVIDER', ...ADMIN_ROLES),
+    validate({ params: providerIdParamsSchema }),
+    controller.clearLogo,
+  )
 
   return router
 }

@@ -171,10 +171,10 @@ function DirectoryCards({ items }: { items: DirectoryItem[] }) {
   }
 
   return (
-    <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((item, index) => (
         <Card key={`${item.kind}-${item.id}`} size="sm" className="min-w-0 overflow-hidden pt-0">
-          <CivilCardMedia variant={index} />
+          <CivilCardMedia variant={index} className="h-44" />
           <CardHeader className="min-w-0">
             <CardTitle className="truncate" title={item.name}>
               {ellipsis(item.name, 36)}
@@ -287,7 +287,7 @@ export function DirectoryPage() {
             isLoading={remote.isLoading}
             error={remote.isError ? remote.error : undefined}
             onRetry={() => void remote.refetch()}
-            loadingFallback={<CardGridSkeleton />}
+            loadingFallback={<CardGridSkeleton className="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />}
           >
             <DirectoryCards items={items} />
             <TablePager page={page} totalPages={pageCount(total)} total={total} onPageChange={setPage} />

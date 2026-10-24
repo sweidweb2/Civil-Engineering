@@ -132,8 +132,33 @@ export function toProviderWriteInput(
   return payload
 }
 
+export type ProviderLogoResponse = {
+  data: Provider
+  meta: { logoDownloadUrl: string | null }
+}
+
 export function getMyProvider() {
-  return apiRequest<{ data: Provider }>('/providers/me')
+  return apiRequest<ProviderLogoResponse>('/providers/me')
+}
+
+export function uploadProviderLogo(
+  id: string,
+  file: File,
+  options?: { onProgress?: (percent: number) => void },
+) {
+  const body = new FormData()
+  body.append('image', file)
+  return apiRequest<ProviderLogoResponse>(`/providers/${id}/logo/upload`, {
+    method: 'POST',
+    body,
+    onUploadProgress: options?.onProgress,
+  })
+}
+
+export function clearProviderLogo(id: string) {
+  return apiRequest<ProviderLogoResponse>(`/providers/${id}/logo`, {
+    method: 'DELETE',
+  })
 }
 
 export function listProviders(page = 1, limit = 12, q?: string, status?: ProviderStatus) {
@@ -148,7 +173,7 @@ export function listProviderOwnerCandidates() {
 }
 
 export function getProvider(id: string) {
-  return apiRequest<{ data: Provider }>(`/providers/${id}`)
+  return apiRequest<ProviderLogoResponse>(`/providers/${id}`)
 }
 
 export function createProvider(input: ProviderWriteInput) {

@@ -6,6 +6,7 @@ import { InlineSpinner } from '@/components/feedback/async-state'
 import { NavigationLoader } from '@/components/feedback/navigation-loader'
 import { AdminAnalyticsPage } from '@/features/admin/AdminAnalyticsPage'
 import { DirectoryPage } from '@/features/admin/DirectoryPage'
+import { ListingDetailsPage } from '@/features/admin/ListingDetailsPage'
 import { ListingsPage } from '@/features/admin/ListingsPage'
 import { ManageCategoriesPage } from '@/features/admin/ManageCategoriesPage'
 import { ManageInputTypesPage } from '@/features/admin/ManageInputTypesPage'
@@ -38,7 +39,9 @@ import {
 } from '@/features/panels/PanelLayouts'
 import { PmAnalyticsPage } from '@/features/pm/PmAnalyticsPage'
 import { PmSettingsPage } from '@/features/pm/PmSettingsPage'
+import { ProviderAnalyticsPage } from '@/features/provider/ProviderAnalyticsPage'
 import { ProviderHomePage } from '@/features/provider/ProviderHomePage'
+import { ProviderProfilePage } from '@/features/provider/ProviderProfilePage'
 import { homePathForRole } from '@/lib/homePath'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -124,6 +127,7 @@ function App() {
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />
             <Route path="listings" element={<ListingsPage />} />
+            <Route path="listings/:id" element={<ListingDetailsPage />} />
             <Route path="reviews" element={<ManageReviewsPage />} />
             <Route path="categories" element={<ManageCategoriesPage />} />
             <Route path="steps" element={<ManageStepsPage />} />
@@ -162,8 +166,10 @@ function App() {
             }
           >
             <Route index element={<ProviderHomePage />} />
+            <Route path="analytics" element={<ProviderAnalyticsPage />} />
             <Route path="listings" element={<ListingsPage />} />
-            <Route path="categories" element={<ManageCategoriesPage />} />
+            <Route path="listings/:id" element={<ListingDetailsPage />} />
+            <Route path="profile" element={<ProviderProfilePage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

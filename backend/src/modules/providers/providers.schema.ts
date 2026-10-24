@@ -36,6 +36,9 @@ const optionalEmail = z.preprocess(blankToUndefined, z.string().email().max(254)
 const patchEmail = z.preprocess(blankToNull, z.string().email().max(254).nullable().optional())
 const optionalUrl = z.preprocess(blankToUndefined, z.string().url().max(500).optional())
 const patchUrl = z.preprocess(blankToNull, z.string().url().max(500).nullable().optional())
+/** Public URL or R2 object key for the provider brand logo. */
+const optionalLogoRef = z.preprocess(blankToUndefined, z.string().max(500).optional())
+const patchLogoRef = z.preprocess(blankToNull, z.string().max(500).nullable().optional())
 
 function toCoord(value: unknown) {
   if (typeof value === 'number') return value
@@ -64,7 +67,7 @@ export const createProviderBodySchema = z.object({
   ownerUserId: z.string().trim().min(1, 'Owner is required'),
   name: z.string().trim().min(1, 'Name is required').max(120, 'Name must be at most 120 characters'),
   description: optionalText(2000),
-  logoUrl: optionalUrl,
+  logoUrl: optionalLogoRef,
   phone: optionalText(20),
   whatsapp: optionalText(20),
   email: optionalEmail,
@@ -86,7 +89,7 @@ export const updateProviderBodySchema = z
       .max(120, 'Name must be at most 120 characters')
       .optional(),
     description: patchText(2000),
-    logoUrl: patchUrl,
+    logoUrl: patchLogoRef,
     phone: patchText(20),
     whatsapp: patchText(20),
     email: patchEmail,

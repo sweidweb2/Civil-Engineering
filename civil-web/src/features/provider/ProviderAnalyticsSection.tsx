@@ -344,7 +344,7 @@ export function ProviderAnalyticsSection() {
       }}
       loadingFallback={<ContentSkeleton className="min-h-72" />}
     >
-      <section aria-labelledby="provider-analytics-title" className="flex flex-col gap-5 pt-6">
+      <section aria-labelledby="provider-analytics-title" className="flex flex-col gap-5">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map((kpi) => {
             const Icon = kpi.icon

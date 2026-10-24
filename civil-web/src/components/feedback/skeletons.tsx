@@ -7,16 +7,20 @@ type SkeletonPresetProps = {
 }
 
 /**
- * Card art: one calm isometric subject, centered, with a wide empty margin on warm
- * off-white (#fef8ef). Solid faces only — never a wireframe, blueprint, or see-through
- * walls. One even charcoal outline. Flat soft shading in warm stone, pale gray, and a
- * little clay. A single clear scene, no people, no text, no clutter.
- * Assets are padded top/bottom in-file so they do not read as a tight landscape strip.
+ * Card art: one calm isometric subject, centered, with a wide empty margin.
+ * Light assets use warm off-white (#fef8ef); dark assets use charcoal-green (#121916).
+ * Solid faces only — never a wireframe. Flat soft shading. No people, text, or clutter.
  */
 export const CIVIL_ILLUSTRATIONS = [
-  '/illustrations/skeleton-building.jpg?v=4',
-  '/illustrations/skeleton-crane.jpg?v=4',
-  '/illustrations/skeleton-planning.jpg?v=4',
+  '/illustrations/skeleton-building.jpg?v=5',
+  '/illustrations/skeleton-crane.jpg?v=5',
+  '/illustrations/skeleton-planning.jpg?v=5',
+] as const
+
+const CIVIL_ILLUSTRATIONS_DARK = [
+  '/illustrations/skeleton-building-dark.jpg?v=1',
+  '/illustrations/skeleton-crane-dark.jpg?v=1',
+  '/illustrations/skeleton-planning-dark.jpg?v=1',
 ] as const
 
 const PROVIDER_ILLUSTRATIONS = [
@@ -25,36 +29,88 @@ const PROVIDER_ILLUSTRATIONS = [
   '/illustrations/provider-warehouse.jpg?v=4',
 ] as const
 
+const PROVIDER_ILLUSTRATIONS_DARK = [
+  '/illustrations/provider-shop-dark.jpg?v=1',
+  '/illustrations/provider-yard-dark.jpg?v=1',
+  '/illustrations/provider-warehouse-dark.jpg?v=1',
+] as const
+
 const PROJECT_ILLUSTRATIONS = [
   '/illustrations/project-frame.jpg?v=4',
   '/illustrations/project-house.jpg?v=4',
   '/illustrations/project-site.jpg?v=4',
 ] as const
 
+const PROJECT_ILLUSTRATIONS_DARK = [
+  '/illustrations/project-frame-dark.jpg?v=1',
+  '/illustrations/project-house-dark.jpg?v=1',
+  '/illustrations/project-site-dark.jpg?v=1',
+] as const
+
 export function civilIllustrationSrc(variant = 0) {
   return CIVIL_ILLUSTRATIONS[variant % CIVIL_ILLUSTRATIONS.length]
 }
 
-function IllustrationFrame({
-  src,
+export function civilIllustrationPair(variant = 0) {
+  const index = variant % CIVIL_ILLUSTRATIONS.length
+  return {
+    light: CIVIL_ILLUSTRATIONS[index],
+    dark: CIVIL_ILLUSTRATIONS_DARK[index],
+  }
+}
+
+/** Renders light + dark assets; visibility is controlled by `data-theme-asset` CSS in index.css. */
+export function ThemeIllustration({
+  lightSrc,
+  darkSrc,
   className,
-  pulsing = false,
-}: SkeletonPresetProps & { src: string; pulsing?: boolean }) {
+  opacityClass,
+  objectFit = 'cover',
+}: {
+  lightSrc: string
+  darkSrc: string
+  className?: string
+  opacityClass?: string
+  objectFit?: 'cover' | 'contain'
+}) {
+  const fitClass = objectFit === 'contain' ? 'object-contain' : 'object-cover'
   return (
-    <div
-      className={cn(
-        // Square cream canvas (assets are 1:1); keep frame square so art is not letterboxed.
-        'relative aspect-square w-full overflow-hidden bg-[#fef8ef]',
-        className,
-      )}
-    >
+    <>
       <img
-        src={src}
+        data-theme-asset="light"
+        src={lightSrc}
         alt=""
         aria-hidden
         decoding="async"
-        className="size-full object-cover object-center"
+        className={cn('absolute inset-0 size-full object-center', fitClass, opacityClass, className)}
       />
+      <img
+        data-theme-asset="dark"
+        src={darkSrc}
+        alt=""
+        aria-hidden
+        decoding="async"
+        className={cn('absolute inset-0 size-full object-center', fitClass, opacityClass, className)}
+      />
+    </>
+  )
+}
+
+function IllustrationFrame({
+  lightSrc,
+  darkSrc,
+  className,
+  pulsing = false,
+}: SkeletonPresetProps & { lightSrc: string; darkSrc: string; pulsing?: boolean }) {
+  return (
+    <div
+      className={cn(
+        // Square canvas (assets are 1:1); keep frame square so art is not letterboxed.
+        'relative aspect-square w-full overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
+        className,
+      )}
+    >
+      <ThemeIllustration lightSrc={lightSrc} darkSrc={darkSrc} />
       {pulsing ? <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" /> : null}
     </div>
   )
@@ -66,34 +122,35 @@ export function ProviderCardMedia({
   variant = 0,
   pulsing = false,
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
+  const index = variant % PROVIDER_ILLUSTRATIONS.length
   return (
     <IllustrationFrame
       className={className}
       pulsing={pulsing}
-      src={PROVIDER_ILLUSTRATIONS[variant % PROVIDER_ILLUSTRATIONS.length]}
+      lightSrc={PROVIDER_ILLUSTRATIONS[index]}
+      darkSrc={PROVIDER_ILLUSTRATIONS_DARK[index]}
     />
   )
 }
 
-/** Shown on a project card when it has no main photo — short strip, zoomed to crop cream padding. */
+/** Shown on a project card when it has no main photo — fixed short strip. */
 export function ProjectCardMedia({
   className,
   variant = 0,
   pulsing = false,
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
+  const index = variant % PROJECT_ILLUSTRATIONS.length
   return (
     <div
       className={cn(
-        'relative aspect-[2/1] w-full overflow-hidden bg-[#fef8ef]',
+        'relative h-44 w-full overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
         className,
       )}
     >
-      <img
-        src={PROJECT_ILLUSTRATIONS[variant % PROJECT_ILLUSTRATIONS.length]}
-        alt=""
-        aria-hidden
-        decoding="async"
-        className="size-full scale-[1.35] object-cover object-center"
+      <ThemeIllustration
+        lightSrc={PROJECT_ILLUSTRATIONS[index]}
+        darkSrc={PROJECT_ILLUSTRATIONS_DARK[index]}
+        opacityClass="opacity-85"
       />
       {pulsing ? (
         <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" />
@@ -102,13 +159,30 @@ export function ProjectCardMedia({
   )
 }
 
-/** Project and directory card art: building, crane, or massing study. */
+/** Directory card art — fixed short strip so wide cards stay compact. */
 export function CivilCardMedia({
   className,
   variant = 0,
   pulsing = false,
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
-  return <IllustrationFrame className={className} pulsing={pulsing} src={civilIllustrationSrc(variant)} />
+  const index = variant % CIVIL_ILLUSTRATIONS.length
+  return (
+    <div
+      className={cn(
+        'relative h-44 w-full shrink-0 overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
+        className,
+      )}
+    >
+      <ThemeIllustration
+        lightSrc={CIVIL_ILLUSTRATIONS[index]}
+        darkSrc={CIVIL_ILLUSTRATIONS_DARK[index]}
+        opacityClass="opacity-85"
+      />
+      {pulsing ? (
+        <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" />
+      ) : null}
+    </div>
+  )
 }
 
 /** Default AsyncState fallback — generic content block. */

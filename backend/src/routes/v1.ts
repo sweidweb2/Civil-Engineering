@@ -12,6 +12,7 @@ import { createHealthRepository } from '../modules/health/health.repository.js'
 import { createHealthRoutes } from '../modules/health/health.routes.js'
 import { createHealthService } from '../modules/health/health.service.js'
 import { createInputTypesModule } from '../modules/input-types/index.js'
+import { createListingImagesModule } from '../modules/listing-images/index.js'
 import { createListingsModule } from '../modules/listings/index.js'
 import { createLoggingModule } from '../modules/logging/index.js'
 import { createManagerProfilesModule } from '../modules/manager-profiles/index.js'
@@ -52,9 +53,10 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use(createLoggingModule())
   router.use('/users', createUsersModule())
   router.use('/manager-profiles', createManagerProfilesModule())
-  router.use('/providers', createProvidersModule())
+  router.use('/providers', createProvidersModule({ config, storage: deps.storage }))
   router.use('/categories', createCategoriesModule())
-  router.use('/listings', createListingsModule())
+  router.use('/listings', createListingsModule({ config, storage: deps.storage }))
+  router.use('/listing-images', createListingImagesModule({ config, storage: deps.storage }))
   router.use('/reviews', createReviewsModule())
   router.use('/input-types', createInputTypesModule())
   router.use('/steps', createStepsModule())

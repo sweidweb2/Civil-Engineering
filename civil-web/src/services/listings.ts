@@ -23,6 +23,7 @@ export type Listing = {
   status: ListingStatus
   createdAt: string
   updatedAt: string
+  mainImageUrl?: string | null
 }
 
 export type ListingTypeCounts = {
@@ -101,6 +102,10 @@ export function listListings(
   if (filters?.categoryId) params.set('categoryId', filters.categoryId)
   if (filters?.counts === false) params.set('counts', 'false')
   return apiRequest<PaginatedListings>(`/listings?${params.toString()}`)
+}
+
+export function getListingById(id: string) {
+  return apiRequest<{ data: Listing }>(`/listings/${id}`)
 }
 
 export function createListing(input: ListingWriteInput) {

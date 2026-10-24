@@ -1,9 +1,16 @@
 import { useCallback, useState } from 'react'
-import { Box, Briefcase, Layers, LayoutGrid, Pencil, Plus, Table2, Trash2, Wrench } from 'lucide-react'
+import { Box, Briefcase, Eye, Layers, LayoutGrid, Pencil, Plus, Table2, Trash2, Wrench } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
-import { CardGridSkeleton, civilIllustrationSrc, ContentSkeleton, TableSkeleton } from '@/components/feedback/skeletons'
+import {
+  CardGridSkeleton,
+  civilIllustrationPair,
+  ContentSkeleton,
+  TableSkeleton,
+  ThemeIllustration,
+} from '@/components/feedback/skeletons'
 import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
 import {
   AlertDialog,
@@ -30,6 +37,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { portalBaseFromPath } from '@/lib/homePath'
 import { ApiError } from '@/services/api'
 import {
   deleteListing,
@@ -53,34 +61,59 @@ function formatPrice(listing: Pick<Listing, 'currency' | 'price' | 'unit'>): str
   return `${listing.currency} ${listing.price} / ${listing.unit}`
 }
 
-function listingThumbSrc(type: ListingType): string {
-  if (type === 'EQUIPMENT') return civilIllustrationSrc(1)
-  if (type === 'SERVICE') return civilIllustrationSrc(2)
-  return civilIllustrationSrc(0)
+function listingThumbVariant(type: ListingType): number {
+  if (type === 'EQUIPMENT') return 1
+  if (type === 'SERVICE') return 2
+  return 0
 }
 
-function ListingThumb({ type }: { type: ListingType }) {
+function ListingThumb({
+  type,
+  mainImageUrl,
+  name,
+}: {
+  type: ListingType
+  mainImageUrl?: string | null
+  name: string
+}) {
+  if (mainImageUrl) {
+    return (
+      <div className="relative size-16 shrink-0 self-center overflow-hidden rounded-md bg-muted">
+        <img
+          src={mainImageUrl}
+          alt=""
+          aria-hidden
+          decoding="async"
+          className="absolute inset-0 size-full object-cover"
+        />
+      </div>
+    )
+  }
+  const { light, dark } = civilIllustrationPair(listingThumbVariant(type))
   return (
-    <div className="relative size-16 shrink-0 self-center overflow-hidden rounded-md bg-[#f4f1eb]">
-      <img
-        src={listingThumbSrc(type)}
-        alt=""
-        aria-hidden
-        decoding="async"
-        className="absolute inset-0 size-full object-contain object-center"
-      />
+    <div
+      className="relative size-16 shrink-0 self-center overflow-hidden rounded-md bg-[#f4f1eb] dark:bg-[#121916]"
+      title={name}
+    >
+      <ThemeIllustration lightSrc={light} darkSrc={dark} objectFit="contain" />
     </div>
   )
 }
 
 function ListingActions({
   listing,
+  detailsPath,
   busy,
+  canManage,
+  onOpen,
   onEdit,
   onDelete,
 }: {
   listing: Listing
+  detailsPath: string
   busy: boolean
+  canManage: boolean
+  onOpen: (path: string) => void
   onEdit: (listing: Listing) => void
   onDelete: (listing: Listing) => void
 }) {
@@ -90,22 +123,35 @@ function ListingActions({
         type="button"
         size="icon-sm"
         variant="outline"
-        aria-label={`Edit ${listing.name}`}
-        disabled={busy}
-        onClick={() => onEdit(listing)}
+        aria-label={`Open ${listing.name}`}
+        onClick={() => onOpen(detailsPath)}
       >
-        <Pencil />
+        <Eye />
       </Button>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="destructive"
-        aria-label={`Delete ${listing.name}`}
-        disabled={busy}
-        onClick={() => onDelete(listing)}
-      >
-        <Trash2 />
-      </Button>
+      {canManage ? (
+        <>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="outline"
+            aria-label={`Edit ${listing.name}`}
+            disabled={busy}
+            onClick={() => onEdit(listing)}
+          >
+            <Pencil />
+          </Button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="destructive"
+            aria-label={`Delete ${listing.name}`}
+            disabled={busy}
+            onClick={() => onDelete(listing)}
+          >
+            <Trash2 />
+          </Button>
+        </>
+      ) : null}
     </RowActions>
   )
 }
@@ -148,6 +194,9 @@ export function ListingsBrowser({
   manageOwn?: boolean
 }) {
   const embedded = Boolean(providerId) && !manageOwn
+  const location = useLocation()
+  const navigate = useNavigate()
+  const listingsBase = `${portalBaseFromPath(location.pathname)}/listings`
   const { isAdmin } = usePermissions()
   const canManage = isAdmin || manageOwn
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
@@ -241,7 +290,7 @@ export function ListingsBrowser({
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
         loadingFallback={
-          showCards ? <CardGridSkeleton media="listing" /> : <TableSkeleton columns={canManage ? 7 : 6} />
+          showCards ? <CardGridSkeleton media="listing" /> : <TableSkeleton columns={7} />
         }
       >
         <DataPanel
@@ -290,9 +339,14 @@ export function ListingsBrowser({
                 {rows.map((listing) => (
                   <article
                     key={listing.id}
-                    className="flex min-w-0 items-stretch gap-3 rounded-lg border border-border p-3"
+                    className="flex min-w-0 cursor-pointer items-stretch gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/25"
+                    onClick={() => navigate(`${listingsBase}/${listing.id}`)}
                   >
-                    <ListingThumb type={listing.type} />
+                    <ListingThumb
+                      type={listing.type}
+                      mainImageUrl={listing.mainImageUrl}
+                      name={listing.name}
+                    />
                     <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
                       <div className="min-w-0">
                         <h2 className="truncate text-sm font-medium" title={listing.name}>
@@ -305,16 +359,20 @@ export function ListingsBrowser({
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-medium">{formatPrice(listing)}</p>
-                        {canManage ? (
-                          <div className="shrink-0">
-                            <ListingActions
-                              listing={listing}
-                              busy={busyId === listing.id}
-                              onEdit={openEdit}
-                              onDelete={setPendingDelete}
-                            />
-                          </div>
-                        ) : null}
+                        <div
+                          className="shrink-0"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <ListingActions
+                            listing={listing}
+                            detailsPath={`${listingsBase}/${listing.id}`}
+                            busy={busyId === listing.id}
+                            canManage={canManage}
+                            onOpen={(path) => navigate(path)}
+                            onEdit={openEdit}
+                            onDelete={setPendingDelete}
+                          />
+                        </div>
                       </div>
                     </div>
                   </article>
@@ -331,13 +389,13 @@ export function ListingsBrowser({
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
-                  {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 7 : 6} className="text-muted-foreground">
+                    <TableCell colSpan={7} className="text-muted-foreground">
                       No listings match.
                     </TableCell>
                   </TableRow>
@@ -345,7 +403,13 @@ export function ListingsBrowser({
                   rows.map((listing) => (
                     <TableRow key={listing.id}>
                       <TableCell className="max-w-56 truncate" title={listing.name}>
-                        {ellipsis(listing.name, 36)}
+                        <button
+                          type="button"
+                          className="truncate text-left font-medium hover:underline"
+                          onClick={() => navigate(`${listingsBase}/${listing.id}`)}
+                        >
+                          {ellipsis(listing.name, 36)}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{listingTypeLabel(listing.type)}</Badge>
@@ -362,16 +426,17 @@ export function ListingsBrowser({
                           {listing.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      {canManage ? (
-                        <TableCell className="text-right">
-                          <ListingActions
-                            listing={listing}
-                            busy={busyId === listing.id}
-                            onEdit={openEdit}
-                            onDelete={setPendingDelete}
-                          />
-                        </TableCell>
-                      ) : null}
+                      <TableCell className="text-right">
+                        <ListingActions
+                          listing={listing}
+                          detailsPath={`${listingsBase}/${listing.id}`}
+                          busy={busyId === listing.id}
+                          canManage={canManage}
+                          onOpen={(path) => navigate(path)}
+                          onEdit={openEdit}
+                          onDelete={setPendingDelete}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

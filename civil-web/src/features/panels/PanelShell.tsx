@@ -22,6 +22,7 @@ import {
   Store,
   Sun,
   UserCheck,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -451,5 +452,6 @@ export const PM_NAV: PanelNavItem[] = [
 export const PROVIDER_NAV: PanelNavItem[] = [
   { to: '/provider', label: 'Home', icon: Home, end: true },
   { to: '/provider/listings', label: 'Listings', icon: Package },
-  { to: '/provider/categories', label: 'Categories', icon: FolderTree },
+  { to: '/provider/analytics', label: 'Analytics', icon: ChartColumn },
+  { to: '/provider/profile', label: 'Profile', icon: UserRound },
 ]

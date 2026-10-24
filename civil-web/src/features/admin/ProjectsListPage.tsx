@@ -118,7 +118,7 @@ function ProjectCardImage({ src, alt }: { src: string; alt: string }) {
   }, [src])
 
   return (
-    <div className="relative aspect-[2/1] w-full overflow-hidden bg-muted">
+    <div className="relative h-44 w-full overflow-hidden bg-muted">
       {isLoaded ? null : (
         <Skeleton className="absolute inset-0 size-full rounded-none" aria-hidden />
       )}

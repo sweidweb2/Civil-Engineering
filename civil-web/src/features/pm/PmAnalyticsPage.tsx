@@ -1,5 +1,4 @@
 import { PageHeader } from '@/components/layout/page-header'
-import { ProjectProgressTimeline } from '@/features/admin/components/ProjectProgressTimeline'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 import { PmAnalyticsDashboard } from './components/PmAnalyticsDashboard'
@@ -16,7 +15,6 @@ export function PmAnalyticsPage() {
       />
 
       <PmAnalyticsDashboard />
-      <ProjectProgressTimeline />
     </div>
   )
 }

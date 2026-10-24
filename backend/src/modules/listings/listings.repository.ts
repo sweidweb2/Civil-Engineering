@@ -6,6 +6,11 @@ import type { ListingTypeCounts } from './listings.types.js'
 const listingInclude = {
   provider: { select: { name: true } },
   category: { select: { name: true, kind: true } },
+  images: {
+    where: { isMain: true },
+    take: 1,
+    select: { storagePath: true },
+  },
 } as const
 
 type ListingRow = Prisma.ListingGetPayload<{ include: typeof listingInclude }>
@@ -30,6 +35,7 @@ export type ListingRecord = {
   status: ListingStatus
   createdAt: Date
   updatedAt: Date
+  mainImageStoragePath: string | null
 }
 
 export type CreateListingRecordInput = {
@@ -93,6 +99,7 @@ function toRecord(row: ListingRow): ListingRecord {
     status: row.status,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    mainImageStoragePath: row.images[0]?.storagePath ?? null,
   }
 }
 

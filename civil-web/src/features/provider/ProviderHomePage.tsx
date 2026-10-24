@@ -5,11 +5,10 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 
-import { ProviderAnalyticsSection } from './ProviderAnalyticsSection'
 import { ProviderFocusSection } from './ProviderFocusSection'
 
-/** Matches the prepared hero canvas so the full provider home reads as one surface. */
-const PROVIDER_HOME_BG = 'bg-[#f7fbf9]'
+/** Light mint matches the hero SVG canvas; dark uses the theme background. */
+const PROVIDER_HOME_BG = 'bg-[#f7fbf9] dark:bg-background'
 
 export function ProviderHomePage() {
   useDocumentTitle('Provider home')
@@ -31,7 +30,7 @@ export function ProviderHomePage() {
         aria-labelledby="provider-hero-title"
         className="relative flex min-h-[32rem] flex-col items-stretch overflow-hidden lg:min-h-[36rem] lg:flex-row lg:items-center"
       >
-        <div className="relative z-10 flex w-full max-w-2xl shrink-0 flex-col justify-center gap-5 px-4 py-12 sm:px-6 lg:ml-[10%] lg:max-w-xl lg:px-8 xl:max-w-2xl">
+        <div className="relative z-10 flex w-full max-w-2xl shrink-0 flex-col justify-center gap-5 px-4 py-12 sm:px-6 lg:ml-[7%] lg:max-w-xl lg:px-8 xl:max-w-2xl">
           <p className="text-sm font-medium tracking-[0.14em] text-primary uppercase">
             Provider portal
           </p>
@@ -50,10 +49,10 @@ export function ProviderHomePage() {
               Manage listings
             </Link>
             <Link
-              to="/provider/categories"
+              to="/provider/analytics"
               className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
             >
-              Browse categories
+              View analytics
             </Link>
           </div>
           {user ? (
@@ -64,16 +63,23 @@ export function ProviderHomePage() {
         </div>
 
         <img
-          src="/illustrations/provider-home-hero.jpg?v=1"
+          data-theme-asset="light"
+          src="/illustrations/minimal-green-dashboard.svg"
           alt=""
           aria-hidden
-          className="mx-auto mt-2 mb-8 h-auto w-[min(100%,26rem)] object-contain px-4 lg:absolute lg:right-0 lg:bottom-0 lg:top-0 lg:mx-0 lg:my-0 lg:mb-0 lg:mt-0 lg:h-full lg:w-auto lg:max-w-[62%] lg:object-contain lg:object-right-bottom lg:pr-0"
+          className="mx-auto mt-2 mb-8 h-auto w-[min(100%,26rem)] object-contain px-4 lg:absolute lg:right-0 lg:top-0 lg:bottom-auto lg:mx-0 lg:my-0 lg:mb-0 lg:mt-0 lg:h-[115%] lg:w-auto lg:max-w-[78%] lg:origin-top-right lg:scale-110 lg:object-contain lg:object-right-top lg:pr-0"
+        />
+        <img
+          data-theme-asset="dark"
+          src="/illustrations/minimal-green-dashboard-dark.jpg?v=1"
+          alt=""
+          aria-hidden
+          className="mx-auto mt-2 mb-8 h-auto w-[min(100%,26rem)] object-contain px-4 lg:absolute lg:right-0 lg:top-0 lg:bottom-auto lg:mx-0 lg:my-0 lg:mb-0 lg:mt-0 lg:h-[115%] lg:w-auto lg:max-w-[78%] lg:origin-top-right lg:scale-110 lg:object-contain lg:object-right-top lg:pr-0"
         />
       </section>
 
       <div className="px-4 pt-0 sm:px-6 lg:px-8">
         <ProviderFocusSection />
-        <ProviderAnalyticsSection />
       </div>
     </div>
   )

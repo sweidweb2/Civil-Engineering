@@ -19,6 +19,8 @@ export type Listing = {
   status: ListingStatus
   createdAt: string
   updatedAt: string
+  /** Present on list/detail when a main gallery image exists and storage can resolve a URL. */
+  mainImageUrl?: string | null
 }
 
 export type ListingTypeCounts = {

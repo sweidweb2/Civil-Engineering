@@ -341,6 +341,17 @@
   animation: after6 2s infinite;
 }
 
+/* Light/dark card illustration swap (avoids Tailwind hidden vs dark:block fights). */
+[data-theme-asset='dark'] {
+  display: none;
+}
+.dark [data-theme-asset='light'] {
+  display: none;
+}
+.dark [data-theme-asset='dark'] {
+  display: block;
+}
+
 /* Public home — beige sampled from the hero illustration. */
 .home-canvas {
   --background: #f8f3ed;

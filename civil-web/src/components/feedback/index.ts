@@ -5,6 +5,7 @@ export {
   CardImageSkeleton,
   CIVIL_ILLUSTRATIONS,
   CivilCardMedia,
+  civilIllustrationPair,
   civilIllustrationSrc,
   ContentSkeleton,
   DetailCardSkeleton,
@@ -15,6 +16,7 @@ export {
   ProviderCardMedia,
   StatGridSkeleton,
   TableSkeleton,
+  ThemeIllustration,
 } from './skeletons'
 export { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 export { Skeleton } from '@/components/ui/skeleton'

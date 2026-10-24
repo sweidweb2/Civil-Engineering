@@ -440,9 +440,10 @@ function PortfolioMixCard({
               y={bucket.ty}
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize="12"
-              fontWeight="600"
+              fontSize="10"
+              fontWeight="500"
               fill={bucket.stroke}
+              opacity={0.85}
             >
               {bucket.pct.toFixed(0)}%
             </text>

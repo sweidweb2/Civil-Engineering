@@ -355,12 +355,29 @@ model Listing {
   category          Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   variations        ListingVariation[]
   offers            ListingOffer[]
+  images            ListingImage[]
 
   @@index([providerId])
   @@index([categoryId])
   @@index([type, status])
   @@index([name(ops: raw("gin_trgm_ops"))], map: "listings_name_trgm_idx", type: Gin)
   @@map("listings")
+}
+
+model ListingImage {
+  id           String   @id @default(cuid())
+  listingId    String
+  storagePath  String
+  isMain       Boolean  @default(false)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([listingId, displayOrder])
+  @@index([listingId, isMain])
+  @@map("listing_images")
 }
 
 model ListingVariation {

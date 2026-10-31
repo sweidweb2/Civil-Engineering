@@ -17,6 +17,8 @@ function listing(overrides: Partial<ListingSnapshot> = {}): ListingSnapshot {
     unit: 'bag',
     currency: 'USD',
     price: '10',
+    priceMin: null,
+    priceMax: null,
     rentalPrice: null,
     rentalUnit: null,
     providerId: 'prov-1',

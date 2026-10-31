@@ -8,6 +8,7 @@
     "format:check": "prettier --check .",
     "lint": "npm run lint --prefix civil-web && npm run lint --prefix civil-mobile && npm run lint --prefix backend",
     "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix civil-mobile && npm run typecheck --prefix backend",
+    "db:migrate:local": "npm run prisma:migrate:deploy --prefix backend",
     "prepare": "husky"
   },
   "devDependencies": {

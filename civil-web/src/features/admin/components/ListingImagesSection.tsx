@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Image as ImageIcon, Loader2, Star, Trash2, Upload } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -46,7 +47,9 @@ type Props = {
 }
 
 function UploadProgress({ value }: { value: number }) {
-  const label = value >= 100 ? 'Finishing upload…' : 'Uploading image…'
+  const { t } = useTranslation('admin')
+  const label =
+    value >= 100 ? t('listings.images.finishingUpload') : t('listings.images.uploadingImage')
   return (
     <div className="mb-4 flex flex-col gap-2">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -62,7 +65,7 @@ function UploadProgress({ value }: { value: number }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
-        aria-label="Image upload progress"
+        aria-label={t('listings.images.uploadProgressAria')}
       >
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
@@ -74,6 +77,7 @@ function UploadProgress({ value }: { value: number }) {
 }
 
 export function ListingImagesSection({ listingId, canManage = true, onChanged }: Props) {
+  const { t } = useTranslation(['admin', 'common'])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -95,15 +99,15 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
     if (!file) return
 
     if (images.length >= MAX_IMAGES) {
-      toast.error(`Maximum ${MAX_IMAGES} images per listing`)
+      toast.error(t('admin:listings.images.maxImages', { max: MAX_IMAGES }))
       return
     }
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error('Invalid file type. Allowed: JPG, PNG, WEBP')
+      toast.error(t('admin:listings.images.invalidType'))
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File size exceeds 10MB limit')
+      toast.error(t('admin:listings.images.fileTooLarge'))
       return
     }
 
@@ -116,10 +120,12 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
         isMain: images.length === 0,
         onProgress: setUploadProgress,
       })
-      toast.success('Image uploaded')
+      toast.success(t('admin:listings.images.uploadedToast'))
       await refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to upload image')
+      toast.error(
+        error instanceof Error ? error.message : t('admin:listings.images.couldNotUpload'),
+      )
     } finally {
       setIsUploading(false)
       setUploadProgress(0)
@@ -131,10 +137,12 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
     setBusyId(imageId)
     try {
       await updateListingImage(imageId, { isMain: true })
-      toast.success('Main image updated')
+      toast.success(t('admin:listings.images.mainUpdated'))
       await refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update main image')
+      toast.error(
+        error instanceof Error ? error.message : t('admin:listings.images.couldNotUpdateMain'),
+      )
     } finally {
       setBusyId(null)
     }
@@ -154,7 +162,9 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
       await reorderListingImages(listingId, { imageIds: next.map((image) => image.id) })
       await refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to reorder images')
+      toast.error(
+        error instanceof Error ? error.message : t('admin:listings.images.couldNotReorder'),
+      )
     } finally {
       setBusyId(null)
     }
@@ -165,12 +175,14 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
     setBusyId(imageToDelete.id)
     try {
       await deleteListingImage(imageToDelete.id)
-      toast.success('Image deleted')
+      toast.success(t('admin:listings.images.deleted'))
       setDeleteDialogOpen(false)
       setImageToDelete(null)
       await refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete image')
+      toast.error(
+        error instanceof Error ? error.message : t('admin:listings.images.couldNotDelete'),
+      )
     } finally {
       setBusyId(null)
     }
@@ -188,10 +200,12 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle>Listing images</CardTitle>
+                <CardTitle>{t('admin:listings.images.title')}</CardTitle>
                 <CardDescription>
-                  {images.length} of {MAX_IMAGES} images · JPG, PNG, WEBP · Max 10MB · Main shows on
-                  the listings card
+                  {t('admin:listings.images.description', {
+                    count: images.length,
+                    max: MAX_IMAGES,
+                  })}
                 </CardDescription>
               </div>
               {canManage && images.length < MAX_IMAGES ? (
@@ -214,7 +228,9 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                     ) : (
                       <Upload className="size-4" />
                     )}
-                    {isUploading ? 'Uploading…' : 'Upload image'}
+                    {isUploading
+                      ? t('admin:listings.images.uploading')
+                      : t('admin:listings.images.uploadImage')}
                   </Button>
                 </div>
               ) : null}
@@ -225,20 +241,28 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
             {images.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <ImageIcon className="size-12 text-muted-foreground/50" />
-                <p className="mt-4 text-sm font-medium text-muted-foreground">No images yet</p>
+                <p className="mt-4 text-sm font-medium text-muted-foreground">
+                  {t('admin:listings.images.empty')}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Upload a photo to use as the listings cover image
+                  {t('admin:listings.images.emptyHint')}
                 </p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-20">Preview</TableHead>
-                    <TableHead className="w-24">Order</TableHead>
-                    <TableHead>Main</TableHead>
-                    <TableHead className="hidden sm:table-cell">Uploaded</TableHead>
-                    {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
+                    <TableHead className="w-20">{t('admin:listings.images.preview')}</TableHead>
+                    <TableHead className="w-24">{t('admin:listings.images.order')}</TableHead>
+                    <TableHead>{t('admin:listings.images.main')}</TableHead>
+                    <TableHead className="hidden sm:table-cell">
+                      {t('admin:listings.images.uploaded')}
+                    </TableHead>
+                    {canManage ? (
+                      <TableHead className="text-right">
+                        {t('admin:listings.images.actions')}
+                      </TableHead>
+                    ) : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -266,7 +290,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                                   size="icon-sm"
                                   variant="ghost"
                                   disabled={busy || index === 0}
-                                  aria-label="Move image up"
+                                  aria-label={t('admin:listings.images.moveUp')}
                                   onClick={() => void moveImage(image.id, -1)}
                                 >
                                   <ArrowUp className="size-3.5" />
@@ -276,7 +300,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                                   size="icon-sm"
                                   variant="ghost"
                                   disabled={busy || index === images.length - 1}
-                                  aria-label="Move image down"
+                                  aria-label={t('admin:listings.images.moveDown')}
                                   onClick={() => void moveImage(image.id, 1)}
                                 >
                                   <ArrowDown className="size-3.5" />
@@ -289,7 +313,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                           {image.isMain ? (
                             <Badge>
                               <Star className="size-3" />
-                              Main
+                              {t('admin:listings.images.main')}
                             </Badge>
                           ) : canManage ? (
                             <Button
@@ -300,7 +324,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                               onClick={() => void handleSetMain(image.id)}
                             >
                               <Star className="size-3.5" />
-                              Set main
+                              {t('admin:listings.images.setMain')}
                             </Button>
                           ) : (
                             <span className="text-sm text-muted-foreground">—</span>
@@ -316,7 +340,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                               size="icon-sm"
                               variant="destructive"
                               disabled={busy}
-                              aria-label="Delete image"
+                              aria-label={t('admin:listings.images.deleteAria')}
                               onClick={() => {
                                 setImageToDelete(image)
                                 setDeleteDialogOpen(true)
@@ -339,17 +363,18 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete image?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:listings.images.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the image from the listing
               {imageToDelete?.isMain
-                ? '. Another image will become the main cover if one remains.'
-                : '.'}
+                ? t('admin:listings.images.deleteDescriptionMain')
+                : t('admin:listings.images.deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>
+              {t('common:delete')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

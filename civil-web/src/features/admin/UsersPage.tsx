@@ -1,5 +1,16 @@
+import { useTranslation } from 'react-i18next'
 import { useCallback, useMemo, useState } from 'react'
-import { Briefcase, ChevronDown, Eye, MoreHorizontal, Plus, Trash2, UserCheck, Users, UserX } from 'lucide-react'
+import {
+  Briefcase,
+  ChevronDown,
+  Eye,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+  UserCheck,
+  Users,
+  UserX,
+} from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -65,7 +76,7 @@ import {
 } from './components/ProjectMetricCard'
 import { RoleBarChart } from './components/RoleBarChart'
 import { STAT_GRID_CLASS } from './components/StatCard'
-import { USER_TABLE_HEADERS,UserAttributeCells } from './components/UserCells'
+import { USER_TABLE_HEADERS, UserAttributeCells } from './components/UserCells'
 import { UserFormDialog } from './components/UserFormDialog'
 import { PAGE_SIZE, pageCount } from './lib/text'
 import { readUsersPageLayout, writeUsersPageLayout } from './lib/users-layout'
@@ -88,7 +99,8 @@ const EMPTY_COUNTS: UserDirectoryCounts = {
 }
 
 export function UsersPage() {
-  useDocumentTitle('Users')
+  const { t } = useTranslation(['admin', 'common'])
+  useDocumentTitle(t('admin:users.documentTitle'))
   const location = useLocation()
   const navigate = useNavigate()
   const usersPath = `${portalBaseFromPath(location.pathname)}/users`
@@ -98,7 +110,9 @@ export function UsersPage() {
   const [layoutOpen, setLayoutOpen] = useState(false)
   const [draftShowUsage, setDraftShowUsage] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
-  const [pendingDeactivate, setPendingDeactivate] = useState<{ id: string; email: string } | null>(null)
+  const [pendingDeactivate, setPendingDeactivate] = useState<{ id: string; email: string } | null>(
+    null,
+  )
   const [isDeactivating, setIsDeactivating] = useState(false)
 
   const load = useCallback(
@@ -122,10 +136,10 @@ export function UsersPage() {
     const nextStatus = current.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
     try {
       await updateUser(id, { status: nextStatus })
-      toast.success('Status updated')
+      toast.success(t('admin:users.statusUpdated'))
       await remote.refetch()
     } catch (error) {
-      toastApiError(error, 'Could not update status')
+      toastApiError(error, t('admin:users.couldNotUpdateStatus'))
     }
   }
 
@@ -133,11 +147,11 @@ export function UsersPage() {
     setIsDeactivating(true)
     try {
       await deactivateUser(id)
-      toast.success('User deactivated')
+      toast.success(t('admin:users.userDeactivated'))
       setPendingDeactivate(null)
       await remote.refetch()
     } catch (error) {
-      toastApiError(error, 'Could not deactivate user')
+      toastApiError(error, t('admin:users.couldNotDeactivate'))
     } finally {
       setIsDeactivating(false)
     }
@@ -145,8 +159,8 @@ export function UsersPage() {
 
   async function onCreateUser(values: UserFormValues): Promise<string | null> {
     const email = values.email.trim().toLowerCase()
-    if (!email) return 'Email is required'
-    if (values.password.length < 8) return 'Password must be at least 8 characters'
+    if (!email) return t('admin:users.emailRequired')
+    if (values.password.length < 8) return t('admin:users.passwordMin')
     try {
       const created = await createUserApi({
         email,
@@ -166,7 +180,7 @@ export function UsersPage() {
       return null
     } catch (error) {
       if (error instanceof ApiError) return error.message
-      return 'Could not create user'
+      return t('admin:users.couldNotCreate')
     }
   }
 
@@ -174,17 +188,17 @@ export function UsersPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Manage users"
-        description="User + profile fields from the API. passwordHash is never shown."
+        title={t('admin:users.title')}
+        description={t('admin:users.description')}
         actions={
           <div className="flex items-center gap-2">
             <Button type="button" onClick={() => setCreateOpen(true)}>
               <Plus />
-              Create
+              {t('admin:users.create')}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger
-                aria-label="Page options"
+                aria-label={t('admin:users.pageOptions')}
                 className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
               >
                 <MoreHorizontal />
@@ -196,7 +210,7 @@ export function UsersPage() {
                     setLayoutOpen(true)
                   }}
                 >
-                  Manage layout
+                  {t('admin:users.manageLayout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -214,29 +228,35 @@ export function UsersPage() {
         <div className={STAT_GRID_CLASS}>
           <ProjectMetricCard
             icon={Users}
-            label="Users"
+            label={t('admin:users.metricUsers')}
             value={String(counts.accounts)}
             change={monthOverMonth(counts.createdThisMonth, counts.createdLastMonth)}
           />
           <ProjectMetricCard
             icon={UserCheck}
-            label="Active"
+            label={t('admin:users.metricActive')}
             value={String(counts.active)}
             change={monthOverMonth(counts.activeCreatedThisMonth, counts.activeCreatedLastMonth)}
             barShift={4}
           />
           <ProjectMetricCard
             icon={UserX}
-            label="Inactive"
+            label={t('admin:users.metricInactive')}
             value={String(counts.inactive)}
-            change={monthOverMonth(counts.inactiveCreatedThisMonth, counts.inactiveCreatedLastMonth)}
+            change={monthOverMonth(
+              counts.inactiveCreatedThisMonth,
+              counts.inactiveCreatedLastMonth,
+            )}
             barShift={8}
           />
           <ProjectMetricCard
             icon={Briefcase}
-            label="Project managers"
+            label={t('admin:users.metricManagers')}
             value={String(counts.managers)}
-            change={monthOverMonth(counts.managersCreatedThisMonth, counts.managersCreatedLastMonth)}
+            change={monthOverMonth(
+              counts.managersCreatedThisMonth,
+              counts.managersCreatedLastMonth,
+            )}
             barShift={12}
           />
         </div>
@@ -253,19 +273,23 @@ export function UsersPage() {
               onClick={() => setChartsOpen((open) => !open)}
             >
               <div className="min-w-0 space-y-1">
-                <CardTitle>Usage</CardTitle>
-                <p className="text-sm text-muted-foreground">Role mix across every account.</p>
+                <CardTitle>{t('admin:users.usage')}</CardTitle>
+                <p className="text-sm text-muted-foreground">{t('admin:users.usageDescription')}</p>
               </div>
               <span className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
-                <ChevronDown className={cn('size-3.5 transition-transform', chartsOpen && 'rotate-180')} />
-                {chartsOpen ? 'Hide' : 'Show'}
+                <ChevronDown
+                  className={cn('size-3.5 transition-transform', chartsOpen && 'rotate-180')}
+                />
+                {chartsOpen ? t('common:hide') : t('common:show')}
               </span>
             </button>
           </CardHeader>
           {chartsOpen ? (
             <CardContent id="users-charts">
               <div className="min-w-0">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Users by role</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  {t('admin:users.usersByRole')}
+                </p>
                 <RoleBarChart counts={counts.roles} />
               </div>
             </CardContent>
@@ -276,11 +300,11 @@ export function UsersPage() {
       <Dialog open={layoutOpen} onOpenChange={setLayoutOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Manage layout</DialogTitle>
-            <DialogDescription>Choose which sections appear on this page. Saved on this device.</DialogDescription>
+            <DialogTitle>{t('admin:users.manageLayout')}</DialogTitle>
+            <DialogDescription>{t('admin:users.manageLayoutDescription')}</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="layout-usage">Usage graphs</Label>
+            <Label htmlFor="layout-usage">{t('admin:users.usageGraphs')}</Label>
             <Checkbox
               id="layout-usage"
               checked={draftShowUsage}
@@ -289,7 +313,7 @@ export function UsersPage() {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setLayoutOpen(false)}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="button"
@@ -297,10 +321,10 @@ export function UsersPage() {
                 setShowUsage(draftShowUsage)
                 writeUsersPageLayout({ showUsage: draftShowUsage })
                 setLayoutOpen(false)
-                toast.message('Layout saved')
+                toast.message(t('admin:users.layoutSaved'))
               }}
             >
-              Save
+              {t('common:save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -321,20 +345,20 @@ export function UsersPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate user?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:users.deactivateTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDeactivate?.email} will be marked inactive and will not be able to sign in.
+              {t('admin:users.deactivateDescription', { email: pendingDeactivate?.email })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeactivating}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeactivating}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={isDeactivating || !pendingDeactivate}
               onClick={() => {
                 if (pendingDeactivate) void onDeactivateUser(pendingDeactivate.id)
               }}
             >
-              {isDeactivating ? 'Deactivating...' : 'Deactivate'}
+              {isDeactivating ? t('common:deactivating') : t('common:deactivate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -351,8 +375,8 @@ export function UsersPage() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search users…"
-              aria-label="Search users"
+              placeholder={t('admin:users.searchPlaceholder')}
+              aria-label={t('admin:users.searchAria')}
               className="max-w-sm"
             />
           }
@@ -369,16 +393,19 @@ export function UsersPage() {
             <TableHeader>
               <TableRow>
                 {USER_TABLE_HEADERS.map((header) => (
-                  <TableHead key={header}>{header}</TableHead>
+                  <TableHead key={header}>{t(`admin:users.headers.${header}`)}</TableHead>
                 ))}
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-end">{t('common:actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={USER_TABLE_HEADERS.length + 1} className="text-muted-foreground">
-                    No users match.
+                  <TableCell
+                    colSpan={USER_TABLE_HEADERS.length + 1}
+                    className="text-muted-foreground"
+                  >
+                    {t('admin:users.noMatch')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -405,7 +432,7 @@ export function UsersPage() {
                       <RowActions>
                         <Link
                           to={`${usersPath}/${row.id}`}
-                          aria-label={`View ${row.email}`}
+                          aria-label={t('admin:users.viewUser', { email: row.email })}
                           className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
                           onClick={(event) => event.stopPropagation()}
                         >
@@ -415,7 +442,7 @@ export function UsersPage() {
                           type="button"
                           size="icon-sm"
                           variant="destructive"
-                          aria-label={`Deactivate ${row.email}`}
+                          aria-label={t('admin:users.deactivateUser', { email: row.email })}
                           onClick={(event) => {
                             event.stopPropagation()
                             setPendingDeactivate({ id: row.id, email: row.email })

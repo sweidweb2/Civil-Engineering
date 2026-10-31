@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Box, Briefcase, HardHat, Pencil, Trash2, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
@@ -27,7 +28,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -47,7 +54,6 @@ import {
   CATEGORY_KINDS,
   type CategoryKind,
   type CategoryKindCounts,
-  categoryKindLabel,
   createCategory,
   deleteCategory,
   isCategoryKind,
@@ -79,7 +85,8 @@ function formFromCategory(category: Category): CategoryForm {
 }
 
 export function ManageCategoriesPage() {
-  useDocumentTitle('Manage categories')
+  const { t } = useTranslation(['admin', 'common'])
+  useDocumentTitle(t('admin:categories.documentTitle'))
   const { isAdmin } = usePermissions()
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -89,6 +96,8 @@ export function ManageCategoriesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Category | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  const kindLabel = (kind: CategoryKind) => t(`admin:categoryKind.${kind}`)
 
   const load = useCallback(
     () => listCategories(page, PAGE_SIZE, { q: debouncedQuery || undefined }),
@@ -105,15 +114,20 @@ export function ManageCategoriesPage() {
     let cancelled = false
     void listCategories(1, 100, { kind: form.kind })
       .then((result) => {
-        if (!cancelled) setParents(result.data.filter((row) => row.parentId === null && row.id !== editing?.id))
+        if (!cancelled)
+          setParents(result.data.filter((row) => row.parentId === null && row.id !== editing?.id))
       })
       .catch((error) => {
-        if (!cancelled) toast.error(error instanceof ApiError ? error.message : 'Could not load parent categories')
+        if (!cancelled) {
+          toast.error(
+            error instanceof ApiError ? error.message : t('admin:categories.couldNotLoadParents'),
+          )
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [dialogOpen, editing?.id, form.kind])
+  }, [dialogOpen, editing?.id, form.kind, t])
 
   const parentOptions = useMemo(() => {
     if (!editing?.parentId || editing.kind !== form.kind) return parents
@@ -122,13 +136,13 @@ export function ManageCategoriesPage() {
       {
         ...editing,
         id: editing.parentId,
-        name: editing.parentName ?? 'Parent',
+        name: editing.parentName ?? t('admin:categories.parentFallback'),
         parentId: null,
         parentName: null,
       },
       ...parents,
     ]
-  }, [editing, form.kind, parents])
+  }, [editing, form.kind, parents, t])
 
   const deleteBlocked = pendingDelete
     ? pendingDelete.childCount > 0 || pendingDelete.listingCount > 0
@@ -149,7 +163,7 @@ export function ManageCategoriesPage() {
   async function save() {
     const name = form.name.trim()
     if (!name) {
-      toast.error('Name is required')
+      toast.error(t('admin:categories.nameRequired'))
       return
     }
     const payload = {
@@ -163,11 +177,11 @@ export function ManageCategoriesPage() {
       if (editing) await updateCategory(editing.id, payload)
       else await createCategory(payload)
       setDialogOpen(false)
-      toast.message(editing ? 'Category updated' : 'Category created')
+      toast.message(editing ? t('admin:categories.updated') : t('admin:categories.created'))
       if (!editing) setPage(1)
       await remote.refetch()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save category')
+      toast.error(error instanceof ApiError ? error.message : t('admin:categories.couldNotSave'))
     } finally {
       setIsSaving(false)
     }
@@ -179,11 +193,11 @@ export function ManageCategoriesPage() {
     setBusyId(id)
     try {
       await deleteCategory(id)
-      toast.message('Category removed')
+      toast.message(t('admin:categories.removedToast'))
       setPendingDelete(null)
       await remote.refetch()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not remove category')
+      toast.error(error instanceof ApiError ? error.message : t('admin:categories.couldNotDelete'))
     } finally {
       setBusyId(null)
     }
@@ -193,26 +207,40 @@ export function ManageCategoriesPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Manage categories"
+        title={t('admin:categories.title')}
         description={
-          isAdmin
-            ? 'Platform categories. Admin-managed, available globally.'
-            : 'Platform categories used across the directory.'
+          isAdmin ? t('admin:categories.description') : t('admin:categories.descriptionPm')
         }
         actions={
           isAdmin ? (
             <Button type="button" onClick={openCreate}>
-              Add category
+              {t('admin:categories.addCategory')}
             </Button>
           ) : undefined
         }
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Box} label="Material" value={counts.MATERIAL} />
-        <StatCard icon={Wrench} label="Equipment" value={counts.EQUIPMENT} />
-        <StatCard icon={Briefcase} label="Service" value={counts.SERVICE} />
-        <StatCard icon={HardHat} label="Worker" value={counts.WORKER} />
+        <StatCard
+          icon={Box}
+          label={t('admin:categories.metricMaterials')}
+          value={counts.MATERIAL}
+        />
+        <StatCard
+          icon={Wrench}
+          label={t('admin:categories.metricEquipment')}
+          value={counts.EQUIPMENT}
+        />
+        <StatCard
+          icon={Briefcase}
+          label={t('admin:categories.metricServices')}
+          value={counts.SERVICE}
+        />
+        <StatCard
+          icon={HardHat}
+          label={t('admin:categories.metricWorkers')}
+          value={counts.WORKER}
+        />
       </div>
 
       <AsyncState
@@ -226,28 +254,32 @@ export function ManageCategoriesPage() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter categories…"
-              aria-label="Filter categories"
+              placeholder={t('admin:categories.filterPlaceholder')}
+              aria-label={t('admin:categories.filterAria')}
               className="max-w-sm"
             />
           }
-          footer={<TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />}
+          footer={
+            <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          }
         >
           <Table startIndex={(page - 1) * PAGE_SIZE}>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Kind</TableHead>
-                <TableHead>Parent</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdmin ? <TableHead className="text-right">Actions</TableHead> : null}
+                <TableHead>{t('admin:categories.headers.name')}</TableHead>
+                <TableHead>{t('admin:categories.headers.kind')}</TableHead>
+                <TableHead>{t('admin:categories.headers.parent')}</TableHead>
+                <TableHead>{t('admin:categories.headers.status')}</TableHead>
+                {isAdmin ? (
+                  <TableHead className="text-right">{t('common:actions')}</TableHead>
+                ) : null}
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isAdmin ? 5 : 4} className="text-muted-foreground">
-                    No categories match.
+                    {t('admin:categories.noMatch')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -257,14 +289,14 @@ export function ManageCategoriesPage() {
                       {ellipsis(row.name, 36)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{categoryKindLabel(row.kind)}</Badge>
+                      <Badge variant="outline">{kindLabel(row.kind)}</Badge>
                     </TableCell>
                     <TableCell className="max-w-40 truncate" title={row.parentName ?? undefined}>
                       {ellipsis(row.parentName, 24)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={row.isActive ? 'default' : 'outline'}>
-                        {row.isActive ? 'Active' : 'Inactive'}
+                        {row.isActive ? t('common:active') : t('common:inactive')}
                       </Badge>
                     </TableCell>
                     {isAdmin ? (
@@ -274,7 +306,7 @@ export function ManageCategoriesPage() {
                             type="button"
                             size="icon-sm"
                             variant="outline"
-                            aria-label={`Edit ${row.name}`}
+                            aria-label={t('admin:categories.editAria', { name: row.name })}
                             disabled={busyId === row.id}
                             onClick={() => openEdit(row)}
                           >
@@ -284,7 +316,7 @@ export function ManageCategoriesPage() {
                             type="button"
                             size="icon-sm"
                             variant="destructive"
-                            aria-label={`Delete ${row.name}`}
+                            aria-label={t('admin:categories.deleteAria', { name: row.name })}
                             disabled={busyId === row.id}
                             onClick={() => setPendingDelete(row)}
                           >
@@ -304,25 +336,27 @@ export function ManageCategoriesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit category' : 'Add category'}</DialogTitle>
-            <DialogDescription>
-              Platform catalog. Nest one level under a top-level category of the same kind.
-            </DialogDescription>
+            <DialogTitle>
+              {editing ? t('admin:categories.editTitle') : t('admin:categories.createTitle')}
+            </DialogTitle>
+            <DialogDescription>{t('admin:categories.dialogDescription')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="category-name">Name</Label>
+              <Label htmlFor="category-name">{t('common:name')}</Label>
               <Input
                 id="category-name"
                 value={form.name}
                 maxLength={80}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, name: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="category-kind">Kind</Label>
+              <Label htmlFor="category-kind">{t('admin:categories.headers.kind')}</Label>
               <Select
-                items={CATEGORY_KINDS.map((kind) => ({ value: kind, label: categoryKindLabel(kind) }))}
+                items={CATEGORY_KINDS.map((kind) => ({ value: kind, label: kindLabel(kind) }))}
                 value={form.kind}
                 onValueChange={(value) => {
                   if (value && isCategoryKind(value)) {
@@ -340,17 +374,17 @@ export function ManageCategoriesPage() {
                 <SelectContent>
                   {CATEGORY_KINDS.map((kind) => (
                     <SelectItem key={kind} value={kind}>
-                      {categoryKindLabel(kind)}
+                      {kindLabel(kind)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="category-parent">Parent</Label>
+              <Label htmlFor="category-parent">{t('common:parent')}</Label>
               <Select
                 items={[
-                  { value: 'none', label: 'No parent (top level)' },
+                  { value: 'none', label: t('admin:categories.parentNone') },
                   ...parentOptions.map((option) => ({ value: option.id, label: option.name })),
                 ]}
                 value={form.parentId || 'none'}
@@ -361,10 +395,10 @@ export function ManageCategoriesPage() {
                 }}
               >
                 <SelectTrigger id="category-parent" className="w-full">
-                  <SelectValue placeholder="No parent" />
+                  <SelectValue placeholder={t('admin:categories.parentNoneShort')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No parent (top level)</SelectItem>
+                  <SelectItem value="none">{t('admin:categories.parentNone')}</SelectItem>
                   {parentOptions.map((option) => (
                     <SelectItem key={option.id} value={option.id}>
                       {option.name}
@@ -374,39 +408,51 @@ export function ManageCategoriesPage() {
               </Select>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="category-active">Active</Label>
+              <Label htmlFor="category-active">{t('admin:categories.active')}</Label>
               <Switch
                 id="category-active"
                 checked={form.isActive}
-                onCheckedChange={(checked) => setForm((current) => ({ ...current, isActive: checked }))}
+                onCheckedChange={(checked) =>
+                  setForm((current) => ({ ...current, isActive: checked }))
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isSaving}
+            >
+              {t('common:cancel')}
             </Button>
             <Button type="button" onClick={() => void save()} disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t('common:saving') : t('common:save')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove category</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:categories.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteBlocked
-                ? 'This category still has subcategories or listings, so it cannot be removed.'
-                : `This removes ${pendingDelete?.name ?? 'the category'} from the platform catalog.`}
+                ? t('admin:categories.deleteBlocked')
+                : t('admin:categories.deleteDescription', {
+                    name: pendingDelete?.name ?? t('admin:categories.theCategory'),
+                  })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction disabled={deleteBlocked} onClick={() => void confirmDelete()}>
-              Remove
+              {t('common:remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

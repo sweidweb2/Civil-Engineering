@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -15,7 +16,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { registerSchema, type RegisterValues } from './register.schema'
 
 export function RegisterPage() {
-  useDocumentTitle('Register')
+  const { t } = useTranslation(['auth', 'validation', 'common'])
+  useDocumentTitle(t('auth:register'))
   const register = useAuthStore((s) => s.register)
   const [values, setValues] = useState<RegisterValues>({
     firstName: '',
@@ -44,9 +46,9 @@ export function RegisterPage() {
         firstName: firstName || undefined,
         lastName: lastName || undefined,
       })
-      toast.success('Account created')
+      toast.success(t('auth:accountCreated'))
     } catch (error) {
-      toastApiError(error, 'Could not register')
+      toastApiError(error, t('auth:couldNotRegister'))
     } finally {
       setIsSubmitting(false)
     }
@@ -57,82 +59,80 @@ export function RegisterPage() {
       <div className="home-canvas flex min-h-svh items-center justify-center bg-background px-4 text-foreground">
         <Card className="w-full max-w-sm">
           <CardContent>
-        <Form onSubmit={onSubmit} className="gap-4" noValidate>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
-            <p className="text-sm text-muted-foreground">
-              New accounts start with the CLIENT role.
-            </p>
-          </div>
+            <Form onSubmit={onSubmit} className="gap-4" noValidate>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-tight">{t('auth:createAccount')}</h1>
+                <p className="text-sm text-muted-foreground">{t('auth:registerRoleNote')}</p>
+              </div>
 
-          <FieldGroup>
-            <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel htmlFor="firstName">First name</FieldLabel>
-                <Input
-                  id="firstName"
-                  value={values.firstName ?? ''}
-                  onChange={(e) =>
-                    setValues((prev) => ({
-                      ...prev,
-                      firstName: e.target.value,
-                    }))
-                  }
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="lastName">Last name</FieldLabel>
-                <Input
-                  id="lastName"
-                  value={values.lastName ?? ''}
-                  onChange={(e) =>
-                    setValues((prev) => ({
-                      ...prev,
-                      lastName: e.target.value,
-                    }))
-                  }
-                />
-              </Field>
-            </div>
+              <FieldGroup>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="firstName">{t('auth:firstName')}</FieldLabel>
+                    <Input
+                      id="firstName"
+                      value={values.firstName ?? ''}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          firstName: e.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="lastName">{t('auth:lastName')}</FieldLabel>
+                    <Input
+                      id="lastName"
+                      value={values.lastName ?? ''}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                </div>
 
-            <Field data-invalid={Boolean(fieldErrors.email) || undefined}>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={values.email}
-                aria-invalid={Boolean(fieldErrors.email) || undefined}
-                onChange={(e) => setValues((prev) => ({ ...prev, email: e.target.value }))}
-              />
-              <FieldError>{fieldErrors.email}</FieldError>
-            </Field>
+                <Field data-invalid={Boolean(fieldErrors.email) || undefined}>
+                  <FieldLabel htmlFor="email">{t('auth:email')}</FieldLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    value={values.email}
+                    aria-invalid={Boolean(fieldErrors.email) || undefined}
+                    onChange={(e) => setValues((prev) => ({ ...prev, email: e.target.value }))}
+                  />
+                  <FieldError>{fieldErrors.email}</FieldError>
+                </Field>
 
-            <Field data-invalid={Boolean(fieldErrors.password) || undefined}>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                value={values.password}
-                aria-invalid={Boolean(fieldErrors.password) || undefined}
-                onChange={(e) => setValues((prev) => ({ ...prev, password: e.target.value }))}
-              />
-              <FieldError>{fieldErrors.password}</FieldError>
-            </Field>
-          </FieldGroup>
+                <Field data-invalid={Boolean(fieldErrors.password) || undefined}>
+                  <FieldLabel htmlFor="password">{t('auth:password')}</FieldLabel>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={values.password}
+                    aria-invalid={Boolean(fieldErrors.password) || undefined}
+                    onChange={(e) => setValues((prev) => ({ ...prev, password: e.target.value }))}
+                  />
+                  <FieldError>{fieldErrors.password}</FieldError>
+                </Field>
+              </FieldGroup>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating…' : 'Register'}
-          </Button>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? t('auth:creating') : t('auth:register')}
+              </Button>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link to="/login" className="text-foreground underline-offset-4 hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </Form>
+              <p className="text-center text-sm text-muted-foreground">
+                {t('auth:haveAccount')}{' '}
+                <Link to="/login" className="text-foreground underline-offset-4 hover:underline">
+                  {t('auth:signIn')}
+                </Link>
+              </p>
+            </Form>
           </CardContent>
         </Card>
       </div>

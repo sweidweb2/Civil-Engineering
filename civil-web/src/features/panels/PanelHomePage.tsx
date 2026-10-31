@@ -1,14 +1,18 @@
+import { Trans, useTranslation } from 'react-i18next'
+
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAuthStore } from '@/stores/authStore'
 
 type PanelHomeProps = {
-  title: string
-  description: string
+  variant: 'super'
 }
 
-export function PanelHomePage({ title, description }: PanelHomeProps) {
+export function PanelHomePage({ variant }: PanelHomeProps) {
+  const { t } = useTranslation(['admin', 'common'])
+  const title = t(`admin:panelHome.${variant}.title`)
+  const description = t(`admin:panelHome.${variant}.description`)
   useDocumentTitle(title)
   const user = useAuthStore((s) => s.user)
 
@@ -19,8 +23,12 @@ export function PanelHomePage({ title, description }: PanelHomeProps) {
         <Card size="sm" className="min-w-0">
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">{user.email}</span> (
-              {user.role})
+              <Trans
+                i18nKey="common:signedInAs"
+                values={{ email: user.email }}
+                components={{ strong: <span className="font-medium text-foreground" /> }}
+              />{' '}
+              ({t(`admin:roles.${user.role}`)})
             </p>
           </CardContent>
         </Card>

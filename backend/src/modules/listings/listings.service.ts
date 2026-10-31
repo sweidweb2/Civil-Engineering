@@ -9,12 +9,7 @@ import {
   findProviderOwnerUserId,
 } from '../providers/providers.access.js'
 import type { ListingRecord, ListingsRepository } from './listings.repository.js'
-import type {
-  CreateListingBody,
-  ListingType,
-  ListListingsQuery,
-  UpdateListingBody,
-} from './listings.schema.js'
+import type { CreateListingBody, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
 import type { Listing, ListingTypeCounts, PaginatedListings } from './listings.types.js'
 
 export type ListingsService = {
@@ -36,10 +31,7 @@ export type ListingsServiceDeps = {
   storage?: StorageService
 }
 
-export function toListingDto(
-  record: ListingRecord,
-  mainImageUrl: string | null = null,
-): Listing {
+export function toListingDto(record: ListingRecord, mainImageUrl: string | null = null): Listing {
   return {
     id: record.id,
     providerId: record.providerId,
@@ -53,6 +45,8 @@ export function toListingDto(
     unit: record.unit,
     currency: record.currency,
     price: record.price,
+    priceMin: record.priceMin,
+    priceMax: record.priceMax,
     rentalPrice: record.rentalPrice,
     rentalUnit: record.rentalUnit,
     quantityAvailable: record.quantityAvailable,
@@ -78,6 +72,42 @@ function assertRentalPair(price: string | number | null, unit: string | null) {
   }
 }
 
+function assertPricingMode(price: string | null, priceMin: string | null, priceMax: string | null) {
+  const hasPrice = price != null && price !== ''
+  const hasMin = priceMin != null && priceMin !== ''
+  const hasMax = priceMax != null && priceMax !== ''
+  if (!hasPrice && !hasMin && !hasMax) return
+  if (hasPrice) {
+    if (hasMin || hasMax) {
+      throw validationError('Use either a fixed price or a min/max range, not both')
+    }
+    return
+  }
+  if (hasMin && hasMax) {
+    if (Number(priceMin) > Number(priceMax)) {
+      throw validationError('Min price must be less than or equal to max price')
+    }
+    return
+  }
+  throw validationError('Provide a fixed price, or both min and max prices')
+}
+
+function normalizePricing(input: {
+  price?: string | null
+  priceMin?: string | null
+  priceMax?: string | null
+}): { price: string | null; priceMin: string | null; priceMax: string | null } {
+  const hasPrice = input.price != null && input.price !== ''
+  if (hasPrice) {
+    return { price: input.price ?? null, priceMin: null, priceMax: null }
+  }
+  return {
+    price: null,
+    priceMin: input.priceMin ?? null,
+    priceMax: input.priceMax ?? null,
+  }
+}
+
 export function createListingsService(
   repository: ListingsRepository,
   deps: ListingsServiceDeps = {},
@@ -90,16 +120,24 @@ export function createListingsService(
     return listing
   }
 
-  async function assertRefs(providerId: string, categoryId: string, type: ListingType) {
-    const provider = await repository.findProvider(providerId)
-    if (!provider) throw notFound('Provider not found', 'LISTING_PROVIDER_NOT_FOUND')
-    const category = await repository.findCategory(categoryId)
-    if (!category) throw notFound('Category not found', 'LISTING_CATEGORY_NOT_FOUND')
-    if (category.scope !== 'PLATFORM' || !category.isActive) {
-      throw validationError('Category must be an active platform category')
+  async function assertRefs(providerId: string | null, categoryId: string | null) {
+    if (providerId) {
+      const provider = await repository.findProvider(providerId)
+      if (!provider) throw notFound('Provider not found', 'LISTING_PROVIDER_NOT_FOUND')
     }
-    if (category.kind !== type) {
-      throw validationError('Category kind must match the listing type')
+    if (categoryId) {
+      const category = await repository.findCategory(categoryId)
+      if (!category) throw notFound('Category not found', 'LISTING_CATEGORY_NOT_FOUND')
+      if (category.scope !== 'PLATFORM' || !category.isActive) {
+        throw validationError('Category must be an active platform category')
+      }
+      if (
+        category.kind !== 'MATERIAL' &&
+        category.kind !== 'EQUIPMENT' &&
+        category.kind !== 'SERVICE'
+      ) {
+        throw validationError('Category kind must be MATERIAL, EQUIPMENT, or SERVICE')
+      }
     }
   }
 
@@ -111,10 +149,13 @@ export function createListingsService(
     return providerId
   }
 
-  async function assertCanManageListingProvider(actor: AuthActor, providerId: string) {
+  async function assertCanManageListingProvider(actor: AuthActor, providerId: string | null) {
     if (isAdmin(actor.roles)) return
     if (!actor.roles.includes('PROVIDER')) {
       throw forbidden('Only admins and providers can manage listings')
+    }
+    if (!providerId) {
+      throw forbidden('You can only manage listings for your own provider')
     }
     const ownerUserId = await findProviderOwnerUserId(providerId)
     if (!ownerUserId || ownerUserId !== actor.id) {
@@ -198,9 +239,7 @@ export function createListingsService(
         data: items.map((item) =>
           toListingDto(
             item,
-            item.mainImageStoragePath
-              ? (urlByPath.get(item.mainImageStoragePath) ?? null)
-              : null,
+            item.mainImageStoragePath ? (urlByPath.get(item.mainImageStoragePath) ?? null) : null,
           ),
         ),
         meta: {
@@ -220,9 +259,9 @@ export function createListingsService(
       const providerId =
         actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)
           ? await resolveOwnedProviderId(actor)
-          : input.providerId
+          : (input.providerId ?? null)
       if (isAdmin(actor.roles)) {
-        // admins may choose any provider
+        // admins may choose any provider, or leave it unset
       } else if (actor.roles.includes('PROVIDER')) {
         if (input.providerId && input.providerId !== providerId) {
           throw forbidden('You can only create listings for your own provider')
@@ -232,17 +271,24 @@ export function createListingsService(
       }
 
       assertRentalPair(input.rentalPrice ?? null, input.rentalUnit ?? null)
-      await assertRefs(providerId, input.categoryId, input.type)
+      const pricing = normalizePricing({
+        price: input.price ?? null,
+        priceMin: input.priceMin ?? null,
+        priceMax: input.priceMax ?? null,
+      })
+      assertPricingMode(pricing.price, pricing.priceMin, pricing.priceMax)
+      await assertRefs(providerId, input.categoryId ?? null)
       const created = await repository.create({
         providerId,
-        categoryId: input.categoryId,
-        type: input.type,
+        categoryId: input.categoryId ?? null,
         name: input.name,
         description: input.description ?? null,
         brand: input.brand ?? null,
-        unit: input.unit,
-        currency: input.currency.toUpperCase(),
-        price: input.price,
+        unit: input.unit ?? null,
+        currency: input.currency ? input.currency.toUpperCase() : null,
+        price: pricing.price,
+        priceMin: pricing.priceMin,
+        priceMax: pricing.priceMax,
         rentalPrice: input.rentalPrice ?? null,
         rentalUnit: input.rentalUnit ?? null,
         quantityAvailable: input.quantityAvailable ?? null,
@@ -255,25 +301,54 @@ export function createListingsService(
       const listing = await loadOrThrow(id)
       await assertCanManageListingProvider(actor, listing.providerId)
 
-      const nextType = input.type ?? listing.type
-      let nextProviderId = input.providerId ?? listing.providerId
+      let nextProviderId = input.providerId === undefined ? listing.providerId : input.providerId
       if (actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)) {
         nextProviderId = listing.providerId
         if (input.providerId !== undefined && input.providerId !== listing.providerId) {
           throw forbidden('You cannot move a listing to another provider')
         }
       }
-      const nextCategoryId = input.categoryId ?? listing.categoryId
-      const nextRentalPrice = input.rentalPrice === undefined ? listing.rentalPrice : input.rentalPrice
+      const nextCategoryId = input.categoryId === undefined ? listing.categoryId : input.categoryId
+      const nextRentalPrice =
+        input.rentalPrice === undefined ? listing.rentalPrice : input.rentalPrice
       const nextRentalUnit = input.rentalUnit === undefined ? listing.rentalUnit : input.rentalUnit
       assertRentalPair(nextRentalPrice, nextRentalUnit)
-      if (input.providerId !== undefined || input.categoryId !== undefined || input.type !== undefined) {
-        await assertRefs(nextProviderId, nextCategoryId, nextType)
+
+      const pricingTouched =
+        input.price !== undefined || input.priceMin !== undefined || input.priceMax !== undefined
+      const nextPricing = pricingTouched
+        ? normalizePricing({
+            price: input.price === undefined ? null : input.price,
+            priceMin: input.priceMin === undefined ? null : input.priceMin,
+            priceMax: input.priceMax === undefined ? null : input.priceMax,
+          })
+        : {
+            price: listing.price,
+            priceMin: listing.priceMin,
+            priceMax: listing.priceMax,
+          }
+      assertPricingMode(nextPricing.price, nextPricing.priceMin, nextPricing.priceMax)
+
+      if (input.providerId !== undefined || input.categoryId !== undefined) {
+        await assertRefs(nextProviderId, nextCategoryId)
       }
       const updated = await repository.update(id, {
         ...input,
         providerId: nextProviderId,
-        currency: input.currency?.toUpperCase(),
+        categoryId: nextCategoryId,
+        currency:
+          input.currency === undefined
+            ? undefined
+            : input.currency
+              ? input.currency.toUpperCase()
+              : null,
+        ...(pricingTouched
+          ? {
+              price: nextPricing.price,
+              priceMin: nextPricing.priceMin,
+              priceMax: nextPricing.priceMax,
+            }
+          : {}),
       })
       return presentListing(updated)
     },

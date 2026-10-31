@@ -6,8 +6,35 @@ import type {
   ListingImagesRepository,
 } from '../../src/modules/listing-images/listing-images.types.js'
 import type { ListingsService } from '../../src/modules/listings/listings.service.js'
+import type { Listing } from '../../src/modules/listings/listings.types.js'
 import type { StorageService } from '../../src/storage/storage.service.js'
 import { loadTestConfig } from '../helpers/test-config.js'
+
+function stubListing(): Listing {
+  return {
+    id: 'listing-1',
+    providerId: 'prv-1',
+    providerName: 'Yard',
+    categoryId: 'cat-1',
+    categoryName: 'Cement',
+    type: 'MATERIAL',
+    name: 'Cement',
+    description: null,
+    brand: null,
+    unit: 'bag',
+    currency: 'USD',
+    price: '10',
+    priceMin: null,
+    priceMax: null,
+    rentalPrice: null,
+    rentalUnit: null,
+    quantityAvailable: null,
+    status: 'ACTIVE',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    mainImageUrl: null,
+  }
+}
 
 vi.mock('sharp', () => {
   const chain = {
@@ -55,16 +82,26 @@ describe('listingImagesService', () => {
     }
     listingsService = {
       assertAccessible: vi.fn(async (_listingId, actor) => {
-        if (actor.id !== owner.id && !actor.roles.includes('ADMIN') && !actor.roles.includes('SUPER')) {
+        if (
+          actor.id !== owner.id &&
+          !actor.roles.includes('ADMIN') &&
+          !actor.roles.includes('SUPER')
+        ) {
           const { forbidden } = await import('../../src/errors/app-error.js')
           throw forbidden('Not your listing')
         }
+        return stubListing()
       }),
       assertManageable: vi.fn(async (_listingId, actor) => {
-        if (actor.id !== owner.id && !actor.roles.includes('ADMIN') && !actor.roles.includes('SUPER')) {
+        if (
+          actor.id !== owner.id &&
+          !actor.roles.includes('ADMIN') &&
+          !actor.roles.includes('SUPER')
+        ) {
           const { forbidden } = await import('../../src/errors/app-error.js')
           throw forbidden('Not your listing')
         }
+        return stubListing()
       }),
     }
     storage = {

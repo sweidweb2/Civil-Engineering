@@ -10,7 +10,7 @@ export type ProviderOwner = {
 
 export type Provider = {
   id: string
-  ownerUserId: string
+  ownerUserId: string | null
   name: string
   description: string | null
   logoUrl: string | null
@@ -26,7 +26,7 @@ export type Provider = {
   status: ProviderStatus
   createdAt: string
   updatedAt: string
-  owner: ProviderOwner
+  owner: ProviderOwner | null
 }
 
 export type ProviderOwnerCandidate = {
@@ -52,7 +52,7 @@ export type PaginatedProviders = {
 }
 
 export type ProviderWriteInput = {
-  ownerUserId?: string
+  ownerUserId?: string | null
   name: string
   description?: string | null
   logoUrl?: string | null
@@ -92,26 +92,24 @@ function optionalNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-export function toProviderWriteInput(
-  form: {
-    ownerUserId: string
-    name: string
-    description: string
-    logoUrl: string
-    phone: string
-    whatsapp: string
-    email: string
-    website: string
-    address: string
-    city: string
-    country: string
-    lat: string
-    lng: string
-    status: ProviderStatus
-  },
-  mode: 'create' | 'edit',
-): ProviderWriteInput {
-  const payload: ProviderWriteInput = {
+export function toProviderWriteInput(form: {
+  ownerUserId: string
+  name: string
+  description: string
+  logoUrl: string
+  phone: string
+  whatsapp: string
+  email: string
+  website: string
+  address: string
+  city: string
+  country: string
+  lat: string
+  lng: string
+  status: ProviderStatus
+}): ProviderWriteInput {
+  return {
+    ownerUserId: emptyToNull(form.ownerUserId),
     name: form.name.trim(),
     description: emptyToNull(form.description),
     logoUrl: emptyToNull(form.logoUrl),
@@ -126,10 +124,6 @@ export function toProviderWriteInput(
     lng: optionalNumber(form.lng),
     status: form.status,
   }
-  if (mode === 'create') {
-    payload.ownerUserId = form.ownerUserId.trim()
-  }
-  return payload
 }
 
 export type ProviderLogoResponse = {

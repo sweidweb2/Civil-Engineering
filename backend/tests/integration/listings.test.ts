@@ -80,7 +80,6 @@ describe.skipIf(!hasDb)('listings API (integration)', () => {
     return {
       providerId,
       categoryId,
-      type: 'MATERIAL',
       name,
       unit: 'bag',
       currency: 'usd',
@@ -95,7 +94,9 @@ describe.skipIf(!hasDb)('listings API (integration)', () => {
 
     await createUser('CLIENT', 'listing-client@example.com')
     const token = await login(app, 'listing-client@example.com')
-    const denied = await request(app).get('/api/v1/listings').set('Authorization', `Bearer ${token}`)
+    const denied = await request(app)
+      .get('/api/v1/listings')
+      .set('Authorization', `Bearer ${token}`)
     expect(denied.status).toBe(403)
   })
 
@@ -107,7 +108,9 @@ describe.skipIf(!hasDb)('listings API (integration)', () => {
     const managerToken = await login(app, 'listing-manager@example.com')
     const { providerId, categoryId } = await seedCatalog(app, adminToken)
 
-    const list = await request(app).get('/api/v1/listings').set('Authorization', `Bearer ${managerToken}`)
+    const list = await request(app)
+      .get('/api/v1/listings')
+      .set('Authorization', `Bearer ${managerToken}`)
     expect(list.status).toBe(200)
     expect(list.body.meta.typeCounts).toMatchObject({ MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 })
 

@@ -8,13 +8,13 @@ export const listingsDomain = {
     {
       name: 'Listing',
       description:
-        'A provider catalog record with type, category, price, unit, and optional rental price. Variations and offers stay on the same listing.',
+        'A provider catalog record with category, fixed price or min/max range, unit, and optional rental price. Type is derived from category kind. Variations and offers stay on the same listing.',
     },
   ],
   valueObjects: [
     {
       name: 'ListingType',
-      description: 'MATERIAL | EQUIPMENT | SERVICE. Must match the category kind.',
+      description: 'MATERIAL | EQUIPMENT | SERVICE. Derived from the linked category kind.',
     },
     {
       name: 'ListingStatus',
@@ -24,7 +24,7 @@ export const listingsDomain = {
   useCases: ['listListings', 'getListingById', 'createListing', 'updateListing', 'deleteListing'],
   relationships: [
     'Listing.providerId → Provider.',
-    'Listing.categoryId → Category. Category kind must equal the listing type.',
+    'Listing.categoryId → Category. Category kind must be MATERIAL, EQUIPMENT, or SERVICE.',
     'ListingVariation and ListingOffer cascade when a listing is removed.',
     'A listing with reviews is hidden (INACTIVE) instead of removed, because reviews store the listing id without a foreign key.',
   ],

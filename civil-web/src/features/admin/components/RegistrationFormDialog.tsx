@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -21,11 +22,7 @@ import {
 } from '@/components/ui/select'
 import type { ApprovalRole } from '@/services/users'
 
-const ROLES: Array<{ value: ApprovalRole; label: string }> = [
-  { value: 'MANAGER', label: 'Project manager' },
-  { value: 'PROVIDER', label: 'Provider' },
-  { value: 'WORKER', label: 'Worker' },
-]
+const ROLE_VALUES: ApprovalRole[] = ['MANAGER', 'PROVIDER', 'WORKER']
 
 export type RegistrationFormValues = {
   email: string
@@ -53,9 +50,19 @@ type RegistrationFormDialogProps = {
   onSave: (values: RegistrationFormValues) => Promise<string | null>
 }
 
-export function RegistrationFormDialog({ open, onOpenChange, onSave }: RegistrationFormDialogProps) {
+export function RegistrationFormDialog({
+  open,
+  onOpenChange,
+  onSave,
+}: RegistrationFormDialogProps) {
+  const { t } = useTranslation(['admin', 'common'])
   const [form, setForm] = useState<RegistrationFormValues>(EMPTY_FORM)
   const [isSaving, setIsSaving] = useState(false)
+
+  const roleOptions = ROLE_VALUES.map((value) => ({
+    value,
+    label: t(`admin:roles.${value}`),
+  }))
 
   useEffect(() => {
     if (open) setForm(EMPTY_FORM)
@@ -70,7 +77,7 @@ export function RegistrationFormDialog({ open, onOpenChange, onSave }: Registrat
         return
       }
       onOpenChange(false)
-      toast.success('Registration created')
+      toast.success(t('admin:registrations.form.created'))
     } finally {
       setIsSaving(false)
     }
@@ -80,38 +87,40 @@ export function RegistrationFormDialog({ open, onOpenChange, onSave }: Registrat
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New registration</DialogTitle>
-          <DialogDescription>
-            Creates a project manager, provider, or worker account as pending. They cannot sign in until approved.
-          </DialogDescription>
+          <DialogTitle>{t('admin:registrations.form.title')}</DialogTitle>
+          <DialogDescription>{t('admin:registrations.form.description')}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="approval-email">Email</Label>
+            <Label htmlFor="approval-email">{t('admin:registrations.form.email')}</Label>
             <Input
               id="approval-email"
               type="email"
               maxLength={254}
-              placeholder="name@example.com"
+              placeholder={t('admin:registrations.form.emailPlaceholder')}
               value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, email: event.target.value }))
+              }
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="approval-password">Password</Label>
+            <Label htmlFor="approval-password">{t('admin:registrations.form.password')}</Label>
             <Input
               id="approval-password"
               type="password"
               autoComplete="new-password"
-              placeholder="At least 8 characters"
+              placeholder={t('admin:registrations.form.passwordPlaceholder')}
               value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, password: event.target.value }))
+              }
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="approval-role">Role</Label>
+            <Label htmlFor="approval-role">{t('admin:registrations.form.role')}</Label>
             <Select
-              items={ROLES}
+              items={roleOptions}
               value={form.role}
               onValueChange={(value) => {
                 if (value === 'MANAGER' || value === 'PROVIDER' || value === 'WORKER') {
@@ -120,10 +129,10 @@ export function RegistrationFormDialog({ open, onOpenChange, onSave }: Registrat
               }}
             >
               <SelectTrigger id="approval-role" className="w-full">
-                <SelectValue placeholder="Select a role" />
+                <SelectValue placeholder={t('admin:registrations.form.rolePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                {ROLES.map((role) => (
+                {roleOptions.map((role) => (
                   <SelectItem key={role.value} value={role.value}>
                     {role.label}
                   </SelectItem>
@@ -133,32 +142,38 @@ export function RegistrationFormDialog({ open, onOpenChange, onSave }: Registrat
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="approval-first-name">First name</Label>
+              <Label htmlFor="approval-first-name">{t('admin:registrations.form.firstName')}</Label>
               <Input
                 id="approval-first-name"
                 maxLength={100}
-                placeholder="First name"
+                placeholder={t('admin:registrations.form.firstName')}
                 value={form.firstName}
-                onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, firstName: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="approval-last-name">Last name</Label>
+              <Label htmlFor="approval-last-name">{t('admin:registrations.form.lastName')}</Label>
               <Input
                 id="approval-last-name"
                 maxLength={100}
-                placeholder="Last name"
+                placeholder={t('admin:registrations.form.lastName')}
                 value={form.lastName}
-                onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, lastName: event.target.value }))
+                }
               />
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="approval-display-name">Display name</Label>
+            <Label htmlFor="approval-display-name">
+              {t('admin:registrations.form.displayName')}
+            </Label>
             <Input
               id="approval-display-name"
               maxLength={120}
-              placeholder="Display name"
+              placeholder={t('admin:registrations.form.displayName')}
               value={form.displayName}
               onChange={(event) =>
                 setForm((current) => ({ ...current, displayName: event.target.value }))
@@ -166,22 +181,29 @@ export function RegistrationFormDialog({ open, onOpenChange, onSave }: Registrat
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="approval-phone">Phone</Label>
+            <Label htmlFor="approval-phone">{t('admin:registrations.form.phone')}</Label>
             <Input
               id="approval-phone"
               maxLength={20}
-              placeholder="+961 70 000 000"
+              placeholder={t('admin:registrations.form.phonePlaceholder')}
               value={form.phone}
-              onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, phone: event.target.value }))
+              }
             />
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            Cancel
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
+            {t('common:cancel')}
           </Button>
           <Button type="button" onClick={() => void submit()} disabled={isSaving}>
-            {isSaving ? 'Creating…' : 'Create'}
+            {isSaving ? t('common:creating') : t('common:create')}
           </Button>
         </DialogFooter>
       </DialogContent>

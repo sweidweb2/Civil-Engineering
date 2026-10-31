@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { FormInput, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
@@ -17,7 +18,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -66,7 +73,8 @@ function formFromRow(row: InputType): FormState {
 }
 
 export function ManageInputTypesPage() {
-  useDocumentTitle('Input types')
+  const { t } = useTranslation(['admin', 'common'])
+  useDocumentTitle(t('admin:inputTypes.documentTitle'))
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const {
     dialogOpen,
@@ -109,7 +117,7 @@ export function ManageInputTypesPage() {
     const label = form.label.trim()
     const sortOrder = Number.parseInt(form.sortOrder, 10)
     if (!Number.isFinite(sortOrder) || sortOrder < 0) {
-      toast.error('Sort order must be a non-negative number')
+      toast.error(t('admin:inputTypes.sortOrderInvalid'))
       return
     }
 
@@ -117,14 +125,14 @@ export function ManageInputTypesPage() {
       await withSaving(async () => {
         await updateInputType(editing!.id, { sortOrder, status: form.status })
         setDialogOpen(false)
-        toast.message('Input type updated')
+        toast.message(t('admin:inputTypes.updated'))
         await remote.refetch()
-      }, 'Could not save input type')
+      }, t('admin:inputTypes.couldNotSave'))
       return
     }
 
     if (!form.code || !label) {
-      toast.error('Code and label are required')
+      toast.error(t('admin:inputTypes.codeAndLabelRequired'))
       return
     }
 
@@ -133,10 +141,10 @@ export function ManageInputTypesPage() {
       if (editing) await updateInputType(editing.id, payload)
       else await createInputType(payload)
       setDialogOpen(false)
-      toast.message(editing ? 'Input type updated' : 'Input type created')
+      toast.message(editing ? t('admin:inputTypes.updated') : t('admin:inputTypes.created'))
       if (!editing) setPage(1)
       await remote.refetch()
-    }, 'Could not save input type')
+    }, t('admin:inputTypes.couldNotSave'))
   }
 
   async function toggleStatus(row: InputType) {
@@ -145,10 +153,14 @@ export function ManageInputTypesPage() {
       row.id,
       async () => {
         await updateInputType(row.id, { status: next })
-        toast.message(next === 'ACTIVE' ? 'Input type enabled' : 'Input type disabled')
+        toast.message(
+          next === 'ACTIVE'
+            ? t('admin:inputTypes.enabledToast')
+            : t('admin:inputTypes.disabledToast'),
+        )
         await remote.refetch()
       },
-      'Could not update status',
+      t('admin:inputTypes.couldNotUpdateStatus'),
     )
   }
 
@@ -159,11 +171,11 @@ export function ManageInputTypesPage() {
       id,
       async () => {
         await deleteInputType(id)
-        toast.message('Input type removed')
+        toast.message(t('admin:inputTypes.removedToast'))
         setPendingDelete(null)
         await remote.refetch()
       },
-      'Could not remove input type',
+      t('admin:inputTypes.couldNotDelete'),
     )
   }
 
@@ -171,18 +183,22 @@ export function ManageInputTypesPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Input types"
-        description="Platform field kinds for step inputs. Enable/disable only controls what users can pick for new fields — existing step inputs and project values stay as-is."
+        title={t('admin:inputTypes.title')}
+        description={t('admin:inputTypes.description')}
         actions={
           <Button type="button" onClick={openCreate}>
-            Add type
+            {t('admin:inputTypes.addType')}
           </Button>
         }
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={FormInput} label="Active" value={activeCount} />
-        <StatCard icon={FormInput} label="Inactive" value={inactiveCount} />
+        <StatCard icon={FormInput} label={t('admin:inputTypes.metricActive')} value={activeCount} />
+        <StatCard
+          icon={FormInput}
+          label={t('admin:inputTypes.metricInactive')}
+          value={inactiveCount}
+        />
       </div>
 
       <AsyncState
@@ -196,29 +212,31 @@ export function ManageInputTypesPage() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter input types…"
-              aria-label="Filter input types"
+              placeholder={t('admin:inputTypes.filterPlaceholder')}
+              aria-label={t('admin:inputTypes.filterAria')}
               className="max-w-sm"
             />
           }
-          footer={<TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />}
+          footer={
+            <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          }
         >
           <Table startIndex={(page - 1) * PAGE_SIZE}>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Label</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Used</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('admin:inputTypes.headers.code')}</TableHead>
+                <TableHead>{t('admin:inputTypes.headers.label')}</TableHead>
+                <TableHead>{t('admin:inputTypes.headers.status')}</TableHead>
+                <TableHead>{t('admin:inputTypes.headers.active')}</TableHead>
+                <TableHead>{t('admin:inputTypes.headers.used')}</TableHead>
+                <TableHead className="text-right">{t('common:actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-muted-foreground">
-                    No input types yet.
+                    {t('admin:inputTypes.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -228,15 +246,19 @@ export function ManageInputTypesPage() {
                     <TableCell title={row.label}>{ellipsis(row.label, 36)}</TableCell>
                     <TableCell>
                       <Badge variant={row.status === 'ACTIVE' ? 'default' : 'outline'}>
-                        {row.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                        {row.status === 'ACTIVE' ? t('common:active') : t('common:inactive')}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Switch
                         checked={row.status === 'ACTIVE'}
                         disabled={busyId === row.id}
-                        aria-label={`${row.status === 'ACTIVE' ? 'Disable' : 'Enable'} ${row.label}`}
-                        title={row.status === 'ACTIVE' ? 'Enabled' : 'Disabled'}
+                        aria-label={
+                          row.status === 'ACTIVE'
+                            ? t('admin:inputTypes.disableAria', { name: row.label })
+                            : t('admin:inputTypes.enableAria', { name: row.label })
+                        }
+                        title={row.status === 'ACTIVE' ? t('common:enabled') : t('common:disabled')}
                         onCheckedChange={() => void toggleStatus(row)}
                       />
                     </TableCell>
@@ -247,7 +269,7 @@ export function ManageInputTypesPage() {
                           type="button"
                           size="icon-sm"
                           variant="outline"
-                          aria-label={`Edit ${row.label}`}
+                          aria-label={t('admin:inputTypes.editAria', { name: row.label })}
                           disabled={busyId === row.id}
                           onClick={() => openEdit(row)}
                         >
@@ -257,12 +279,12 @@ export function ManageInputTypesPage() {
                           type="button"
                           size="icon-sm"
                           variant="destructive"
-                          aria-label={`Delete ${row.label}`}
+                          aria-label={t('admin:inputTypes.deleteAria', { name: row.label })}
                           disabled={busyId === row.id || row.usageCount > 0}
                           title={
                             row.usageCount > 0
-                              ? 'In use — disable instead of delete'
-                              : 'Delete permanently'
+                              ? t('admin:inputTypes.inUseTitle')
+                              : t('admin:inputTypes.deletePermanently')
                           }
                           onClick={() => setPendingDelete(row)}
                         >
@@ -281,16 +303,18 @@ export function ManageInputTypesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit input type' : 'Add input type'}</DialogTitle>
+            <DialogTitle>
+              {editing ? t('admin:inputTypes.editTitle') : t('admin:inputTypes.createTitle')}
+            </DialogTitle>
             <DialogDescription>
               {isIdentityLocked
-                ? 'This type is in use. Code and label are locked — you can still change status and sort order.'
-                : 'Pick a code from the list. Only active types appear when adding step inputs.'}
+                ? t('admin:inputTypes.dialogDescriptionLocked')
+                : t('admin:inputTypes.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="input-type-code">Code</Label>
+              <Label htmlFor="input-type-code">{t('common:code')}</Label>
               {isIdentityLocked ? (
                 <Input
                   id="input-type-code"
@@ -306,7 +330,7 @@ export function ManageInputTypesPage() {
                   }
                 >
                   <SelectTrigger id="input-type-code" className="w-full font-mono">
-                    <SelectValue placeholder="Select code" />
+                    <SelectValue placeholder={t('admin:inputTypes.selectCode')} />
                   </SelectTrigger>
                   <SelectContent>
                     {INPUT_TYPE_CODE_OPTIONS.map((option) => (
@@ -319,17 +343,19 @@ export function ManageInputTypesPage() {
               )}
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="input-type-label">Label</Label>
+              <Label htmlFor="input-type-label">{t('common:label')}</Label>
               <Input
                 id="input-type-label"
                 value={form.label}
                 maxLength={80}
                 disabled={isIdentityLocked}
-                onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, label: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="input-type-order">Sort order</Label>
+              <Label htmlFor="input-type-order">{t('admin:inputTypes.sortOrder')}</Label>
               <Input
                 id="input-type-order"
                 type="number"
@@ -341,7 +367,7 @@ export function ManageInputTypesPage() {
               />
             </div>
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="input-type-active">Active</Label>
+              <Label htmlFor="input-type-active">{t('common:active')}</Label>
               <Switch
                 id="input-type-active"
                 checked={form.status === 'ACTIVE'}
@@ -352,11 +378,16 @@ export function ManageInputTypesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isSaving}
+            >
+              {t('common:cancel')}
             </Button>
             <Button type="button" onClick={() => void save()} disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t('common:saving') : t('common:save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -364,11 +395,13 @@ export function ManageInputTypesPage() {
 
       <AdminConfirmDeleteDialog
         open={pendingDelete !== null}
-        title="Remove input type"
+        title={t('admin:inputTypes.deleteTitle')}
         description={
           pendingDelete && pendingDelete.usageCount > 0
-            ? 'This type is still used by step inputs or projects. Disable it instead.'
-            : `This permanently removes ${pendingDelete?.label ?? 'the type'} and cannot be recovered.`
+            ? t('admin:inputTypes.deleteBlocked')
+            : t('admin:inputTypes.deleteDescription', {
+                label: pendingDelete?.label ?? t('admin:inputTypes.theType'),
+              })
         }
         confirmDisabled={Boolean(pendingDelete && pendingDelete.usageCount > 0)}
         onOpenChange={(open) => !open && setPendingDelete(null)}

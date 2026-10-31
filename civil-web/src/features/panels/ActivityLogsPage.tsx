@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Activity, FileText } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
@@ -30,7 +31,8 @@ function formatWhen(iso: string) {
 }
 
 export function ActivityLogsPage() {
-  useDocumentTitle('Activity logs')
+  const { t } = useTranslation('admin')
+  useDocumentTitle(t('logs.activity.title'))
   const [page, setPage] = useState(1)
 
   const load = useCallback(() => listActivityLogs(page, PAGE_LIMIT), [page])
@@ -44,13 +46,13 @@ export function ActivityLogsPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Activity logs"
-        description="Business audit events (SUPER only)."
+        title={t('logs.activity.title')}
+        description={t('logs.activity.description')}
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Activity} label="Events" value={total} />
-        <StatCard icon={FileText} label="This page" value={rows.length} />
+        <StatCard icon={Activity} label={t('logs.activity.events')} value={total} />
+        <StatCard icon={FileText} label={t('logs.thisPage')} value={rows.length} />
       </div>
 
       <AsyncState
@@ -67,17 +69,17 @@ export function ActivityLogsPage() {
           <Table startIndex={(page - 1) * PAGE_LIMIT}>
             <TableHeader>
               <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Entity</TableHead>
+                <TableHead>{t('logs.when')}</TableHead>
+                <TableHead>{t('logs.activity.action')}</TableHead>
+                <TableHead>{t('logs.activity.user')}</TableHead>
+                <TableHead>{t('logs.activity.entity')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-muted-foreground">
-                    No activity yet.
+                    {t('logs.activity.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -85,9 +87,7 @@ export function ActivityLogsPage() {
                   <TableRow key={row.id}>
                     <TableCell className="whitespace-nowrap">{formatWhen(row.createdAt)}</TableCell>
                     <TableCell className="max-w-40 truncate font-medium">{row.action}</TableCell>
-                    <TableCell className="max-w-48 truncate">
-                      {row.user?.email ?? '—'}
-                    </TableCell>
+                    <TableCell className="max-w-48 truncate">{row.user?.email ?? '—'}</TableCell>
                     <TableCell className="max-w-40 truncate">{row.entity ?? '—'}</TableCell>
                   </TableRow>
                 ))

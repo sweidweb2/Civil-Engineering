@@ -12,6 +12,7 @@ import {
   Trash2,
   TrendingUp,
 } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -31,7 +32,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,10 +48,17 @@ import {
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
@@ -54,15 +68,12 @@ import {
   type CreateProjectInput,
   listProjects,
   type Project,
-  PROJECT_STATUS_OPTIONS,
-  PROJECT_TYPE_OPTIONS,
   type ProjectStatus,
-  projectStatusLabel,
   type ProjectType,
-  projectTypeLabel,
 } from '@/services/projects'
 
 import { ProjectProgressTimeline } from './components/ProjectProgressTimeline'
+import { useProjectOptions } from './hooks/useProjectOptions'
 import { scheduleProgress } from './lib/schedule-progress'
 
 function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -78,10 +89,6 @@ function getStatusColor(status: string): 'default' | 'secondary' | 'destructive'
   }
 }
 
-function getStatusLabel(status: string): string {
-  return projectStatusLabel(status)
-}
-
 function getTypeIcon(type: string | null) {
   switch (type) {
     case 'RESIDENTIAL':
@@ -93,15 +100,6 @@ function getTypeIcon(type: string | null) {
       return MapPin
     default:
       return Building2
-  }
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleDateString()
-  } catch {
-    return '—'
   }
 }
 
@@ -143,6 +141,9 @@ function ProjectCard({
   variant: number
   onArchive: (project: Project) => void
 }) {
+  const { t } = useTranslation(['projects', 'common'])
+  const { formatDate } = useLocaleFormat()
+  const { statusLabel, typeLabel } = useProjectOptions()
   const navigate = useNavigate()
   const location = useLocation()
   const projectPath = `${portalBaseFromPath(location.pathname)}/projects/${project.id}`
@@ -166,7 +167,11 @@ function ProjectCard({
             </div>
             <div className="min-w-0 flex-1">
               <CardTitle className="line-clamp-1 text-sm">{project.name}</CardTitle>
-              {project.code && <CardDescription className="text-xs">Code: {project.code}</CardDescription>}
+              {project.code && (
+                <CardDescription className="text-xs">
+                  {t('projects:codeLabel', { code: project.code })}
+                </CardDescription>
+              )}
             </div>
           </div>
           <DropdownMenu>
@@ -184,7 +189,7 @@ function ProjectCard({
                 }}
               >
                 <Pencil className="size-3" />
-                Edit
+                {t('common:edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive"
@@ -194,7 +199,7 @@ function ProjectCard({
                 }}
               >
                 <Trash2 className="size-3" />
-                Archive
+                {t('projects:archive')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -207,12 +212,12 @@ function ProjectCard({
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <Badge variant={getStatusColor(project.status)} className="text-xs">
-            {getStatusLabel(project.status)}
+            {statusLabel(project.status)}
           </Badge>
           {project.type && (
             <div className="flex items-center gap-1">
               <Building2 className="size-3" />
-              <span>{projectTypeLabel(project.type)}</span>
+              <span>{typeLabel(project.type)}</span>
             </div>
           )}
         </div>
@@ -221,7 +226,10 @@ function ProjectCard({
           <div className="flex items-center gap-2">
             <TrendingUp className="size-3 text-muted-foreground" />
             <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary transition-all" style={{ width: `${project.progress}%` }} />
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${project.progress}%` }}
+              />
             </div>
             <span className="text-xs text-muted-foreground">{project.progress}%</span>
           </div>
@@ -244,18 +252,12 @@ function ProjectCard({
   )
 }
 
-const STATUS_FILTER_OPTIONS = [
-  { value: 'all', label: 'All statuses' },
-  ...PROJECT_STATUS_OPTIONS,
-]
-
-const TYPE_FILTER_OPTIONS = [
-  { value: 'all', label: 'All types' },
-  ...PROJECT_TYPE_OPTIONS,
-]
-
 export function ProjectsListPage() {
-  useDocumentTitle('Manage projects')
+  const { t } = useTranslation(['projects', 'common', 'nav'])
+  const { statusOptions, typeOptions } = useProjectOptions()
+  useDocumentTitle(t('nav:manageProjects'))
+  const statusFilterOptions = [{ value: 'all', label: t('projects:allStatuses') }, ...statusOptions]
+  const typeFilterOptions = [{ value: 'all', label: t('projects:allTypes') }, ...typeOptions]
   const navigate = useNavigate()
   const location = useLocation()
   const isPmPortal = location.pathname.startsWith('/pm')
@@ -305,7 +307,7 @@ export function ProjectsListPage() {
     e.preventDefault()
 
     if (!createData.name.trim()) {
-      toast.error('Project name is required')
+      toast.error(t('projects:nameRequired'))
       return
     }
     if (
@@ -313,20 +315,20 @@ export function ProjectsListPage() {
       createData.endDate &&
       new Date(createData.endDate).getTime() <= new Date(createData.startDate).getTime()
     ) {
-      toast.error('End date must be after the start date')
+      toast.error(t('projects:endAfterStart'))
       return
     }
 
     setIsCreating(true)
     try {
       const result = await createProject(createData)
-      toast.success('Project created successfully')
+      toast.success(t('projects:created'))
       setCreateOpen(false)
       setTimelineVersion((version) => version + 1)
       void remote.refetch()
       navigate(`${portalBaseFromPath(location.pathname)}/projects/${result.data.id}`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create project')
+      toast.error(error instanceof Error ? error.message : t('projects:couldNotCreate'))
     } finally {
       setIsCreating(false)
     }
@@ -343,12 +345,12 @@ export function ProjectsListPage() {
     setIsDeleting(true)
     try {
       await archiveProject(deletingProject.id)
-      toast.success('Project archived successfully')
+      toast.success(t('projects:archived'))
       setDeleteOpen(false)
       setTimelineVersion((version) => version + 1)
       void remote.refetch()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to archive project')
+      toast.error(error instanceof Error ? error.message : t('projects:couldNotArchive'))
     } finally {
       setIsDeleting(false)
     }
@@ -358,12 +360,12 @@ export function ProjectsListPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Manage projects</h1>
-          <p className="text-sm text-muted-foreground">Manage your civil engineering projects.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('nav:manageProjects')}</h1>
+          <p className="text-sm text-muted-foreground">{t('projects:manageDescription')}</p>
         </div>
         <Button onClick={handleCreateOpen}>
           <Plus className="size-4" />
-          Create Project
+          {t('projects:create')}
         </Button>
       </div>
 
@@ -373,27 +375,27 @@ export function ProjectsListPage() {
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name, code, or city…"
-          aria-label="Filter projects"
+          placeholder={t('projects:searchPlaceholder')}
+          aria-label={t('projects:filterAria')}
           className="max-w-sm"
           maxLength={120}
         />
         <Select
-          items={STATUS_FILTER_OPTIONS}
+          items={statusFilterOptions}
           value={statusFilter}
           onValueChange={(value) => {
             if (!value) return
-            if (value === 'all' || PROJECT_STATUS_OPTIONS.some((option) => option.value === value)) {
+            if (value === 'all' || statusOptions.some((option) => option.value === value)) {
               setStatusFilter(value as 'all' | ProjectStatus)
               setPage(1)
             }
           }}
         >
-          <SelectTrigger className="w-full sm:w-48" aria-label="Filter by status">
-            <SelectValue placeholder="Status" />
+          <SelectTrigger className="w-full sm:w-48" aria-label={t('projects:filterByStatus')}>
+            <SelectValue placeholder={t('common:status')} />
           </SelectTrigger>
           <SelectContent>
-            {STATUS_FILTER_OPTIONS.map((option) => (
+            {statusFilterOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -401,21 +403,21 @@ export function ProjectsListPage() {
           </SelectContent>
         </Select>
         <Select
-          items={TYPE_FILTER_OPTIONS}
+          items={typeFilterOptions}
           value={typeFilter}
           onValueChange={(value) => {
             if (!value) return
-            if (value === 'all' || PROJECT_TYPE_OPTIONS.some((option) => option.value === value)) {
+            if (value === 'all' || typeOptions.some((option) => option.value === value)) {
               setTypeFilter(value as 'all' | ProjectType)
               setPage(1)
             }
           }}
         >
-          <SelectTrigger className="w-full sm:w-48" aria-label="Filter by type">
-            <SelectValue placeholder="Type" />
+          <SelectTrigger className="w-full sm:w-48" aria-label={t('projects:filterByType')}>
+            <SelectValue placeholder={t('common:type')} />
           </SelectTrigger>
           <SelectContent>
-            {TYPE_FILTER_OPTIONS.map((option) => (
+            {typeFilterOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -429,7 +431,10 @@ export function ProjectsListPage() {
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
         loadingFallback={
-          <CardGridSkeleton media="plain" className="gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />
+          <CardGridSkeleton
+            media="plain"
+            className="gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          />
         }
       >
         {projects.length === 0 ? (
@@ -438,8 +443,8 @@ export function ProjectsListPage() {
               <FolderKanban className="size-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
                 {debouncedQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                  ? 'No projects match these filters.'
-                  : 'No projects yet. Create your first one!'}
+                  ? t('projects:noMatch')
+                  : t('projects:noProjectsCreateFirst')}
               </p>
             </CardContent>
           </Card>
@@ -459,7 +464,7 @@ export function ProjectsListPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
-              Page {page} of {totalPages} ({total} total)
+              {t('common:pageSummary', { page, totalPages, total })}
             </p>
             <div className="flex gap-2">
               <Button
@@ -469,7 +474,7 @@ export function ProjectsListPage() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                Previous
+                {t('common:previous')}
               </Button>
               <Button
                 type="button"
@@ -478,7 +483,7 @@ export function ProjectsListPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next
+                {t('common:next')}
               </Button>
             </div>
           </div>
@@ -489,56 +494,56 @@ export function ProjectsListPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Enter the basic information for your project. You can add more details later.
-            </DialogDescription>
+            <DialogTitle>{t('projects:createTitle')}</DialogTitle>
+            <DialogDescription>{t('projects:createDescription')}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="grid gap-4 sm:grid-cols-2">
             <Field>
-              <Label htmlFor="create-name">Project Name</Label>
+              <Label htmlFor="create-name">{t('projects:projectName')}</Label>
               <Input
                 id="create-name"
                 value={createData.name}
                 onChange={(e) => setCreateData({ ...createData, name: e.target.value })}
-                placeholder="e.g., Downtown Office Building"
+                placeholder={t('projects:projectNamePlaceholder')}
                 maxLength={200}
                 required
               />
             </Field>
             <Field>
-              <Label htmlFor="create-code">Project Code</Label>
+              <Label htmlFor="create-code">{t('projects:projectCode')}</Label>
               <Input
                 id="create-code"
                 value={createData.code || ''}
                 onChange={(e) => setCreateData({ ...createData, code: e.target.value })}
-                placeholder="e.g., PRJ-2024-001"
+                placeholder={t('projects:projectCodePlaceholder')}
                 maxLength={50}
               />
             </Field>
             <Field>
-              <Label htmlFor="create-description">Description</Label>
+              <Label htmlFor="create-description">{t('common:description')}</Label>
               <Textarea
                 id="create-description"
                 value={createData.description || ''}
                 onChange={(e) => setCreateData({ ...createData, description: e.target.value })}
-                placeholder="Brief description of the project..."
+                placeholder={t('projects:descriptionPlaceholder')}
                 maxLength={2000}
                 rows={3}
               />
             </Field>
             <Field>
-              <Label htmlFor="create-type">Project Type</Label>
+              <Label htmlFor="create-type">{t('projects:projectType')}</Label>
               <Select
-                items={PROJECT_TYPE_OPTIONS}
+                items={typeOptions}
                 value={createData.type}
-                onValueChange={(value) => setCreateData({ ...createData, type: value as ProjectType })}
+                onValueChange={(value) =>
+                  setCreateData({ ...createData, type: value as ProjectType })
+                }
               >
                 <SelectTrigger id="create-type" className="w-full">
-                  <SelectValue placeholder="Select project type" />
+                  <SelectValue placeholder={t('projects:selectProjectType')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROJECT_TYPE_OPTIONS.map((type) => (
+                  {typeOptions.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
                     </SelectItem>
@@ -547,39 +552,45 @@ export function ProjectsListPage() {
               </Select>
             </Field>
             <Field>
-              <Label htmlFor="create-start">Start date</Label>
+              <Label htmlFor="create-start">{t('projects:startDate')}</Label>
               <DatePicker
                 id="create-start"
                 value={createData.startDate ? new Date(createData.startDate) : undefined}
                 onChange={(date) =>
                   setCreateData({ ...createData, startDate: date ? date.toISOString() : null })
                 }
-                placeholder="Select start date"
+                placeholder={t('projects:selectStartDate')}
               />
             </Field>
             <Field>
-              <Label htmlFor="create-end">End date</Label>
+              <Label htmlFor="create-end">{t('projects:endDate')}</Label>
               <DatePicker
                 id="create-end"
                 value={createData.endDate ? new Date(createData.endDate) : undefined}
                 onChange={(date) =>
                   setCreateData({ ...createData, endDate: date ? date.toISOString() : null })
                 }
-                placeholder="Select end date"
+                placeholder={t('projects:selectEndDate')}
               />
             </Field>
             <p className="text-xs text-muted-foreground sm:col-span-2">
-              Progress is the time elapsed from the start date to the end date
               {createData.startDate && createData.endDate
-                ? ` (${scheduleProgress(createData.startDate, createData.endDate)}%).`
-                : '. Set both dates to calculate it.'}
+                ? t('projects:progressHintWithValue', {
+                    value: scheduleProgress(createData.startDate, createData.endDate),
+                  })
+                : t('projects:progressHintSetDates')}
             </p>
             <div className="flex justify-end gap-3 sm:col-span-2">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={isCreating}>
-                Cancel
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+                disabled={isCreating}
+              >
+                {t('common:cancel')}
               </Button>
               <Button type="submit" disabled={isCreating}>
-                {isCreating ? 'Creating...' : 'Create Project'}
+                {isCreating ? t('projects:creating') : t('projects:create')}
               </Button>
             </div>
           </form>
@@ -590,16 +601,20 @@ export function ProjectsListPage() {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive Project?</AlertDialogTitle>
+            <AlertDialogTitle>{t('projects:archiveTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to archive <strong>{deletingProject?.name}</strong>? The project will be moved
-              to the archive and won't appear in the main list.
+              <Trans
+                t={t}
+                i18nKey="projects:archiveDescription"
+                values={{ name: deletingProject?.name ?? '' }}
+                components={{ strong: <strong /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void handleDeleteConfirm()} disabled={isDeleting}>
-              {isDeleting ? 'Archiving...' : 'Archive'}
+              {isDeleting ? t('projects:archiving') : t('projects:archive')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

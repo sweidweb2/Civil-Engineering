@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Archive, ListOrdered, ListTree, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
@@ -17,7 +18,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -54,11 +61,7 @@ type StepForm = {
 
 const EMPTY_FORM: StepForm = { name: '', orderNb: '', status: 'ACTIVE' }
 
-const STATUS_OPTIONS: Array<{ value: StepStatus; label: string }> = [
-  { value: 'ACTIVE', label: 'Active (new projects)' },
-  { value: 'INACTIVE', label: 'Inactive' },
-  { value: 'ARCHIVED', label: 'Archived' },
-]
+const STATUS_VALUES: StepStatus[] = ['ACTIVE', 'INACTIVE', 'ARCHIVED']
 
 function formFromStep(step: Step): StepForm {
   return {
@@ -68,19 +71,14 @@ function formFromStep(step: Step): StepForm {
   }
 }
 
-function statusBadge(status: StepStatus) {
-  if (status === 'ACTIVE') return <Badge>Active</Badge>
-  if (status === 'ARCHIVED') return <Badge variant="secondary">Archived</Badge>
-  return <Badge variant="outline">Inactive</Badge>
-}
-
 type ManageStepsPageProps = {
   /** Hide page chrome when embedded in another settings surface. */
   embedded?: boolean
 }
 
 export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
-  useDocumentTitle(embedded ? 'Settings' : 'Manage steps')
+  const { t } = useTranslation(['admin', 'common', 'pm'])
+  useDocumentTitle(embedded ? t('pm:settings') : t('admin:steps.documentTitle'))
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const {
     dialogOpen,
@@ -102,6 +100,16 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
   })
   const [inputsStep, setInputsStep] = useState<Step | null>(null)
 
+  const statusOptions = STATUS_VALUES.map((value) => ({
+    value,
+    label:
+      value === 'ACTIVE'
+        ? t('admin:steps.statusActiveNew')
+        : value === 'ARCHIVED'
+          ? t('admin:steps.statusArchived')
+          : t('admin:steps.statusInactive'),
+  }))
+
   const load = useCallback(
     () => listSteps(page, PAGE_SIZE, { q: debouncedQuery || undefined }),
     [debouncedQuery, page],
@@ -114,14 +122,21 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
   const archivedCount = remote.status === 'success' ? remote.data.meta.archivedCount : 0
   const totalPages = pageCount(total)
 
+  function statusBadge(status: StepStatus) {
+    if (status === 'ACTIVE') return <Badge>{t('admin:steps.statusActive')}</Badge>
+    if (status === 'ARCHIVED')
+      return <Badge variant="secondary">{t('admin:steps.statusArchived')}</Badge>
+    return <Badge variant="outline">{t('admin:steps.statusInactive')}</Badge>
+  }
+
   async function save() {
     const name = form.name.trim()
     if (!name) {
-      toast.error('Name is required (1–120 characters)')
+      toast.error(t('admin:steps.nameRequired'))
       return
     }
     if (name.length > 120) {
-      toast.error('Name must be at most 120 characters')
+      toast.error(t('admin:steps.nameMax'))
       return
     }
 
@@ -133,7 +148,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
     if (orderRaw !== '') {
       const orderNb = Number.parseInt(orderRaw, 10)
       if (!Number.isFinite(orderNb) || orderNb < 0 || orderNb > 10000) {
-        toast.error('Order must be an integer from 0 to 10000')
+        toast.error(t('admin:steps.orderInvalid'))
         return
       }
       payload.orderNb = orderNb
@@ -142,12 +157,12 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
     await withSaving(async () => {
       const result = editing ? await updateStep(editing.id, payload) : await createStep(payload)
       setDialogOpen(false)
-      toast.message(editing ? 'Step updated' : 'Step created')
+      toast.message(editing ? t('admin:steps.updated') : t('admin:steps.created'))
       const adjusted = notifyOrderAdjusted(result.meta)
       if (adjusted) toast.message(adjusted)
       if (!editing) setPage(1)
       await remote.refetch()
-    }, 'Could not save step')
+    }, t('admin:steps.couldNotSave'))
   }
 
   async function toggleActive(row: Step) {
@@ -158,13 +173,11 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       async () => {
         await updateStep(row.id, { status: next })
         toast.message(
-          next === 'ACTIVE'
-            ? 'Step enabled for new projects'
-            : 'Step disabled for new projects (existing projects unchanged)',
+          next === 'ACTIVE' ? t('admin:steps.enabledToast') : t('admin:steps.disabledToast'),
         )
         await remote.refetch()
       },
-      'Could not update status',
+      t('admin:steps.couldNotUpdateStatus'),
     )
   }
 
@@ -173,10 +186,10 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       row.id,
       async () => {
         await updateStep(row.id, { status: 'ARCHIVED' })
-        toast.message('Step archived — it will not be added to new projects')
+        toast.message(t('admin:steps.archivedToast'))
         await remote.refetch()
       },
-      'Could not archive step',
+      t('admin:steps.couldNotArchive'),
     )
   }
 
@@ -187,11 +200,11 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       id,
       async () => {
         await deleteStep(id)
-        toast.message('Step removed (existing projects keep their cloned project steps)')
+        toast.message(t('admin:steps.removedToast'))
         setPendingDelete(null)
         await remote.refetch()
       },
-      'Could not remove step',
+      t('admin:steps.couldNotDelete'),
     )
   }
 
@@ -200,32 +213,34 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       {embedded ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold">Steps</h2>
-            <p className="text-sm text-muted-foreground">
-              Active steps are assigned when you create a project.
-            </p>
+            <h2 className="text-base font-semibold">{t('admin:steps.embeddedTitle')}</h2>
+            <p className="text-sm text-muted-foreground">{t('admin:steps.embeddedDescription')}</p>
           </div>
           <Button type="button" onClick={openCreate}>
-            Add step
+            {t('admin:steps.addStep')}
           </Button>
         </div>
       ) : (
         <PageHeader
           className="mb-0"
-          title="Manage steps"
-          description="Active steps are assigned when you create a project. Inactive/archived steps leave existing projects unchanged."
+          title={t('admin:steps.title')}
+          description={t('admin:steps.description')}
           actions={
             <Button type="button" onClick={openCreate}>
-              Add step
+              {t('admin:steps.addStep')}
             </Button>
           }
         />
       )}
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={ListOrdered} label="Active" value={activeCount} />
-        <StatCard icon={ListOrdered} label="Inactive" value={inactiveCount} />
-        <StatCard icon={Archive} label="Archived" value={archivedCount} />
+        <StatCard icon={ListOrdered} label={t('admin:steps.metricActive')} value={activeCount} />
+        <StatCard
+          icon={ListOrdered}
+          label={t('admin:steps.metricInactive')}
+          value={inactiveCount}
+        />
+        <StatCard icon={Archive} label={t('admin:steps.metricArchived')} value={archivedCount} />
       </div>
 
       <AsyncState
@@ -239,31 +254,33 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter steps…"
-              aria-label="Filter steps"
+              placeholder={t('admin:steps.filterPlaceholder')}
+              aria-label={t('admin:steps.filterAria')}
               className="max-w-sm"
               maxLength={80}
             />
           }
-          footer={<TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />}
+          footer={
+            <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          }
         >
           <Table startIndex={(page - 1) * PAGE_SIZE}>
             <TableHeader>
               <TableRow>
-                <TableHead>Order</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Fields</TableHead>
-                <TableHead>Inputs</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('admin:steps.headers.order')}</TableHead>
+                <TableHead>{t('admin:steps.headers.name')}</TableHead>
+                <TableHead>{t('admin:steps.headers.fields')}</TableHead>
+                <TableHead>{t('admin:steps.headers.inputs')}</TableHead>
+                <TableHead>{t('admin:steps.headers.status')}</TableHead>
+                <TableHead>{t('admin:steps.headers.active')}</TableHead>
+                <TableHead className="text-right">{t('common:actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-muted-foreground">
-                    No steps yet. Add templates to assign on new projects.
+                    {t('admin:steps.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -279,13 +296,13 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                         type="button"
                         size="sm"
                         variant="outline"
-                        aria-label={`Manage inputs for ${row.name}`}
-                        title="Manage step inputs"
+                        aria-label={t('admin:steps.manageInputsAria', { name: row.name })}
+                        title={t('admin:steps.manageInputsTitle')}
                         disabled={busyId === row.id}
                         onClick={() => setInputsStep(row)}
                       >
                         <ListTree />
-                        Inputs
+                        {t('admin:steps.manageInputs')}
                       </Button>
                     </TableCell>
                     <TableCell>{statusBadge(row.status)}</TableCell>
@@ -294,11 +311,15 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                         <Switch
                           checked={row.status === 'ACTIVE'}
                           disabled={busyId === row.id}
-                          aria-label={`${row.status === 'ACTIVE' ? 'Disable' : 'Enable'} ${row.name} for new projects`}
+                          aria-label={
+                            row.status === 'ACTIVE'
+                              ? t('admin:steps.disableAria', { name: row.name })
+                              : t('admin:steps.enableAria', { name: row.name })
+                          }
                           title={
                             row.status === 'ACTIVE'
-                              ? 'On for new projects'
-                              : 'Off for new projects'
+                              ? t('admin:steps.onForNew')
+                              : t('admin:steps.offForNew')
                           }
                           onCheckedChange={() => void toggleActive(row)}
                         />
@@ -312,7 +333,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                           type="button"
                           size="icon-sm"
                           variant="outline"
-                          aria-label={`Edit ${row.name}`}
+                          aria-label={t('admin:steps.editAria', { name: row.name })}
                           disabled={busyId === row.id}
                           onClick={() => openEdit(row)}
                         >
@@ -323,7 +344,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                             type="button"
                             size="icon-sm"
                             variant="outline"
-                            aria-label={`Archive ${row.name}`}
+                            aria-label={t('admin:steps.archiveAria', { name: row.name })}
                             disabled={busyId === row.id}
                             onClick={() => void archiveStep(row)}
                           >
@@ -334,7 +355,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                           type="button"
                           size="icon-sm"
                           variant="destructive"
-                          aria-label={`Delete ${row.name}`}
+                          aria-label={t('admin:steps.deleteAria', { name: row.name })}
                           disabled={busyId === row.id}
                           onClick={() => setPendingDelete(row)}
                         >
@@ -353,39 +374,42 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit step' : 'Add step'}</DialogTitle>
-            <DialogDescription>
-              Leave order empty to auto-assign the next free slot. Only active steps are linked to new
-              projects.
-            </DialogDescription>
+            <DialogTitle>
+              {editing ? t('admin:steps.editTitle') : t('admin:steps.createTitle')}
+            </DialogTitle>
+            <DialogDescription>{t('admin:steps.dialogDescription')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="step-name">Name</Label>
+              <Label htmlFor="step-name">{t('common:name')}</Label>
               <Input
                 id="step-name"
                 value={form.name}
                 maxLength={120}
-                placeholder="Step name"
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                placeholder={t('admin:steps.namePlaceholder')}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, name: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="step-order">Order (optional)</Label>
+              <Label htmlFor="step-order">{t('admin:steps.orderOptional')}</Label>
               <Input
                 id="step-order"
                 type="number"
                 min={0}
                 max={10000}
                 value={form.orderNb}
-                placeholder="Auto"
-                onChange={(event) => setForm((current) => ({ ...current, orderNb: event.target.value }))}
+                placeholder={t('common:auto')}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, orderNb: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="step-status">Status</Label>
+              <Label htmlFor="step-status">{t('common:status')}</Label>
               <Select
-                items={STATUS_OPTIONS}
+                items={statusOptions}
                 value={form.status}
                 onValueChange={(value) => {
                   if (value === 'ACTIVE' || value === 'INACTIVE' || value === 'ARCHIVED') {
@@ -397,7 +421,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
+                  {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -407,11 +431,16 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isSaving}
+            >
+              {t('common:cancel')}
             </Button>
             <Button type="button" onClick={() => void save()} disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t('common:saving') : t('common:save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -419,8 +448,10 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
 
       <AdminConfirmDeleteDialog
         open={pendingDelete !== null}
-        title="Remove step"
-        description={`This permanently removes ${pendingDelete?.name ?? 'the step'} from your templates. Existing projects keep their own cloned project steps and inputs.`}
+        title={t('admin:steps.deleteTitle')}
+        description={t('admin:steps.deleteDescription', {
+          name: pendingDelete?.name ?? t('admin:steps.theStep'),
+        })}
         onOpenChange={(open) => !open && setPendingDelete(null)}
         onConfirm={() => void confirmDelete()}
       />

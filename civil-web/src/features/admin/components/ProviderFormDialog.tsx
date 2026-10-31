@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Building2, MapPin, Phone } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ import {
   createProvider,
   listProviderOwnerCandidates,
   type Provider,
-  PROVIDER_STATUS_OPTIONS,
+  PROVIDER_STATUSES,
   type ProviderOwnerCandidate,
   type ProviderStatus,
   toProviderWriteInput,
@@ -70,7 +71,7 @@ export const EMPTY_PROVIDER_FORM: ProviderFormValues = {
 
 export function formFromProvider(provider: Provider): ProviderFormValues {
   return {
-    ownerUserId: provider.ownerUserId,
+    ownerUserId: provider.ownerUserId ?? '',
     name: provider.name,
     description: provider.description ?? '',
     logoUrl: provider.logoUrl ?? '',
@@ -108,11 +109,8 @@ function formatOwner(candidate: ProviderOwnerCandidate) {
   return candidate.displayName ? `${candidate.displayName} · ${candidate.email}` : candidate.email
 }
 
-const STEPS = [
-  { title: 'Company', icon: Building2 },
-  { title: 'Contact', icon: Phone },
-  { title: 'Location', icon: MapPin },
-] as const
+const STEP_ICONS = [Building2, Phone, MapPin] as const
+const STEP_KEYS = ['company', 'contact', 'location'] as const
 
 function isUrl(value: string): boolean {
   try {
@@ -131,39 +129,39 @@ function isCoord(value: string, min: number, max: number): boolean {
   return Number.isFinite(parsed) && parsed >= min && parsed <= max
 }
 
-function formIssue(form: ProviderFormValues, mode: 'create' | 'edit'): { step: number; message: string } | null {
-  if (mode === 'create' && !form.ownerUserId.trim()) {
-    return { step: 0, message: 'Owner is required' }
-  }
+function formIssue(
+  form: ProviderFormValues,
+  _mode: 'create' | 'edit',
+): { step: number; messageKey: string } | null {
   const name = form.name.trim()
-  if (!name) return { step: 0, message: 'Name is required' }
-  if (name.length > 120) return { step: 0, message: 'Name must be at most 120 characters' }
+  if (!name) return { step: 0, messageKey: 'nameRequired' }
+  if (name.length > 120) return { step: 0, messageKey: 'nameMax' }
   if (form.description.length > 2000) {
-    return { step: 0, message: 'Description must be at most 2000 characters' }
+    return { step: 0, messageKey: 'descriptionMax' }
   }
   if (form.logoUrl.trim() && !isUrl(form.logoUrl)) {
-    return { step: 0, message: 'Logo must be a valid URL' }
+    return { step: 0, messageKey: 'logoUrlInvalid' }
   }
-  if (form.phone.trim().length > 20) return { step: 1, message: 'Phone must be at most 20 characters' }
+  if (form.phone.trim().length > 20) return { step: 1, messageKey: 'phoneMax' }
   if (form.whatsapp.trim().length > 20) {
-    return { step: 1, message: 'WhatsApp must be at most 20 characters' }
+    return { step: 1, messageKey: 'whatsappMax' }
   }
-  if (form.email.trim() && !isEmail(form.email)) return { step: 1, message: 'Email must be valid' }
+  if (form.email.trim() && !isEmail(form.email)) return { step: 1, messageKey: 'emailInvalid' }
   if (form.website.trim() && !isUrl(form.website)) {
-    return { step: 1, message: 'Website must be a valid URL' }
+    return { step: 1, messageKey: 'websiteInvalid' }
   }
   if (form.address.trim().length > 200) {
-    return { step: 2, message: 'Address must be at most 200 characters' }
+    return { step: 2, messageKey: 'addressMax' }
   }
-  if (form.city.trim().length > 80) return { step: 2, message: 'City must be at most 80 characters' }
+  if (form.city.trim().length > 80) return { step: 2, messageKey: 'cityMax' }
   if (form.country.trim().length > 80) {
-    return { step: 2, message: 'Country must be at most 80 characters' }
+    return { step: 2, messageKey: 'countryMax' }
   }
   if (form.lat.trim() && !isCoord(form.lat, -90, 90)) {
-    return { step: 2, message: 'Latitude must be between −90 and 90' }
+    return { step: 2, messageKey: 'latitudeRange' }
   }
   if (form.lng.trim() && !isCoord(form.lng, -180, 180)) {
-    return { step: 2, message: 'Longitude must be between −180 and 180' }
+    return { step: 2, messageKey: 'longitudeRange' }
   }
   return null
 }
@@ -187,11 +185,17 @@ export function ProviderFormDialog({
   onOpenChange,
   onSaved,
 }: ProviderFormDialogProps) {
+  const { t } = useTranslation(['admin', 'common'])
   const [form, setForm] = useState<ProviderFormValues>(EMPTY_PROVIDER_FORM)
   const [candidates, setCandidates] = useState<ProviderOwnerCandidate[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingOwners, setIsLoadingOwners] = useState(false)
   const [step, setStep] = useState(0)
+
+  const statusOptions = PROVIDER_STATUSES.map((status) => ({
+    value: status,
+    label: t(`admin:providerStatus.${status}`),
+  }))
 
   useEffect(() => {
     if (open) {
@@ -201,7 +205,7 @@ export function ProviderFormDialog({
   }, [initial, open])
 
   useEffect(() => {
-    if (!open || mode !== 'create') return
+    if (!open) return
     let cancelled = false
     setIsLoadingOwners(true)
     void listProviderOwnerCandidates()
@@ -210,7 +214,11 @@ export function ProviderFormDialog({
       })
       .catch((error) => {
         if (!cancelled) {
-          toast.error(error instanceof ApiError ? error.message : 'Could not load provider owners')
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : t('admin:providers.form.couldNotLoadOwners'),
+          )
         }
       })
       .finally(() => {
@@ -219,17 +227,35 @@ export function ProviderFormDialog({
     return () => {
       cancelled = true
     }
-  }, [mode, open])
+  }, [open, t])
+
+  const ownerOptions =
+    form.ownerUserId && !candidates.some((candidate) => candidate.id === form.ownerUserId)
+      ? [
+          {
+            id: form.ownerUserId,
+            email: ownerLabel?.includes('@')
+              ? (ownerLabel.split('·').pop()?.trim() ?? ownerLabel)
+              : ownerLabel || form.ownerUserId,
+            displayName: ownerLabel?.includes('·')
+              ? ownerLabel.split('·')[0]?.trim() || null
+              : ownerLabel && !ownerLabel.includes('@')
+                ? ownerLabel
+                : null,
+          } satisfies ProviderOwnerCandidate,
+          ...candidates,
+        ]
+      : candidates
 
   async function submit() {
     const issue = formIssue(form, mode)
     if (issue) {
       setStep(issue.step)
-      toast.error(issue.message)
+      toast.error(t(`admin:providers.form.${issue.messageKey}`))
       return
     }
 
-    const payload = toProviderWriteInput(form, mode)
+    const payload = toProviderWriteInput(form)
     setIsSaving(true)
     try {
       const saved =
@@ -238,9 +264,13 @@ export function ProviderFormDialog({
           : await updateProvider(providerId ?? '', payload)
       onSaved(saved.data)
       onOpenChange(false)
-      toast.message(mode === 'create' ? 'Provider created' : 'Provider updated')
+      toast.message(
+        mode === 'create' ? t('admin:providers.form.created') : t('admin:providers.form.updated'),
+      )
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save provider')
+      toast.error(
+        error instanceof ApiError ? error.message : t('admin:providers.form.couldNotSave'),
+      )
     } finally {
       setIsSaving(false)
     }
@@ -250,20 +280,23 @@ export function ProviderFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(90vh,44rem)] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Create provider' : 'Edit provider'}</DialogTitle>
-          <DialogDescription>
-            One company per provider owner. Invisible in the marketplace until approved.
-          </DialogDescription>
+          <DialogTitle>
+            {mode === 'create'
+              ? t('admin:providers.form.createTitle')
+              : t('admin:providers.form.editTitle')}
+          </DialogTitle>
+          <DialogDescription>{t('admin:providers.form.description')}</DialogDescription>
         </DialogHeader>
 
         <ol className="flex items-start px-4">
-          {STEPS.map((item, index) => {
+          {STEP_KEYS.map((stepKey, index) => {
             const isCurrent = index === step
-            const Icon = item.icon
+            const Icon = STEP_ICONS[index]!
+            const title = t(`admin:providers.form.steps.${stepKey}`)
             return (
               <li
-                key={item.title}
-                className={cn('flex min-w-0 items-start', index < STEPS.length - 1 && 'flex-1')}
+                key={stepKey}
+                className={cn('flex min-w-0 items-start', index < STEP_KEYS.length - 1 && 'flex-1')}
               >
                 <button
                   type="button"
@@ -287,10 +320,10 @@ export function ProviderFormDialog({
                       isCurrent ? 'font-medium text-foreground' : 'text-muted-foreground',
                     )}
                   >
-                    {item.title}
+                    {title}
                   </span>
                 </button>
-                {index < STEPS.length - 1 ? (
+                {index < STEP_KEYS.length - 1 ? (
                   <span
                     className={cn(
                       'mt-5 h-px min-w-6 flex-1 transition-colors duration-300 ease-out',
@@ -310,235 +343,328 @@ export function ProviderFormDialog({
             style={{ transform: `translateX(-${step * 100}%)` }}
           >
             <div className="w-full shrink-0" inert={step !== 0} aria-hidden={step !== 0}>
-          <div className="grid gap-3">
-            {mode === 'create' ? (
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-owner" label="Owner" restriction="required · PROVIDER user" />
-                <Select
-                  items={candidates.map((candidate) => ({
-                    value: candidate.id,
-                    label: formatOwner(candidate),
-                  }))}
-                  value={form.ownerUserId || undefined}
-                  onValueChange={(value) => {
-                    if (value) setForm((current) => ({ ...current, ownerUserId: value }))
-                  }}
-                >
-                  <SelectTrigger id="provider-owner" className="w-full">
-                    <SelectValue
-                      placeholder={isLoadingOwners ? 'Loading owners…' : 'Select a provider owner'}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {candidates.map((candidate) => (
-                      <SelectItem key={candidate.id} value={candidate.id}>
-                        {formatOwner(candidate)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!isLoadingOwners && candidates.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No unused PROVIDER users. Create a provider-role user first.
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-owner-email" label="Owner" restriction="locked" />
-                <Input id="provider-owner-email" value={ownerLabel || '—'} disabled />
-              </div>
-            )}
+              <div className="grid gap-3">
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-owner"
+                    label={t('admin:providers.form.owner')}
+                    restriction={t('admin:providers.form.ownerOptionalRestriction')}
+                  />
+                  <Select
+                    items={[
+                      { value: 'none', label: t('admin:providers.form.noOwner') },
+                      ...ownerOptions.map((candidate) => ({
+                        value: candidate.id,
+                        label: formatOwner(candidate),
+                      })),
+                    ]}
+                    value={form.ownerUserId || 'none'}
+                    onValueChange={(value) => {
+                      if (!value) return
+                      setForm((current) => ({
+                        ...current,
+                        ownerUserId: value === 'none' ? '' : value,
+                      }))
+                    }}
+                  >
+                    <SelectTrigger id="provider-owner" className="w-full">
+                      <SelectValue
+                        placeholder={
+                          isLoadingOwners
+                            ? t('admin:providers.form.loadingOwners')
+                            : t('admin:providers.form.selectOwner')
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t('admin:providers.form.noOwner')}</SelectItem>
+                      {ownerOptions.map((candidate) => (
+                        <SelectItem key={candidate.id} value={candidate.id}>
+                          {formatOwner(candidate)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!isLoadingOwners && ownerOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t('admin:providers.form.noOwners')}
+                    </p>
+                  ) : null}
+                </div>
 
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-name" label="Name" restriction="required · max 120" />
-              <Input
-                id="provider-name"
-                maxLength={120}
-                placeholder="Company name"
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-description" label="Description" restriction="optional · max 2000" />
-              <Textarea
-                id="provider-description"
-                maxLength={2000}
-                placeholder="What this company supplies"
-                value={form.description}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, description: event.target.value }))
-                }
-              />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-status" label="Status" restriction="admin" />
-                <Select
-                  items={PROVIDER_STATUS_OPTIONS}
-                  value={form.status}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setForm((current) => ({ ...current, status: value as ProviderStatus }))
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-name"
+                    label={t('admin:providers.form.name')}
+                    restriction={t('admin:providers.form.nameRestriction')}
+                  />
+                  <Input
+                    id="provider-name"
+                    maxLength={120}
+                    placeholder={t('admin:providers.form.namePlaceholder')}
+                    value={form.name}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, name: event.target.value }))
                     }
-                  }}
-                >
-                  <SelectTrigger id="provider-status" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROVIDER_STATUS_OPTIONS.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-description"
+                    label={t('admin:providers.form.descriptionLabel')}
+                    restriction={t('admin:providers.form.descriptionRestriction')}
+                  />
+                  <Textarea
+                    id="provider-description"
+                    maxLength={2000}
+                    placeholder={t('admin:providers.form.descriptionPlaceholder')}
+                    value={form.description}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, description: event.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <FieldLabel
+                      htmlFor="provider-status"
+                      label={t('admin:providers.form.status')}
+                      restriction={t('admin:providers.form.statusRestriction')}
+                    />
+                    <Select
+                      items={statusOptions}
+                      value={form.status}
+                      onValueChange={(value) => {
+                        if (value) {
+                          setForm((current) => ({ ...current, status: value as ProviderStatus }))
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="provider-status" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status.value} value={status.value}>
+                            {status.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <FieldLabel
+                      htmlFor="provider-logo"
+                      label={t('admin:providers.form.logoUrl')}
+                      restriction={t('admin:providers.form.logoRestriction')}
+                    />
+                    <Input
+                      id="provider-logo"
+                      type="url"
+                      maxLength={500}
+                      placeholder={t('admin:providers.form.logoPlaceholder')}
+                      value={form.logoUrl}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, logoUrl: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-logo" label="Logo URL" restriction="optional · URL" />
-                <Input
-                  id="provider-logo"
-                  type="url"
-                  maxLength={500}
-                  placeholder="https://…"
-                  value={form.logoUrl}
-                  onChange={(event) => setForm((current) => ({ ...current, logoUrl: event.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
             </div>
 
             <div className="w-full shrink-0" inert={step !== 1} aria-hidden={step !== 1}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-phone" label="Phone" restriction="optional · max 20" />
-              <Input
-                id="provider-phone"
-                maxLength={20}
-                placeholder="+961 01 555 010"
-                value={form.phone}
-                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-whatsapp" label="WhatsApp" restriction="optional · max 20" />
-              <Input
-                id="provider-whatsapp"
-                maxLength={20}
-                placeholder="+961 70 000 000"
-                value={form.whatsapp}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, whatsapp: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-email" label="Email" restriction="optional · contact" />
-              <Input
-                id="provider-email"
-                type="email"
-                maxLength={254}
-                placeholder="shop@example.com"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-website" label="Website" restriction="optional · URL" />
-              <Input
-                id="provider-website"
-                type="url"
-                maxLength={500}
-                placeholder="https://…"
-                value={form.website}
-                onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
-              />
-            </div>
-          </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-phone"
+                    label={t('admin:providers.form.phone')}
+                    restriction={t('admin:providers.form.phoneRestriction')}
+                  />
+                  <Input
+                    id="provider-phone"
+                    maxLength={20}
+                    placeholder={t('admin:providers.form.phonePlaceholder')}
+                    value={form.phone}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, phone: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-whatsapp"
+                    label={t('admin:providers.form.whatsapp')}
+                    restriction={t('admin:providers.form.whatsappRestriction')}
+                  />
+                  <Input
+                    id="provider-whatsapp"
+                    maxLength={20}
+                    placeholder={t('admin:providers.form.whatsappPlaceholder')}
+                    value={form.whatsapp}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, whatsapp: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-email"
+                    label={t('admin:providers.form.email')}
+                    restriction={t('admin:providers.form.emailRestriction')}
+                  />
+                  <Input
+                    id="provider-email"
+                    type="email"
+                    maxLength={254}
+                    placeholder={t('admin:providers.form.emailPlaceholder')}
+                    value={form.email}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, email: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-website"
+                    label={t('admin:providers.form.website')}
+                    restriction={t('admin:providers.form.websiteRestriction')}
+                  />
+                  <Input
+                    id="provider-website"
+                    type="url"
+                    maxLength={500}
+                    placeholder={t('admin:providers.form.websitePlaceholder')}
+                    value={form.website}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, website: event.target.value }))
+                    }
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="w-full shrink-0" inert={step !== 2} aria-hidden={step !== 2}>
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <FieldLabel htmlFor="provider-address" label="Address" restriction="optional · max 200" />
-              <Input
-                id="provider-address"
-                maxLength={200}
-                placeholder="Street, building"
-                value={form.address}
-                onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-city" label="City" restriction="optional · search" />
-                <Input
-                  id="provider-city"
-                  maxLength={80}
-                  placeholder="Beirut"
-                  value={form.city}
-                  onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-                />
+              <div className="grid gap-3">
+                <div className="grid gap-1.5">
+                  <FieldLabel
+                    htmlFor="provider-address"
+                    label={t('admin:providers.form.address')}
+                    restriction={t('admin:providers.form.addressRestriction')}
+                  />
+                  <Input
+                    id="provider-address"
+                    maxLength={200}
+                    placeholder={t('admin:providers.form.addressPlaceholder')}
+                    value={form.address}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, address: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <FieldLabel
+                      htmlFor="provider-city"
+                      label={t('admin:providers.form.city')}
+                      restriction={t('admin:providers.form.cityRestriction')}
+                    />
+                    <Input
+                      id="provider-city"
+                      maxLength={80}
+                      placeholder={t('admin:providers.form.cityPlaceholder')}
+                      value={form.city}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, city: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <FieldLabel
+                      htmlFor="provider-country"
+                      label={t('admin:providers.form.country')}
+                      restriction={t('admin:providers.form.countryRestriction')}
+                    />
+                    <Input
+                      id="provider-country"
+                      maxLength={80}
+                      placeholder={t('admin:providers.form.countryPlaceholder')}
+                      value={form.country}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, country: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <FieldLabel
+                      htmlFor="provider-lat"
+                      label={t('admin:providers.form.latitude')}
+                      restriction={t('admin:providers.form.latitudeRestriction')}
+                    />
+                    <Input
+                      id="provider-lat"
+                      inputMode="decimal"
+                      placeholder={t('admin:providers.form.latitudePlaceholder')}
+                      value={form.lat}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, lat: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <FieldLabel
+                      htmlFor="provider-lng"
+                      label={t('admin:providers.form.longitude')}
+                      restriction={t('admin:providers.form.longitudeRestriction')}
+                    />
+                    <Input
+                      id="provider-lng"
+                      inputMode="decimal"
+                      placeholder={t('admin:providers.form.longitudePlaceholder')}
+                      value={form.lng}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, lng: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-country" label="Country" restriction="optional · search" />
-                <Input
-                  id="provider-country"
-                  maxLength={80}
-                  placeholder="Lebanon"
-                  value={form.country}
-                  onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-lat" label="Latitude" restriction="optional · −90–90" />
-                <Input
-                  id="provider-lat"
-                  inputMode="decimal"
-                  placeholder="33.8938"
-                  value={form.lat}
-                  onChange={(event) => setForm((current) => ({ ...current, lat: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <FieldLabel htmlFor="provider-lng" label="Longitude" restriction="optional · −180–180" />
-                <Input
-                  id="provider-lng"
-                  inputMode="decimal"
-                  placeholder="35.5018"
-                  value={form.lng}
-                  onChange={(event) => setForm((current) => ({ ...current, lng: event.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
             </div>
           </div>
         </div>
 
         <DialogFooter>
           {step > 0 ? (
-            <Button type="button" variant="outline" className="sm:mr-auto" onClick={() => setStep((current) => Math.max(0, current - 1))}>
-              Back
+            <Button
+              type="button"
+              variant="outline"
+              className="sm:mr-auto"
+              onClick={() => setStep((current) => Math.max(0, current - 1))}
+            >
+              {t('common:back')}
             </Button>
           ) : null}
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common:cancel')}
           </Button>
-          {step < STEPS.length - 1 ? (
-            <Button type="button" onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}>
-              Next
+          {step < STEP_KEYS.length - 1 ? (
+            <Button
+              type="button"
+              onClick={() => setStep((current) => Math.min(STEP_KEYS.length - 1, current + 1))}
+            >
+              {t('common:next')}
             </Button>
           ) : (
             <Button type="button" onClick={() => void submit()} disabled={isSaving}>
-              {isSaving ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
+              {isSaving
+                ? t('common:saving')
+                : mode === 'create'
+                  ? t('common:create')
+                  : t('common:save')}
             </Button>
           )}
         </DialogFooter>

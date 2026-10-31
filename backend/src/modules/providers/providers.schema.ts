@@ -64,8 +64,12 @@ function patchCoord(min: number, max: number) {
 }
 
 export const createProviderBodySchema = z.object({
-  ownerUserId: z.string().trim().min(1, 'Owner is required'),
-  name: z.string().trim().min(1, 'Name is required').max(120, 'Name must be at most 120 characters'),
+  ownerUserId: z.preprocess(blankToNull, z.string().trim().min(1).nullable().optional()),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Name is required')
+    .max(120, 'Name must be at most 120 characters'),
   description: optionalText(2000),
   logoUrl: optionalLogoRef,
   phone: optionalText(20),
@@ -82,6 +86,7 @@ export const createProviderBodySchema = z.object({
 
 export const updateProviderBodySchema = z
   .object({
+    ownerUserId: z.preprocess(blankToNull, z.string().trim().min(1).nullable().optional()),
     name: z
       .string()
       .trim()
@@ -113,7 +118,7 @@ export type ListProvidersQuery = {
 }
 
 export type CreateProviderBody = {
-  ownerUserId: string
+  ownerUserId?: string | null
   name: string
   description?: string
   logoUrl?: string
@@ -130,6 +135,7 @@ export type CreateProviderBody = {
 }
 
 export type UpdateProviderBody = {
+  ownerUserId?: string | null
   name?: string
   description?: string | null
   logoUrl?: string | null

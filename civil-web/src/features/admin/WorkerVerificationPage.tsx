@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { BadgeCheck, ChevronsRight, Clock, HardHat, ShieldOff, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -60,19 +61,6 @@ const NEXT_STATUS: Record<VerificationStatus, ApiVerificationStatus> = {
   verified: 'UNVERIFIED',
 }
 
-const NEXT_LABEL: Record<VerificationStatus, string> = {
-  unverified: 'Mark requested',
-  requested: 'Mark verified',
-  verified: 'Mark unverified',
-}
-
-const STATUS_TABS: Array<{ value: 'all' | ApiVerificationStatus; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'UNVERIFIED', label: 'Unverified' },
-  { value: 'REQUESTED', label: 'Requested' },
-  { value: 'VERIFIED', label: 'Verified' },
-]
-
 const EMPTY_COUNTS: VerificationCounts = { workers: 0, unverified: 0, requested: 0, verified: 0 }
 
 const EMPTY_FORM = { email: '', password: '', firstName: '', lastName: '', phone: '' }
@@ -91,8 +79,19 @@ function toWorkerRow(user: Parameters<typeof toAdminUserRow>[0]): WorkerVerifica
 }
 
 export function VerificationQueue() {
+  const { t } = useTranslation(['admin', 'common', 'validation'])
   const { query, setQuery, debouncedQuery, page, setPage, resetSearch } = usePagedQuery()
-  const [status, setStatus] = useState<(typeof STATUS_TABS)[number]['value']>('all')
+  const statusTabs = useMemo(
+    () =>
+      [
+        { value: 'all' as const, label: t('admin:verification.tabs.all') },
+        { value: 'UNVERIFIED' as const, label: t('admin:verification.tabs.UNVERIFIED') },
+        { value: 'REQUESTED' as const, label: t('admin:verification.tabs.REQUESTED') },
+        { value: 'VERIFIED' as const, label: t('admin:verification.tabs.VERIFIED') },
+      ] as const,
+    [t],
+  )
+  const [status, setStatus] = useState<(typeof statusTabs)[number]['value']>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [isSaving, setIsSaving] = useState(false)
@@ -109,7 +108,9 @@ export function VerificationQueue() {
       }),
     [debouncedQuery, page, status],
   )
-  const remote = useRemoteData(load, { queryKey: ['users', 'verifications', page, debouncedQuery, status] })
+  const remote = useRemoteData(load, {
+    queryKey: ['users', 'verifications', page, debouncedQuery, status],
+  })
   const payload = remote.status === 'success' ? remote.data : null
   const rows = payload ? payload.data.map(toWorkerRow) : []
   const counts = payload?.meta.counts ?? EMPTY_COUNTS
@@ -123,7 +124,7 @@ export function VerificationQueue() {
       toast.success(success)
       await remote.refetch()
     } catch (error) {
-      toastApiError(error, 'Could not update verification')
+      toastApiError(error, t('admin:verification.couldNotUpdate'))
     } finally {
       setBusyId(null)
     }
@@ -132,11 +133,11 @@ export function VerificationQueue() {
   async function onCreate() {
     const email = form.email.trim().toLowerCase()
     if (!email) {
-      toast.error('Email is required')
+      toast.error(t('admin:verification.emailRequired'))
       return
     }
     if (form.password.length < 8) {
-      toast.error('Password must be at least 8 characters')
+      toast.error(t('validation:passwordMin'))
       return
     }
     setIsSaving(true)
@@ -152,11 +153,11 @@ export function VerificationQueue() {
       setDialogOpen(false)
       const staysOnFirstPage = page === 1 && debouncedQuery === '' && query === ''
       resetSearch()
-      toast.success('Verification request created')
+      toast.success(t('admin:verification.created'))
       if (staysOnFirstPage) await remote.refetch()
     } catch (error) {
       if (error instanceof ApiError) toast.error(error.message)
-      else toast.error('Could not create verification request')
+      else toast.error(t('admin:verification.couldNotCreate'))
     } finally {
       setIsSaving(false)
     }
@@ -166,30 +167,49 @@ export function VerificationQueue() {
     if (!deleteTarget) return
     const id = deleteTarget.id
     setDeleteTarget(null)
-    await runRowAction(id, () => deleteVerification(id), 'Worker deleted')
+    await runRowAction(id, () => deleteVerification(id), t('admin:verification.deleted'))
   }
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={HardHat} label="Workers" value={counts.workers} />
-        <StatCard icon={ShieldOff} label="Unverified" value={counts.unverified} />
-        <StatCard icon={Clock} label="Requested" value={counts.requested} />
-        <StatCard icon={BadgeCheck} label="Verified" value={counts.verified} />
+        <StatCard
+          icon={HardHat}
+          label={t('admin:verification.metricWorkers')}
+          value={counts.workers}
+        />
+        <StatCard
+          icon={ShieldOff}
+          label={t('admin:verification.metricUnverified')}
+          value={counts.unverified}
+        />
+        <StatCard
+          icon={Clock}
+          label={t('admin:verification.metricRequested')}
+          value={counts.requested}
+        />
+        <StatCard
+          icon={BadgeCheck}
+          label={t('admin:verification.metricVerified')}
+          value={counts.verified}
+        />
       </div>
 
-      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this worker?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:verification.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteTarget?.email} will be removed. Linked records block deletion.
+              {t('admin:verification.deleteDescription', { email: deleteTarget?.email ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => void onDelete()}>
-              Delete
+              {t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -199,14 +219,14 @@ export function VerificationQueue() {
         <Tabs
           value={status}
           onValueChange={(value) => {
-            const next = STATUS_TABS.find((item) => item.value === value)
+            const next = statusTabs.find((item) => item.value === value)
             if (!next) return
             setStatus(next.value)
             setPage(1)
           }}
         >
           <TabsList>
-            {STATUS_TABS.map((item) => (
+            {statusTabs.map((item) => (
               <TabsTrigger key={item.value} value={item.value}>
                 {item.label}
               </TabsTrigger>
@@ -216,12 +236,12 @@ export function VerificationQueue() {
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search workers…"
-          aria-label="Search workers"
+          placeholder={t('admin:verification.searchPlaceholder')}
+          aria-label={t('admin:verification.searchAria')}
           className="max-w-sm"
         />
         <Button type="button" className="ms-auto" onClick={() => setDialogOpen(true)}>
-          Add request
+          {t('admin:verification.addRequest')}
         </Button>
       </ToolbarCard>
 
@@ -240,17 +260,20 @@ export function VerificationQueue() {
             <TableHeader>
               <TableRow>
                 {WORKER_TABLE_HEADERS.map((header) => (
-                  <TableHead key={header}>{header}</TableHead>
+                  <TableHead key={header}>{t(`admin:users.headers.${header}`)}</TableHead>
                 ))}
-                <TableHead>Verification</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('admin:verification.headerVerification')}</TableHead>
+                <TableHead className="text-right">{t('common:actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={WORKER_TABLE_HEADERS.length + 2} className="text-muted-foreground">
-                    No workers match.
+                  <TableCell
+                    colSpan={WORKER_TABLE_HEADERS.length + 2}
+                    className="text-muted-foreground"
+                  >
+                    {t('admin:verification.noMatch')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -266,13 +289,16 @@ export function VerificationQueue() {
                           type="button"
                           size="icon-sm"
                           variant="outline"
-                          aria-label={`${NEXT_LABEL[row.verification]} for ${row.email}`}
+                          aria-label={t('admin:verification.nextAria', {
+                            action: t(`admin:verification.next.${row.verification}`),
+                            email: row.email,
+                          })}
                           disabled={busyId === row.id}
                           onClick={() =>
                             void runRowAction(
                               row.id,
                               () => setVerification(row.id, NEXT_STATUS[row.verification]),
-                              'Verification updated',
+                              t('admin:verification.updated'),
                             )
                           }
                         >
@@ -282,7 +308,7 @@ export function VerificationQueue() {
                           type="button"
                           size="icon-sm"
                           variant="destructive"
-                          aria-label={`Delete ${row.email}`}
+                          aria-label={t('admin:verification.deleteAria', { email: row.email })}
                           disabled={busyId === row.id}
                           onClick={() => setDeleteTarget(row)}
                         >
@@ -307,72 +333,84 @@ export function VerificationQueue() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add verification request</DialogTitle>
-            <DialogDescription>
-              Creates a pending worker with verification requested. They cannot sign in until approved, and they stay
-              off the marketplace until verified.
-            </DialogDescription>
+            <DialogTitle>{t('admin:verification.form.title')}</DialogTitle>
+            <DialogDescription>{t('admin:verification.form.description')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="worker-email">Email</Label>
+              <Label htmlFor="worker-email">{t('admin:verification.form.email')}</Label>
               <Input
                 id="worker-email"
                 type="email"
                 maxLength={254}
-                placeholder="name@example.com"
+                placeholder={t('admin:verification.form.emailPlaceholder')}
                 value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, email: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="worker-password">Password</Label>
+              <Label htmlFor="worker-password">{t('admin:verification.form.password')}</Label>
               <Input
                 id="worker-password"
                 type="password"
                 autoComplete="new-password"
-                placeholder="At least 8 characters"
+                placeholder={t('admin:verification.form.passwordPlaceholder')}
                 value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, password: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="worker-first">First name</Label>
+              <Label htmlFor="worker-first">{t('admin:verification.form.firstName')}</Label>
               <Input
                 id="worker-first"
                 maxLength={100}
-                placeholder="First name"
+                placeholder={t('admin:verification.form.firstName')}
                 value={form.firstName}
-                onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, firstName: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="worker-last">Last name</Label>
+              <Label htmlFor="worker-last">{t('admin:verification.form.lastName')}</Label>
               <Input
                 id="worker-last"
                 maxLength={100}
-                placeholder="Last name"
+                placeholder={t('admin:verification.form.lastName')}
                 value={form.lastName}
-                onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, lastName: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="worker-phone">Phone</Label>
+              <Label htmlFor="worker-phone">{t('admin:verification.form.phone')}</Label>
               <Input
                 id="worker-phone"
                 maxLength={20}
-                placeholder="+961 70 000 000"
+                placeholder={t('admin:verification.form.phonePlaceholder')}
                 value={form.phone}
-                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, phone: event.target.value }))
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isSaving}
+            >
+              {t('common:cancel')}
             </Button>
             <Button type="button" onClick={() => void onCreate()} disabled={isSaving}>
-              {isSaving ? 'Creating…' : 'Add'}
+              {isSaving ? t('common:creating') : t('common:add')}
             </Button>
           </DialogFooter>
         </DialogContent>

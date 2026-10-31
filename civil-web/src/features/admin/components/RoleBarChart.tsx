@@ -1,7 +1,7 @@
+import { useTranslation } from 'react-i18next'
+
 import type { AuthRole } from '@/services/auth'
 import type { UserRoleCounts } from '@/services/users'
-
-import { roleLabel } from '../users.rows'
 
 const ROLE_ORDER: AuthRole[] = ['SUPER', 'ADMIN', 'MANAGER', 'PROVIDER', 'WORKER', 'CLIENT']
 
@@ -10,6 +10,7 @@ type RoleBarChartProps = {
 }
 
 export function RoleBarChart({ counts }: RoleBarChartProps) {
+  const { t } = useTranslation('admin')
   const items = ROLE_ORDER.map((role) => ({
     role,
     count: counts[role],
@@ -27,11 +28,11 @@ export function RoleBarChart({ counts }: RoleBarChartProps) {
       viewBox={`0 0 ${width} ${height}`}
       className="h-36 w-full text-primary"
       role="img"
-      aria-label="Users by role"
+      aria-label={t('users.usersByRoleAria')}
     >
       {items.length === 0 ? (
         <text x={pad.left} y={pad.top + 14} className="fill-muted-foreground" fontSize="11">
-          No users yet
+          {t('users.noUsersYet')}
         </text>
       ) : null}
       {items.map((item, index) => {
@@ -46,7 +47,7 @@ export function RoleBarChart({ counts }: RoleBarChartProps) {
               className="fill-muted-foreground"
               fontSize="9"
             >
-              {roleLabel(item.role)}
+              {t(`roles.${item.role}`)}
             </text>
             <rect
               x={pad.left}

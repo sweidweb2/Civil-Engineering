@@ -242,7 +242,8 @@ enum ProviderStatus {
 
 model Provider {
   id          String         @id @default(cuid())
-  ownerUserId String         @unique
+  /// Optional until an admin assigns a PROVIDER user.
+  ownerUserId String?        @unique
   name        String
   description String?
   logoUrl     String?
@@ -258,7 +259,7 @@ model Provider {
   status      ProviderStatus @default(PENDING)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
-  owner       User           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  owner       User?          @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
   categories  Category[]
   listings    Listing[]
 
@@ -315,12 +316,6 @@ model Category {
 // listings — directory records (materials, equipment, services)
 // =============================================================================
 
-enum ListingType {
-  MATERIAL
-  EQUIPMENT
-  SERVICE
-}
-
 enum ListingStatus {
   ACTIVE
   INACTIVE
@@ -335,15 +330,20 @@ enum RentalUnit {
 
 model Listing {
   id                String        @id @default(cuid())
-  providerId        String
-  type              ListingType
-  categoryId        String
+  /// Optional until assigned; providers are auto-scoped on create.
+  providerId        String?
+  categoryId        String?
   name              String
   description       String?
   brand             String?
-  unit              String
-  currency          String
-  price             Decimal       @db.Decimal(18, 4)
+  unit              String?
+  currency          String?
+  /// Fixed informational price when the listing is not a range.
+  price             Decimal?      @db.Decimal(18, 4)
+  /// Range lower bound when price is unset.
+  priceMin          Decimal?      @db.Decimal(18, 4)
+  /// Range upper bound when price is unset.
+  priceMax          Decimal?      @db.Decimal(18, 4)
   rentalPrice       Decimal?      @db.Decimal(18, 4)
   rentalUnit        RentalUnit?
   quantityAvailable Decimal?      @db.Decimal(18, 4)
@@ -351,15 +351,15 @@ model Listing {
   status            ListingStatus @default(ACTIVE)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-  provider          Provider      @relation(fields: [providerId], references: [id], onDelete: Restrict)
-  category          Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  provider          Provider?     @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  category          Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   variations        ListingVariation[]
   offers            ListingOffer[]
   images            ListingImage[]
 
   @@index([providerId])
   @@index([categoryId])
-  @@index([type, status])
+  @@index([status])
   @@index([name(ops: raw("gin_trgm_ops"))], map: "listings_name_trgm_idx", type: Gin)
   @@map("listings")
 }

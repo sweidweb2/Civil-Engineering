@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Pencil } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -11,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
-import { getProvider, type Provider,providerStatusLabel } from '@/services/providers'
+import { getProvider, type Provider } from '@/services/providers'
 
 import { formFromProvider, ProviderFormDialog } from './components/ProviderFormDialog'
 import { formatWhen } from './lib/text'
@@ -21,29 +22,8 @@ function formatCoord(value: number | null) {
   return value == null ? '—' : String(value)
 }
 
-function providerFields(provider: Provider): Array<{ label: string; value: string }> {
-  return [
-    { label: 'Owner', value: provider.owner.displayName || provider.owner.email },
-    { label: 'Owner email', value: provider.owner.email },
-    { label: 'Name', value: provider.name },
-    { label: 'Description', value: provider.description ?? '—' },
-    { label: 'Status', value: providerStatusLabel(provider.status) },
-    { label: 'Logo', value: provider.logoUrl ?? '—' },
-    { label: 'Phone', value: provider.phone ?? '—' },
-    { label: 'WhatsApp', value: provider.whatsapp ?? '—' },
-    { label: 'Email', value: provider.email ?? '—' },
-    { label: 'Website', value: provider.website ?? '—' },
-    { label: 'Address', value: provider.address ?? '—' },
-    { label: 'City', value: provider.city ?? '—' },
-    { label: 'Country', value: provider.country ?? '—' },
-    { label: 'Latitude', value: formatCoord(provider.lat) },
-    { label: 'Longitude', value: formatCoord(provider.lng) },
-    { label: 'Created', value: formatWhen(provider.createdAt) },
-    { label: 'Updated', value: formatWhen(provider.updatedAt) },
-  ]
-}
-
 export function MarketDetailsPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const { providerId } = useParams<{ providerId: string }>()
   const location = useLocation()
   const providersPath = `${portalBaseFromPath(location.pathname)}/providers`
@@ -51,21 +31,52 @@ export function MarketDetailsPage() {
   const [updated, setUpdated] = useState<Provider | null>(null)
 
   const load = useCallback(async () => {
-    if (!providerId) throw new Error('Missing provider id')
+    if (!providerId) throw new Error(t('admin:markets.notFound'))
     const result = await getProvider(providerId)
     return result.data
-  }, [providerId])
+  }, [providerId, t])
   const remote = useRemoteData(load, {
     enabled: Boolean(providerId),
     queryKey: ['providers', 'detail', providerId ?? ''],
   })
   const provider = updated ?? (remote.status === 'success' ? remote.data : undefined)
-  useDocumentTitle(provider ? provider.name : 'Provider details')
+  useDocumentTitle(provider ? provider.name : t('admin:markets.providerDetails'))
 
   const breadcrumbs = [
-    { label: 'Providers', to: providersPath },
-    { label: provider?.name ?? 'Provider details' },
+    { label: t('admin:markets.providers'), to: providersPath },
+    { label: provider?.name ?? t('admin:markets.providerDetails') },
   ]
+
+  const fields = provider
+    ? [
+        {
+          label: t('admin:markets.fields.owner'),
+          value:
+            provider.owner?.displayName ||
+            provider.owner?.email ||
+            t('admin:providers.form.noOwner'),
+        },
+        { label: t('admin:markets.fields.ownerEmail'), value: provider.owner?.email ?? '—' },
+        { label: t('admin:markets.fields.name'), value: provider.name },
+        { label: t('admin:markets.fields.description'), value: provider.description ?? '—' },
+        {
+          label: t('admin:markets.fields.status'),
+          value: t(`admin:providerStatus.${provider.status}`),
+        },
+        { label: t('admin:markets.fields.logo'), value: provider.logoUrl ?? '—' },
+        { label: t('admin:markets.fields.phone'), value: provider.phone ?? '—' },
+        { label: t('admin:markets.fields.whatsapp'), value: provider.whatsapp ?? '—' },
+        { label: t('admin:markets.fields.email'), value: provider.email ?? '—' },
+        { label: t('admin:markets.fields.website'), value: provider.website ?? '—' },
+        { label: t('admin:markets.fields.address'), value: provider.address ?? '—' },
+        { label: t('admin:markets.fields.city'), value: provider.city ?? '—' },
+        { label: t('admin:markets.fields.country'), value: provider.country ?? '—' },
+        { label: t('admin:markets.fields.latitude'), value: formatCoord(provider.lat) },
+        { label: t('admin:markets.fields.longitude'), value: formatCoord(provider.lng) },
+        { label: t('admin:markets.fields.created'), value: formatWhen(provider.createdAt) },
+        { label: t('admin:markets.fields.updated'), value: formatWhen(provider.updatedAt) },
+      ]
+    : []
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -102,14 +113,14 @@ export function MarketDetailsPage() {
               <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5">
                 <p className="truncate text-sm font-medium">{provider.name}</p>
                 <Badge variant={provider.status === 'APPROVED' ? 'default' : 'outline'}>
-                  {providerStatusLabel(provider.status)}
+                  {t(`admin:providerStatus.${provider.status}`)}
                 </Badge>
               </div>
               <dl className="grid min-w-0 sm:grid-cols-2">
-                {providerFields(provider).map((field) => (
+                {fields.map((field) => (
                   <div
                     key={field.label}
-                    className="grid min-w-0 grid-cols-[minmax(0,8rem)_minmax(0,1fr)] border-b border-border sm:odd:border-r"
+                    className="grid min-w-0 grid-cols-[minmax(0,8rem)_minmax(0,1fr)] border-b border-border sm:odd:border-e"
                   >
                     <dt className="bg-muted/50 px-3 py-2.5 text-xs font-medium text-muted-foreground">
                       {field.label}
@@ -123,7 +134,7 @@ export function MarketDetailsPage() {
         ) : (
           <Card size="sm" className="min-w-0">
             <CardContent>
-              <p className="text-sm text-muted-foreground">Provider not found.</p>
+              <p className="text-sm text-muted-foreground">{t('admin:markets.notFound')}</p>
             </CardContent>
           </Card>
         )}
@@ -137,7 +148,11 @@ export function MarketDetailsPage() {
           mode="edit"
           providerId={provider.id}
           initial={formFromProvider(provider)}
-          ownerLabel={provider.owner.displayName || provider.owner.email}
+          ownerLabel={
+            provider.owner?.displayName ||
+            provider.owner?.email ||
+            t('admin:providers.form.noOwner')
+          }
           onOpenChange={setEditOpen}
           onSaved={(saved) => {
             setUpdated(saved)

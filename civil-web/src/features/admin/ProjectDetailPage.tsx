@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Building2, Calendar, FileText, MapPin, Save, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -14,26 +15,30 @@ import { DatePicker } from '@/components/ui/date-picker'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import {
   getProjectById,
   type Project,
-  PROJECT_STATUS_OPTIONS,
-  PROJECT_TYPE_OPTIONS,
   type ProjectStatus,
-  projectStatusLabel,
   type ProjectType,
-  projectTypeLabel,
   updateProject,
   type UpdateProjectInput,
 } from '@/services/projects'
 
 import { ProjectSteppersSection } from './components/ProjectSteppersSection'
+import { useProjectOptions } from './hooks/useProjectOptions'
 import { scheduleProgress } from './lib/schedule-progress'
 
 function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -55,11 +60,6 @@ function toDate(iso: string | null | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-function formatDate(iso: string | null | undefined) {
-  const date = toDate(iso)
-  return date ? date.toLocaleDateString() : '—'
-}
-
 function ScheduleProgress({
   startDate,
   endDate,
@@ -67,11 +67,12 @@ function ScheduleProgress({
   startDate?: string | null
   endDate?: string | null
 }) {
+  const { t } = useTranslation('projects')
   const progress = scheduleProgress(startDate, endDate)
   return (
     <div>
-      <p className="text-sm font-medium">Progress</p>
-      <p className="text-xs text-muted-foreground">Elapsed time from the start date to the end date.</p>
+      <p className="text-sm font-medium">{t('progress')}</p>
+      <p className="text-xs text-muted-foreground">{t('progressHint')}</p>
       <div className="mt-2 flex items-center gap-2">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
           <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
@@ -82,16 +83,10 @@ function ScheduleProgress({
   )
 }
 
-function formatDateTime(iso: string | null) {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleString()
-  } catch {
-    return '—'
-  }
-}
-
 export function ProjectDetailPage() {
+  const { t } = useTranslation(['projects', 'common'])
+  const { formatDate, formatDateTime } = useLocaleFormat()
+  const { statusOptions, typeOptions, statusLabel, typeLabel } = useProjectOptions()
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
   const projectsPath = `${portalBaseFromPath(location.pathname)}/projects`
@@ -100,18 +95,20 @@ export function ProjectDetailPage() {
   const [isSaving, setIsSaving] = useState(false)
 
   const load = useCallback(() => {
-    if (!id) throw new Error('Project ID is required')
+    if (!id) throw new Error(t('projects:idRequired'))
     return getProjectById(id)
-  }, [id])
+  }, [id, t])
 
   const remote = useRemoteData(load, { queryKey: ['projects', 'detail', id ?? ''] })
   const project: Project | null = remote.status === 'success' ? remote.data.data : null
 
-  useDocumentTitle(project ? `Project: ${project.name}` : 'Project Details')
+  useDocumentTitle(
+    project ? t('projects:documentTitle', { name: project.name }) : t('projects:details'),
+  )
 
   const breadcrumbs = [
-    { label: 'Projects', to: projectsPath },
-    { label: project?.name ?? 'Project details' },
+    { label: t('projects:title'), to: projectsPath },
+    { label: project?.name ?? t('projects:details') },
   ]
 
   const [formData, setFormData] = useState<UpdateProjectInput>({})
@@ -146,17 +143,17 @@ export function ProjectDetailPage() {
       formData.endDate &&
       new Date(formData.endDate).getTime() <= new Date(formData.startDate).getTime()
     ) {
-      toast.error('End date must be after the start date')
+      toast.error(t('projects:endAfterStart'))
       return
     }
     setIsSaving(true)
     try {
       await updateProject(id, formData)
-      toast.success('Project updated successfully')
+      toast.success(t('projects:updated'))
       setIsEditing(false)
       void remote.refetch()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update project')
+      toast.error(error instanceof Error ? error.message : t('projects:couldNotUpdate'))
     } finally {
       setIsSaving(false)
     }
@@ -165,7 +162,7 @@ export function ProjectDetailPage() {
   if (!id) {
     return (
       <div className="flex min-w-0 flex-col gap-4">
-        <p className="text-muted-foreground">Project ID is required</p>
+        <p className="text-muted-foreground">{t('projects:idRequired')}</p>
       </div>
     )
   }
@@ -190,11 +187,11 @@ export function ProjectDetailPage() {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <TabsList>
-                <TabsTrigger value="steppers">Steppers</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="steppers">{t('projects:steppersTab')}</TabsTrigger>
+                <TabsTrigger value="details">{t('projects:detailsTab')}</TabsTrigger>
               </TabsList>
               {activeTab === 'details' && !isEditing ? (
-                <Button onClick={handleEdit}>Edit Project</Button>
+                <Button onClick={handleEdit}>{t('projects:edit')}</Button>
               ) : null}
             </div>
 
@@ -203,333 +200,361 @@ export function ProjectDetailPage() {
             </TabsContent>
 
             <TabsContent value="details" className="min-w-0">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Core project details and identification.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isEditing ? (
-                  <>
-                    <Field>
-                      <Label htmlFor="name">Project Name</Label>
-                      <Input
-                        id="name"
-                        value={formData.name || ''}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Project name"
-                        maxLength={200}
-                      />
-                    </Field>
-                    <Field>
-                      <Label htmlFor="code">Project Code</Label>
-                      <Input
-                        id="code"
-                        value={formData.code || ''}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                        placeholder="e.g., PRJ-2024-001"
-                        maxLength={50}
-                      />
-                    </Field>
-                    <Field>
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description || ''}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Project description"
-                        maxLength={2000}
-                        rows={4}
-                      />
-                    </Field>
-                    <Field>
-                      <Label htmlFor="type">Project Type</Label>
-                      <Select
-                        items={PROJECT_TYPE_OPTIONS}
-                        value={formData.type}
-                        onValueChange={(value) => setFormData({ ...formData, type: value as ProjectType })}
-                      >
-                        <SelectTrigger id="type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROJECT_TYPE_OPTIONS.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <FileText className="size-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Project Name</p>
-                        <p className="text-sm text-muted-foreground">{project.name}</p>
-                      </div>
-                    </div>
-                    {project.code && (
-                      <div className="flex items-center gap-3">
-                        <FileText className="size-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Project Code</p>
-                          <p className="text-sm text-muted-foreground">{project.code}</p>
-                        </div>
-                      </div>
-                    )}
-                    {project.description && (
-                      <div className="flex items-start gap-3">
-                        <FileText className="size-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Description</p>
-                          <p className="text-sm text-muted-foreground">{project.description}</p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3">
-                      <Building2 className="size-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Type</p>
-                        <p className="text-sm text-muted-foreground">{projectTypeLabel(project.type)}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Status & Progress</CardTitle>
-                <CardDescription>Status, schedule, and progress from the start date.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isEditing ? (
-                  <>
-                    <Field>
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        items={PROJECT_STATUS_OPTIONS}
-                        value={formData.status}
-                        onValueChange={(value) => setFormData({ ...formData, status: value as ProjectStatus })}
-                      >
-                        <SelectTrigger id="status">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROJECT_STATUS_OPTIONS.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field>
-                      <Label htmlFor="startDate">Start date</Label>
-                      <DatePicker
-                        id="startDate"
-                        value={toDate(formData.startDate)}
-                        onChange={(date) =>
-                          setFormData({ ...formData, startDate: date ? date.toISOString() : null })
-                        }
-                        placeholder="Select start date"
-                      />
-                    </Field>
-                    <Field>
-                      <Label htmlFor="endDate">End date</Label>
-                      <DatePicker
-                        id="endDate"
-                        value={toDate(formData.endDate)}
-                        onChange={(date) =>
-                          setFormData({ ...formData, endDate: date ? date.toISOString() : null })
-                        }
-                        placeholder="Select end date"
-                      />
-                    </Field>
-                    <ScheduleProgress startDate={formData.startDate} endDate={formData.endDate} />
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <FileText className="size-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Status</p>
-                        <Badge variant={getStatusColor(project.status)} className="mt-1">
-                          {projectStatusLabel(project.status)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Calendar className="size-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Start date</p>
-                        <p className="text-sm text-muted-foreground">{formatDate(project.startDate)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Calendar className="size-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">End date</p>
-                        <p className="text-sm text-muted-foreground">{formatDate(project.endDate)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="size-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <ScheduleProgress startDate={project.startDate} endDate={project.endDate} />
-                      </div>
-                    </div>
-                  </>
-                )}
-                <div className="flex items-center gap-3">
-                  <Calendar className="size-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Created</p>
-                    <p className="text-sm text-muted-foreground">{formatDateTime(project.createdAt)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="size-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Updated</p>
-                    <p className="text-sm text-muted-foreground">{formatDateTime(project.updatedAt)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {isEditing ? (
-              <>
+              <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Location</CardTitle>
-                    <CardDescription>Project site location details.</CardDescription>
+                    <CardTitle>{t('projects:basicInfo')}</CardTitle>
+                    <CardDescription>{t('projects:basicInfoDescription')}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Field>
-                      <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        value={formData.address || ''}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="Street address"
-                        maxLength={500}
-                      />
-                    </Field>
-                    <Field>
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.city || ''}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        placeholder="City"
-                        maxLength={100}
-                      />
-                    </Field>
-                    <Field>
-                      <Label htmlFor="country">Country</Label>
-                      <Input
-                        id="country"
-                        value={formData.country || ''}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                        placeholder="Country"
-                        maxLength={100}
-                      />
-                    </Field>
+                    {isEditing ? (
+                      <>
+                        <Field>
+                          <Label htmlFor="name">{t('projects:projectName')}</Label>
+                          <Input
+                            id="name"
+                            value={formData.name || ''}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder={t('projects:projectNameShort')}
+                            maxLength={200}
+                          />
+                        </Field>
+                        <Field>
+                          <Label htmlFor="code">{t('projects:projectCode')}</Label>
+                          <Input
+                            id="code"
+                            value={formData.code || ''}
+                            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                            placeholder={t('projects:projectCodePlaceholder')}
+                            maxLength={50}
+                          />
+                        </Field>
+                        <Field>
+                          <Label htmlFor="description">{t('common:description')}</Label>
+                          <Textarea
+                            id="description"
+                            value={formData.description || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, description: e.target.value })
+                            }
+                            placeholder={t('projects:projectDescriptionPlaceholder')}
+                            maxLength={2000}
+                            rows={4}
+                          />
+                        </Field>
+                        <Field>
+                          <Label htmlFor="type">{t('projects:projectType')}</Label>
+                          <Select
+                            items={typeOptions}
+                            value={formData.type}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, type: value as ProjectType })
+                            }
+                          >
+                            <SelectTrigger id="type">
+                              <SelectValue placeholder={t('projects:selectType')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {typeOptions.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <FileText className="size-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{t('projects:projectName')}</p>
+                            <p className="text-sm text-muted-foreground">{project.name}</p>
+                          </div>
+                        </div>
+                        {project.code && (
+                          <div className="flex items-center gap-3">
+                            <FileText className="size-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{t('projects:projectCode')}</p>
+                              <p className="text-sm text-muted-foreground">{project.code}</p>
+                            </div>
+                          </div>
+                        )}
+                        {project.description && (
+                          <div className="flex items-start gap-3">
+                            <FileText className="size-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{t('common:description')}</p>
+                              <p className="text-sm text-muted-foreground">{project.description}</p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3">
+                          <Building2 className="size-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{t('common:type')}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {typeLabel(project.type)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Additional Notes</CardTitle>
-                    <CardDescription>Internal notes and comments.</CardDescription>
+                    <CardTitle>{t('projects:statusProgress')}</CardTitle>
+                    <CardDescription>{t('projects:statusProgressDescription')}</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Field>
-                      <Label htmlFor="notes">Notes</Label>
-                      <Textarea
-                        id="notes"
-                        value={formData.notes || ''}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        placeholder="Internal notes..."
-                        rows={6}
-                      />
-                    </Field>
+                  <CardContent className="space-y-4">
+                    {isEditing ? (
+                      <>
+                        <Field>
+                          <Label htmlFor="status">{t('common:status')}</Label>
+                          <Select
+                            items={statusOptions}
+                            value={formData.status}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, status: value as ProjectStatus })
+                            }
+                          >
+                            <SelectTrigger id="status">
+                              <SelectValue placeholder={t('projects:selectStatus')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {statusOptions.map((status) => (
+                                <SelectItem key={status.value} value={status.value}>
+                                  {status.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <Label htmlFor="startDate">{t('projects:startDate')}</Label>
+                          <DatePicker
+                            id="startDate"
+                            value={toDate(formData.startDate)}
+                            onChange={(date) =>
+                              setFormData({
+                                ...formData,
+                                startDate: date ? date.toISOString() : null,
+                              })
+                            }
+                            placeholder={t('projects:selectStartDate')}
+                          />
+                        </Field>
+                        <Field>
+                          <Label htmlFor="endDate">{t('projects:endDate')}</Label>
+                          <DatePicker
+                            id="endDate"
+                            value={toDate(formData.endDate)}
+                            onChange={(date) =>
+                              setFormData({
+                                ...formData,
+                                endDate: date ? date.toISOString() : null,
+                              })
+                            }
+                            placeholder={t('projects:selectEndDate')}
+                          />
+                        </Field>
+                        <ScheduleProgress
+                          startDate={formData.startDate}
+                          endDate={formData.endDate}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <FileText className="size-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{t('common:status')}</p>
+                            <Badge variant={getStatusColor(project.status)} className="mt-1">
+                              {statusLabel(project.status)}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Calendar className="size-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{t('projects:startDate')}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(project.startDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Calendar className="size-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{t('projects:endDate')}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(project.endDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <TrendingUp className="size-4 text-muted-foreground" />
+                          <div className="flex-1">
+                            <ScheduleProgress
+                              startDate={project.startDate}
+                              endDate={project.endDate}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Calendar className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{t('common:created')}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDateTime(project.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Calendar className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{t('common:updated')}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDateTime(project.updatedAt)}
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card className="md:col-span-2">
-                  <CardContent className="flex items-center justify-end gap-3 pt-6">
-                    <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => void handleSave()} disabled={isSaving}>
-                      <Save className="size-4" />
-                      {isSaving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <>
-                {(project.address || project.city || project.country) && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Location</CardTitle>
-                      <CardDescription>Project site location.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {project.address && (
-                        <div className="flex items-start gap-3">
-                          <MapPin className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">Address</p>
-                            <p className="text-sm text-muted-foreground">{project.address}</p>
-                          </div>
-                        </div>
-                      )}
-                      {project.city && (
-                        <div className="flex items-center gap-3">
-                          <MapPin className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">City</p>
-                            <p className="text-sm text-muted-foreground">{project.city}</p>
-                          </div>
-                        </div>
-                      )}
-                      {project.country && (
-                        <div className="flex items-center gap-3">
-                          <MapPin className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">Country</p>
-                            <p className="text-sm text-muted-foreground">{project.country}</p>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-                {project.notes && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Notes</CardTitle>
-                      <CardDescription>Internal notes and comments.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{project.notes}</p>
-                    </CardContent>
-                  </Card>
-                )}
+                {isEditing ? (
+                  <>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>{t('projects:location')}</CardTitle>
+                        <CardDescription>{t('projects:locationDescription')}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Field>
+                          <Label htmlFor="address">{t('projects:address')}</Label>
+                          <Input
+                            id="address"
+                            value={formData.address || ''}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            placeholder={t('projects:streetAddressPlaceholder')}
+                            maxLength={500}
+                          />
+                        </Field>
+                        <Field>
+                          <Label htmlFor="city">{t('projects:city')}</Label>
+                          <Input
+                            id="city"
+                            value={formData.city || ''}
+                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            placeholder={t('projects:city')}
+                            maxLength={100}
+                          />
+                        </Field>
+                        <Field>
+                          <Label htmlFor="country">{t('projects:country')}</Label>
+                          <Input
+                            id="country"
+                            value={formData.country || ''}
+                            onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                            placeholder={t('projects:country')}
+                            maxLength={100}
+                          />
+                        </Field>
+                      </CardContent>
+                    </Card>
 
-                <ProjectGallery projectId={project.id} />
-              </>
-            )}
-          </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>{t('projects:additionalNotes')}</CardTitle>
+                        <CardDescription>{t('projects:notesDescription')}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Field>
+                          <Label htmlFor="notes">{t('common:notes')}</Label>
+                          <Textarea
+                            id="notes"
+                            value={formData.notes || ''}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            placeholder={t('projects:notesPlaceholder')}
+                            rows={6}
+                          />
+                        </Field>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-2">
+                      <CardContent className="flex items-center justify-end gap-3 pt-6">
+                        <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                          {t('common:cancel')}
+                        </Button>
+                        <Button onClick={() => void handleSave()} disabled={isSaving}>
+                          <Save className="size-4" />
+                          {isSaving ? t('common:saving') : t('projects:saveChanges')}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : (
+                  <>
+                    {(project.address || project.city || project.country) && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>{t('projects:location')}</CardTitle>
+                          <CardDescription>{t('projects:locationDescription')}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {project.address && (
+                            <div className="flex items-start gap-3">
+                              <MapPin className="size-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">{t('projects:address')}</p>
+                                <p className="text-sm text-muted-foreground">{project.address}</p>
+                              </div>
+                            </div>
+                          )}
+                          {project.city && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="size-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">{t('projects:city')}</p>
+                                <p className="text-sm text-muted-foreground">{project.city}</p>
+                              </div>
+                            </div>
+                          )}
+                          {project.country && (
+                            <div className="flex items-center gap-3">
+                              <MapPin className="size-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">{t('projects:country')}</p>
+                                <p className="text-sm text-muted-foreground">{project.country}</p>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                    {project.notes && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>{t('common:notes')}</CardTitle>
+                          <CardDescription>{t('projects:notesDescription')}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">{project.notes}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <ProjectGallery projectId={project.id} />
+                  </>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         )}

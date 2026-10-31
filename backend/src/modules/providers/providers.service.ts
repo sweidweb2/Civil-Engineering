@@ -10,12 +10,12 @@ import { cacheKeys, readThroughCache } from '../../redis/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import { assertMimeMatchesContent } from '../files/mime-sniff.js'
 import type { ProviderRecord, ProvidersRepository } from './providers.repository.js'
-import type { CreateProviderBody, ListProvidersQuery, UpdateProviderBody } from './providers.schema.js'
 import type {
-  PaginatedProviders,
-  Provider,
-  ProviderOwnerCandidate,
-} from './providers.types.js'
+  CreateProviderBody,
+  ListProvidersQuery,
+  UpdateProviderBody,
+} from './providers.schema.js'
+import type { PaginatedProviders, Provider, ProviderOwnerCandidate } from './providers.types.js'
 
 const LOGO_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
 const LOGO_MAX_BYTES = 8 * 1024 * 1024
@@ -46,6 +46,7 @@ export type ProvidersServiceDeps = {
 }
 
 function ownerFromRecord(record: ProviderRecord): Provider['owner'] {
+  if (!record.owner) return null
   const profile = record.owner.profile
   const displayName =
     profile?.displayName ||
@@ -56,6 +57,37 @@ function ownerFromRecord(record: ProviderRecord): Provider['owner'] {
     email: record.owner.email,
     displayName,
   }
+}
+
+function assertProviderAccess(actor: AuthActor, ownerUserId: string | null) {
+  if (isAdmin(actor.roles)) return
+  if (!ownerUserId) {
+    throw forbidden('You do not own this resource')
+  }
+  assertOwnerOrAdmin(actor, ownerUserId)
+}
+
+async function resolveAssignableOwnerUserId(
+  repository: ProvidersRepository,
+  ownerUserId: string | null,
+  currentProviderId?: string,
+): Promise<string | null> {
+  if (!ownerUserId) return null
+
+  const owner = await repository.findOwnerUser(ownerUserId)
+  if (!owner) {
+    throw notFound('Owner user not found', 'OWNER_NOT_FOUND')
+  }
+  if (owner.role !== 'PROVIDER') {
+    throw validationError('Owner must have the PROVIDER role')
+  }
+
+  const existing = await repository.findByOwnerUserId(owner.id)
+  if (existing && existing.id !== currentProviderId) {
+    throw conflict('This owner already has a provider', 'PROVIDER_OWNER_TAKEN')
+  }
+
+  return owner.id
 }
 
 export function toProviderDto(record: ProviderRecord): Provider {
@@ -167,7 +199,7 @@ export function createProvidersService(
 
     async getProviderById(id, actor) {
       const provider = await loadOrThrow(id)
-      assertOwnerOrAdmin(actor, provider.ownerUserId)
+      assertProviderAccess(actor, provider.ownerUserId)
       return withLogo(provider)
     },
 
@@ -176,29 +208,30 @@ export function createProvidersService(
         throw forbidden('Only admins can create providers')
       }
 
-      const owner = await repository.findOwnerUser(input.ownerUserId)
-      if (!owner) {
-        throw notFound('Owner user not found', 'OWNER_NOT_FOUND')
-      }
-      if (owner.role !== 'PROVIDER') {
-        throw validationError('Owner must have the PROVIDER role')
-      }
-
-      const existing = await repository.findByOwnerUserId(owner.id)
-      if (existing) {
-        throw conflict('This owner already has a provider', 'PROVIDER_OWNER_TAKEN')
-      }
-
-      const created = await repository.create(input)
+      const ownerUserId = await resolveAssignableOwnerUserId(repository, input.ownerUserId ?? null)
+      const created = await repository.create({ ...input, ownerUserId })
       return toProviderDto(created)
     },
 
     async updateProvider(id, input, actor) {
       const provider = await loadOrThrow(id)
-      assertOwnerOrAdmin(actor, provider.ownerUserId)
+      assertProviderAccess(actor, provider.ownerUserId)
 
       if (input.status !== undefined && !isAdmin(actor.roles)) {
         throw forbidden('Only admins can change provider status')
+      }
+
+      if (input.ownerUserId !== undefined) {
+        if (!isAdmin(actor.roles)) {
+          throw forbidden('Only admins can change provider owner')
+        }
+        const nextOwnerUserId = await resolveAssignableOwnerUserId(
+          repository,
+          input.ownerUserId,
+          provider.id,
+        )
+        const updated = await repository.update(id, { ...input, ownerUserId: nextOwnerUserId })
+        return toProviderDto(updated)
       }
 
       const updated = await repository.update(id, input)
@@ -211,7 +244,7 @@ export function createProvidersService(
       }
 
       const provider = await loadOrThrow(id)
-      assertOwnerOrAdmin(actor, provider.ownerUserId)
+      assertProviderAccess(actor, provider.ownerUserId)
 
       if (!LOGO_MIMES.has(file.mimetype)) {
         throw validationError('Brand image must be a JPEG, PNG, or WebP')
@@ -253,7 +286,7 @@ export function createProvidersService(
 
     async clearLogo(id, actor) {
       const provider = await loadOrThrow(id)
-      assertOwnerOrAdmin(actor, provider.ownerUserId)
+      assertProviderAccess(actor, provider.ownerUserId)
 
       const previous = provider.logoUrl
       const updated = await repository.update(id, { logoUrl: null })

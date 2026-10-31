@@ -1,0 +1,42 @@
+{
+  "title": "Notifications",
+  "description": "Your notifications and alerts.",
+  "inbox": "Inbox",
+  "unread": "Unread",
+  "unreadCount": "{{count}} unread",
+  "upToDate": "You are up to date.",
+  "total": "Total",
+  "allWithCount": "All ({{count}})",
+  "unreadWithCount": "Unread ({{count}})",
+  "markAllRead": "Mark all read",
+  "markAsRead": "Mark as read",
+  "markAsUnread": "Mark as unread",
+  "viewAll": "View all notifications",
+  "empty": "No notifications yet.",
+  "emptyAll": "No notifications",
+  "emptyUnread": "No unread notifications",
+  "openInbox": "Open notifications",
+  "openInboxWithUnread": "Notifications, {{count}} unread",
+  "from": "From: {{email}}",
+  "pagination": "Page {{page}} of {{totalPages}} ({{total}} total)",
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "delete": {
+    "title": "Delete notification",
+    "description": "Are you sure you want to delete this notification? This action cannot be undone."
+  },
+  "toast": {
+    "markedRead": "Marked as read",
+    "markedUnread": "Marked as unread",
+    "deleted": "Notification deleted",
+    "allMarkedRead": "All notifications marked as read",
+    "couldNotMarkRead": "Could not mark notification as read",
+    "couldNotMarkUnread": "Could not mark notification as unread",
+    "couldNotMarkAllRead": "Could not mark notifications as read",
+    "couldNotDelete": "Could not delete notification"
+  }
+}

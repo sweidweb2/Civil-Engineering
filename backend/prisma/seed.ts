@@ -15,7 +15,6 @@ import bcrypt from 'bcrypt'
 import {
   type CategoryKind,
   type ListingStatus,
-  type ListingType,
   Prisma,
   PrismaClient,
   type ProjectStatus,
@@ -28,6 +27,8 @@ import {
   type UserStatus,
   type VerificationStatus,
 } from '../src/generated/prisma/client.js'
+
+type ListingType = 'MATERIAL' | 'EQUIPMENT' | 'SERVICE'
 
 const BCRYPT_ROUNDS = 12
 const PASSWORD = 'password'
@@ -162,11 +163,42 @@ type SeedUser = {
 const SEED_USERS: SeedUser[] = [
   { email: 'super@example.com', role: 'SUPER', firstName: 'Super', lastName: 'User' },
   { email: 'admin@example.com', role: 'ADMIN', firstName: 'Admin', lastName: 'User' },
-  { email: 'pm@example.com', role: 'MANAGER', firstName: 'Layla', lastName: 'Hassan', phone: '+961 03 111 201' },
-  { email: 'pm.pending@example.com', role: 'MANAGER', firstName: 'Omar', lastName: 'Saad', status: 'PENDING', phone: '+961 03 111 202' },
-  { email: 'client@example.com', role: 'CLIENT', firstName: 'Nour', lastName: 'Fahd', phone: '+961 70 200 100' },
-  { email: 'provider@example.com', role: 'PROVIDER', firstName: 'Rami', lastName: 'Khoury', phone: '+961 01 555 010' },
-  { email: 'provider2@example.com', role: 'PROVIDER', firstName: 'Hiba', lastName: 'Nassar', phone: '+961 06 400 220' },
+  {
+    email: 'pm@example.com',
+    role: 'MANAGER',
+    firstName: 'Layla',
+    lastName: 'Hassan',
+    phone: '+961 03 111 201',
+  },
+  {
+    email: 'pm.pending@example.com',
+    role: 'MANAGER',
+    firstName: 'Omar',
+    lastName: 'Saad',
+    status: 'PENDING',
+    phone: '+961 03 111 202',
+  },
+  {
+    email: 'client@example.com',
+    role: 'CLIENT',
+    firstName: 'Nour',
+    lastName: 'Fahd',
+    phone: '+961 70 200 100',
+  },
+  {
+    email: 'provider@example.com',
+    role: 'PROVIDER',
+    firstName: 'Rami',
+    lastName: 'Khoury',
+    phone: '+961 01 555 010',
+  },
+  {
+    email: 'provider2@example.com',
+    role: 'PROVIDER',
+    firstName: 'Hiba',
+    lastName: 'Nassar',
+    phone: '+961 06 400 220',
+  },
   {
     email: 'pending.provider@example.com',
     role: 'PROVIDER',
@@ -229,24 +261,66 @@ type SeedCategory = {
 
 const SEED_CATEGORIES: SeedCategory[] = [
   { kind: 'MATERIAL', name: 'Cement & concrete', slug: 'cement-concrete', sortOrder: 1 },
-  { kind: 'MATERIAL', name: 'Portland cement', slug: 'portland-cement', parentSlug: 'cement-concrete', sortOrder: 1 },
-  { kind: 'MATERIAL', name: 'Ready-mix concrete', slug: 'ready-mix', parentSlug: 'cement-concrete', sortOrder: 2 },
+  {
+    kind: 'MATERIAL',
+    name: 'Portland cement',
+    slug: 'portland-cement',
+    parentSlug: 'cement-concrete',
+    sortOrder: 1,
+  },
+  {
+    kind: 'MATERIAL',
+    name: 'Ready-mix concrete',
+    slug: 'ready-mix',
+    parentSlug: 'cement-concrete',
+    sortOrder: 2,
+  },
   { kind: 'MATERIAL', name: 'Steel', slug: 'steel', sortOrder: 2 },
   { kind: 'MATERIAL', name: 'Rebar', slug: 'rebar', parentSlug: 'steel', sortOrder: 1 },
   { kind: 'MATERIAL', name: 'Aggregates', slug: 'aggregates', sortOrder: 3 },
   { kind: 'MATERIAL', name: 'Sand', slug: 'sand', parentSlug: 'aggregates', sortOrder: 1 },
   { kind: 'MATERIAL', name: 'Gravel', slug: 'gravel', parentSlug: 'aggregates', sortOrder: 2 },
   { kind: 'EQUIPMENT', name: 'Earthmoving', slug: 'earthmoving', sortOrder: 1 },
-  { kind: 'EQUIPMENT', name: 'Excavators', slug: 'excavators', parentSlug: 'earthmoving', sortOrder: 1 },
+  {
+    kind: 'EQUIPMENT',
+    name: 'Excavators',
+    slug: 'excavators',
+    parentSlug: 'earthmoving',
+    sortOrder: 1,
+  },
   { kind: 'EQUIPMENT', name: 'Lifting', slug: 'lifting', sortOrder: 2 },
   { kind: 'EQUIPMENT', name: 'Cranes', slug: 'cranes', parentSlug: 'lifting', sortOrder: 1 },
   { kind: 'SERVICE', name: 'Site services', slug: 'site-services', sortOrder: 1 },
-  { kind: 'SERVICE', name: 'Surveying', slug: 'surveying', parentSlug: 'site-services', sortOrder: 1 },
-  { kind: 'SERVICE', name: 'Concrete pumping', slug: 'concrete-pumping', parentSlug: 'site-services', sortOrder: 2 },
+  {
+    kind: 'SERVICE',
+    name: 'Surveying',
+    slug: 'surveying',
+    parentSlug: 'site-services',
+    sortOrder: 1,
+  },
+  {
+    kind: 'SERVICE',
+    name: 'Concrete pumping',
+    slug: 'concrete-pumping',
+    parentSlug: 'site-services',
+    sortOrder: 2,
+  },
   { kind: 'WORKER', name: 'Trades', slug: 'trades', sortOrder: 1 },
   { kind: 'WORKER', name: 'Masonry', slug: 'masonry', parentSlug: 'trades', sortOrder: 1 },
-  { kind: 'WORKER', name: 'Steel fixing', slug: 'steel-fixing', parentSlug: 'trades', sortOrder: 2 },
-  { kind: 'WORKER', name: 'Equipment operators', slug: 'operators', parentSlug: 'trades', sortOrder: 3 },
+  {
+    kind: 'WORKER',
+    name: 'Steel fixing',
+    slug: 'steel-fixing',
+    parentSlug: 'trades',
+    sortOrder: 2,
+  },
+  {
+    kind: 'WORKER',
+    name: 'Equipment operators',
+    slug: 'operators',
+    parentSlug: 'trades',
+    sortOrder: 3,
+  },
 ]
 
 type SeedProvider = {
@@ -269,7 +343,8 @@ const SEED_PROVIDERS: SeedProvider[] = [
   {
     ownerEmail: 'provider@example.com',
     name: 'Khoury Cement & Aggregates',
-    description: 'Bulk cement, ready-mix, and washed aggregates for Beirut and Mount Lebanon sites.',
+    description:
+      'Bulk cement, ready-mix, and washed aggregates for Beirut and Mount Lebanon sites.',
     phone: '+961 01 555 010',
     whatsapp: '+961 70 555 010',
     email: 'sales@khoury-aggregates.example',
@@ -631,11 +706,7 @@ async function upsertUser(prisma: PrismaClient, seed: SeedUser) {
   })
 }
 
-async function upsertCategory(
-  prisma: PrismaClient,
-  seed: SeedCategory,
-  parentId: string | null,
-) {
+async function upsertCategory(prisma: PrismaClient, seed: SeedCategory, parentId: string | null) {
   const existing = await prisma.category.findFirst({
     where: {
       scope: 'PLATFORM',
@@ -798,9 +869,7 @@ async function main() {
         const inputType = inputTypes.get(input.inputTypeCode)
         if (!inputType) throw new Error(`Missing input type ${input.inputTypeCode}`)
         const categoryId =
-          input.inputTypeCode === 'CATEGORY'
-            ? categoryIdBySlug(input.categorySlug ?? '')
-            : null
+          input.inputTypeCode === 'CATEGORY' ? categoryIdBySlug(input.categorySlug ?? '') : null
         if (input.inputTypeCode === 'CATEGORY' && !input.categorySlug) {
           throw new Error(`CATEGORY input "${input.label}" requires categorySlug`)
         }
@@ -842,13 +911,14 @@ async function main() {
       const data: Prisma.ListingUncheckedCreateInput = {
         providerId: provider.id,
         categoryId: category.id,
-        type: seed.type,
         name: seed.name,
         description: seed.description,
         brand: seed.brand ?? null,
         unit: seed.unit,
         currency: seed.currency,
         price: seed.price,
+        priceMin: null,
+        priceMax: null,
         rentalPrice: seed.rentalPrice ?? null,
         rentalUnit: seed.rentalUnit ?? null,
         quantityAvailable: seed.quantityAvailable ?? null,
@@ -867,8 +937,22 @@ async function main() {
     const cement = listings.get('Portland cement 42.5')
     if (cement) {
       const variations = [
-        { name: '50 kg bag', sku: 'CEM-425-50', price: '7.5000', unit: 'bag', quantityAvailable: '8000.0000', sortOrder: 1 },
-        { name: 'Bulk tanker', sku: 'CEM-425-BULK', price: '120.0000', unit: 'ton', quantityAvailable: '200.0000', sortOrder: 2 },
+        {
+          name: '50 kg bag',
+          sku: 'CEM-425-50',
+          price: '7.5000',
+          unit: 'bag',
+          quantityAvailable: '8000.0000',
+          sortOrder: 1,
+        },
+        {
+          name: 'Bulk tanker',
+          sku: 'CEM-425-BULK',
+          price: '120.0000',
+          unit: 'ton',
+          quantityAvailable: '200.0000',
+          sortOrder: 2,
+        },
       ]
       for (const variation of variations) {
         const existing = await prisma.listingVariation.findFirst({

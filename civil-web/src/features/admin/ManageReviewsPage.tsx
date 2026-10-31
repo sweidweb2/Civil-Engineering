@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useCallback, useState } from 'react'
 import { CheckCircle2, Clock, Eye, Pencil, Plus, Star, Trash2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -47,7 +48,6 @@ import {
   type Review,
   type ReviewStatus,
   type ReviewStatusCounts,
-  reviewStatusLabel,
   updateReview,
 } from '@/services/reviews'
 
@@ -55,18 +55,9 @@ import { ReviewFormDialog } from './components/ReviewFormDialog'
 import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
-const TABS: Array<{ value: ReviewStatus | 'all'; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'ACCEPTED', label: 'Accepted' },
-  { value: 'REJECTED', label: 'Rejected' },
-]
+const TAB_VALUES: Array<ReviewStatus | 'all'> = ['all', 'PENDING', 'ACCEPTED', 'REJECTED']
 
 const EMPTY_COUNTS: ReviewStatusCounts = { PENDING: 0, ACCEPTED: 0, REJECTED: 0 }
-
-function ReviewStatusBadge({ status }: { status: ReviewStatus }) {
-  return <Badge variant={status === 'ACCEPTED' ? 'default' : 'outline'}>{reviewStatusLabel(status)}</Badge>
-}
 
 function formatWhen(iso: string) {
   const date = new Date(iso)
@@ -97,7 +88,8 @@ function ReadOnlyField({
 }
 
 export function ManageReviewsPage() {
-  useDocumentTitle('Manage reviews')
+  const { t } = useTranslation(['admin', 'common'])
+  useDocumentTitle(t('admin:reviews.documentTitle'))
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [tab, setTab] = useState<ReviewStatus | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
@@ -105,6 +97,8 @@ export function ManageReviewsPage() {
   const [viewing, setViewing] = useState<Review | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Review | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  const statusLabel = (status: ReviewStatus) => t(`admin:reviewStatus.${status}`)
 
   const load = useCallback(
     () =>
@@ -125,10 +119,12 @@ export function ManageReviewsPage() {
     setBusyId(id)
     try {
       await updateReview(id, { status })
-      toast.message(status === 'ACCEPTED' ? 'Review accepted' : 'Review rejected')
+      toast.message(
+        status === 'ACCEPTED' ? t('admin:reviews.acceptedToast') : t('admin:reviews.rejectedToast'),
+      )
       await remote.refetch()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not update review')
+      toast.error(error instanceof ApiError ? error.message : t('admin:reviews.couldNotUpdate'))
     } finally {
       setBusyId(null)
     }
@@ -140,11 +136,11 @@ export function ManageReviewsPage() {
     setBusyId(id)
     try {
       await deleteReview(id)
-      toast.message('Review removed')
+      toast.message(t('admin:reviews.removedToast'))
       setPendingDelete(null)
       await remote.refetch()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not remove review')
+      toast.error(error instanceof ApiError ? error.message : t('admin:reviews.couldNotRemove'))
     } finally {
       setBusyId(null)
     }
@@ -154,27 +150,40 @@ export function ManageReviewsPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Manage reviews"
-        description="Directory reviews and ratings. Accept to publish, reject to hide."
+        title={t('admin:reviews.title')}
+        description={t('admin:reviews.description')}
         actions={
           <Button type="button" onClick={() => setCreateOpen(true)}>
             <Plus />
-            Create
+            {t('admin:reviews.create')}
           </Button>
         }
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Star} label="Reviews" value={reviewTotal} />
-        <StatCard icon={Clock} label="Pending" value={counts.PENDING} />
-        <StatCard icon={CheckCircle2} label="Accepted" value={counts.ACCEPTED} />
-        <StatCard icon={XCircle} label="Rejected" value={counts.REJECTED} />
+        <StatCard icon={Star} label={t('admin:reviews.metricAll')} value={reviewTotal} />
+        <StatCard icon={Clock} label={t('admin:reviews.metricPending')} value={counts.PENDING} />
+        <StatCard
+          icon={CheckCircle2}
+          label={t('admin:reviews.metricAccepted')}
+          value={counts.ACCEPTED}
+        />
+        <StatCard
+          icon={XCircle}
+          label={t('admin:reviews.metricRejected')}
+          value={counts.REJECTED}
+        />
       </div>
 
       <Tabs
         value={tab}
         onValueChange={(value) => {
-          if (value === 'all' || value === 'PENDING' || value === 'ACCEPTED' || value === 'REJECTED') {
+          if (
+            value === 'all' ||
+            value === 'PENDING' ||
+            value === 'ACCEPTED' ||
+            value === 'REJECTED'
+          ) {
             setTab(value)
             setPage(1)
           }
@@ -183,17 +192,17 @@ export function ManageReviewsPage() {
       >
         <ToolbarCard>
           <TabsList>
-            {TABS.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
+            {TAB_VALUES.map((value) => (
+              <TabsTrigger key={value} value={value}>
+                {t(`admin:reviews.tabs.${value}`)}
               </TabsTrigger>
             ))}
           </TabsList>
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter reviews…"
-            aria-label="Filter reviews"
+            placeholder={t('admin:reviews.filterPlaceholder')}
+            aria-label={t('admin:reviews.filterAria')}
             className="max-w-sm"
           />
         </ToolbarCard>
@@ -207,25 +216,30 @@ export function ManageReviewsPage() {
           >
             <DataPanel
               footer={
-                <TablePager page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+                <TablePager
+                  page={page}
+                  totalPages={totalPages}
+                  total={total}
+                  onPageChange={setPage}
+                />
               }
             >
               <Table startIndex={(page - 1) * PAGE_SIZE}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Author</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Status actions</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('admin:reviews.headers.author')}</TableHead>
+                    <TableHead>{t('admin:reviews.headers.target')}</TableHead>
+                    <TableHead>{t('admin:reviews.headers.rating')}</TableHead>
+                    <TableHead>{t('admin:reviews.headers.status')}</TableHead>
+                    <TableHead className="text-right">{t('admin:reviews.statusActions')}</TableHead>
+                    <TableHead className="text-right">{t('common:actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-muted-foreground">
-                        No reviews match.
+                        {t('admin:reviews.noMatch')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -251,7 +265,9 @@ export function ManageReviewsPage() {
                         </TableCell>
                         <TableCell className="tabular-nums">{row.rating}/5</TableCell>
                         <TableCell>
-                          <ReviewStatusBadge status={row.status} />
+                          <Badge variant={row.status === 'ACCEPTED' ? 'default' : 'outline'}>
+                            {statusLabel(row.status)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <RowActions>
@@ -262,7 +278,7 @@ export function ManageReviewsPage() {
                                 disabled={busyId === row.id}
                                 onClick={() => void setStatus(row.id, 'ACCEPTED')}
                               >
-                                Accept
+                                {t('common:accept')}
                               </Button>
                             ) : null}
                             {row.status !== 'REJECTED' ? (
@@ -273,7 +289,7 @@ export function ManageReviewsPage() {
                                 disabled={busyId === row.id}
                                 onClick={() => void setStatus(row.id, 'REJECTED')}
                               >
-                                Reject
+                                {t('common:reject')}
                               </Button>
                             ) : null}
                           </RowActions>
@@ -288,13 +304,15 @@ export function ManageReviewsPage() {
                               onClick={() => setViewing(row)}
                             >
                               <Eye />
-                              View
+                              {t('common:view')}
                             </Button>
                             <Button
                               type="button"
                               size="icon-sm"
                               variant="outline"
-                              aria-label={`Edit review by ${row.author.displayName}`}
+                              aria-label={t('admin:reviews.editAria', {
+                                name: row.author.displayName,
+                              })}
                               disabled={busyId === row.id}
                               onClick={() => setEditing(row)}
                             >
@@ -304,7 +322,9 @@ export function ManageReviewsPage() {
                               type="button"
                               size="icon-sm"
                               variant="destructive"
-                              aria-label={`Remove review by ${row.author.displayName}`}
+                              aria-label={t('admin:reviews.deleteAria', {
+                                name: row.author.displayName,
+                              })}
                               disabled={busyId === row.id}
                               onClick={() => setPendingDelete(row)}
                             >
@@ -330,17 +350,27 @@ export function ManageReviewsPage() {
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Review details</DialogTitle>
+            <DialogTitle>{t('admin:reviews.viewTitle')}</DialogTitle>
             <DialogDescription>
-              {viewing ? `Review by ${viewing.author.displayName}.` : 'Review details.'}
+              {viewing
+                ? t('admin:reviews.viewDescription', { name: viewing.author.displayName })
+                : t('admin:reviews.viewDescriptionFallback')}
             </DialogDescription>
           </DialogHeader>
           {viewing ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <ReadOnlyField id="review-view-author" label="Author" value={viewing.author.displayName} />
-              <ReadOnlyField id="review-view-email" label="Email" value={viewing.author.email} />
+              <ReadOnlyField
+                id="review-view-author"
+                label={t('admin:reviews.headers.author')}
+                value={viewing.author.displayName}
+              />
+              <ReadOnlyField
+                id="review-view-email"
+                label={t('common:email')}
+                value={viewing.author.email}
+              />
               <div className="grid gap-1.5 sm:col-span-2">
-                <Label htmlFor="review-view-target">Target</Label>
+                <Label htmlFor="review-view-target">{t('admin:reviews.headers.target')}</Label>
                 <div className="flex min-w-0 items-center gap-2">
                   <Input id="review-view-target" readOnly value={viewing.targetName} />
                   <Badge variant="outline" className="shrink-0">
@@ -348,18 +378,39 @@ export function ManageReviewsPage() {
                   </Badge>
                 </div>
               </div>
-              <ReadOnlyField id="review-view-rating" label="Rating" value={`${viewing.rating}/5`} />
-              <ReadOnlyField id="review-view-status" label="Status" value={reviewStatusLabel(viewing.status)} />
-              <ReadOnlyField id="review-view-created" label="Created" value={formatWhen(viewing.createdAt)} />
-              <ReadOnlyField id="review-view-updated" label="Updated" value={formatWhen(viewing.updatedAt)} />
+              <ReadOnlyField
+                id="review-view-rating"
+                label={t('admin:reviews.headers.rating')}
+                value={`${viewing.rating}/5`}
+              />
+              <ReadOnlyField
+                id="review-view-status"
+                label={t('admin:reviews.headers.status')}
+                value={statusLabel(viewing.status)}
+              />
+              <ReadOnlyField
+                id="review-view-created"
+                label={t('admin:reviews.headers.created')}
+                value={formatWhen(viewing.createdAt)}
+              />
+              <ReadOnlyField
+                id="review-view-updated"
+                label={t('admin:reviews.headers.updated')}
+                value={formatWhen(viewing.updatedAt)}
+              />
               <div className="sm:col-span-2">
-                <ReadOnlyField id="review-view-comment" label="Comment" value={viewing.comment} multiline />
+                <ReadOnlyField
+                  id="review-view-comment"
+                  label={t('common:comment')}
+                  value={viewing.comment}
+                  multiline
+                />
               </div>
             </div>
           ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setViewing(null)}>
-              Close
+              {t('common:close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -384,17 +435,25 @@ export function ManageReviewsPage() {
         onSaved={() => void remote.refetch()}
       />
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove review</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:reviews.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This deletes the review from {pendingDelete?.author.displayName ?? 'this author'}. This cannot be undone.
+              {t('admin:reviews.deleteDescription', {
+                name:
+                  pendingDelete?.author.displayName ?? t('admin:reviews.deleteDescriptionFallback'),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>Remove</AlertDialogAction>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmDelete()}>
+              {t('common:remove')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

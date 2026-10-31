@@ -1,4 +1,5 @@
-import { type FormEvent,useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import i18n from '@/i18n'
 import { ApiError } from '@/services/api'
 import {
   deleteMyManagerProfile,
@@ -34,25 +36,58 @@ const optionalUrl = z
   .trim()
   .max(500)
   .refine((value) => value === '' || z.string().url().safeParse(value).success, {
-    message: 'Enter a valid URL',
+    error: () => i18n.t('pm:additional.validUrl'),
   })
 
 const additionalSchema = z.object({
-  headline: z.string().trim().max(160, 'Headline must be at most 160 characters'),
-  bio: z.string().trim().max(4000, 'Bio must be at most 4000 characters'),
+  headline: z
+    .string()
+    .trim()
+    .max(160, { error: () => i18n.t('validation:maxLength', { max: 160 }) }),
+  bio: z
+    .string()
+    .trim()
+    .max(4000, { error: () => i18n.t('validation:maxLength', { max: 4000 }) }),
   yearsExperience: z.string().trim(),
-  specialty: z.string().trim().max(200, 'Specialty must be at most 200 characters'),
-  education: z.string().trim().max(2000, 'Education must be at most 2000 characters'),
-  certifications: z.string().trim().max(2000, 'Certifications must be at most 2000 characters'),
-  skills: z.string().trim().max(2000, 'Skills must be at most 2000 characters'),
-  languages: z.string().trim().max(500, 'Languages must be at most 500 characters'),
-  city: z.string().trim().max(80, 'City must be at most 80 characters'),
-  country: z.string().trim().max(80, 'Country must be at most 80 characters'),
+  specialty: z
+    .string()
+    .trim()
+    .max(200, { error: () => i18n.t('validation:maxLength', { max: 200 }) }),
+  education: z
+    .string()
+    .trim()
+    .max(2000, { error: () => i18n.t('validation:maxLength', { max: 2000 }) }),
+  certifications: z
+    .string()
+    .trim()
+    .max(2000, { error: () => i18n.t('validation:maxLength', { max: 2000 }) }),
+  skills: z
+    .string()
+    .trim()
+    .max(2000, { error: () => i18n.t('validation:maxLength', { max: 2000 }) }),
+  languages: z
+    .string()
+    .trim()
+    .max(500, { error: () => i18n.t('validation:maxLength', { max: 500 }) }),
+  city: z
+    .string()
+    .trim()
+    .max(80, { error: () => i18n.t('validation:maxLength', { max: 80 }) }),
+  country: z
+    .string()
+    .trim()
+    .max(80, { error: () => i18n.t('validation:maxLength', { max: 80 }) }),
   website: optionalUrl,
   linkedinUrl: optionalUrl,
   cvUrl: optionalUrl,
-  availability: z.string().trim().max(500, 'Availability must be at most 500 characters'),
-  projectTypes: z.string().trim().max(1000, 'Project types must be at most 1000 characters'),
+  availability: z
+    .string()
+    .trim()
+    .max(500, { error: () => i18n.t('validation:maxLength', { max: 500 }) }),
+  projectTypes: z
+    .string()
+    .trim()
+    .max(1000, { error: () => i18n.t('validation:maxLength', { max: 1000 }) }),
 })
 
 type AdditionalForm = z.infer<typeof additionalSchema>
@@ -105,6 +140,7 @@ function emptyToNull(value: string): string | null {
 }
 
 export function PmProfileAdditionalPanel() {
+  const { t } = useTranslation(['pm', 'common', 'validation'])
   const [form, setForm] = useState<AdditionalForm>(EMPTY_FORM)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof AdditionalForm, string>>>({})
   const [isSaving, setIsSaving] = useState(false)
@@ -151,7 +187,7 @@ export function PmProfileAdditionalPanel() {
       if (!Number.isFinite(years) || years < 0 || years > 80) {
         setFieldErrors((current) => ({
           ...current,
-          yearsExperience: 'Years of experience must be an integer from 0 to 80',
+          yearsExperience: t('additional.yearsRange'),
         }))
         return
       }
@@ -179,10 +215,10 @@ export function PmProfileAdditionalPanel() {
       })
       setForm(formFromProfile(result.data))
       setHasRecord(true)
-      toast.success('Additional info saved')
+      toast.success(t('additional.saved'))
       await remote.refetch()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save additional info')
+      toast.error(error instanceof ApiError ? error.message : t('additional.couldNotSave'))
     } finally {
       setIsSaving(false)
     }
@@ -203,10 +239,10 @@ export function PmProfileAdditionalPanel() {
       setHasRecord(false)
       setFieldErrors({})
       setConfirmClear(false)
-      toast.success('Additional info cleared')
+      toast.success(t('additional.cleared'))
       await remote.refetch()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not clear additional info')
+      toast.error(error instanceof ApiError ? error.message : t('additional.couldNotClear'))
     } finally {
       setIsDeleting(false)
     }
@@ -222,11 +258,8 @@ export function PmProfileAdditionalPanel() {
       >
         <Card size="sm">
           <CardHeader>
-            <CardTitle>CV & additional info</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Optional professional details for your civil engineering profile. Leave fields blank if
-              they do not apply.
-            </p>
+            <CardTitle>{t('additional.title')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t('additional.description')}</p>
           </CardHeader>
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={(event) => void onSubmit(event)}>
@@ -235,12 +268,12 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.headline) || undefined}
                 >
-                  <Label htmlFor="cv-headline">Professional headline</Label>
+                  <Label htmlFor="cv-headline">{t('additional.headline')}</Label>
                   <Input
                     id="cv-headline"
                     value={form.headline}
                     maxLength={160}
-                    placeholder="e.g. Civil engineer · Project manager"
+                    placeholder={t('additional.placeholderHeadline')}
                     aria-invalid={Boolean(fieldErrors.headline) || undefined}
                     onChange={(event) => setField('headline', event.target.value)}
                   />
@@ -251,13 +284,13 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.bio) || undefined}
                 >
-                  <Label htmlFor="cv-bio">Bio / summary</Label>
+                  <Label htmlFor="cv-bio">{t('additional.bio')}</Label>
                   <Textarea
                     id="cv-bio"
                     value={form.bio}
                     maxLength={4000}
                     rows={4}
-                    placeholder="Brief overview of your background and focus areas"
+                    placeholder={t('additional.placeholderBio')}
                     aria-invalid={Boolean(fieldErrors.bio) || undefined}
                     onChange={(event) => setField('bio', event.target.value)}
                   />
@@ -265,14 +298,14 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.yearsExperience) || undefined}>
-                  <Label htmlFor="cv-years">Years of experience</Label>
+                  <Label htmlFor="cv-years">{t('additional.yearsExperience')}</Label>
                   <Input
                     id="cv-years"
                     type="number"
                     min={0}
                     max={80}
                     value={form.yearsExperience}
-                    placeholder="e.g. 8"
+                    placeholder={t('additional.placeholderYears')}
                     aria-invalid={Boolean(fieldErrors.yearsExperience) || undefined}
                     onChange={(event) => setField('yearsExperience', event.target.value)}
                   />
@@ -280,12 +313,12 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.specialty) || undefined}>
-                  <Label htmlFor="cv-specialty">Specialty</Label>
+                  <Label htmlFor="cv-specialty">{t('additional.specialty')}</Label>
                   <Input
                     id="cv-specialty"
                     value={form.specialty}
                     maxLength={200}
-                    placeholder="e.g. Structural, roads, water"
+                    placeholder={t('additional.placeholderSpecialty')}
                     aria-invalid={Boolean(fieldErrors.specialty) || undefined}
                     onChange={(event) => setField('specialty', event.target.value)}
                   />
@@ -293,12 +326,12 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.languages) || undefined}>
-                  <Label htmlFor="cv-languages">Languages</Label>
+                  <Label htmlFor="cv-languages">{t('additional.languages')}</Label>
                   <Input
                     id="cv-languages"
                     value={form.languages}
                     maxLength={500}
-                    placeholder="e.g. Arabic, English, French"
+                    placeholder={t('additional.placeholderLanguages')}
                     aria-invalid={Boolean(fieldErrors.languages) || undefined}
                     onChange={(event) => setField('languages', event.target.value)}
                   />
@@ -306,12 +339,12 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.city) || undefined}>
-                  <Label htmlFor="cv-city">City</Label>
+                  <Label htmlFor="cv-city">{t('additional.city')}</Label>
                   <Input
                     id="cv-city"
                     value={form.city}
                     maxLength={80}
-                    placeholder="e.g. Beirut"
+                    placeholder={t('additional.placeholderCity')}
                     aria-invalid={Boolean(fieldErrors.city) || undefined}
                     onChange={(event) => setField('city', event.target.value)}
                   />
@@ -319,12 +352,12 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.country) || undefined}>
-                  <Label htmlFor="cv-country">Country</Label>
+                  <Label htmlFor="cv-country">{t('additional.country')}</Label>
                   <Input
                     id="cv-country"
                     value={form.country}
                     maxLength={80}
-                    placeholder="e.g. Lebanon"
+                    placeholder={t('additional.placeholderCountry')}
                     aria-invalid={Boolean(fieldErrors.country) || undefined}
                     onChange={(event) => setField('country', event.target.value)}
                   />
@@ -332,12 +365,12 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.availability) || undefined}>
-                  <Label htmlFor="cv-availability">Availability</Label>
+                  <Label htmlFor="cv-availability">{t('additional.availability')}</Label>
                   <Input
                     id="cv-availability"
                     value={form.availability}
                     maxLength={500}
-                    placeholder="e.g. Available for new projects Q2"
+                    placeholder={t('additional.placeholderAvailability')}
                     aria-invalid={Boolean(fieldErrors.availability) || undefined}
                     onChange={(event) => setField('availability', event.target.value)}
                   />
@@ -345,13 +378,13 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.website) || undefined}>
-                  <Label htmlFor="cv-website">Website</Label>
+                  <Label htmlFor="cv-website">{t('additional.website')}</Label>
                   <Input
                     id="cv-website"
                     type="url"
                     value={form.website}
                     maxLength={500}
-                    placeholder="https://…"
+                    placeholder={t('additional.placeholderWebsite')}
                     aria-invalid={Boolean(fieldErrors.website) || undefined}
                     onChange={(event) => setField('website', event.target.value)}
                   />
@@ -359,13 +392,13 @@ export function PmProfileAdditionalPanel() {
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.linkedinUrl) || undefined}>
-                  <Label htmlFor="cv-linkedin">LinkedIn</Label>
+                  <Label htmlFor="cv-linkedin">{t('additional.linkedinUrl')}</Label>
                   <Input
                     id="cv-linkedin"
                     type="url"
                     value={form.linkedinUrl}
                     maxLength={500}
-                    placeholder="https://linkedin.com/in/…"
+                    placeholder={t('additional.placeholderLinkedin')}
                     aria-invalid={Boolean(fieldErrors.linkedinUrl) || undefined}
                     onChange={(event) => setField('linkedinUrl', event.target.value)}
                   />
@@ -376,13 +409,13 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.cvUrl) || undefined}
                 >
-                  <Label htmlFor="cv-url">CV link</Label>
+                  <Label htmlFor="cv-url">{t('additional.cvUrl')}</Label>
                   <Input
                     id="cv-url"
                     type="url"
                     value={form.cvUrl}
                     maxLength={500}
-                    placeholder="https://… link to your CV or portfolio PDF"
+                    placeholder={t('additional.placeholderCvUrl')}
                     aria-invalid={Boolean(fieldErrors.cvUrl) || undefined}
                     onChange={(event) => setField('cvUrl', event.target.value)}
                   />
@@ -393,13 +426,13 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.education) || undefined}
                 >
-                  <Label htmlFor="cv-education">Education</Label>
+                  <Label htmlFor="cv-education">{t('additional.education')}</Label>
                   <Textarea
                     id="cv-education"
                     value={form.education}
                     maxLength={2000}
                     rows={3}
-                    placeholder="Degrees, institutions, years"
+                    placeholder={t('additional.placeholderEducation')}
                     aria-invalid={Boolean(fieldErrors.education) || undefined}
                     onChange={(event) => setField('education', event.target.value)}
                   />
@@ -410,13 +443,13 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.certifications) || undefined}
                 >
-                  <Label htmlFor="cv-certifications">Certifications</Label>
+                  <Label htmlFor="cv-certifications">{t('additional.certifications')}</Label>
                   <Textarea
                     id="cv-certifications"
                     value={form.certifications}
                     maxLength={2000}
                     rows={3}
-                    placeholder="Licenses, PE, PMP, safety certs…"
+                    placeholder={t('additional.placeholderCertifications')}
                     aria-invalid={Boolean(fieldErrors.certifications) || undefined}
                     onChange={(event) => setField('certifications', event.target.value)}
                   />
@@ -427,13 +460,13 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.skills) || undefined}
                 >
-                  <Label htmlFor="cv-skills">Skills</Label>
+                  <Label htmlFor="cv-skills">{t('additional.skills')}</Label>
                   <Textarea
                     id="cv-skills"
                     value={form.skills}
                     maxLength={2000}
                     rows={3}
-                    placeholder="Estimating, site supervision, AutoCAD…"
+                    placeholder={t('additional.placeholderSkills')}
                     aria-invalid={Boolean(fieldErrors.skills) || undefined}
                     onChange={(event) => setField('skills', event.target.value)}
                   />
@@ -444,13 +477,13 @@ export function PmProfileAdditionalPanel() {
                   className="sm:col-span-2 xl:col-span-3"
                   data-invalid={Boolean(fieldErrors.projectTypes) || undefined}
                 >
-                  <Label htmlFor="cv-project-types">Preferred project types</Label>
+                  <Label htmlFor="cv-project-types">{t('additional.projectTypes')}</Label>
                   <Textarea
                     id="cv-project-types"
                     value={form.projectTypes}
                     maxLength={1000}
                     rows={3}
-                    placeholder="Residential, infrastructure, fit-out…"
+                    placeholder={t('additional.placeholderProjectTypes')}
                     aria-invalid={Boolean(fieldErrors.projectTypes) || undefined}
                     onChange={(event) => setField('projectTypes', event.target.value)}
                   />
@@ -465,10 +498,10 @@ export function PmProfileAdditionalPanel() {
                   disabled={isSaving || isDeleting}
                   onClick={() => setConfirmClear(true)}
                 >
-                  Clear
+                  {t('additional.clear')}
                 </Button>
                 <Button type="submit" disabled={isSaving || isDeleting}>
-                  {isSaving ? 'Saving…' : 'Save additional info'}
+                  {isSaving ? t('common:saving') : t('additional.save')}
                 </Button>
               </div>
             </form>
@@ -479,17 +512,15 @@ export function PmProfileAdditionalPanel() {
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear additional info?</AlertDialogTitle>
+            <AlertDialogTitle>{t('additional.clearTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {hasRecord
-                ? 'This permanently removes your saved CV and additional details.'
-                : 'This clears the form fields on this page.'}
+              {hasRecord ? t('additional.clearDescription') : t('additional.clearFormDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction disabled={isDeleting} onClick={() => void onClear()}>
-              {isDeleting ? 'Clearing…' : 'Clear'}
+              {isDeleting ? t('additional.clearing') : t('additional.clear')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

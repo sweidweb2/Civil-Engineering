@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { cn } from 'cn'
 import { Check, ExternalLink, Loader2, Plus, Save, Trash2, Upload } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+
+import { cn } from '@/lib/utils'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ContentSkeleton } from '@/components/feedback/skeletons'
@@ -19,7 +21,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { type Category, listCategories } from '@/services/categories'
@@ -128,6 +136,7 @@ function StepperFileThumb({
   name: string | null
   isBusy?: boolean
 }) {
+  const { t } = useTranslation('projects')
   const [url, setUrl] = useState<string | null>(null)
   const showImage = isImageMime(mime)
 
@@ -156,7 +165,7 @@ function StepperFileThumb({
       {url ? (
         <img
           src={url}
-          alt={name ?? 'Uploaded image'}
+          alt={name ?? t('uploadedImageAlt')}
           className="size-full object-cover object-center"
         />
       ) : (
@@ -201,6 +210,7 @@ function stepperColumnWidthRem(count: number): number {
 }
 
 export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProps) {
+  const { t } = useTranslation(['projects', 'common'])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<string, StepperValue>>({})
   const [isSaving, setIsSaving] = useState(false)
@@ -238,8 +248,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     queryKey: ['project-stepper-detail', projectId, selectedId ?? 'none'],
     enabled: Boolean(selectedId),
   })
-  const detail =
-    detailRemote.status === 'success' ? detailRemote.data.data : null
+  const detail = detailRemote.status === 'success' ? detailRemote.data.data : null
 
   /** Re-hydrate draft only when switching steps — file auto-save must not wipe other edits. */
   const hydratedStepIdRef = useRef<string | null>(null)
@@ -274,8 +283,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   const categories: Category[] =
     categoriesRemote.status === 'success' ? categoriesRemote.data.data : []
 
-  const addTypeCode =
-    types.find((type) => type.id === addTypeId)?.code.toUpperCase() ?? ''
+  const addTypeCode = types.find((type) => type.id === addTypeId)?.code.toUpperCase() ?? ''
 
   useEffect(() => {
     if (!addOpen || types.length === 0) return
@@ -317,11 +325,11 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
           return { id: input.id, value: raw }
         }),
       )
-      toast.success('Stepper values saved')
+      toast.success(t('projects:valuesSaved'))
       applyDetail(result.data)
       syncDraftFromDetail(result.data)
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save values')
+      toast.error(error instanceof ApiError ? error.message : t('projects:couldNotSaveValues'))
     } finally {
       setIsSaving(false)
     }
@@ -331,15 +339,15 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     if (!selectedId || !detail) return
     const label = addLabel.trim()
     if (!label) {
-      toast.error('Label is required')
+      toast.error(t('projects:labelRequired'))
       return
     }
     if (!addTypeId) {
-      toast.error('Input type is required')
+      toast.error(t('projects:inputTypeRequired'))
       return
     }
     if (addTypeCode === 'CATEGORY' && !addCategoryId) {
-      toast.error('Category is required for category listing inputs')
+      toast.error(t('projects:categoryRequired'))
       return
     }
     setIsAdding(true)
@@ -350,9 +358,9 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         categoryId: addTypeCode === 'CATEGORY' ? addCategoryId : null,
       })
       if (result.meta?.orderAdjusted) {
-        toast.message(`Order set to ${result.meta.orderNb} (next available slot).`)
+        toast.message(t('projects:orderAdjusted', { order: result.meta.orderNb }))
       }
-      toast.message('Project input added')
+      toast.message(t('projects:inputAdded'))
       setAddOpen(false)
       setAddLabel('')
       setAddCategoryId('')
@@ -365,7 +373,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         [result.data.id]: draftValueForInput(result.data),
       }))
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not add input')
+      toast.error(error instanceof ApiError ? error.message : t('projects:couldNotAddInput'))
     } finally {
       setIsAdding(false)
     }
@@ -391,12 +399,12 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         ...current,
         [inputId]: saved ? draftValueForInput(saved) : null,
       }))
-      toast.success('File saved')
+      toast.success(t('projects:fileSaved'))
     } catch (error) {
       if (uploadedId) {
         void deleteFile(uploadedId).catch(() => undefined)
       }
-      toast.error(error instanceof ApiError ? error.message : 'Could not upload file')
+      toast.error(error instanceof ApiError ? error.message : t('projects:couldNotUploadFile'))
     } finally {
       setBusyInputId(null)
     }
@@ -411,9 +419,9 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       ])
       applyDetail(result.data)
       setDraft((current) => ({ ...current, [inputId]: null }))
-      toast.message('File cleared')
+      toast.message(t('projects:fileCleared'))
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not clear file')
+      toast.error(error instanceof ApiError ? error.message : t('projects:couldNotClearFile'))
     } finally {
       setBusyInputId(null)
     }
@@ -424,7 +432,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       const result = await getDownloadUrl(fileId)
       window.open(result.downloadUrl, '_blank', 'noopener,noreferrer')
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not open file')
+      toast.error(error instanceof ApiError ? error.message : t('projects:couldNotOpenFile'))
     }
   }
 
@@ -433,7 +441,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     setBusyInputId(inputId)
     try {
       await deleteProjectStepInput(projectId, selectedId, inputId)
-      toast.message('Input removed from this project step')
+      toast.message(t('projects:inputRemoved'))
       const nextInputs = detail.inputs.filter((input) => input.id !== inputId)
       applyDetail({ ...detail, inputs: nextInputs })
       setDraft((current) => {
@@ -442,7 +450,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         return next
       })
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not remove input')
+      toast.error(error instanceof ApiError ? error.message : t('projects:couldNotRemoveInput'))
     } finally {
       setBusyInputId(null)
     }
@@ -451,11 +459,8 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Steppers</CardTitle>
-        <CardDescription>
-          Project workflow as connected nodes. Done steps fill in; the current open step is
-          highlighted. Select any node to edit its fields.
-        </CardDescription>
+        <CardTitle>{t('projects:steppers')}</CardTitle>
+        <CardDescription>{t('projects:steppersDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <AsyncState
@@ -465,27 +470,25 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
           loadingFallback={<ContentSkeleton />}
         >
           {nodes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No steppers were assigned to this project. Add active steps before creating new
-              projects.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('projects:noSteppers')}</p>
           ) : (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                 <span>
-                  Progress{' '}
-                  <span className="font-medium text-foreground tabular-nums">
-                    {completedCount}/{nodes.length}
-                  </span>{' '}
-                  complete
+                  {t('projects:progressComplete', {
+                    done: completedCount,
+                    total: nodes.length,
+                  })}
                 </span>
-                <span>Click a node to open its fields</span>
+                <span>{t('projects:clickNode')}</span>
               </div>
 
               <div className="overflow-x-auto pb-2 pt-2">
                 <ol
                   className="mx-auto flex w-max"
-                  style={{ ['--stepper-col' as string]: `${stepperColumnWidthRem(nodes.length)}rem` }}
+                  style={{
+                    ['--stepper-col' as string]: `${stepperColumnWidthRem(nodes.length)}rem`,
+                  }}
                 >
                   {nodes.map((node, index) => {
                     const phase = resolveNodePhase(nodes, node.id)
@@ -540,7 +543,10 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                             )}
                           >
                             {phase === 'done' ? (
-                              <Check className="size-5 transition-transform duration-300" strokeWidth={2.5} />
+                              <Check
+                                className="size-5 transition-transform duration-300"
+                                strokeWidth={2.5}
+                              />
                             ) : (
                               index + 1
                             )}
@@ -559,7 +565,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                             </span>
                             <span className="text-[11px] tabular-nums text-muted-foreground">
                               {node.inputCount === 0
-                                ? 'No inputs'
+                                ? t('projects:noInputs')
                                 : `${node.filledCount}/${node.inputCount} filled`}
                             </span>
                             {phase === 'done' ? (
@@ -567,7 +573,9 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                 Done
                               </Badge>
                             ) : phase === 'current' ? (
-                              <Badge className="mx-auto h-5 px-1.5 text-[10px]">Current</Badge>
+                              <Badge className="mx-auto h-5 px-1.5 text-[10px]">
+                                {t('common:current')}
+                              </Badge>
                             ) : (
                               <Badge variant="outline" className="mx-auto h-5 px-1.5 text-[10px]">
                                 Next
@@ -594,13 +602,18 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                         <div>
                           <h3 className="text-sm font-semibold">{detail.name}</h3>
                           <p className="text-xs text-muted-foreground">
-                            Fill fields for this stepper. All values are optional.
+                            {t('projects:fillFields')}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Button type="button" size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAddOpen(true)}
+                          >
                             <Plus />
-                            Add input
+                            {t('projects:addInput')}
                           </Button>
                           <Button
                             type="button"
@@ -609,7 +622,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                             disabled={isSaving || detail.inputs.length === 0}
                           >
                             <Save />
-                            {isSaving ? 'Saving…' : 'Save values'}
+                            {isSaving ? t('projects:savingValues') : t('projects:saveValues')}
                           </Button>
                         </div>
                       </div>
@@ -677,12 +690,12 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                     }
                                   >
                                     <SelectTrigger id={`stepper-${input.id}`} className="w-full">
-                                      <SelectValue placeholder="Unset" />
+                                      <SelectValue placeholder={t('projects:unset')} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="unset">Unset</SelectItem>
-                                      <SelectItem value="yes">Yes</SelectItem>
-                                      <SelectItem value="no">No</SelectItem>
+                                      <SelectItem value="unset">{t('projects:unset')}</SelectItem>
+                                      <SelectItem value="yes">{t('common:yes')}</SelectItem>
+                                      <SelectItem value="no">{t('common:no')}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </StepperInputShell>
@@ -770,14 +783,12 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                               const selectedFileId = fileIdFromStepperValue(value)
                               const name =
                                 fileDisplayName(value) ??
-                                (isFileSnapshot(input.value) &&
-                                input.value.id === selectedFileId
+                                (isFileSnapshot(input.value) && input.value.id === selectedFileId
                                   ? input.value.originalName
                                   : null)
                               const mime =
                                 fileMime(value) ??
-                                (isFileSnapshot(input.value) &&
-                                input.value.id === selectedFileId
+                                (isFileSnapshot(input.value) && input.value.id === selectedFileId
                                   ? input.value.mime
                                   : null)
                               const isBusy = busyInputId === input.id
@@ -815,7 +826,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                       >
                                         {selectedFileId
                                           ? (name ?? selectedFileId)
-                                          : 'No file selected'}
+                                          : t('projects:noFileSelected')}
                                       </p>
                                     </div>
                                     <div className="flex shrink-0 flex-wrap justify-end gap-1">
@@ -835,7 +846,9 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                         ) : (
                                           <Upload className="size-3.5" />
                                         )}
-                                        {selectedFileId ? 'Replace' : 'Upload'}
+                                        {selectedFileId
+                                          ? t('projects:replaceFile')
+                                          : t('common:upload')}
                                       </Button>
                                       {selectedFileId ? (
                                         <>
@@ -844,7 +857,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                             variant="ghost"
                                             size="icon-sm"
                                             disabled={isBusy}
-                                            aria-label="Open file"
+                                            aria-label={t('projects:openFile')}
                                             onClick={() => void openStepperFile(selectedFileId)}
                                           >
                                             <ExternalLink className="size-3.5" />
@@ -854,7 +867,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                                             variant="ghost"
                                             size="icon-sm"
                                             disabled={isBusy}
-                                            aria-label="Clear file"
+                                            aria-label={t('projects:clearFile')}
                                             onClick={() => void clearStepperFile(input.id)}
                                           >
                                             <Trash2 className="size-3.5" />
@@ -905,24 +918,24 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add project input</DialogTitle>
+            <DialogTitle>{t('projects:addProjectInput')}</DialogTitle>
             <DialogDescription>
               This field is only for the selected stepper on this project.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="project-input-label">Label</Label>
+              <Label htmlFor="project-input-label">{t('projects:inputLabel')}</Label>
               <Input
                 id="project-input-label"
                 value={addLabel}
                 maxLength={120}
-                placeholder="Input label"
+                placeholder={t('projects:inputLabelPlaceholder')}
                 onChange={(event) => setAddLabel(event.target.value)}
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="project-input-type">Input type</Label>
+              <Label htmlFor="project-input-type">{t('projects:inputType')}</Label>
               <Select
                 items={types.map((type) => ({
                   value: type.id,
@@ -937,7 +950,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                 }}
               >
                 <SelectTrigger id="project-input-type" className="w-full">
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder={t('projects:selectInputType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {types.map((type) => (
@@ -950,7 +963,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
             </div>
             {addTypeCode === 'CATEGORY' ? (
               <div className="grid gap-1.5">
-                <Label htmlFor="project-input-category">Category</Label>
+                <Label htmlFor="project-input-category">{t('common:category')}</Label>
                 <Select
                   items={categories.map((category) => ({
                     value: category.id,
@@ -964,7 +977,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                   }}
                 >
                   <SelectTrigger id="project-input-category" className="w-full">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t('projects:selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
@@ -980,11 +993,16 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
             ) : null}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={isAdding}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAddOpen(false)}
+              disabled={isAdding}
+            >
+              {t('common:cancel')}
             </Button>
             <Button type="button" onClick={() => void addInput()} disabled={isAdding}>
-              {isAdding ? 'Adding…' : 'Add'}
+              {isAdding ? t('projects:adding') : t('common:add')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1021,6 +1039,7 @@ function CategoryListingSelect({
   snapshotLabel: string | null
   onChange: (listingId: string | null) => void
 }) {
+  const { t } = useTranslation(['projects', 'common'])
   const loadListings = useCallback(async () => {
     if (!categoryId) {
       return {
@@ -1043,27 +1062,29 @@ function CategoryListingSelect({
   const listings = remote.status === 'success' ? remote.data.data : []
   const options =
     value && !listings.some((listing) => listing.id === value) && snapshotLabel
-      ? [{ id: value, name: `${snapshotLabel} (saved)` }, ...listings]
+      ? [{ id: value, name: t('projects:savedListing', { name: snapshotLabel }) }, ...listings]
       : listings
 
   if (!categoryId) {
-    return <p className="text-sm text-muted-foreground">This field has no category binding.</p>
+    return <p className="text-sm text-muted-foreground">{t('projects:noCategoryBinding')}</p>
   }
 
   return (
     <Select
       items={[
-        { value: 'unset', label: 'Unset' },
+        { value: 'unset', label: t('projects:unset') },
         ...options.map((listing) => ({ value: listing.id, label: listing.name })),
       ]}
       value={value ?? 'unset'}
       onValueChange={(next) => onChange(!next || next === 'unset' ? null : next)}
     >
       <SelectTrigger id={id} className="w-full">
-        <SelectValue placeholder={remote.isLoading ? 'Loading…' : 'Select listing'} />
+        <SelectValue
+          placeholder={remote.isLoading ? t('common:loading') : t('projects:selectListing')}
+        />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="unset">Unset</SelectItem>
+        <SelectItem value="unset">{t('projects:unset')}</SelectItem>
         {options.map((listing) => (
           <SelectItem key={listing.id} value={listing.id}>
             {listing.name}

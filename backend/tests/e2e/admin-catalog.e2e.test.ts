@@ -51,7 +51,6 @@ describe('backend e2e (admin catalog)', () => {
       .send({
         providerId,
         categoryId,
-        type: 'MATERIAL',
         name: 'Crushed stone',
         unit: 'ton',
         currency: 'usd',

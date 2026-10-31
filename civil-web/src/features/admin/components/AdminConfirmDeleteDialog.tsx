@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,11 +25,12 @@ export function AdminConfirmDeleteDialog({
   open,
   title,
   description,
-  confirmLabel = 'Remove',
+  confirmLabel,
   confirmDisabled = false,
   onOpenChange,
   onConfirm,
 }: AdminConfirmDeleteDialogProps) {
+  const { t } = useTranslation('common')
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -36,9 +39,9 @@ export function AdminConfirmDeleteDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
           <AlertDialogAction disabled={confirmDisabled} onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t('remove')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

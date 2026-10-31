@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
@@ -17,7 +18,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Sheet,
   SheetContent,
@@ -70,6 +77,7 @@ type InputForm = {
 const EMPTY_FORM: InputForm = { label: '', inputTypeId: '', orderNb: '', categoryId: '' }
 
 export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInputsPanelProps) {
+  const { t } = useTranslation(['admin', 'common'])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<StepInput | null>(null)
   const [form, setForm] = useState<InputForm>(EMPTY_FORM)
@@ -109,10 +117,10 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
       toast.error(
         typesRemote.error instanceof ApiError
           ? typesRemote.error.message
-          : 'Could not load input types',
+          : t('admin:stepInputs.couldNotLoadTypes'),
       )
     }
-  }, [typesRemote.error, typesRemote.isError])
+  }, [t, typesRemote.error, typesRemote.isError])
 
   function openCreate() {
     setEditing(null)
@@ -138,20 +146,20 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
     if (!step) return
     const label = form.label.trim()
     if (!label) {
-      toast.error('Label is required (1–120 characters)')
+      toast.error(t('admin:stepInputs.labelRequired'))
       return
     }
     if (label.length > 120) {
-      toast.error('Label must be at most 120 characters')
+      toast.error(t('admin:stepInputs.labelMax'))
       return
     }
     if (!form.inputTypeId) {
-      toast.error('Input type is required')
+      toast.error(t('admin:stepInputs.typeRequired'))
       return
     }
     const typeCode = resolveTypeCode(types, editing, form.inputTypeId)
     if (typeCode === 'CATEGORY' && !form.categoryId) {
-      toast.error('Category is required for category listing inputs')
+      toast.error(t('admin:stepInputs.categoryRequired'))
       return
     }
 
@@ -169,7 +177,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
     if (orderRaw !== '') {
       const orderNb = Number.parseInt(orderRaw, 10)
       if (!Number.isFinite(orderNb) || orderNb < 0 || orderNb > 10000) {
-        toast.error('Order must be an integer from 0 to 10000')
+        toast.error(t('admin:stepInputs.orderInvalid'))
         return
       }
       payload.orderNb = orderNb
@@ -181,13 +189,13 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
         ? await updateStepInput(step.id, editing.id, payload)
         : await createStepInput(step.id, payload)
       setDialogOpen(false)
-      toast.message(editing ? 'Input updated' : 'Input added')
+      toast.message(editing ? t('admin:stepInputs.updated') : t('admin:stepInputs.created'))
       const adjusted = notifyOrderAdjusted(result.meta)
       if (adjusted) toast.message(adjusted)
       await remote.refetch()
       onChanged()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not save input')
+      toast.error(error instanceof ApiError ? error.message : t('admin:stepInputs.couldNotSave'))
     } finally {
       setIsSaving(false)
     }
@@ -198,11 +206,11 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
     setBusyId(row.id)
     try {
       await deleteStepInput(step.id, row.id)
-      toast.message('Input removed (existing projects keep their cloned fields)')
+      toast.message(t('admin:stepInputs.removedToast'))
       await remote.refetch()
       onChanged()
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not remove input')
+      toast.error(error instanceof ApiError ? error.message : t('admin:stepInputs.couldNotRemove'))
     } finally {
       setBusyId(null)
     }
@@ -214,7 +222,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
           {
             id: editing.inputTypeId,
             code: editing.inputTypeCode,
-            label: `${editing.inputTypeLabel} (disabled type)`,
+            label: t('admin:stepInputs.disabledType', { label: editing.inputTypeLabel }),
             status: 'INACTIVE' as const,
             sortOrder: 0,
             usageCount: 0,
@@ -232,7 +240,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
           {
             id: editing.categoryId,
             kind: 'MATERIAL' as const,
-            name: 'Bound category',
+            name: t('admin:stepInputs.boundCategory'),
             slug: '',
             parentId: null,
             parentName: null,
@@ -252,21 +260,23 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="flex w-full flex-col sm:max-w-xl">
           <SheetHeader>
-            <SheetTitle>Step inputs</SheetTitle>
+            <SheetTitle>{t('admin:stepInputs.title')}</SheetTitle>
             <SheetDescription>
-              Template fields for {step?.name ?? 'this step'}. New projects clone these; editing here
-              does not change fields already cloned onto existing projects.
+              {t('admin:stepInputs.description', {
+                name: step?.name ?? t('admin:stepInputs.thisStep'),
+              })}
             </SheetDescription>
           </SheetHeader>
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {rows.length}
-              {totalInputs > rows.length ? ` of ${totalInputs}` : ''} input(s)
+              {totalInputs > rows.length
+                ? t('admin:stepInputs.countOf', { shown: rows.length, total: totalInputs })
+                : t('admin:stepInputs.count', { count: rows.length })}
             </p>
             <Button type="button" size="sm" onClick={openCreate} disabled={types.length === 0}>
               <Plus />
-              Add input
+              {t('admin:stepInputs.addInput')}
             </Button>
           </div>
 
@@ -280,17 +290,17 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Label</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('common:order')}</TableHead>
+                    <TableHead>{t('common:label')}</TableHead>
+                    <TableHead>{t('common:type')}</TableHead>
+                    <TableHead className="text-right">{t('common:actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-muted-foreground">
-                        No inputs on this step yet.
+                        {t('admin:stepInputs.empty')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -307,7 +317,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
                               type="button"
                               size="icon-sm"
                               variant="outline"
-                              aria-label={`Edit ${row.label}`}
+                              aria-label={t('admin:stepInputs.editAria', { name: row.label })}
                               disabled={busyId === row.id}
                               onClick={() => openEdit(row)}
                             >
@@ -317,7 +327,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
                               type="button"
                               size="icon-sm"
                               variant="destructive"
-                              aria-label={`Delete ${row.label}`}
+                              aria-label={t('admin:stepInputs.deleteAria', { name: row.label })}
                               disabled={busyId === row.id}
                               onClick={() => void remove(row)}
                             >
@@ -338,24 +348,26 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit input' : 'Add input'}</DialogTitle>
-            <DialogDescription>
-              Leave order empty to auto-assign the next free slot on this step.
-            </DialogDescription>
+            <DialogTitle>
+              {editing ? t('admin:stepInputs.editTitle') : t('admin:stepInputs.createTitle')}
+            </DialogTitle>
+            <DialogDescription>{t('admin:stepInputs.dialogDescription')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="step-input-label">Label</Label>
+              <Label htmlFor="step-input-label">{t('common:label')}</Label>
               <Input
                 id="step-input-label"
                 value={form.label}
                 maxLength={120}
-                placeholder="Input label"
-                onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
+                placeholder={t('admin:stepInputs.labelPlaceholder')}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, label: event.target.value }))
+                }
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="step-input-type">Input type</Label>
+              <Label htmlFor="step-input-type">{t('admin:stepInputs.inputType')}</Label>
               <Select
                 items={typeOptions.map((type) => ({
                   value: type.id,
@@ -373,7 +385,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
                 }}
               >
                 <SelectTrigger id="step-input-type" className="w-full">
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder={t('admin:stepInputs.selectType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {typeOptions.map((type) => (
@@ -386,7 +398,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
             </div>
             {selectedTypeCode === 'CATEGORY' ? (
               <div className="grid gap-1.5">
-                <Label htmlFor="step-input-category">Category</Label>
+                <Label htmlFor="step-input-category">{t('common:category')}</Label>
                 <Select
                   items={categoryOptions.map((category) => ({
                     value: category.id,
@@ -400,7 +412,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
                   }}
                 >
                   <SelectTrigger id="step-input-category" className="w-full">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t('admin:stepInputs.selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>
                     {categoryOptions.map((category) => (
@@ -415,14 +427,14 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
               </div>
             ) : null}
             <div className="grid gap-1.5">
-              <Label htmlFor="step-input-order">Order (optional)</Label>
+              <Label htmlFor="step-input-order">{t('admin:stepInputs.orderOptional')}</Label>
               <Input
                 id="step-input-order"
                 type="number"
                 min={0}
                 max={10000}
                 value={form.orderNb}
-                placeholder="Auto"
+                placeholder={t('common:auto')}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, orderNb: event.target.value }))
                 }
@@ -430,16 +442,20 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isSaving}
+            >
+              {t('common:cancel')}
             </Button>
             <Button type="button" onClick={() => void save()} disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t('common:saving') : t('common:save')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </>
   )
 }

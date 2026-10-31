@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { Input } from '@/components/ui/input'
@@ -11,16 +12,22 @@ type PortalPageSearchProps = {
 }
 
 export function PortalPageSearch({ nav }: PortalPageSearchProps) {
+  const { t } = useTranslation(['nav', 'common'])
   const navigate = useNavigate()
   const rootRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
 
+  const labeledNav = useMemo(
+    () => nav.map((item) => ({ ...item, label: t(item.labelKey) })),
+    [nav, t],
+  )
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return nav
-    return nav.filter((item) => item.label.toLowerCase().includes(q))
-  }, [nav, query])
+    if (!q) return labeledNav
+    return labeledNav.filter((item) => item.label.toLowerCase().includes(q))
+  }, [labeledNav, query])
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -40,7 +47,7 @@ export function PortalPageSearch({ nav }: PortalPageSearchProps) {
 
   return (
     <div ref={rootRef} className="relative w-full min-w-0">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Search className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={query}
         onChange={(event) => {
@@ -57,11 +64,11 @@ export function PortalPageSearch({ nav }: PortalPageSearchProps) {
             setOpen(false)
           }
         }}
-        placeholder="Search pages…"
-        aria-label="Search portal pages"
+        placeholder={t('nav:searchPages')}
+        aria-label={t('nav:searchPages')}
         aria-expanded={open}
         aria-controls="portal-page-search-results"
-        className="bg-muted pl-8"
+        className="bg-muted ps-8"
       />
       {open ? (
         <ul
@@ -70,17 +77,17 @@ export function PortalPageSearch({ nav }: PortalPageSearchProps) {
           className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10"
         >
           {matches.length === 0 ? (
-            <li className="px-2 py-1.5 text-muted-foreground">No pages match.</li>
+            <li className="px-2 py-1.5 text-muted-foreground">{t('common:noResults')}</li>
           ) : (
             matches.map((item) => (
               <li key={item.to}>
                 <button
                   type="button"
                   role="option"
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start hover:bg-muted"
                   onClick={() => goTo(item)}
                 >
-                  <item.icon className="size-3.5 shrink-0 text-primary" />
+                  <item.icon className="size-3.5 shrink-0 text-muted-foreground" />
                   <span className="truncate">{item.label}</span>
                 </button>
               </li>

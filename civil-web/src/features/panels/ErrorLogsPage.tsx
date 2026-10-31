@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { AlertTriangle, FileWarning } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
@@ -30,7 +31,8 @@ function formatWhen(iso: string) {
 }
 
 export function ErrorLogsPage() {
-  useDocumentTitle('Error logs')
+  const { t } = useTranslation('admin')
+  useDocumentTitle(t('logs.errors.title'))
   const [page, setPage] = useState(1)
 
   const load = useCallback(() => listErrorLogs(page, PAGE_LIMIT), [page])
@@ -44,13 +46,13 @@ export function ErrorLogsPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Error logs"
-        description="Unexpected / 5xx failures persisted for SUPER review."
+        title={t('logs.errors.title')}
+        description={t('logs.errors.description')}
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={AlertTriangle} label="Errors" value={total} />
-        <StatCard icon={FileWarning} label="This page" value={rows.length} />
+        <StatCard icon={AlertTriangle} label={t('logs.errors.errors')} value={total} />
+        <StatCard icon={FileWarning} label={t('logs.thisPage')} value={rows.length} />
       </div>
 
       <AsyncState
@@ -67,18 +69,18 @@ export function ErrorLogsPage() {
           <Table startIndex={(page - 1) * PAGE_LIMIT}>
             <TableHeader>
               <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead>Path</TableHead>
+                <TableHead>{t('logs.when')}</TableHead>
+                <TableHead>{t('logs.errors.status')}</TableHead>
+                <TableHead>{t('logs.errors.code')}</TableHead>
+                <TableHead>{t('logs.errors.message')}</TableHead>
+                <TableHead>{t('logs.errors.path')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-muted-foreground">
-                    No errors logged yet.
+                    {t('logs.errors.empty')}
                   </TableCell>
                 </TableRow>
               ) : (

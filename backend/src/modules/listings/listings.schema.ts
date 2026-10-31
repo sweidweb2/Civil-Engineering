@@ -21,21 +21,15 @@ function optionalText(max: number, message: string) {
   return z.preprocess(blankToNull, z.string().max(max, message).nullable().optional())
 }
 
+function optionalId() {
+  return z.preprocess(blankToNull, z.string().trim().min(1).nullable().optional())
+}
+
 /** Decimal(18, 4): up to 14 digits before the point and 4 after. Kept as a string so binary floats are not introduced. */
 const DECIMAL_PATTERN = /^\d{1,14}(\.\d{1,4})?$/
 
 function decimalText(label: string) {
-  return z
-    .string()
-    .trim()
-    .regex(DECIMAL_PATTERN, `${label} must be a decimal with up to 4 places`)
-}
-
-function requiredDecimal(label: string) {
-  return z.preprocess(
-    (value) => (value === '' || value === null ? undefined : value),
-    decimalText(label),
-  )
+  return z.string().trim().regex(DECIMAL_PATTERN, `${label} must be a decimal with up to 4 places`)
 }
 
 function optionalDecimal(label: string) {
@@ -69,19 +63,55 @@ export const listListingsQuerySchema = paginationQuerySchema.extend({
   ),
 })
 
+type PricingFields = {
+  price?: string | null
+  priceMin?: string | null
+  priceMax?: string | null
+}
+
+function hasAmount(value: string | null | undefined) {
+  return value != null && value !== ''
+}
+
+function pricingModeOk(value: PricingFields) {
+  const hasPrice = hasAmount(value.price)
+  const hasMin = hasAmount(value.priceMin)
+  const hasMax = hasAmount(value.priceMax)
+  if (!hasPrice && !hasMin && !hasMax) return true
+  if (hasPrice) return !hasMin && !hasMax
+  if (hasMin && hasMax) return Number(value.priceMin) <= Number(value.priceMax)
+  return false
+}
+
+function updatePricingModeOk(value: PricingFields) {
+  const touched =
+    value.price !== undefined || value.priceMin !== undefined || value.priceMax !== undefined
+  if (!touched) return true
+  return pricingModeOk({
+    price: value.price === undefined ? null : value.price,
+    priceMin: value.priceMin === undefined ? null : value.priceMin,
+    priceMax: value.priceMax === undefined ? null : value.priceMax,
+  })
+}
+
 const listingFields = {
-  providerId: z.string().trim().min(1, 'Provider is required'),
-  categoryId: z.string().trim().min(1, 'Category is required'),
-  type: listingTypeSchema,
-  name: z.string().trim().min(1, 'Name is required').max(160, 'Name must be at most 160 characters'),
-  description: optionalText(4000, 'Description must be at most 4000 characters'),
-  brand: optionalText(120, 'Brand must be at most 120 characters'),
-  unit: z.string().trim().min(1, 'Unit is required').max(40, 'Unit must be at most 40 characters'),
-  currency: z
+  providerId: optionalId(),
+  categoryId: optionalId(),
+  name: z
     .string()
     .trim()
-    .length(3, 'Currency must be a 3-letter code'),
-  price: requiredDecimal('Price'),
+    .min(1, 'Name is required')
+    .max(160, 'Name must be at most 160 characters'),
+  description: optionalText(4000, 'Description must be at most 4000 characters'),
+  brand: optionalText(120, 'Brand must be at most 120 characters'),
+  unit: optionalText(40, 'Unit must be at most 40 characters'),
+  currency: z.preprocess(
+    blankToNull,
+    z.string().trim().length(3, 'Currency must be a 3-letter code').nullable().optional(),
+  ),
+  price: optionalDecimal('Price'),
+  priceMin: optionalDecimal('Min price'),
+  priceMax: optionalDecimal('Max price'),
   rentalPrice: optionalDecimal('Rental price'),
   rentalUnit: z.preprocess(blankToNull, rentalUnitSchema.nullable().optional()),
   quantityAvailable: optionalDecimal('Quantity'),
@@ -100,22 +130,29 @@ function updateRentalPairOk(value: { rentalPrice?: string | null; rentalUnit?: s
   return rentalPairOk(value)
 }
 
-export const createListingBodySchema = z.object(listingFields).refine(rentalPairOk, {
-  message: 'Rental price and rental unit must be set together',
-  path: ['rentalUnit'],
-})
+export const createListingBodySchema = z
+  .object(listingFields)
+  .refine(pricingModeOk, {
+    message: 'Provide a fixed price, or both min and max prices (not both modes)',
+    path: ['price'],
+  })
+  .refine(rentalPairOk, {
+    message: 'Rental price and rental unit must be set together',
+    path: ['rentalUnit'],
+  })
 
 export const updateListingBodySchema = z
   .object({
-    providerId: listingFields.providerId.optional(),
-    categoryId: listingFields.categoryId.optional(),
-    type: listingTypeSchema.optional(),
+    providerId: listingFields.providerId,
+    categoryId: listingFields.categoryId,
     name: listingFields.name.optional(),
     description: listingFields.description,
     brand: listingFields.brand,
-    unit: listingFields.unit.optional(),
-    currency: listingFields.currency.optional(),
-    price: requiredDecimal('Price').optional(),
+    unit: listingFields.unit,
+    currency: listingFields.currency,
+    price: listingFields.price,
+    priceMin: listingFields.priceMin,
+    priceMax: listingFields.priceMax,
     rentalPrice: listingFields.rentalPrice,
     rentalUnit: listingFields.rentalUnit,
     quantityAvailable: listingFields.quantityAvailable,
@@ -123,6 +160,10 @@ export const updateListingBodySchema = z
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: 'At least one field is required',
+  })
+  .refine(updatePricingModeOk, {
+    message: 'Provide a fixed price, or both min and max prices (not both modes)',
+    path: ['price'],
   })
   .refine(updateRentalPairOk, {
     message: 'Rental price and rental unit must be set together',

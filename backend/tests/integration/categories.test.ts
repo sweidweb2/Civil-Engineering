@@ -61,7 +61,9 @@ describe.skipIf(!hasDb)('categories API (integration)', () => {
     await createUser('MANAGER', 'cat-manager@example.com')
     const token = await login(app, 'cat-manager@example.com')
 
-    const list = await request(app).get('/api/v1/categories').set('Authorization', `Bearer ${token}`)
+    const list = await request(app)
+      .get('/api/v1/categories')
+      .set('Authorization', `Bearer ${token}`)
     expect(list.status).toBe(200)
     expect(list.body.meta.kindCounts).toMatchObject({
       MATERIAL: 0,
@@ -126,7 +128,6 @@ describe.skipIf(!hasDb)('categories API (integration)', () => {
       .send({
         providerId: provider.body.data.id,
         categoryId: category.body.data.id,
-        type: 'MATERIAL',
         name: 'Oak board',
         unit: 'm',
         currency: 'USD',

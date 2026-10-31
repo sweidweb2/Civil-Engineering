@@ -57,7 +57,7 @@
      30% secondary: card / sidebar / muted / quiet fills
      10% accent: primary on CTAs, active nav, focus, key numbers
      Mint stays chart-only (chart-2). */
-  --background: #eeeeee;
+  --background: #ffffff;
   --foreground: #1a2a27;
   --card: #ffffff;
   --card-foreground: #1a2a27;

@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppError } from '../../src/errors/app-error.js'
-import type { ListingRecord, ListingsRepository } from '../../src/modules/listings/listings.repository.js'
-import { createListingBodySchema, updateListingBodySchema } from '../../src/modules/listings/listings.schema.js'
+import type {
+  ListingRecord,
+  ListingsRepository,
+} from '../../src/modules/listings/listings.repository.js'
+import {
+  createListingBodySchema,
+  updateListingBodySchema,
+} from '../../src/modules/listings/listings.schema.js'
 import { createListingsService } from '../../src/modules/listings/listings.service.js'
 
 const admin = { id: 'admin-1', roles: ['ADMIN'] }
@@ -24,17 +30,23 @@ function record(overrides: Partial<ListingRecord> = {}): ListingRecord {
     unit: 'bag',
     currency: 'USD',
     price: '7.4',
+    priceMin: null,
+    priceMax: null,
     rentalPrice: null,
     rentalUnit: null,
     quantityAvailable: null,
     status: 'ACTIVE',
     createdAt: new Date('2026-10-01T00:00:00.000Z'),
     updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+    mainImageStoragePath: null,
     ...overrides,
   }
 }
 
-function setup(opts?: { listing?: ListingRecord | null; categoryKind?: ListingRecord['categoryKind'] }) {
+function setup(opts?: {
+  listing?: ListingRecord | null
+  categoryKind?: ListingRecord['categoryKind']
+}) {
   const listing = opts?.listing === undefined ? record() : opts.listing
   const repository: ListingsRepository = {
     findMany: vi.fn(async () => ({ items: listing ? [listing] : [], total: listing ? 1 : 0 })),
@@ -50,8 +62,9 @@ function setup(opts?: { listing?: ListingRecord | null; categoryKind?: ListingRe
     create: vi.fn(async (input) =>
       record({
         name: input.name,
-        type: input.type,
-        price: String(input.price),
+        price: input.price == null ? null : String(input.price),
+        priceMin: input.priceMin == null ? null : String(input.priceMin),
+        priceMax: input.priceMax == null ? null : String(input.priceMax),
         currency: input.currency,
         rentalPrice: input.rentalPrice == null ? null : String(input.rentalPrice),
         rentalUnit: input.rentalUnit,
@@ -68,17 +81,22 @@ function setup(opts?: { listing?: ListingRecord | null; categoryKind?: ListingRe
 const createInput = {
   providerId: 'prv-1',
   categoryId: 'cat-1',
-  type: 'MATERIAL' as const,
   name: 'Portland cement',
   unit: 'bag',
   currency: 'usd',
   price: '7.4',
 }
 
+const nameOnlyInput = {
+  name: 'Draft listing',
+}
+
 describe('listingsService', () => {
   it('forbids clients from listing records', async () => {
     const { service } = setup()
-    await expect(service.listListings({ page: 2, limit: 8 }, client)).rejects.toMatchObject({ status: 403 })
+    await expect(service.listListings({ page: 2, limit: 8 }, client)).rejects.toMatchObject({
+      status: 403,
+    })
   })
 
   it('returns the requested page and limit for managers', async () => {
@@ -91,7 +109,9 @@ describe('listingsService', () => {
   it('scopes the list and type counts to one provider', async () => {
     const { service, repository } = setup()
     await service.listListings({ page: 1, limit: 8, providerId: 'prv-1' }, admin)
-    expect(repository.findMany).toHaveBeenCalledWith(expect.objectContaining({ providerId: 'prv-1' }))
+    expect(repository.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ providerId: 'prv-1' }),
+    )
     expect(repository.countByType).toHaveBeenCalledWith('prv-1')
   })
 
@@ -99,17 +119,55 @@ describe('listingsService', () => {
     const { service, repository } = setup()
     const created = await service.createListing(createInput, admin)
     expect(created.name).toBe('Portland cement')
-    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD', price: '7.4', status: 'ACTIVE' }))
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currency: 'USD',
+        price: '7.4',
+        priceMin: null,
+        priceMax: null,
+        status: 'ACTIVE',
+      }),
+    )
   })
 
-  it('rejects a category whose kind does not match the listing type', async () => {
-    const { service } = setup({ categoryKind: 'EQUIPMENT' })
+  it('creates a name-only listing', async () => {
+    const { service, repository } = setup()
+    await service.createListing(nameOnlyInput, admin)
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Draft listing',
+        providerId: null,
+        categoryId: null,
+        unit: null,
+        currency: null,
+        price: null,
+        priceMin: null,
+        priceMax: null,
+      }),
+    )
+  })
+
+  it('creates a listing with a price range', async () => {
+    const { service, repository } = setup()
+    await service.createListing(
+      { ...createInput, price: null, priceMin: '10', priceMax: '20' },
+      admin,
+    )
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ price: null, priceMin: '10', priceMax: '20' }),
+    )
+  })
+
+  it('rejects a worker category for listings', async () => {
+    const { service } = setup({ categoryKind: 'WORKER' })
     await expect(service.createListing(createInput, admin)).rejects.toMatchObject({ status: 400 })
   })
 
   it('rejects a rental price without a rental unit', async () => {
     const { service } = setup()
-    await expect(service.createListing({ ...createInput, rentalPrice: '12' }, admin)).rejects.toBeInstanceOf(AppError)
+    await expect(
+      service.createListing({ ...createInput, rentalPrice: '12' }, admin),
+    ).rejects.toBeInstanceOf(AppError)
   })
 
   it('rejects an inactive or provider-scoped category', async () => {
@@ -171,5 +229,14 @@ describe('listing body schemas', () => {
   it('accepts an update that leaves the rental pair unchanged', () => {
     const parsed = updateListingBodySchema.safeParse({ name: 'Cement' })
     expect(parsed.success).toBe(true)
+  })
+
+  it('rejects fixed price mixed with a range', () => {
+    const parsed = createListingBodySchema.safeParse({
+      ...createInput,
+      priceMin: '1',
+      priceMax: '2',
+    })
+    expect(parsed.success).toBe(false)
   })
 })

@@ -1,39 +1,40 @@
-import { useEffect, useState } from 'react'
-import { cn } from 'cn'
+import { useEffect, useMemo, useState } from 'react'
 import { UserRound } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { cn } from '@/lib/utils'
 
 import { ProviderMainInfoPanel } from './components/ProviderMainInfoPanel'
 
 type ProfileSection = 'main'
-
-const SECTIONS: Array<{
-  id: ProfileSection
-  label: string
-  description: string
-  icon: typeof UserRound
-}> = [
-  {
-    id: 'main',
-    label: 'Main info',
-    description: 'Account, password, and brand image',
-    icon: UserRound,
-  },
-]
 
 function sectionFromParam(value: string | null): ProfileSection {
   return value === 'main' ? 'main' : 'main'
 }
 
 export function ProviderProfilePage() {
-  useDocumentTitle('Profile')
+  const { t } = useTranslation('provider')
+  useDocumentTitle(t('profile.title'))
   const [searchParams, setSearchParams] = useSearchParams()
   const [section, setSection] = useState<ProfileSection>(() =>
     sectionFromParam(searchParams.get('tab')),
+  )
+
+  const sections = useMemo(
+    () =>
+      [
+        {
+          id: 'main' as const,
+          label: t('profile.sections.main.label'),
+          description: t('profile.sections.main.description'),
+          icon: UserRound,
+        },
+      ] as const,
+    [t],
   )
 
   useEffect(() => {
@@ -49,18 +50,18 @@ export function ProviderProfilePage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Profile"
-        description="Manage your account details, password, and brand image."
+        title={t('profile.title')}
+        description={t('profile.description')}
       />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
         <Card size="sm" className="h-fit lg:sticky lg:top-20">
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <p className="text-sm text-muted-foreground">Choose a section to edit.</p>
+            <CardTitle>{t('profile.title')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t('profile.chooseSection')}</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 p-2 pt-0">
-            {SECTIONS.map((item) => {
+            {sections.map((item) => {
               const Icon = item.icon
               const isActive = section === item.id
               return (
@@ -69,7 +70,7 @@ export function ProviderProfilePage() {
                   type="button"
                   onClick={() => selectSection(item.id)}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
+                    'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-start transition-colors',
                     isActive
                       ? 'bg-muted text-foreground'
                       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -89,9 +90,7 @@ export function ProviderProfilePage() {
           </CardContent>
         </Card>
 
-        <div className="min-w-0">
-          {section === 'main' ? <ProviderMainInfoPanel /> : null}
-        </div>
+        <div className="min-w-0">{section === 'main' ? <ProviderMainInfoPanel /> : null}</div>
       </div>
     </div>
   )

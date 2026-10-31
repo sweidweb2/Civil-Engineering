@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useCallback, useEffect, useState } from 'react'
 import { Ban, CheckCircle2, Clock, Plus, Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -17,7 +18,6 @@ import {
   type Provider,
   type ProviderStatus,
   type ProviderStatusCounts,
-  providerStatusLabel,
 } from '@/services/providers'
 
 import { ProviderFormDialog } from './components/ProviderFormDialog'
@@ -26,17 +26,45 @@ import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: ProviderStatusCounts = { PENDING: 0, APPROVED: 0, SUSPENDED: 0 }
 
-function locationLabel(provider: Provider) {
-  return [provider.city, provider.country].filter(Boolean).join(', ') || provider.address || 'No location'
+function locationLabel(provider: Provider, fallback = '') {
+  return (
+    [provider.city, provider.country].filter(Boolean).join(', ') || provider.address || fallback
+  )
 }
 
 function ProviderStatusBadge({ status }: { status: ProviderStatus }) {
+  const { t } = useTranslation('admin')
   const variant = status === 'APPROVED' ? 'default' : 'outline'
-  return <Badge variant={variant}>{providerStatusLabel(status)}</Badge>
+  return <Badge variant={variant}>{t(`providerStatus.${status}`)}</Badge>
+}
+
+function ProviderCardCover({ logoUrl, variant }: { logoUrl: string | null; variant: number }) {
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    setFailed(false)
+  }, [logoUrl])
+
+  if (!logoUrl || failed) {
+    return <ProviderCardMedia variant={variant} />
+  }
+
+  return (
+    <div className="relative aspect-[2/1] w-full shrink-0 overflow-hidden bg-muted">
+      <img
+        src={logoUrl}
+        alt=""
+        decoding="async"
+        className="absolute inset-0 size-full object-cover object-center"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  )
 }
 
 export function ManageProvidersPage() {
-  useDocumentTitle('Manage providers')
+  const { t } = useTranslation(['admin', 'common'])
+  useDocumentTitle(t('admin:providers.documentTitle'))
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -55,29 +83,37 @@ export function ManageProvidersPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Manage providers"
-        description="One company per provider owner. Invisible until an admin approves."
+        title={t('admin:providers.title')}
+        description={t('admin:providers.description')}
         actions={
           <Button type="button" onClick={() => setCreateOpen(true)}>
             <Plus />
-            Create
+            {t('admin:providers.create')}
           </Button>
         }
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Store} label="Providers" value={total} />
-        <StatCard icon={CheckCircle2} label="Approved" value={counts.APPROVED} />
-        <StatCard icon={Clock} label="Pending" value={counts.PENDING} />
-        <StatCard icon={Ban} label="Suspended" value={counts.SUSPENDED} />
+        <StatCard icon={Store} label={t('admin:providers.metricProviders')} value={total} />
+        <StatCard
+          icon={CheckCircle2}
+          label={t('admin:providers.metricApproved')}
+          value={counts.APPROVED}
+        />
+        <StatCard icon={Clock} label={t('admin:providers.metricPending')} value={counts.PENDING} />
+        <StatCard
+          icon={Ban}
+          label={t('admin:providers.metricSuspended')}
+          value={counts.SUSPENDED}
+        />
       </div>
 
       <ToolbarCard>
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Filter providers…"
-          aria-label="Filter providers"
+          placeholder={t('admin:providers.filterPlaceholder')}
+          aria-label={t('admin:providers.filterAria')}
           className="max-w-sm"
         />
       </ToolbarCard>
@@ -88,35 +124,37 @@ export function ManageProvidersPage() {
         onRetry={() => void remote.refetch()}
         loadingFallback={<CardGridSkeleton media="provider" />}
       >
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {providers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No providers match.</p>
+            <p className="text-sm text-muted-foreground">{t('admin:providers.noMatch')}</p>
           ) : (
             providers.map((provider, index) => (
               <Link key={provider.id} to={`/admin/providers/${provider.id}`} className="min-w-0">
                 <Card
                   size="sm"
-                  className="h-full cursor-pointer overflow-hidden pt-0! transition-colors hover:bg-muted/40 hover:ring-primary/30"
+                  className="h-full cursor-pointer gap-2 overflow-hidden py-0! transition-colors hover:bg-muted/40 hover:ring-primary/30"
                 >
-                  {provider.logoUrl ? (
-                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
-                      <img src={provider.logoUrl} alt="" className="size-full object-cover" />
-                    </div>
-                  ) : (
-                    <ProviderCardMedia variant={index} />
-                  )}
-                  <CardHeader className="min-w-0">
-                    <CardTitle className="truncate" title={provider.name}>
+                  <ProviderCardCover logoUrl={provider.logoUrl} variant={index} />
+                  <CardHeader className="min-w-0 px-3 pt-0 pb-0">
+                    <CardTitle className="truncate text-sm" title={provider.name}>
                       {ellipsis(provider.name, 36)}
                     </CardTitle>
-                    <CardDescription className="truncate" title={locationLabel(provider)}>
-                      {ellipsis(locationLabel(provider), 32)}
+                    <CardDescription
+                      className="truncate text-xs"
+                      title={locationLabel(provider, t('admin:providers.noLocation'))}
+                    >
+                      {ellipsis(locationLabel(provider, t('admin:providers.noLocation')), 32)}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="flex min-w-0 flex-wrap items-center gap-2">
+                  <CardContent className="flex min-w-0 flex-wrap items-center gap-2 px-3 pt-0 pb-3">
                     <ProviderStatusBadge status={provider.status} />
                     <span className="truncate text-xs text-muted-foreground">
-                      {ellipsis(provider.owner.displayName || provider.owner.email, 24)}
+                      {ellipsis(
+                        provider.owner?.displayName ||
+                          provider.owner?.email ||
+                          t('admin:providers.form.noOwner'),
+                        24,
+                      )}
                     </span>
                   </CardContent>
                 </Card>

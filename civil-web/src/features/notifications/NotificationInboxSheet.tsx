@@ -1,5 +1,15 @@
 import { useCallback, useState } from 'react'
-import { AlertCircle, AlertTriangle, Bell, CheckCheck, Circle, Info, Megaphone, Settings } from 'lucide-react'
+import {
+  AlertCircle,
+  AlertTriangle,
+  Bell,
+  CheckCheck,
+  Circle,
+  Info,
+  Megaphone,
+  Settings,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -18,6 +28,7 @@ import {
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
+import { useIsRtl, useLocaleStore } from '@/stores/localeStore'
 import {
   getUnreadCount,
   listNotifications,
@@ -53,6 +64,9 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 export function NotificationInboxSheet() {
+  const { t } = useTranslation(['notifications', 'common'])
+  const isRtl = useIsRtl()
+  const locale = useLocaleStore((state) => state.locale)
   const location = useLocation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -84,7 +98,7 @@ export function NotificationInboxSheet() {
           unread: current.unread + 1,
           items: current.items.map((row) => (row.id === item.id ? item : row)),
         }))
-        toast.error(errorMessage(error, 'Could not mark notification as read'))
+        toast.error(errorMessage(error, t('notifications:toast.couldNotMarkRead')))
       }
     }
     setOpen(false)
@@ -95,10 +109,10 @@ export function NotificationInboxSheet() {
     setIsMarkingAll(true)
     try {
       await markAllAsRead()
-      toast.success('All notifications marked as read')
+      toast.success(t('notifications:toast.allMarkedRead'))
       await remote.refetch()
     } catch (error) {
-      toast.error(errorMessage(error, 'Could not mark notifications as read'))
+      toast.error(errorMessage(error, t('notifications:toast.couldNotMarkAllRead')))
     } finally {
       setIsMarkingAll(false)
     }
@@ -114,22 +128,28 @@ export function NotificationInboxSheet() {
     >
       <div className="relative">
         <SheetTrigger
-          aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+          aria-label={
+            unread > 0
+              ? t('notifications:openInboxWithUnread', { count: unread })
+              : t('notifications:title')
+          }
           render={<Button variant="outline" size="icon" />}
         >
           <Bell />
         </SheetTrigger>
         {unread > 0 ? (
-          <span className="pointer-events-none absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+          <span className="pointer-events-none absolute -top-1 -end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
             {unread > 9 ? '9+' : unread}
           </span>
         ) : null}
       </div>
-      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
+      <SheetContent side={isRtl ? 'left' : 'right'} className="w-full gap-0 p-0 sm:max-w-md">
         <SheetHeader className="border-b border-border px-6 py-5">
-          <SheetTitle>Notifications</SheetTitle>
+          <SheetTitle>{t('notifications:title')}</SheetTitle>
           <SheetDescription>
-            {unread === 0 ? 'You are up to date.' : `${unread} unread`}
+            {unread === 0
+              ? t('notifications:upToDate')
+              : t('notifications:unreadCount', { count: unread })}
           </SheetDescription>
         </SheetHeader>
         <div className="flex items-center justify-end px-6 py-3">
@@ -140,7 +160,7 @@ export function NotificationInboxSheet() {
             disabled={unread === 0 || isMarkingAll}
             onClick={() => void handleMarkAll()}
           >
-            Mark all as read
+            {t('notifications:markAllRead')}
           </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -152,7 +172,7 @@ export function NotificationInboxSheet() {
           >
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                No notifications yet.
+                {t('notifications:empty')}
               </p>
             ) : (
               <div className="divide-y divide-border">
@@ -163,7 +183,7 @@ export function NotificationInboxSheet() {
                       key={item.id}
                       type="button"
                       className={cn(
-                        'flex w-full gap-3 px-4 py-3 text-left',
+                        'flex w-full gap-3 px-4 py-3 text-start',
                         item.isRead ? 'bg-card' : 'bg-muted/50',
                       )}
                       onClick={() => void openItem(item)}
@@ -182,12 +202,17 @@ export function NotificationInboxSheet() {
                             {item.title}
                           </span>
                           {item.isRead ? null : (
-                            <Circle className="mt-1 size-2 shrink-0 fill-primary text-primary" aria-label="Unread" />
+                            <Circle
+                              className="mt-1 size-2 shrink-0 fill-primary text-primary"
+                              aria-label={t('notifications:unread')}
+                            />
                           )}
                         </span>
-                        <span className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.message}</span>
+                        <span className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
+                          {item.message}
+                        </span>
                         <span className="mt-1 block text-xs text-muted-foreground">
-                          {formatNotificationTime(item.createdAt)}
+                          {formatNotificationTime(item.createdAt, locale)}
                         </span>
                       </span>
                     </button>
@@ -207,7 +232,7 @@ export function NotificationInboxSheet() {
               navigate(inboxPath)
             }}
           >
-            View all notifications
+            {t('notifications:viewAll')}
           </Button>
         </SheetFooter>
       </SheetContent>

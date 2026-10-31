@@ -86,15 +86,7 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route
-              index
-              element={
-                <PanelHomePage
-                  title="Super home"
-                  description="Platform oversight — users, activity, errors, and settings."
-                />
-              }
-            />
+            <Route index element={<PanelHomePage variant="super" />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="users/:userId" element={<UserDetailsPage />} />
             <Route path="activity" element={<ActivityLogsPage />} />
@@ -120,7 +112,10 @@ function App() {
             <Route path="approvals" element={<Navigate to="/admin/queue" replace />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="users/:userId" element={<UserDetailsPage />} />
-            <Route path="verification" element={<Navigate to="/admin/queue?view=verification" replace />} />
+            <Route
+              path="verification"
+              element={<Navigate to="/admin/queue?view=verification" replace />}
+            />
             <Route path="providers" element={<ManageProvidersPage />} />
             <Route path="providers/:providerId" element={<MarketDetailsPage />} />
             <Route path="projects" element={<ProjectsListPage />} />

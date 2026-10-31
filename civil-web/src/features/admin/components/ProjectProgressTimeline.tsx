@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from 'cn'
 import { format } from 'date-fns'
 import { ChevronUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -79,7 +80,10 @@ function parseTime(iso: string | null | undefined) {
 }
 
 function toLane(project: ProjectTimelineItem, now: number): Omit<TimelineLane, 'lane'> | null {
-  const start = parseTime(project.startDate) ?? parseTime(project.actualStartDate) ?? parseTime(project.createdAt)
+  const start =
+    parseTime(project.startDate) ??
+    parseTime(project.actualStartDate) ??
+    parseTime(project.createdAt)
   if (start == null) return null
 
   const progress = clampProgress(project.progress)
@@ -179,10 +183,14 @@ type ProjectProgressTimelineProps = {
 }
 
 export function ProjectProgressTimeline({ refreshKey = 0 }: ProjectProgressTimelineProps) {
+  const { t } = useTranslation(['projects', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(true)
-  const [snapshot, setSnapshot] = useState<{ projects: ProjectTimelineItem[]; total: number } | null>(null)
+  const [snapshot, setSnapshot] = useState<{
+    projects: ProjectTimelineItem[]
+    total: number
+  } | null>(null)
   const [now, setNow] = useState<number | null>(null)
 
   const load = useCallback(() => listProjectTimeline(), [])
@@ -245,9 +253,11 @@ export function ProjectProgressTimeline({ refreshKey = 0 }: ProjectProgressTimel
         onClick={() => setOpen((current) => !current)}
       >
         <span className="min-w-0">
-          <span className="block text-sm font-semibold tracking-tight">In progress timeline</span>
+          <span className="block text-sm font-semibold tracking-tight">
+            {t('projects:timeline.title')}
+          </span>
           <span className="mt-0.5 block text-sm text-muted-foreground">
-            Current projects on a shared date axis. Today is marked so you can see where you are.
+            {t('projects:timeline.description')}
           </span>
         </span>
         <ChevronUp
@@ -269,24 +279,30 @@ export function ProjectProgressTimeline({ refreshKey = 0 }: ProjectProgressTimel
         <div className="min-h-0 overflow-hidden" inert={!open}>
           <div className="border-t border-border/70">
             {isFirstLoad ? (
-              <div className="flex flex-col gap-3 px-4 py-4" role="status" aria-label="Loading timeline">
+              <div
+                className="flex flex-col gap-3 px-4 py-4"
+                role="status"
+                aria-label={t('projects:timeline.loadingAria')}
+              >
                 <Skeleton className="h-7 w-2/3" />
                 <Skeleton className="h-7 w-1/2" />
                 <Skeleton className="h-7 w-3/4" />
               </div>
             ) : remote.isError && !chart ? (
               <p className="px-4 py-6 text-sm text-muted-foreground">
-                Could not load the timeline.{' '}
+                {t('projects:timeline.loadError')}{' '}
                 <button
                   type="button"
                   className="font-medium text-foreground underline-offset-2 hover:underline"
                   onClick={() => void remote.refetch()}
                 >
-                  Retry
+                  {t('common:retry')}
                 </button>
               </p>
             ) : !chart ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">No projects are currently in progress.</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">
+                {t('projects:timeline.empty')}
+              </p>
             ) : (
               <TimelineChart
                 chart={chart}
@@ -316,6 +332,7 @@ function TimelineChart({
   hiddenCount: number
   onOpen: (id: string) => void
 }) {
+  const { t } = useTranslation('projects')
   const plotRef = useRef<HTMLDivElement>(null)
   const [plotWidth, setPlotWidth] = useState(0)
 
@@ -352,9 +369,14 @@ function TimelineChart({
                     )}
                     onClick={() => onOpen(lane.id)}
                   >
-                    <span className={cn('size-2.5 shrink-0 rounded-full', lane.lane.dot)} aria-hidden />
+                    <span
+                      className={cn('size-2.5 shrink-0 rounded-full', lane.lane.dot)}
+                      aria-hidden
+                    />
                     <span className="min-w-0 flex-1 truncate text-sm">{lane.name}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{lane.progress}%</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {lane.progress}%
+                    </span>
                   </button>
                 </li>
               ))}
@@ -368,7 +390,7 @@ function TimelineChart({
                 className="absolute top-1 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium tracking-wide text-background"
                 style={{ left: `${chart.today}%`, transform: edgeShift(chart.today) }}
               >
-                Today
+                {t('timeline.today')}
               </span>
             </div>
 
@@ -381,7 +403,25 @@ function TimelineChart({
                 />
               ))}
               {chart.lanes.map((lane) => {
-                const { left, width } = barPlacement(chart.position(lane.start), chart.position(lane.end))
+                const { left, width } = barPlacement(
+                  chart.position(lane.start),
+                  chart.position(lane.end),
+                )
+                const startLabel = format(lane.start, 'MMM d, yyyy')
+                const endLabel = format(lane.end, 'MMM d, yyyy')
+                const barTitle = lane.endIsEstimated
+                  ? t('timeline.barTitleEstimated', {
+                      name: lane.name,
+                      progress: lane.progress,
+                      start: startLabel,
+                      end: endLabel,
+                    })
+                  : t('timeline.barTitle', {
+                      name: lane.name,
+                      progress: lane.progress,
+                      start: startLabel,
+                      end: endLabel,
+                    })
                 return (
                   <div key={lane.id} className={cn(ROW_CLASS, 'relative overflow-hidden')}>
                     <button
@@ -395,7 +435,7 @@ function TimelineChart({
                         width: `max(${width}%, 0.75rem)`,
                         maxWidth: `calc(100% - ${left}%)`,
                       }}
-                      title={`${lane.name} · ${lane.progress}% · ${format(lane.start, 'MMM d, yyyy')} – ${format(lane.end, 'MMM d, yyyy')}${lane.endIsEstimated ? ' (end estimated from progress)' : ''}`}
+                      title={barTitle}
                       onClick={() => onOpen(lane.id)}
                     >
                       <span
@@ -403,8 +443,12 @@ function TimelineChart({
                         style={{ width: `${lane.progress}%` }}
                       />
                       <span className="relative z-10 flex w-full min-w-0 items-center justify-between gap-2 overflow-hidden px-2">
-                        <span className="hidden min-w-0 truncate @[7rem]/bar:inline">{lane.name}</span>
-                        <span className="hidden shrink-0 tabular-nums @[2.75rem]/bar:inline">{lane.progress}%</span>
+                        <span className="hidden min-w-0 truncate @[7rem]/bar:inline">
+                          {lane.name}
+                        </span>
+                        <span className="hidden shrink-0 tabular-nums @[2.75rem]/bar:inline">
+                          {lane.progress}%
+                        </span>
                       </span>
                     </button>
                   </div>
@@ -441,7 +485,7 @@ function TimelineChart({
       </div>
       {hiddenCount > 0 ? (
         <p className="px-2 pt-2 text-xs text-muted-foreground">
-          Showing the first {chart.lanes.length} in-progress projects.
+          {t('timeline.showingFirst', { count: chart.lanes.length })}
         </p>
       ) : null}
     </div>

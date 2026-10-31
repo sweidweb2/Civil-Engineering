@@ -1,16 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
-import {
-  CheckCircle2,
-  CircleDollarSign,
-  FolderKanban,
-  PauseCircle,
-  TrendingUp,
-} from 'lucide-react'
+import { CheckCircle2, CircleDollarSign, FolderKanban, PauseCircle, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ContentSkeleton } from '@/components/feedback/skeletons'
 import { buttonVariants } from '@/components/ui/button'
+import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
 import {
@@ -37,8 +33,8 @@ function parseMoney(value: string | null | undefined) {
   return Number.isFinite(n) ? n : 0
 }
 
-function formatCompact(value: number, currency?: string) {
-  const formatted = new Intl.NumberFormat(undefined, {
+function formatCompact(value: number, intlLocale: string, currency?: string) {
+  const formatted = new Intl.NumberFormat(intlLocale, {
     notation: value >= 1000 ? 'compact' : 'standard',
     maximumFractionDigits: value >= 1000 ? 1 : 0,
   }).format(value)
@@ -61,11 +57,12 @@ function dayKey(date: Date) {
   return startOfDay(date).toISOString().slice(0, 10)
 }
 
-function dayLabel(date: Date) {
-  return date.toLocaleDateString(undefined, { month: 'short', day: '2-digit' })
-}
-
-function buildSeries(projects: Project[], metric: MetricKey, periodDays: number): DayPoint[] {
+function buildSeries(
+  projects: Project[],
+  metric: MetricKey,
+  periodDays: number,
+  formatShortDay: (date: Date) => string,
+): DayPoint[] {
   const today = startOfDay(new Date())
   const points: DayPoint[] = []
 
@@ -86,7 +83,7 @@ function buildSeries(projects: Project[], metric: MetricKey, periodDays: number)
 
     points.push({
       key: currentKey,
-      label: dayLabel(currentDay),
+      label: formatShortDay(currentDay),
       current,
       prior,
     })
@@ -95,7 +92,15 @@ function buildSeries(projects: Project[], metric: MetricKey, periodDays: number)
   return points
 }
 
-function PerformanceBarChart({ points }: { points: DayPoint[] }) {
+function PerformanceBarChart({
+  points,
+  intlLocale,
+  chartAria,
+}: {
+  points: DayPoint[]
+  intlLocale: string
+  chartAria: string
+}) {
   const width = 920
   const height = 320
   const pad = { top: 24, right: 16, bottom: 36, left: 48 }
@@ -119,7 +124,7 @@ function PerformanceBarChart({ points }: { points: DayPoint[] }) {
       viewBox={`0 0 ${width} ${height}`}
       className="h-[300px] w-full sm:h-[340px]"
       role="img"
-      aria-label="Project performance chart"
+      aria-label={chartAria}
     >
       {ticks.map((tick) => (
         <g key={tick.ratio}>
@@ -138,7 +143,7 @@ function PerformanceBarChart({ points }: { points: DayPoint[] }) {
             className="fill-muted-foreground"
             fontSize="10"
           >
-            {formatCompact(tick.value)}
+            {formatCompact(tick.value, intlLocale)}
           </text>
         </g>
       ))}
@@ -239,7 +244,7 @@ function PerformanceBarChart({ points }: { points: DayPoint[] }) {
 function StackHint() {
   return (
     <div
-      className="pointer-events-none absolute top-10 right-3 flex flex-col items-center"
+      className="pointer-events-none absolute top-10 end-3 flex flex-col items-center"
       aria-hidden
     >
       <span className="size-8 rounded-full bg-primary/15" />
@@ -276,6 +281,7 @@ function buildPortfolioMix(
   counts: Record<ProjectStatus, number>,
   total: number,
   projects: Project[],
+  labels: { inProgress: string; pipeline: string; completed: string },
 ): { buckets: MixBucket[]; activeTotal: number; growthPct: number } {
   const inProgress = counts.IN_PROGRESS ?? 0
   const pipeline = (counts.DRAFT ?? 0) + (counts.PLANNING ?? 0) + (counts.APPROVED ?? 0)
@@ -306,7 +312,7 @@ function buildPortfolioMix(
   const defs = [
     {
       id: 'active',
-      label: 'In progress',
+      label: labels.inProgress,
       count: inProgress,
       statuses: ['IN_PROGRESS'] as ProjectStatus[],
       fill: 'rgba(40, 122, 116, 0.22)',
@@ -320,7 +326,7 @@ function buildPortfolioMix(
     },
     {
       id: 'pipeline',
-      label: 'Pipeline',
+      label: labels.pipeline,
       count: pipeline,
       statuses: ['DRAFT', 'PLANNING', 'APPROVED'] as ProjectStatus[],
       fill: 'rgba(217, 119, 6, 0.18)',
@@ -334,7 +340,7 @@ function buildPortfolioMix(
     },
     {
       id: 'completed',
-      label: 'Completed',
+      label: labels.completed,
       count: completed,
       statuses: ['COMPLETED'] as ProjectStatus[],
       fill: 'rgba(111, 207, 151, 0.28)',
@@ -381,16 +387,24 @@ function PortfolioMixCard({
   total: number
   projects: Project[]
 }) {
-  const { buckets, activeTotal, growthPct } = buildPortfolioMix(counts, total, projects)
+  const { t } = useTranslation('pm')
+  const { formatNumber } = useLocaleFormat()
+  const { buckets, activeTotal, growthPct } = buildPortfolioMix(counts, total, projects, {
+    inProgress: t('dashboard.mixInProgress'),
+    pipeline: t('dashboard.mixPipeline'),
+    completed: t('dashboard.mixCompleted'),
+  })
 
   return (
     <article className="flex h-full flex-col rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Active projects</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            {t('dashboard.activeProjects')}
+          </p>
           <div className="flex flex-wrap items-baseline gap-2">
             <p className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
-              {activeTotal.toLocaleString()}
+              {formatNumber(activeTotal)}
             </p>
             <span
               className={cn(
@@ -407,7 +421,7 @@ function PortfolioMixCard({
           to="/pm/projects"
           className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
         >
-          Details
+          {t('dashboard.details')}
         </Link>
       </div>
 
@@ -416,7 +430,7 @@ function PortfolioMixCard({
           viewBox="0 0 300 230"
           className="h-full min-h-[210px] w-full"
           role="img"
-          aria-label="Portfolio mix bubble chart"
+          aria-label={t('dashboard.mixAria')}
           preserveAspectRatio="xMidYMid meet"
         >
           {buckets
@@ -461,11 +475,11 @@ function PortfolioMixCard({
             />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">{bucket.label}</span>
             <span className="tabular-nums font-medium text-foreground">
-              {bucket.count.toLocaleString()}
+              {formatNumber(bucket.count)}
             </span>
             <span
               className={cn(
-                'w-12 text-right tabular-nums font-medium',
+                'w-12 text-end tabular-nums font-medium',
                 bucket.monthDeltaPct >= 0
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-destructive',
@@ -482,6 +496,8 @@ function PortfolioMixCard({
 }
 
 export function PmAnalyticsDashboard() {
+  const { t } = useTranslation('pm')
+  const { intlLocale, formatShortDay } = useLocaleFormat()
   const [metric, setMetric] = useState<MetricKey>('projects')
   const [period, setPeriod] = useState<PeriodKey>('30')
   const periodDays = period === '7' ? 7 : 30
@@ -509,8 +525,8 @@ export function PmAnalyticsDashboard() {
   const planning = (summary?.counts.PLANNING ?? 0) + (summary?.counts.APPROVED ?? 0)
 
   const series = useMemo(
-    () => buildSeries(projects, metric, periodDays),
-    [projects, metric, periodDays],
+    () => buildSeries(projects, metric, periodDays, formatShortDay),
+    [projects, metric, periodDays, formatShortDay],
   )
   const periodTotal = series.reduce((sum, point) => sum + point.current, 0)
   const priorTotal = series.reduce((sum, point) => sum + point.prior, 0)
@@ -526,37 +542,36 @@ export function PmAnalyticsDashboard() {
 
   const kpis = [
     {
-      title: 'Projects',
-      subtitle: 'Portfolio total',
+      title: t('dashboard.projects'),
+      subtitle: t('dashboard.portfolioTotal'),
       value: String(total),
-      footer: `${planning} planning · ${onHold} on hold`,
+      footer: t('dashboard.planningOnHold', { planning, onHold }),
       icon: FolderKanban,
       iconClass: 'from-primary to-[#1F5F5A]',
     },
     {
-      title: 'In progress',
-      subtitle: 'Active sites',
+      title: t('dashboard.inProgress'),
+      subtitle: t('dashboard.activeSites'),
       value: String(inProgress),
-      footer: `${completed} completed · keep momentum on live work`,
+      footer: t('dashboard.completedMomentum', { completed }),
       icon: TrendingUp,
       iconClass: 'from-[#3F9A93] to-primary',
     },
     {
-      title: 'Portfolio budget',
-      subtitle: 'Planned capital',
-      value: formatCompact(budgetTotal, currency),
-      footer: `Actual ${formatCompact(actualCostTotal, currency)} logged`,
+      title: t('dashboard.portfolioBudget'),
+      subtitle: t('dashboard.plannedCapital'),
+      value: formatCompact(budgetTotal, intlLocale, currency),
+      footer: t('dashboard.actualLogged', {
+        amount: formatCompact(actualCostTotal, intlLocale, currency),
+      }),
       icon: CircleDollarSign,
       iconClass: 'from-[#2F9E71] to-primary',
     },
     {
-      title: 'Average progress',
-      subtitle: 'Across projects',
+      title: t('dashboard.averageProgress'),
+      subtitle: t('dashboard.acrossProjects'),
       value: `${averageProgress}%`,
-      footer:
-        averageProgress >= 60
-          ? 'Portfolio tracking well overall'
-          : 'Push stalled projects forward',
+      footer: averageProgress >= 60 ? t('dashboard.trackingWell') : t('dashboard.pushStalled'),
       icon: averageProgress >= 50 ? CheckCircle2 : PauseCircle,
       iconClass: 'from-primary/80 to-[#245E59]',
     },
@@ -593,7 +608,7 @@ export function PmAnalyticsDashboard() {
                     </span>
                     <h3 className="text-sm font-medium text-foreground">{kpi.title}</h3>
                   </div>
-                  <div className="pr-12">
+                  <div className="pe-12">
                     <p className="text-xs text-muted-foreground">{kpi.subtitle}</p>
                     <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-foreground sm:text-[1.7rem]">
                       {kpi.value}
@@ -614,10 +629,12 @@ export function PmAnalyticsDashboard() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
                 <h2 id="pm-analytics-title" className="text-sm font-semibold text-foreground">
-                  Performance
+                  {t('dashboard.performance')}
                 </h2>
                 <p className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
-                  {metric === 'budget' ? formatCompact(periodTotal, currency) : periodTotal}
+                  {metric === 'budget'
+                    ? formatCompact(periodTotal, intlLocale, currency)
+                    : periodTotal}
                 </p>
                 <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                   <span
@@ -631,33 +648,37 @@ export function PmAnalyticsDashboard() {
                     {deltaPct.toFixed(1)}%
                   </span>
                   <span>
-                    vs {metric === 'budget' ? formatCompact(priorTotal, currency) : priorTotal} prior
-                    period
+                    {t('dashboard.vsPrior', {
+                      amount:
+                        metric === 'budget'
+                          ? formatCompact(priorTotal, intlLocale, currency)
+                          : priorTotal,
+                    })}
                   </span>
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <label className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-                  Showing
+                  {t('dashboard.showing')}
                   <select
                     className="bg-transparent font-medium text-foreground outline-none"
                     value={metric}
                     onChange={(event) => setMetric(event.target.value as MetricKey)}
                   >
-                    <option value="projects">New projects</option>
-                    <option value="budget">Budget added</option>
+                    <option value="projects">{t('dashboard.newProjects')}</option>
+                    <option value="budget">{t('dashboard.budgetAdded')}</option>
                   </select>
                 </label>
                 <label className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-                  Period
+                  {t('dashboard.period')}
                   <select
                     className="bg-transparent font-medium text-foreground outline-none"
                     value={period}
                     onChange={(event) => setPeriod(event.target.value as PeriodKey)}
                   >
-                    <option value="7">Last 7 days</option>
-                    <option value="30">Last 30 days</option>
+                    <option value="7">{t('dashboard.last7Days')}</option>
+                    <option value="30">{t('dashboard.last30Days')}</option>
                   </select>
                 </label>
               </div>
@@ -666,16 +687,20 @@ export function PmAnalyticsDashboard() {
             <div className="mt-3 flex items-center justify-end gap-4 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-sm bg-muted" />
-                Prior period
+                {t('dashboard.priorPeriod')}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-sm bg-primary" />
-                This period
+                {t('dashboard.thisPeriod')}
               </span>
             </div>
 
             <div className="mt-2 overflow-x-auto">
-              <PerformanceBarChart points={series} />
+              <PerformanceBarChart
+                points={series}
+                intlLocale={intlLocale}
+                chartAria={t('dashboard.chartAria')}
+              />
             </div>
           </article>
 

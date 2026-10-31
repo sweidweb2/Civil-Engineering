@@ -1,14 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
-import {
-  Boxes,
-  CircleDollarSign,
-  PackageCheck,
-  Percent,
-  TrendingUp,
-} from 'lucide-react'
+import { Boxes, CircleDollarSign, PackageCheck, Percent, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ContentSkeleton } from '@/components/feedback/skeletons'
+import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
 import { type Listing, listListings } from '@/services/listings'
@@ -25,12 +21,20 @@ type DayPoint = {
 }
 
 function parsePrice(listing: Listing) {
-  const n = Number.parseFloat(listing.price)
-  return Number.isFinite(n) ? n : 0
+  if (listing.price != null && listing.price !== '') {
+    const n = Number.parseFloat(listing.price)
+    return Number.isFinite(n) ? n : 0
+  }
+  if (listing.priceMin != null && listing.priceMax != null) {
+    const min = Number.parseFloat(listing.priceMin)
+    const max = Number.parseFloat(listing.priceMax)
+    if (Number.isFinite(min) && Number.isFinite(max)) return (min + max) / 2
+  }
+  return 0
 }
 
-function formatCompact(value: number, currency?: string) {
-  const formatted = new Intl.NumberFormat(undefined, {
+function formatCompact(value: number, intlLocale: string, currency?: string) {
+  const formatted = new Intl.NumberFormat(intlLocale, {
     notation: value >= 1000 ? 'compact' : 'standard',
     maximumFractionDigits: value >= 1000 ? 1 : 0,
   }).format(value)
@@ -53,11 +57,12 @@ function dayKey(date: Date) {
   return startOfDay(date).toISOString().slice(0, 10)
 }
 
-function dayLabel(date: Date) {
-  return date.toLocaleDateString(undefined, { month: 'short', day: '2-digit' })
-}
-
-function buildSeries(listings: Listing[], metric: MetricKey, periodDays: number): DayPoint[] {
+function buildSeries(
+  listings: Listing[],
+  metric: MetricKey,
+  periodDays: number,
+  formatShortDay: (date: Date) => string,
+): DayPoint[] {
   const today = startOfDay(new Date())
   const points: DayPoint[] = []
 
@@ -78,7 +83,7 @@ function buildSeries(listings: Listing[], metric: MetricKey, periodDays: number)
 
     points.push({
       key: currentKey,
-      label: dayLabel(currentDay),
+      label: formatShortDay(currentDay),
       current,
       prior,
     })
@@ -87,7 +92,15 @@ function buildSeries(listings: Listing[], metric: MetricKey, periodDays: number)
   return points
 }
 
-function CatalogBarChart({ points }: { points: DayPoint[] }) {
+function CatalogBarChart({
+  points,
+  intlLocale,
+  chartAria,
+}: {
+  points: DayPoint[]
+  intlLocale: string
+  chartAria: string
+}) {
   const width = 920
   const height = 320
   const pad = { top: 24, right: 16, bottom: 36, left: 48 }
@@ -112,7 +125,7 @@ function CatalogBarChart({ points }: { points: DayPoint[] }) {
       viewBox={`0 0 ${width} ${height}`}
       className="h-[300px] w-full sm:h-[340px]"
       role="img"
-      aria-label="Catalog performance chart"
+      aria-label={chartAria}
     >
       {ticks.map((tick) => (
         <g key={tick.ratio}>
@@ -131,7 +144,7 @@ function CatalogBarChart({ points }: { points: DayPoint[] }) {
             className="fill-muted-foreground"
             fontSize="10"
           >
-            {formatCompact(tick.value)}
+            {formatCompact(tick.value, intlLocale)}
           </text>
         </g>
       ))}
@@ -233,7 +246,13 @@ function CatalogBarChart({ points }: { points: DayPoint[] }) {
 
 function StackHint({ className }: { className?: string }) {
   return (
-    <div className={cn('pointer-events-none absolute right-3 top-10 flex flex-col items-center', className)} aria-hidden>
+    <div
+      className={cn(
+        'pointer-events-none absolute end-3 top-10 flex flex-col items-center',
+        className,
+      )}
+      aria-hidden
+    >
       <span className="size-8 rounded-full bg-primary/15" />
       <span className="-mt-2 size-9 rounded-full bg-primary/25" />
       <span className="-mt-2 size-10 rounded-full bg-primary/35" />
@@ -242,6 +261,8 @@ function StackHint({ className }: { className?: string }) {
 }
 
 export function ProviderAnalyticsSection() {
+  const { t } = useTranslation('provider')
+  const { intlLocale, formatShortDay } = useLocaleFormat()
   const [metric, setMetric] = useState<MetricKey>('listings')
   const [period, setPeriod] = useState<PeriodKey>('30')
   const periodDays = period === '7' ? 7 : 30
@@ -274,22 +295,22 @@ export function ProviderAnalyticsSection() {
   const catalogValue = listings.reduce((sum, item) => sum + parsePrice(item), 0)
   const activeValue = active.reduce((sum, item) => sum + parsePrice(item), 0)
   const categories = new Set(listings.map((item) => item.categoryId)).size
-  const liveRate = listings.length === 0 ? 0 : Math.round((active.length / listings.length) * 1000) / 10
+  const liveRate =
+    listings.length === 0 ? 0 : Math.round((active.length / listings.length) * 1000) / 10
 
   const monthStart = startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const addedThisMonth = listings.filter((item) => new Date(item.createdAt) >= monthStart).length
 
   const series = useMemo(
-    () => buildSeries(listings, metric, periodDays),
-    [listings, metric, periodDays],
+    () => buildSeries(listings, metric, periodDays, formatShortDay),
+    [listings, metric, periodDays, formatShortDay],
   )
   const periodTotal = series.reduce((sum, point) => sum + point.current, 0)
   const priorTotal = series.reduce((sum, point) => sum + point.prior, 0)
   const deltaPct =
     priorTotal === 0 ? (periodTotal > 0 ? 100 : 0) : ((periodTotal - priorTotal) / priorTotal) * 100
 
-  const isLoading =
-    providerRemote.isLoading || (Boolean(provider) && listingsRemote.isLoading)
+  const isLoading = providerRemote.isLoading || (Boolean(provider) && listingsRemote.isLoading)
   const error = providerRemote.isError
     ? providerRemote.error
     : listingsRemote.isError
@@ -298,37 +319,40 @@ export function ProviderAnalyticsSection() {
 
   const kpis = [
     {
-      title: 'Active listings',
-      subtitle: 'Live in directory',
+      title: t('analytics.activeListings'),
+      subtitle: t('analytics.liveInDirectory'),
       value: String(active.length),
-      footer: `${inactive.length} inactive · ${listings.length} total`,
+      footer: t('analytics.inactiveTotal', {
+        inactive: inactive.length,
+        total: listings.length,
+      }),
       icon: PackageCheck,
       iconClass: 'from-primary to-[#1F5F5A]',
     },
     {
-      title: 'Catalog value',
-      subtitle: 'Listed unit prices',
-      value: formatCompact(catalogValue, currency),
-      footer: `Live ${formatCompact(activeValue, currency)} · ${categories} categories`,
+      title: t('analytics.catalogValue'),
+      subtitle: t('analytics.listedUnitPrices'),
+      value: formatCompact(catalogValue, intlLocale, currency),
+      footer: t('analytics.liveCategories', {
+        amount: formatCompact(activeValue, intlLocale, currency),
+        categories,
+      }),
       icon: CircleDollarSign,
       iconClass: 'from-[#2F9E71] to-primary',
     },
     {
-      title: 'Added this month',
-      subtitle: 'New listings',
+      title: t('analytics.addedThisMonth'),
+      subtitle: t('analytics.newListings'),
       value: String(addedThisMonth),
-      footer: `${materials} materials · ${equipment} equipment · ${services} services`,
+      footer: t('analytics.typeMix', { materials, equipment, services }),
       icon: Boxes,
       iconClass: 'from-[#3F9A93] to-primary',
     },
     {
-      title: 'Live rate',
-      subtitle: 'Active share',
+      title: t('analytics.liveRate'),
+      subtitle: t('analytics.activeShare'),
       value: `${liveRate}%`,
-      footer:
-        liveRate >= 70
-          ? 'Healthy catalog visibility'
-          : 'Activate more listings to improve reach',
+      footer: liveRate >= 70 ? t('analytics.healthyVisibility') : t('analytics.activateMore'),
       icon: Percent,
       iconClass: 'from-primary/80 to-[#245E59]',
     },
@@ -365,7 +389,7 @@ export function ProviderAnalyticsSection() {
                     </span>
                     <h3 className="text-sm font-medium text-foreground">{kpi.title}</h3>
                   </div>
-                  <div className="pr-12">
+                  <div className="pe-12">
                     <p className="text-xs text-muted-foreground">{kpi.subtitle}</p>
                     <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-foreground sm:text-[1.7rem]">
                       {kpi.value}
@@ -385,11 +409,11 @@ export function ProviderAnalyticsSection() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
               <h2 id="provider-analytics-title" className="text-sm font-semibold text-foreground">
-                Performance
+                {t('analytics.performance')}
               </h2>
               <p className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
                 {metric === 'value'
-                  ? formatCompact(periodTotal, currency)
+                  ? formatCompact(periodTotal, intlLocale, currency)
                   : periodTotal}
               </p>
               <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -404,36 +428,37 @@ export function ProviderAnalyticsSection() {
                   {deltaPct.toFixed(1)}%
                 </span>
                 <span>
-                  vs{' '}
-                  {metric === 'value'
-                    ? formatCompact(priorTotal, currency)
-                    : priorTotal}{' '}
-                  prior period
+                  {t('analytics.vsPrior', {
+                    amount:
+                      metric === 'value'
+                        ? formatCompact(priorTotal, intlLocale, currency)
+                        : priorTotal,
+                  })}
                 </span>
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <label className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-                Showing
+                {t('analytics.showing')}
                 <select
                   className="bg-transparent font-medium text-foreground outline-none"
                   value={metric}
                   onChange={(event) => setMetric(event.target.value as MetricKey)}
                 >
-                  <option value="listings">New listings</option>
-                  <option value="value">Listed value</option>
+                  <option value="listings">{t('analytics.newListingsMetric')}</option>
+                  <option value="value">{t('analytics.listedValue')}</option>
                 </select>
               </label>
               <label className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-                Period
+                {t('analytics.period')}
                 <select
                   className="bg-transparent font-medium text-foreground outline-none"
                   value={period}
                   onChange={(event) => setPeriod(event.target.value as PeriodKey)}
                 >
-                  <option value="7">Last 7 days</option>
-                  <option value="30">Last 30 days</option>
+                  <option value="7">{t('analytics.last7Days')}</option>
+                  <option value="30">{t('analytics.last30Days')}</option>
                 </select>
               </label>
             </div>
@@ -442,16 +467,20 @@ export function ProviderAnalyticsSection() {
           <div className="mt-3 flex items-center justify-end gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-sm bg-muted" />
-              Prior period
+              {t('analytics.priorPeriod')}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-sm bg-primary" />
-              This period
+              {t('analytics.thisPeriod')}
             </span>
           </div>
 
           <div className="mt-2 overflow-x-auto">
-            <CatalogBarChart points={series} />
+            <CatalogBarChart
+              points={series}
+              intlLocale={intlLocale}
+              chartAria={t('analytics.chartAria')}
+            />
           </div>
         </article>
       </section>

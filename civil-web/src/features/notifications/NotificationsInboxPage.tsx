@@ -12,6 +12,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
+import { type TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
@@ -77,7 +79,7 @@ function getTypeColor(type: NotificationType): string {
   }
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, t: TFunction, locale: string): string {
   try {
     const date = new Date(iso)
     const now = new Date()
@@ -86,18 +88,19 @@ function formatDate(iso: string): string {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString()
+    if (diffMins < 1) return t('notifications:time.justNow')
+    if (diffMins < 60) return t('notifications:time.minutesAgo', { count: diffMins })
+    if (diffHours < 24) return t('notifications:time.hoursAgo', { count: diffHours })
+    if (diffDays < 7) return t('notifications:time.daysAgo', { count: diffDays })
+    return date.toLocaleDateString(locale)
   } catch {
     return iso
   }
 }
 
 export function NotificationsInboxPage() {
-  useDocumentTitle('Notifications')
+  const { t, i18n } = useTranslation(['notifications', 'common'])
+  useDocumentTitle(t('notifications:title'))
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -119,20 +122,24 @@ export function NotificationsInboxPage() {
   const handleMarkAsRead = async (id: string) => {
     try {
       await markAsRead(id)
-      toast.success('Marked as read')
+      toast.success(t('notifications:toast.markedRead'))
       void remote.refetch()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to mark as read')
+      toast.error(
+        error instanceof Error ? error.message : t('notifications:toast.couldNotMarkRead'),
+      )
     }
   }
 
   const handleMarkAsUnread = async (id: string) => {
     try {
       await markAsUnread(id)
-      toast.success('Marked as unread')
+      toast.success(t('notifications:toast.markedUnread'))
       void remote.refetch()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to mark as unread')
+      toast.error(
+        error instanceof Error ? error.message : t('notifications:toast.couldNotMarkUnread'),
+      )
     }
   }
 
@@ -145,12 +152,12 @@ export function NotificationsInboxPage() {
     if (!notificationToDelete) return
     try {
       await softDeleteNotification(notificationToDelete)
-      toast.success('Notification deleted')
+      toast.success(t('notifications:toast.deleted'))
       setDeleteDialogOpen(false)
       setNotificationToDelete(null)
       void remote.refetch()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete notification')
+      toast.error(error instanceof Error ? error.message : t('notifications:toast.couldNotDelete'))
     }
   }
 
@@ -158,13 +165,13 @@ export function NotificationsInboxPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Notifications"
-        description="Your notifications and alerts."
+        title={t('notifications:title')}
+        description={t('notifications:description')}
       />
 
       <div className={STAT_GRID_CLASS}>
-        <StatCard icon={Bell} label="Total" value={total} />
-        <StatCard icon={BellOff} label="Unread" value={unreadCount} />
+        <StatCard icon={Bell} label={t('notifications:total')} value={total} />
+        <StatCard icon={BellOff} label={t('notifications:unread')} value={unreadCount} />
       </div>
 
       <div className="flex items-center gap-2">
@@ -173,14 +180,14 @@ export function NotificationsInboxPage() {
           size="sm"
           onClick={() => setFilter('all')}
         >
-          All ({notifications.length})
+          {t('notifications:allWithCount', { count: notifications.length })}
         </Button>
         <Button
           variant={filter === 'unread' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilter('unread')}
         >
-          Unread ({unreadCount})
+          {t('notifications:unreadWithCount', { count: unreadCount })}
         </Button>
       </div>
 
@@ -195,7 +202,7 @@ export function NotificationsInboxPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Bell className="size-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                {filter === 'unread' ? 'No unread notifications' : 'No notifications'}
+                {filter === 'unread' ? t('notifications:emptyUnread') : t('notifications:emptyAll')}
               </p>
             </CardContent>
           </Card>
@@ -208,7 +215,7 @@ export function NotificationsInboxPage() {
                   key={notification.id}
                   className={cn(
                     'transition-all hover:shadow-md',
-                    !notification.isRead && 'border-l-4 border-l-primary bg-primary/5'
+                    !notification.isRead && 'border-s-4 border-s-primary bg-primary/5',
                   )}
                 >
                   <CardContent className="flex items-start gap-4 p-4">
@@ -219,23 +226,26 @@ export function NotificationsInboxPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <h3 className="font-semibold">{notification.title}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {notification.message}
+                          </p>
                           {notification.sender && (
                             <p className="mt-2 text-xs text-muted-foreground">
-                              From: {notification.sender.email}
+                              {t('notifications:from', { email: notification.sender.email })}
                             </p>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="whitespace-nowrap text-xs">
-                            {formatDate(notification.createdAt)}
+                            {formatDate(notification.createdAt, t, i18n.language)}
                           </Badge>
                           {!notification.isRead ? (
                             <Button
                               size="icon-sm"
                               variant="ghost"
                               onClick={() => void handleMarkAsRead(notification.id)}
-                              title="Mark as read"
+                              title={t('notifications:markAsRead')}
+                              aria-label={t('notifications:markAsRead')}
                             >
                               <Check className="size-4" />
                             </Button>
@@ -244,7 +254,8 @@ export function NotificationsInboxPage() {
                               size="icon-sm"
                               variant="ghost"
                               onClick={() => void handleMarkAsUnread(notification.id)}
-                              title="Mark as unread"
+                              title={t('notifications:markAsUnread')}
+                              aria-label={t('notifications:markAsUnread')}
                             >
                               <X className="size-4" />
                             </Button>
@@ -253,7 +264,8 @@ export function NotificationsInboxPage() {
                             size="icon-sm"
                             variant="ghost"
                             onClick={() => handleDeleteClick(notification.id)}
-                            title="Delete"
+                            title={t('common:delete')}
+                            aria-label={t('common:delete')}
                           >
                             <Trash2 className="size-4" />
                           </Button>
@@ -270,7 +282,7 @@ export function NotificationsInboxPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
-              Page {page} of {totalPages} ({total} total)
+              {t('notifications:pagination', { page, totalPages, total })}
             </p>
             <div className="flex gap-2">
               <Button
@@ -279,7 +291,7 @@ export function NotificationsInboxPage() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                Previous
+                {t('common:previous')}
               </Button>
               <Button
                 variant="outline"
@@ -287,7 +299,7 @@ export function NotificationsInboxPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next
+                {t('common:next')}
               </Button>
             </div>
           </div>
@@ -297,14 +309,14 @@ export function NotificationsInboxPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this notification? This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('notifications:delete.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('notifications:delete.description')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleDeleteConfirm()}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleDeleteConfirm()}>
+              {t('common:delete')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

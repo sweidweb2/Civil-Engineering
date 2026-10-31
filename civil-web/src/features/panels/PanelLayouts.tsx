@@ -1,23 +1,29 @@
+import { useTranslation } from 'react-i18next'
+
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 import { ADMIN_NAV, PanelShell, PM_NAV, PROVIDER_NAV, SUPER_NAV } from './PanelShell'
 
 export function SuperPanelLayout() {
-  useDocumentTitle('Super panel')
-  return <PanelShell title="Super panel" nav={SUPER_NAV} />
+  const { t } = useTranslation('nav')
+  useDocumentTitle(t('superPanel'))
+  return <PanelShell titleKey="superPanel" nav={SUPER_NAV} />
 }
 
 export function AdminPanelLayout() {
-  useDocumentTitle('Admin panel')
-  return <PanelShell title="Admin panel" nav={ADMIN_NAV} />
+  const { t } = useTranslation('nav')
+  useDocumentTitle(t('adminPanel'))
+  return <PanelShell titleKey="adminPanel" nav={ADMIN_NAV} />
 }
 
 export function PmPanelLayout() {
-  useDocumentTitle('PM panel')
-  return <PanelShell title="PM panel" nav={PM_NAV} variant="navbar" />
+  const { t } = useTranslation('nav')
+  useDocumentTitle(t('pmPanel'))
+  return <PanelShell titleKey="pmPanel" nav={PM_NAV} variant="navbar" />
 }
 
 export function ProviderPanelLayout() {
-  useDocumentTitle('Provider panel')
-  return <PanelShell title="Provider panel" nav={PROVIDER_NAV} variant="navbar" />
+  const { t } = useTranslation('nav')
+  useDocumentTitle(t('providerPanel'))
+  return <PanelShell titleKey="providerPanel" nav={PROVIDER_NAV} variant="navbar" />
 }

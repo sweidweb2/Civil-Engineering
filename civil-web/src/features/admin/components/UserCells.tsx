@@ -1,36 +1,31 @@
-import { cn } from 'cn'
 import { Copy } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 
 import type { AdminUserRow, UserStatus, VerificationStatus } from '../admin.types'
 import { ellipsis } from '../lib/text'
-import { roleLabel, userStatusLabel } from '../users.rows'
-
-async function copyValue(value: string, label: string) {
-  try {
-    await navigator.clipboard.writeText(value)
-    toast.message(`${label} copied`)
-  } catch {
-    toast.error(`Could not copy ${label.toLowerCase()}`)
-  }
-}
 
 function CopyButton({ value, label }: { value: string; label: string }) {
+  const { t } = useTranslation('common')
   return (
     <Button
       type="button"
       variant="ghost"
       size="icon-xs"
-      aria-label={`Copy ${label}`}
+      aria-label={t('copyLabel', { label })}
       className="shrink-0 text-muted-foreground"
       onClick={(event) => {
         event.stopPropagation()
-        void copyValue(value, label)
+        void navigator.clipboard.writeText(value).then(
+          () => toast.message(t('copied', { label })),
+          () => toast.error(t('couldNotCopy', { label: label.toLowerCase() })),
+        )
       }}
     >
       <Copy />
@@ -69,16 +64,20 @@ function nameInitial(name: string): string {
   return letter ? letter.toUpperCase() : '?'
 }
 
-function statusText(status: UserStatus): string {
-  return userStatusLabel(status)
-}
-
 export function StatusBadge({ status }: { status: UserStatus }) {
-  return <Badge variant={status === 'ACTIVE' ? 'default' : 'outline'}>{statusText(status)}</Badge>
+  const { t } = useTranslation('admin')
+  return (
+    <Badge variant={status === 'ACTIVE' ? 'default' : 'outline'}>{t(`userStatus.${status}`)}</Badge>
+  )
 }
 
 export function VerificationBadge({ status }: { status: VerificationStatus }) {
-  return <Badge variant={status === 'verified' ? 'default' : 'outline'}>{status}</Badge>
+  const { t } = useTranslation('admin')
+  return (
+    <Badge variant={status === 'verified' ? 'default' : 'outline'}>
+      {t(`verificationStatus.${status}`)}
+    </Badge>
+  )
 }
 
 export function UserAttributeCells({
@@ -92,12 +91,16 @@ export function UserAttributeCells({
   showAvatar?: boolean
   onToggleStatus?: (id: string) => void
 }) {
+  const { t } = useTranslation(['admin', 'common'])
   const label = displayName(row)
   const avatarName = label || row.email
 
   return (
     <>
-      <TableCell title={(showAvatar ? avatarName : label) ?? undefined} className={showAvatar ? 'max-w-56' : 'max-w-36 truncate'}>
+      <TableCell
+        title={(showAvatar ? avatarName : label) ?? undefined}
+        className={showAvatar ? 'max-w-56' : 'max-w-36 truncate'}
+      >
         {showAvatar ? (
           <div className="flex min-w-0 items-center gap-2.5">
             <span
@@ -118,19 +121,21 @@ export function UserAttributeCells({
       <TableCell title={row.email} className="max-w-52">
         <div className="flex min-w-0 items-center gap-1">
           <span className="min-w-0 truncate">{ellipsis(row.email, 24)}</span>
-          <CopyButton value={row.email} label="Email" />
+          <CopyButton value={row.email} label={t('common:email')} />
         </div>
       </TableCell>
       <TableCell title={row.profile.phone ?? undefined} className="max-w-36">
         <div className="flex min-w-0 items-center gap-1">
           <span className="min-w-0 truncate">{ellipsis(row.profile.phone, 16)}</span>
-          {row.profile.phone ? <CopyButton value={row.profile.phone} label="Phone" /> : null}
+          {row.profile.phone ? (
+            <CopyButton value={row.profile.phone} label={t('common:phone')} />
+          ) : null}
         </div>
       </TableCell>
       {showRoleStatus ? (
         <>
           <TableCell>
-            <Badge variant="outline">{roleLabel(row.role)}</Badge>
+            <Badge variant="outline">{t(`admin:roles.${row.role}`)}</Badge>
           </TableCell>
           <TableCell>
             {onToggleStatus ? (
@@ -142,10 +147,12 @@ export function UserAttributeCells({
                 <Switch
                   size="sm"
                   checked={row.status === 'ACTIVE'}
-                  aria-label={`${row.status === 'ACTIVE' ? 'Deactivate' : 'Activate'} ${row.email}`}
+                  aria-label={`${row.status === 'ACTIVE' ? t('common:deactivate') : t('common:activate')} ${row.email}`}
                   onCheckedChange={() => onToggleStatus(row.id)}
                 />
-                <span className="text-xs text-muted-foreground">{statusText(row.status)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t(`admin:userStatus.${row.status}`)}
+                </span>
               </div>
             ) : (
               <StatusBadge status={row.status} />
@@ -157,5 +164,5 @@ export function UserAttributeCells({
   )
 }
 
-export const USER_TABLE_HEADERS = ['Name', 'Email', 'Phone', 'Role', 'Status'] as const
-export const WORKER_TABLE_HEADERS = ['Name', 'Email', 'Phone'] as const
+export const USER_TABLE_HEADERS = ['name', 'email', 'phone', 'role', 'status'] as const
+export const WORKER_TABLE_HEADERS = ['name', 'email', 'phone'] as const

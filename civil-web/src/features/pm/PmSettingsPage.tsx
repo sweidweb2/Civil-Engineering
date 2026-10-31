@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { cn } from 'cn'
+import { useEffect, useMemo, useState } from 'react'
 import { FileText, ListOrdered, UserRound } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
 import { PageHeader } from '@/components/layout/page-header'
@@ -8,41 +8,42 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ManageStepsPage } from '@/features/admin/ManageStepsPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { cn } from '@/lib/utils'
 
 import { PmProfileAdditionalPanel } from './components/PmProfileAdditionalPanel'
 import { PmProfileGeneralPanel } from './components/PmProfileGeneralPanel'
 
 type SettingsSection = 'profile' | 'steps'
 
-const SECTIONS: Array<{
-  id: SettingsSection
-  label: string
-  description: string
-  icon: typeof UserRound
-}> = [
-  {
-    id: 'profile',
-    label: 'Profile',
-    description: 'Account and professional details',
-    icon: UserRound,
-  },
-  {
-    id: 'steps',
-    label: 'Steps',
-    description: 'Templates assigned to new projects',
-    icon: ListOrdered,
-  },
-]
-
 function sectionFromParam(value: string | null): SettingsSection {
   return value === 'steps' ? 'steps' : 'profile'
 }
 
 export function PmSettingsPage() {
-  useDocumentTitle('Settings')
+  const { t } = useTranslation('pm')
+  useDocumentTitle(t('settings'))
   const [searchParams, setSearchParams] = useSearchParams()
   const [section, setSection] = useState<SettingsSection>(() =>
     sectionFromParam(searchParams.get('tab')),
+  )
+
+  const sections = useMemo(
+    () =>
+      [
+        {
+          id: 'profile' as const,
+          label: t('profile'),
+          description: t('profileDescription'),
+          icon: UserRound,
+        },
+        {
+          id: 'steps' as const,
+          label: t('steps'),
+          description: t('stepsDescription'),
+          icon: ListOrdered,
+        },
+      ] as const,
+    [t],
   )
 
   useEffect(() => {
@@ -56,20 +57,16 @@ export function PmSettingsPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <PageHeader
-        className="mb-0"
-        title="Settings"
-        description="Manage your profile and project step templates."
-      />
+      <PageHeader className="mb-0" title={t('settings')} description={t('settingsDescription')} />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
         <Card size="sm" className="h-fit lg:sticky lg:top-20">
           <CardHeader>
-            <CardTitle>Settings</CardTitle>
-            <p className="text-sm text-muted-foreground">Choose a section to edit.</p>
+            <CardTitle>{t('settings')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t('chooseSection')}</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 p-2 pt-0">
-            {SECTIONS.map((item) => {
+            {sections.map((item) => {
               const Icon = item.icon
               const isActive = section === item.id
               return (
@@ -78,7 +75,7 @@ export function PmSettingsPage() {
                   type="button"
                   onClick={() => selectSection(item.id)}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
+                    'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-start transition-colors',
                     isActive
                       ? 'bg-muted text-foreground'
                       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -104,11 +101,11 @@ export function PmSettingsPage() {
               <TabsList>
                 <TabsTrigger value="general">
                   <UserRound className="size-3.5" />
-                  General
+                  {t('general')}
                 </TabsTrigger>
                 <TabsTrigger value="additional">
                   <FileText className="size-3.5" />
-                  Additional info
+                  {t('additionalInfo')}
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="general" className="min-w-0">

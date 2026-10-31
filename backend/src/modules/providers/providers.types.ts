@@ -8,7 +8,7 @@ export type ProviderOwner = {
 
 export type Provider = {
   id: string
-  ownerUserId: string
+  ownerUserId: string | null
   name: string
   description: string | null
   logoUrl: string | null
@@ -24,7 +24,7 @@ export type Provider = {
   status: ProviderStatus
   createdAt: string
   updatedAt: string
-  owner: ProviderOwner
+  owner: ProviderOwner | null
 }
 
 export type ProviderOwnerCandidate = {

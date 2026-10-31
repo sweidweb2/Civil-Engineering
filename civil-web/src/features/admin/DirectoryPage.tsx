@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useCallback, useState } from 'react'
 import { Box, HardHat, Layers, Wrench } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
@@ -12,7 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { type Listing, type ListingType,listListings } from '@/services/listings'
+import {
+  formatListingPrice,
+  type Listing,
+  type ListingType,
+  listListings,
+} from '@/services/listings'
 import { listVerifications, type User } from '@/services/users'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
@@ -31,7 +37,9 @@ type DirectoryStats = {
 
 function personName(user: User): string {
   const profile = user.profile
-  const named = profile?.displayName?.trim() || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
+  const named =
+    profile?.displayName?.trim() ||
+    [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
   return named || user.email
 }
 
@@ -40,10 +48,10 @@ function listingItem(listing: Listing): DirectoryItem {
     id: listing.id,
     name: listing.name,
     kind: listing.type === 'EQUIPMENT' ? 'equipment' : 'material',
-    category: listing.categoryName,
-    location: listing.providerName,
-    source: listing.providerName,
-    price: `${listing.currency} ${listing.price} / ${listing.unit}`,
+    category: listing.categoryName ?? '—',
+    location: listing.providerName ?? '—',
+    source: listing.providerName ?? '—',
+    price: formatListingPrice(listing),
   }
 }
 
@@ -80,7 +88,8 @@ async function loadDirectory(input: {
   const materialIsList = !q && input.kind === 'material'
   const equipmentIsList = !q && input.kind === 'equipment'
   const workerIsList = !q && input.kind === 'worker'
-  const materialLimit = materialIsList || (!q && input.kind === 'all' && input.page === 1) ? PAGE_SIZE : 1
+  const materialLimit =
+    materialIsList || (!q && input.kind === 'all' && input.page === 1) ? PAGE_SIZE : 1
   const materialPage = materialIsList ? input.page : 1
 
   const [materials, equipment, workers] = await Promise.all([
@@ -129,7 +138,10 @@ async function loadDirectory(input: {
     { source: 'equipment', total: filtered ? filtered[1].total : equipment.total },
   ]
   if (input.includeWorkers) {
-    totals.push({ source: 'workers', total: filtered ? (filtered[2]?.meta.total ?? 0) : (workers?.meta.total ?? 0) })
+    totals.push({
+      source: 'workers',
+      total: filtered ? (filtered[2]?.meta.total ?? 0) : (workers?.meta.total ?? 0),
+    })
   }
 
   const pageStart = (input.page - 1) * PAGE_SIZE
@@ -166,8 +178,9 @@ async function loadDirectory(input: {
 }
 
 function DirectoryCards({ items }: { items: DirectoryItem[] }) {
+  const { t } = useTranslation('admin')
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">No directory items match.</p>
+    return <p className="text-sm text-muted-foreground">{t('directory.noMatch')}</p>
   }
 
   return (
@@ -185,7 +198,9 @@ function DirectoryCards({ items }: { items: DirectoryItem[] }) {
           </CardHeader>
           <CardContent className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant="outline">{ellipsis(item.category, 16)}</Badge>
-            <span className="truncate text-xs text-muted-foreground">{ellipsis(item.source, 22)}</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {ellipsis(item.source, 22)}
+            </span>
             <span className="text-xs font-medium text-primary">{item.price}</span>
           </CardContent>
         </Card>
@@ -195,7 +210,8 @@ function DirectoryCards({ items }: { items: DirectoryItem[] }) {
 }
 
 export function DirectoryPage() {
-  useDocumentTitle('Directory')
+  const { t } = useTranslation(['admin', 'common'])
+  useDocumentTitle(t('admin:directory.documentTitle'))
   const location = useLocation()
   const includeWorkers = !location.pathname.startsWith('/pm')
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
@@ -203,15 +219,15 @@ export function DirectoryPage() {
 
   const kinds: Array<{ value: DirectoryFilter; label: string }> = includeWorkers
     ? [
-        { value: 'all', label: 'All' },
-        { value: 'material', label: 'Materials' },
-        { value: 'equipment', label: 'Equipment' },
-        { value: 'worker', label: 'Workers' },
+        { value: 'all', label: t('admin:directory.all') },
+        { value: 'material', label: t('admin:directory.materials') },
+        { value: 'equipment', label: t('admin:directory.equipment') },
+        { value: 'worker', label: t('admin:directory.workers') },
       ]
     : [
-        { value: 'all', label: 'All' },
-        { value: 'material', label: 'Materials' },
-        { value: 'equipment', label: 'Equipment' },
+        { value: 'all', label: t('admin:directory.all') },
+        { value: 'material', label: t('admin:directory.materials') },
+        { value: 'equipment', label: t('admin:directory.equipment') },
       ]
   const activeKind = kinds.some((tab) => tab.value === kind) ? kind : 'all'
 
@@ -237,7 +253,7 @@ export function DirectoryPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Directory"
+        title={t('admin:directory.title')}
         description={
           includeWorkers
             ? 'Active materials and equipment from listings, plus worker accounts. Directory-only — no checkout.'
@@ -247,10 +263,16 @@ export function DirectoryPage() {
 
       {stats ? (
         <div className={STAT_GRID_CLASS}>
-          <StatCard icon={Layers} label="Items" value={stats.materials + stats.equipment + stats.workers} />
-          <StatCard icon={Box} label="Materials" value={stats.materials} />
-          <StatCard icon={Wrench} label="Equipment" value={stats.equipment} />
-          {includeWorkers ? <StatCard icon={HardHat} label="Workers" value={stats.workers} /> : null}
+          <StatCard
+            icon={Layers}
+            label={t('admin:directory.title')}
+            value={stats.materials + stats.equipment + stats.workers}
+          />
+          <StatCard icon={Box} label={t('admin:directory.materials')} value={stats.materials} />
+          <StatCard icon={Wrench} label={t('admin:directory.equipment')} value={stats.equipment} />
+          {includeWorkers ? (
+            <StatCard icon={HardHat} label={t('admin:directory.workers')} value={stats.workers} />
+          ) : null}
         </div>
       ) : remote.isLoading ? (
         <StatGridSkeleton count={includeWorkers ? 4 : 3} />
@@ -259,7 +281,12 @@ export function DirectoryPage() {
       <Tabs
         value={activeKind}
         onValueChange={(value) => {
-          if (value === 'all' || value === 'material' || value === 'equipment' || value === 'worker') {
+          if (
+            value === 'all' ||
+            value === 'material' ||
+            value === 'equipment' ||
+            value === 'worker'
+          ) {
             setKind(value)
             setPage(1)
           }
@@ -277,8 +304,8 @@ export function DirectoryPage() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter directory…"
-            aria-label="Filter directory"
+            placeholder={t('admin:directory.filterPlaceholder')}
+            aria-label={t('admin:directory.filterAria')}
             className="max-w-sm"
           />
         </ToolbarCard>
@@ -287,10 +314,17 @@ export function DirectoryPage() {
             isLoading={remote.isLoading}
             error={remote.isError ? remote.error : undefined}
             onRetry={() => void remote.refetch()}
-            loadingFallback={<CardGridSkeleton className="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />}
+            loadingFallback={
+              <CardGridSkeleton className="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />
+            }
           >
             <DirectoryCards items={items} />
-            <TablePager page={page} totalPages={pageCount(total)} total={total} onPageChange={setPage} />
+            <TablePager
+              page={page}
+              totalPages={pageCount(total)}
+              total={total}
+              onPageChange={setPage}
+            />
           </AsyncState>
         </TabsContent>
       </Tabs>

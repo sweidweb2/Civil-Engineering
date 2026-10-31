@@ -1,5 +1,15 @@
 import { useCallback } from 'react'
-import { BadgeCheck, Briefcase,FolderKanban, HardHat, Package, Star, Store, Users } from 'lucide-react'
+import {
+  BadgeCheck,
+  Briefcase,
+  FolderKanban,
+  HardHat,
+  Package,
+  Star,
+  Store,
+  Users,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { StatGridSkeleton } from '@/components/feedback/skeletons'
@@ -50,7 +60,8 @@ async function loadDashboard(): Promise<DashboardStats> {
 }
 
 export function AdminAnalyticsPage() {
-  useDocumentTitle('Dashboard')
+  const { t } = useTranslation('admin')
+  useDocumentTitle(t('dashboard.title'))
   const load = useCallback(() => loadDashboard(), [])
   const remote = useRemoteData(load, { queryKey: ['admin', 'analytics'] })
   const stats = remote.status === 'success' ? remote.data : null
@@ -59,8 +70,8 @@ export function AdminAnalyticsPage() {
     <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         className="mb-0"
-        title="Dashboard"
-        description="Live counts from users, providers, projects, listings, reviews, and verification."
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
       />
 
       <AsyncState
@@ -71,24 +82,34 @@ export function AdminAnalyticsPage() {
       >
         {stats ? (
           <div className={STAT_GRID_CLASS}>
-            <StatCard icon={Users} label="Registered users" value={stats.registeredUsers} />
-            <StatCard icon={Briefcase} label="Project managers" value={stats.managers} />
-            <StatCard icon={Store} label="Providers" value={stats.providers} />
-            <StatCard icon={HardHat} label="Workers" value={stats.workers} />
-            <StatCard icon={FolderKanban} label="Projects" value={stats.projects} />
-            <StatCard icon={Package} label="Listings" value={stats.listings} />
-            <StatCard icon={Star} label="Reviews" value={stats.reviews} />
-            <StatCard icon={BadgeCheck} label="Verification requests" value={stats.verificationRequests} />
+            <StatCard
+              icon={Users}
+              label={t('dashboard.registeredUsers')}
+              value={stats.registeredUsers}
+            />
+            <StatCard
+              icon={Briefcase}
+              label={t('dashboard.projectManagers')}
+              value={stats.managers}
+            />
+            <StatCard icon={Store} label={t('dashboard.providers')} value={stats.providers} />
+            <StatCard icon={HardHat} label={t('dashboard.workers')} value={stats.workers} />
+            <StatCard icon={FolderKanban} label={t('dashboard.projects')} value={stats.projects} />
+            <StatCard icon={Package} label={t('dashboard.listings')} value={stats.listings} />
+            <StatCard icon={Star} label={t('dashboard.reviews')} value={stats.reviews} />
+            <StatCard
+              icon={BadgeCheck}
+              label={t('dashboard.verificationRequests')}
+              value={stats.verificationRequests}
+            />
           </div>
         ) : null}
       </AsyncState>
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Notes</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Revenue and subscription metrics are out of scope. Marketplace stays directory-only.
-          </p>
+          <CardTitle>{t('dashboard.notes')}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t('dashboard.notesBody')}</p>
         </CardHeader>
       </Card>
     </div>

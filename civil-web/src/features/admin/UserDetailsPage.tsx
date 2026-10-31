@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useCallback, useMemo, useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -23,17 +24,14 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
-import {
-  deactivateUser,
-  getUser,
-  updateUser,
-} from '@/services/users'
+import { deactivateUser, getUser, updateUser } from '@/services/users'
 
 import { UserFormDialog } from './components/UserFormDialog'
 import { formatWhen } from './lib/text'
-import { formFromUser, roleLabel, toAdminUserRow, type UserFormValues,userStatusLabel } from './users.rows'
+import { formFromUser, toAdminUserRow, type UserFormValues } from './users.rows'
 
 export function UserDetailsPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const { userId } = useParams<{ userId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
@@ -42,44 +40,47 @@ export function UserDetailsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const load = useCallback(async () => {
-    if (!userId) throw new Error('Missing user id')
+    if (!userId) throw new Error(t('admin:users.userNotFound'))
     const result = await getUser(userId)
     return toAdminUserRow(result.data)
-  }, [userId])
+  }, [userId, t])
   const remote = useRemoteData(load, {
     enabled: Boolean(userId),
     queryKey: ['users', 'detail', userId ?? ''],
   })
   const user = remote.status === 'success' ? remote.data : undefined
 
-  useDocumentTitle(user ? user.email : 'User details')
+  useDocumentTitle(user ? user.email : t('admin:users.detailsTitle'))
 
   const breadcrumbs = [
-    { label: 'Users', to: usersPath },
-    { label: user?.email ?? 'User details' },
+    { label: t('admin:users.documentTitle'), to: usersPath },
+    { label: user?.email ?? t('admin:users.detailsTitle') },
   ]
 
   const fields = useMemo(() => {
     if (!user) return null
     return [
-      { label: 'Email', value: user.email },
-      { label: 'Role', value: roleLabel(user.role) },
-      { label: 'Status', value: userStatusLabel(user.status) },
-      { label: 'Verified', value: user.isVerified ? 'Yes' : 'No' },
-      { label: 'User created', value: formatWhen(user.createdAt) },
-      { label: 'User updated', value: formatWhen(user.updatedAt) },
-      { label: 'First name', value: user.profile.firstName ?? '—' },
-      { label: 'Last name', value: user.profile.lastName ?? '—' },
-      { label: 'Display name', value: user.profile.displayName ?? '—' },
-      { label: 'Phone', value: user.profile.phone ?? '—' },
-      { label: 'Avatar', value: user.profile.avatarUrl ?? '—' },
-      { label: 'Profile created', value: formatWhen(user.profile.createdAt) },
-      { label: 'Profile updated', value: formatWhen(user.profile.updatedAt) },
+      { label: t('admin:users.fields.email'), value: user.email },
+      { label: t('admin:users.fields.role'), value: t(`admin:roles.${user.role}`) },
+      { label: t('admin:users.fields.status'), value: t(`admin:userStatus.${user.status}`) },
+      {
+        label: t('admin:users.fields.verified'),
+        value: user.isVerified ? t('common:yes') : t('common:no'),
+      },
+      { label: t('admin:users.fields.userCreated'), value: formatWhen(user.createdAt) },
+      { label: t('admin:users.fields.userUpdated'), value: formatWhen(user.updatedAt) },
+      { label: t('admin:users.fields.firstName'), value: user.profile.firstName ?? '—' },
+      { label: t('admin:users.fields.lastName'), value: user.profile.lastName ?? '—' },
+      { label: t('admin:users.fields.displayName'), value: user.profile.displayName ?? '—' },
+      { label: t('admin:users.fields.phone'), value: user.profile.phone ?? '—' },
+      { label: t('admin:users.fields.avatar'), value: user.profile.avatarUrl ?? '—' },
+      { label: t('admin:users.fields.profileCreated'), value: formatWhen(user.profile.createdAt) },
+      { label: t('admin:users.fields.profileUpdated'), value: formatWhen(user.profile.updatedAt) },
     ]
-  }, [user])
+  }, [user, t])
 
   async function onSave(values: UserFormValues): Promise<string | null> {
-    if (!user) return 'User not found'
+    if (!user) return t('admin:users.userNotFound')
     try {
       await updateUser(user.id, {
         role: values.role,
@@ -93,7 +94,7 @@ export function UserDetailsPage() {
       return null
     } catch (error) {
       if (error instanceof ApiError) return error.message
-      return 'Could not update user'
+      return t('admin:users.couldNotUpdate')
     }
   }
 
@@ -101,10 +102,10 @@ export function UserDetailsPage() {
     if (!user) return
     try {
       await deactivateUser(user.id)
-      toast.success('User deactivated')
+      toast.success(t('admin:users.userDeactivated'))
       navigate(usersPath, { replace: true })
     } catch (error) {
-      toastApiError(error, 'Could not deactivate user')
+      toastApiError(error, t('admin:users.couldNotDeactivate'))
     }
   }
 
@@ -120,7 +121,7 @@ export function UserDetailsPage() {
                 type="button"
                 variant="outline"
                 size="icon-sm"
-                aria-label={`Edit ${user.email}`}
+                aria-label={t('admin:users.editUser', { email: user.email })}
                 onClick={() => setEditOpen(true)}
               >
                 <Pencil />
@@ -129,7 +130,7 @@ export function UserDetailsPage() {
                 type="button"
                 variant="destructive"
                 size="icon-sm"
-                aria-label={`Deactivate ${user.email}`}
+                aria-label={t('admin:users.deactivateUser', { email: user.email })}
                 onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 />
@@ -148,7 +149,7 @@ export function UserDetailsPage() {
         {!user ? (
           <Card size="sm" className="min-w-0">
             <CardContent>
-              <p className="text-sm text-muted-foreground">User not found.</p>
+              <p className="text-sm text-muted-foreground">{t('admin:users.userNotFoundBody')}</p>
             </CardContent>
           </Card>
         ) : (
@@ -164,7 +165,9 @@ export function UserDetailsPage() {
                       <dt className="bg-muted/50 px-3 py-2.5 text-xs font-medium text-muted-foreground">
                         {field.label}
                       </dt>
-                      <dd className="break-all px-3 py-2.5 text-sm text-foreground">{field.value}</dd>
+                      <dd className="break-all px-3 py-2.5 text-sm text-foreground">
+                        {field.value}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -182,15 +185,15 @@ export function UserDetailsPage() {
             <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Deactivate this user?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('admin:users.deactivateThisTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {user.email} will be set to INACTIVE via the API.
+                    {t('admin:users.deactivateThisDescription', { email: user.email })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
                   <AlertDialogAction variant="destructive" onClick={() => void onDeactivate()}>
-                    Deactivate
+                    {t('common:deactivate')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

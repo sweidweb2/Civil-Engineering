@@ -1,6 +1,19 @@
-# React + TypeScript + Vite
+# Civil Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript client for the Civil Engineering portals (Super / Admin / PM / Provider).
+
+## i18n (English / Arabic)
+
+Portal UI uses `i18next` + `react-i18next` with catalogs under `src/i18n/locales/{en,ar}/`.
+
+- Default locale: `en` (persisted in Zustand `localeStore` as `civil-web-locale`)
+- Toggle language from the panel header or Account menu; Arabic sets `document.documentElement` `lang="ar"` and `dir="rtl"`
+- Access via `useTranslation('<namespace>')` / `t('common:save')` — namespaces: `common`, `nav`, `account`, `auth`, `admin`, `pm`, `provider`, `notifications`, `projects`, `validation`
+- User-generated / API content (names, notes, project titles) stays as stored; do not translate it in catalogs
+
+## Vite / React
+
+This app is built with Vite. Two official React plugins are available:
 
 Currently, two official plugins are available:
 

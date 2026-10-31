@@ -5,21 +5,25 @@ import { decimalToString } from './listings.repository.js'
 export type ListingSnapshot = {
   id: string
   name: string
-  type: string
-  categoryId: string
+  type: string | null
+  categoryId: string | null
   brand: string | null
-  unit: string
-  currency: string
-  price: string
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
   rentalPrice: string | null
   rentalUnit: string | null
-  providerId: string
+  providerId: string | null
   status: string
   description: string | null
 }
 
 /** Read-only listing lookups for other modules. They must not query the listings table themselves. */
-export async function findListingNames(ids: string[]): Promise<Array<{ id: string; name: string }>> {
+export async function findListingNames(
+  ids: string[],
+): Promise<Array<{ id: string; name: string }>> {
   if (ids.length === 0) return []
   return prisma.listing.findMany({
     where: { id: { in: ids } },
@@ -33,29 +37,33 @@ export async function findListingSnapshot(id: string): Promise<ListingSnapshot |
     select: {
       id: true,
       name: true,
-      type: true,
       categoryId: true,
       brand: true,
       unit: true,
       currency: true,
       price: true,
+      priceMin: true,
+      priceMax: true,
       rentalPrice: true,
       rentalUnit: true,
       providerId: true,
       status: true,
       description: true,
+      category: { select: { kind: true } },
     },
   })
   if (!row) return null
   return {
     id: row.id,
     name: row.name,
-    type: row.type,
+    type: row.category?.kind ?? null,
     categoryId: row.categoryId,
     brand: row.brand,
     unit: row.unit,
     currency: row.currency,
-    price: decimalToString(row.price) ?? '0',
+    price: decimalToString(row.price),
+    priceMin: decimalToString(row.priceMin),
+    priceMax: decimalToString(row.priceMax),
     rentalPrice: decimalToString(row.rentalPrice),
     rentalUnit: row.rentalUnit,
     providerId: row.providerId,
@@ -84,7 +92,11 @@ export async function listListingChoices(
   const rows = await prisma.listing.findMany({
     orderBy: { name: 'asc' },
     take,
-    select: { id: true, name: true, type: true },
+    select: { id: true, name: true, category: { select: { kind: true } } },
   })
-  return rows.map((row) => ({ id: row.id, name: row.name, subtitle: row.type }))
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    subtitle: row.category?.kind ?? 'Uncategorized',
+  }))
 }

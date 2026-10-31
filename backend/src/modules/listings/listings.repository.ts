@@ -1,6 +1,6 @@
 import { prisma } from '../../database/prisma.js'
-import type { ListingStatus, ListingType, Prisma, RentalUnit } from '../../generated/prisma/client.js'
-import type { ListListingsQuery, UpdateListingBody } from './listings.schema.js'
+import type { ListingStatus, Prisma, RentalUnit } from '../../generated/prisma/client.js'
+import type { ListListingsQuery, ListingType, UpdateListingBody } from './listings.schema.js'
 import type { ListingTypeCounts } from './listings.types.js'
 
 const listingInclude = {
@@ -17,18 +17,20 @@ type ListingRow = Prisma.ListingGetPayload<{ include: typeof listingInclude }>
 
 export type ListingRecord = {
   id: string
-  providerId: string
-  providerName: string
-  categoryId: string
-  categoryName: string
-  categoryKind: 'MATERIAL' | 'EQUIPMENT' | 'SERVICE' | 'WORKER'
-  type: ListingType
+  providerId: string | null
+  providerName: string | null
+  categoryId: string | null
+  categoryName: string | null
+  categoryKind: 'MATERIAL' | 'EQUIPMENT' | 'SERVICE' | 'WORKER' | null
+  type: ListingType | null
   name: string
   description: string | null
   brand: string | null
-  unit: string
-  currency: string
-  price: string
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
   rentalPrice: string | null
   rentalUnit: RentalUnit | null
   quantityAvailable: string | null
@@ -39,15 +41,16 @@ export type ListingRecord = {
 }
 
 export type CreateListingRecordInput = {
-  providerId: string
-  categoryId: string
-  type: ListingType
+  providerId: string | null
+  categoryId: string | null
   name: string
   description: string | null
   brand: string | null
-  unit: string
-  currency: string
-  price: string
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
   rentalPrice: string | null
   rentalUnit: RentalUnit | null
   quantityAvailable: string | null
@@ -59,11 +62,9 @@ export type ListingsRepository = {
   countByType: (providerId?: string) => Promise<ListingTypeCounts>
   findById: (id: string) => Promise<ListingRecord | null>
   findProvider: (id: string) => Promise<{ id: string } | null>
-  findCategory: (
-    id: string,
-  ) => Promise<{
+  findCategory: (id: string) => Promise<{
     id: string
-    kind: ListingRecord['categoryKind']
+    kind: NonNullable<ListingRecord['categoryKind']>
     scope: 'PLATFORM' | 'PROVIDER'
     isActive: boolean
   } | null>
@@ -78,21 +79,30 @@ export function decimalToString(value: { toString(): string } | null): string | 
   return value == null ? null : value.toString()
 }
 
+function listingTypeFromKind(
+  kind: 'MATERIAL' | 'EQUIPMENT' | 'SERVICE' | 'WORKER' | null | undefined,
+): ListingType | null {
+  if (kind === 'MATERIAL' || kind === 'EQUIPMENT' || kind === 'SERVICE') return kind
+  return null
+}
+
 function toRecord(row: ListingRow): ListingRecord {
   return {
     id: row.id,
     providerId: row.providerId,
-    providerName: row.provider.name,
+    providerName: row.provider?.name ?? null,
     categoryId: row.categoryId,
-    categoryName: row.category.name,
-    categoryKind: row.category.kind,
-    type: row.type,
+    categoryName: row.category?.name ?? null,
+    categoryKind: row.category?.kind ?? null,
+    type: listingTypeFromKind(row.category?.kind),
     name: row.name,
     description: row.description,
     brand: row.brand,
     unit: row.unit,
     currency: row.currency,
-    price: row.price.toString(),
+    price: decimalToString(row.price),
+    priceMin: decimalToString(row.priceMin),
+    priceMax: decimalToString(row.priceMax),
     rentalPrice: decimalToString(row.rentalPrice),
     rentalUnit: row.rentalUnit,
     quantityAvailable: decimalToString(row.quantityAvailable),
@@ -107,8 +117,8 @@ function listWhere(query: ListListingsQuery): Prisma.ListingWhereInput {
   return {
     providerId: query.providerId,
     categoryId: query.categoryId,
-    type: query.type,
     status: query.status,
+    ...(query.type ? { category: { kind: query.type } } : {}),
     ...(query.q
       ? {
           OR: [
@@ -142,13 +152,29 @@ export function createListingsRepository(): ListingsRepository {
 
     async countByType(providerId) {
       const groups = await prisma.listing.groupBy({
-        by: ['type'],
+        by: ['categoryId'],
         where: providerId ? { providerId } : undefined,
         _count: { _all: true },
       })
       const counts: ListingTypeCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 }
+      if (groups.length === 0) return counts
+
+      const categoryIds = groups
+        .map((group) => group.categoryId)
+        .filter((id): id is string => Boolean(id))
+      if (categoryIds.length === 0) return counts
+
+      const categories = await prisma.category.findMany({
+        where: { id: { in: categoryIds } },
+        select: { id: true, kind: true },
+      })
+      const kindById = new Map(categories.map((category) => [category.id, category.kind]))
       for (const group of groups) {
-        counts[group.type] = group._count._all
+        if (!group.categoryId) continue
+        const kind = kindById.get(group.categoryId)
+        if (kind === 'MATERIAL' || kind === 'EQUIPMENT' || kind === 'SERVICE') {
+          counts[kind] += group._count._all
+        }
       }
       return counts
     },
@@ -183,13 +209,14 @@ export function createListingsRepository(): ListingsRepository {
         data: {
           providerId: input.providerId,
           categoryId: input.categoryId,
-          type: input.type,
           name: input.name,
           description: input.description,
           brand: input.brand,
           unit: input.unit,
           currency: input.currency,
           price: input.price,
+          priceMin: input.priceMin,
+          priceMax: input.priceMax,
           rentalPrice: input.rentalPrice,
           rentalUnit: input.rentalUnit,
           quantityAvailable: input.quantityAvailable,

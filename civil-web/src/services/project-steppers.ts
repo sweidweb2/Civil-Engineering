@@ -3,15 +3,17 @@ import { apiRequest } from './api'
 export type ListingSnapshot = {
   id: string
   name: string
-  type: string
-  categoryId: string
+  type: string | null
+  categoryId: string | null
   brand: string | null
-  unit: string
-  currency: string
-  price: string
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
   rentalPrice: string | null
   rentalUnit: string | null
-  providerId: string
+  providerId: string | null
   status: string
   description: string | null
 }
@@ -114,9 +116,7 @@ export function listProjectSteppers(projectId: string) {
 }
 
 export function getProjectStepper(projectId: string, projectStepId: string) {
-  return apiRequest<{ data: ProjectStepDetail }>(
-    `/projects/${projectId}/steppers/${projectStepId}`,
-  )
+  return apiRequest<{ data: ProjectStepDetail }>(`/projects/${projectId}/steppers/${projectStepId}`)
 }
 
 export function saveProjectStepperValues(
@@ -153,13 +153,8 @@ export function addProjectStepInput(
   )
 }
 
-export function deleteProjectStepInput(
-  projectId: string,
-  projectStepId: string,
-  inputId: string,
-) {
-  return apiRequest<void>(
-    `/projects/${projectId}/steppers/${projectStepId}/inputs/${inputId}`,
-    { method: 'DELETE' },
-  )
+export function deleteProjectStepInput(projectId: string, projectStepId: string, inputId: string) {
+  return apiRequest<void>(`/projects/${projectId}/steppers/${projectStepId}/inputs/${inputId}`, {
+    method: 'DELETE',
+  })
 }

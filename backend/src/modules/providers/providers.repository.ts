@@ -1,6 +1,10 @@
 import { prisma } from '../../database/prisma.js'
 import type { Prisma, ProviderStatus } from '../../generated/prisma/client.js'
-import type { CreateProviderBody, ListProvidersQuery, UpdateProviderBody } from './providers.schema.js'
+import type {
+  CreateProviderBody,
+  ListProvidersQuery,
+  UpdateProviderBody,
+} from './providers.schema.js'
 import type { ProviderOwnerCandidate, ProviderStatusCounts } from './providers.types.js'
 
 const ownerSelect = {
@@ -17,7 +21,7 @@ export type ProviderOwnerUser = {
 
 export type ProviderRecord = {
   id: string
-  ownerUserId: string
+  ownerUserId: string | null
   name: string
   description: string | null
   logoUrl: string | null
@@ -36,19 +40,21 @@ export type ProviderRecord = {
   owner: {
     id: string
     email: string
-    profile: { displayName: string | null; firstName: string | null; lastName: string | null } | null
-  }
+    profile: {
+      displayName: string | null
+      firstName: string | null
+      lastName: string | null
+    } | null
+  } | null
 }
 
 export type ProvidersRepository = {
-  findMany: (
-    query: ListProvidersQuery,
-  ) => Promise<{ items: ProviderRecord[]; total: number }>
+  findMany: (query: ListProvidersQuery) => Promise<{ items: ProviderRecord[]; total: number }>
   countByStatus: () => Promise<ProviderStatusCounts>
   findById: (id: string) => Promise<ProviderRecord | null>
   findByOwnerUserId: (ownerUserId: string) => Promise<ProviderRecord | null>
   findOwnerUser: (id: string) => Promise<ProviderOwnerUser | null>
-  findEligibleOwners: () => Promise<ProviderOwnerCandidate[]>
+  findEligibleOwners: (includeUserId?: string | null) => Promise<ProviderOwnerCandidate[]>
   create: (input: CreateProviderBody) => Promise<ProviderRecord>
   update: (id: string, input: UpdateProviderBody) => Promise<ProviderRecord>
 }
@@ -58,9 +64,7 @@ function ownerDisplayName(
 ): string | null {
   if (!profile) return null
   return (
-    profile.displayName ||
-    [profile.firstName, profile.lastName].filter(Boolean).join(' ') ||
-    null
+    profile.displayName || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || null
   )
 }
 
@@ -130,9 +134,13 @@ export function createProvidersRepository(): ProvidersRepository {
       })
     },
 
-    async findEligibleOwners() {
+    async findEligibleOwners(includeUserId) {
       const users = await prisma.user.findMany({
-        where: { role: 'PROVIDER', status: 'ACTIVE', provider: { is: null } },
+        where: {
+          role: 'PROVIDER',
+          status: 'ACTIVE',
+          OR: [{ provider: { is: null } }, ...(includeUserId ? [{ id: includeUserId }] : [])],
+        },
         orderBy: { email: 'asc' },
         take: 100,
         select: ownerSelect,
@@ -147,7 +155,7 @@ export function createProvidersRepository(): ProvidersRepository {
     async create(input) {
       return prisma.provider.create({
         data: {
-          ownerUserId: input.ownerUserId,
+          ownerUserId: input.ownerUserId ?? null,
           name: input.name,
           description: input.description ?? null,
           logoUrl: input.logoUrl ?? null,
@@ -170,6 +178,7 @@ export function createProvidersRepository(): ProvidersRepository {
       return prisma.provider.update({
         where: { id },
         data: {
+          ownerUserId: input.ownerUserId,
           name: input.name,
           description: input.description,
           logoUrl: input.logoUrl,

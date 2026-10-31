@@ -309,9 +309,7 @@ describe('projectSteppersService', () => {
     )
 
     expect(files.requireReadyAttachment).not.toHaveBeenCalled()
-    expect(repository.upsertValues).toHaveBeenCalledWith('step-1', [
-      { id: 'in-file', value: null },
-    ])
+    expect(repository.upsertValues).toHaveBeenCalledWith('step-1', [{ id: 'in-file', value: null }])
     expect(files.softDelete).toHaveBeenCalledWith(owner, 'file-old')
   })
 
@@ -337,6 +335,8 @@ describe('projectSteppersService', () => {
       unit: 'bag',
       currency: 'USD',
       price: '12',
+      priceMin: null,
+      priceMax: null,
       rentalPrice: null,
       rentalUnit: null,
       providerId: 'prov-1',
@@ -394,6 +394,8 @@ describe('projectSteppersService', () => {
       unit: 'ton',
       currency: 'USD',
       price: '100',
+      priceMin: null,
+      priceMax: null,
       rentalPrice: null,
       rentalUnit: null,
       providerId: 'prov-1',
@@ -477,12 +479,7 @@ describe('projectSteppersService', () => {
     const service = createService()
 
     await expect(
-      service.addInput(
-        'proj-1',
-        'step-1',
-        { label: 'Product', inputTypeId: 'type-cat' },
-        owner,
-      ),
+      service.addInput('proj-1', 'step-1', { label: 'Product', inputTypeId: 'type-cat' }, owner),
     ).rejects.toMatchObject({ status: 400 })
 
     const created = await service.addInput(
@@ -500,12 +497,7 @@ describe('projectSteppersService', () => {
     const service = createService()
 
     await expect(
-      service.addInput(
-        'proj-1',
-        'step-1',
-        { label: 'Overflow', inputTypeId: 'type-text' },
-        owner,
-      ),
+      service.addInput('proj-1', 'step-1', { label: 'Overflow', inputTypeId: 'type-text' }, owner),
     ).rejects.toMatchObject({
       status: 409,
       code: 'PROJECT_STEP_INPUTS_LIMIT',

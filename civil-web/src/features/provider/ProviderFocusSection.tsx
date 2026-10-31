@@ -1,18 +1,16 @@
 import { useCallback, useMemo } from 'react'
 import { ArrowRight, MapPin, Package } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ContentSkeleton } from '@/components/feedback/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
+import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
-import {
-  type Listing,
-  listingTypeLabel,
-  listListings,
-} from '@/services/listings'
+import { type Listing, listListings } from '@/services/listings'
 import { getMyProvider, type Provider } from '@/services/providers'
 
 type StepStatus = 'todo' | 'needs_input' | 'pending' | 'done'
@@ -28,12 +26,32 @@ function shortListingCode(id: string) {
   return `LS-${id.slice(-4).toUpperCase()}`
 }
 
-function formatPrice(listing: Listing) {
-  const amount = Number.parseFloat(listing.price)
-  const price = Number.isFinite(amount)
-    ? amount.toLocaleString(undefined, { maximumFractionDigits: 2 })
-    : listing.price
-  return `${listing.currency} ${price}/${listing.unit}`
+function formatPrice(
+  listing: Listing,
+  formatNumber: (n: number, o?: Intl.NumberFormatOptions) => string,
+) {
+  const currency = listing.currency?.trim() || ''
+  const unit = listing.unit?.trim()
+  const suffix = unit ? `/${unit}` : ''
+  if (listing.price != null && listing.price !== '') {
+    const amount = Number.parseFloat(listing.price)
+    const price = Number.isFinite(amount)
+      ? formatNumber(amount, { maximumFractionDigits: 2 })
+      : listing.price
+    return `${currency} ${price}${suffix}`.trim()
+  }
+  if (listing.priceMin != null && listing.priceMax != null) {
+    const min = Number.parseFloat(listing.priceMin)
+    const max = Number.parseFloat(listing.priceMax)
+    const minLabel = Number.isFinite(min)
+      ? formatNumber(min, { maximumFractionDigits: 2 })
+      : listing.priceMin
+    const maxLabel = Number.isFinite(max)
+      ? formatNumber(max, { maximumFractionDigits: 2 })
+      : listing.priceMax
+    return `${currency} ${minLabel}–${maxLabel}${suffix}`.trim()
+  }
+  return '—'
 }
 
 function pickFocusListing(listings: Listing[]): Listing | null {
@@ -44,16 +62,23 @@ function pickFocusListing(listings: Listing[]): Listing | null {
     (item) => !item.description || item.description.trim().length < 20,
   )
   if (missingDescription) return missingDescription
-  return [...listings].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  )[0] ?? null
+  return (
+    [...listings].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )[0] ?? null
+  )
 }
 
 function profileIncomplete(provider: Provider) {
   return !provider.phone || !provider.city || !provider.description
 }
 
-function buildSteps(provider: Provider, listings: Listing[], focus: Listing | null): FocusStep[] {
+function buildSteps(
+  provider: Provider,
+  listings: Listing[],
+  focus: Listing | null,
+  t: (key: string) => string,
+): FocusStep[] {
   const profileDone = !profileIncomplete(provider)
   const hasActive = listings.some((item) => item.status === 'ACTIVE')
   const catalogReady = listings.length >= 3 && hasActive
@@ -61,104 +86,106 @@ function buildSteps(provider: Provider, listings: Listing[], focus: Listing | nu
   return [
     {
       id: 'profile',
-      title: 'Complete your shop profile',
-      description: 'Add phone, city, and a short supplier description.',
+      title: t('focus.steps.profileTitle'),
+      description: t('focus.steps.profileDescription'),
       status: profileDone ? 'done' : 'todo',
     },
     {
       id: 'listing',
-      title: focus?.status === 'INACTIVE' ? 'Activate your listing' : 'Publish a live listing',
+      title:
+        focus?.status === 'INACTIVE'
+          ? t('focus.steps.activateListingTitle')
+          : t('focus.steps.publishListingTitle'),
       description:
         focus?.status === 'INACTIVE'
-          ? 'Review details and set the listing to active for project managers.'
-          : 'Add materials, equipment, or services to your catalog.',
+          ? t('focus.steps.activateListingDescription')
+          : t('focus.steps.publishListingDescription'),
       status: hasActive ? 'done' : focus ? 'needs_input' : 'todo',
     },
     {
       id: 'catalog',
-      title: 'Grow your catalog',
-      description: 'Keep at least a few active listings so PMs can find you.',
+      title: t('focus.steps.catalogTitle'),
+      description: t('focus.steps.catalogDescription'),
       status: catalogReady ? 'done' : hasActive ? 'pending' : 'pending',
     },
   ]
 }
 
-function recommendedAction(provider: Provider, focus: Listing | null, listings: Listing[]) {
+function recommendedAction(
+  provider: Provider,
+  focus: Listing | null,
+  listings: Listing[],
+  t: (key: string) => string,
+) {
   if (!focus) {
     return {
-      title: 'Create your first listing',
-      description:
-        'Publish a material, equipment, or service so it appears when project managers search the directory.',
-      cta: 'Add listing',
+      title: t('focus.actions.createFirstTitle'),
+      description: t('focus.actions.createFirstDescription'),
+      cta: t('focus.actions.createFirstCta'),
       href: '/provider/listings',
     }
   }
   if (focus.status === 'INACTIVE') {
     return {
-      title: 'Activate this listing',
-      description:
-        'Review pricing and details, then set the listing to active so it\nshows up for project managers.',
-      cta: 'Continue listing',
+      title: t('focus.actions.activateTitle'),
+      description: t('focus.actions.activateDescription'),
+      cta: t('focus.actions.activateCta'),
       href: '/provider/listings',
     }
   }
   if (!focus.description || focus.description.trim().length < 20) {
     return {
-      title: 'Improve listing details',
-      description:
-        'Add a clearer description and check unit pricing so buyers understand exactly what you supply.',
-      cta: 'Edit listing',
+      title: t('focus.actions.improveTitle'),
+      description: t('focus.actions.improveDescription'),
+      cta: t('focus.actions.improveCta'),
       href: '/provider/listings',
     }
   }
   if (profileIncomplete(provider)) {
     return {
-      title: 'Keep your shop details accurate',
-      description:
-        'Make sure phone, city, and your supplier description are filled in so project managers can trust your catalog.',
-      cta: 'Review listings',
+      title: t('focus.actions.shopTitle'),
+      description: t('focus.actions.shopDescription'),
+      cta: t('focus.actions.shopCta'),
       href: '/provider/listings',
     }
   }
   if (listings.length < 3) {
     return {
-      title: 'Expand your catalog',
-      description:
-        'Add a few more products or services so project managers see a fuller picture of what you offer.',
-      cta: 'Add listing',
+      title: t('focus.actions.expandTitle'),
+      description: t('focus.actions.expandDescription'),
+      cta: t('focus.actions.expandCta'),
       href: '/provider/listings',
     }
   }
   return {
-    title: 'Review your live catalog',
-    description:
-      'Confirm prices and availability stay accurate so project managers can rely on your listings.',
-    cta: 'View listings',
+    title: t('focus.actions.reviewTitle'),
+    description: t('focus.actions.reviewDescription'),
+    cta: t('focus.actions.reviewCta'),
     href: '/provider/listings',
   }
 }
 
 function statusBadgeClass(status: StepStatus) {
   if (status === 'done') return 'border-transparent bg-primary/10 text-primary'
-  if (status === 'needs_input') return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400'
+  if (status === 'needs_input')
+    return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400'
   if (status === 'todo') return 'border-border bg-muted text-foreground'
   return 'border-border bg-muted/60 text-muted-foreground'
 }
 
-function statusLabel(status: StepStatus) {
-  if (status === 'done') return 'Done'
-  if (status === 'needs_input') return 'Needs input'
-  if (status === 'todo') return 'To do'
-  return 'Pending'
+function statusLabel(status: StepStatus, t: (key: string) => string) {
+  return t(`focus.status.${status}`)
 }
 
-function listingAttentionLabel(listing: Listing) {
-  if (listing.status === 'INACTIVE') return 'Needs review'
-  if (!listing.description || listing.description.trim().length < 20) return 'Needs details'
-  return 'Live'
+function listingAttentionLabel(listing: Listing, t: (key: string) => string) {
+  if (listing.status === 'INACTIVE') return t('focus.needsReview')
+  if (!listing.description || listing.description.trim().length < 20) return t('focus.needsDetails')
+  return t('focus.live')
 }
 
 export function ProviderFocusSection() {
+  const { t } = useTranslation(['provider', 'admin'])
+  const { formatNumber } = useLocaleFormat()
   const loadProvider = useCallback(() => getMyProvider(), [])
   const providerRemote = useRemoteData(loadProvider, { queryKey: ['providers', 'me', 'home'] })
   const provider = providerRemote.status === 'success' ? providerRemote.data.data : null
@@ -178,16 +205,15 @@ export function ProviderFocusSection() {
 
   const focus = useMemo(() => pickFocusListing(listings), [listings])
   const steps = useMemo(
-    () => (provider ? buildSteps(provider, listings, focus) : []),
-    [provider, listings, focus],
+    () => (provider ? buildSteps(provider, listings, focus, t) : []),
+    [provider, listings, focus, t],
   )
   const action = useMemo(
-    () => (provider ? recommendedAction(provider, focus, listings) : null),
-    [provider, focus, listings],
+    () => (provider ? recommendedAction(provider, focus, listings, t) : null),
+    [provider, focus, listings, t],
   )
 
-  const isLoading =
-    providerRemote.isLoading || (Boolean(provider) && listingsRemote.isLoading)
+  const isLoading = providerRemote.isLoading || (Boolean(provider) && listingsRemote.isLoading)
   const error = providerRemote.isError
     ? providerRemote.error
     : listingsRemote.isError
@@ -209,13 +235,13 @@ export function ProviderFocusSection() {
           <article className="flex min-w-0 flex-col gap-5 rounded-xl border border-border bg-card p-5 transition-colors hover:border-border/80 sm:p-6">
             <header className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-foreground sm:text-base">
-                Your current listing
+                {t('focus.currentListing')}
               </h2>
               <Link
                 to="/provider/listings"
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
               >
-                View all listings
+                {t('focus.viewAllListings')}
               </Link>
             </header>
 
@@ -238,16 +264,15 @@ export function ProviderFocusSection() {
                           : 'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
                       )}
                     >
-                      {listingAttentionLabel(focus)}
+                      {listingAttentionLabel(focus, t)}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {shortListingCode(focus.id)} · {listingTypeLabel(focus.type)} ·{' '}
+                    {shortListingCode(focus.id)} · {t(`admin:listingType.${focus.type}`)} ·{' '}
                     {focus.categoryName}
                   </p>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    {focus.description?.trim() ||
-                      'No description yet. Add details so project managers know what you supply.'}
+                    {focus.description?.trim() || t('focus.noDescription')}
                   </p>
                 </div>
 
@@ -257,8 +282,10 @@ export function ProviderFocusSection() {
                       <Package className="size-3.5" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Price</p>
-                      <p className="text-sm font-medium text-foreground">{formatPrice(focus)}</p>
+                      <p className="text-xs text-muted-foreground">{t('focus.price')}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {formatPrice(focus, formatNumber)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">
@@ -266,10 +293,10 @@ export function ProviderFocusSection() {
                       <MapPin className="size-3.5" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Location</p>
+                      <p className="text-xs text-muted-foreground">{t('focus.location')}</p>
                       <p className="text-sm font-medium text-foreground">
                         {[provider.city, provider.country].filter(Boolean).join(', ') ||
-                          'Not set'}
+                          t('focus.notSet')}
                       </p>
                     </div>
                   </div>
@@ -278,11 +305,10 @@ export function ProviderFocusSection() {
             ) : (
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  No listings yet
+                  {t('focus.noListingsTitle')}
                 </h3>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  You have not published materials, equipment, or services. Create a listing to
-                  appear in the project manager directory.
+                  {t('focus.noListingsBody')}
                 </p>
               </div>
             )}
@@ -297,7 +323,7 @@ export function ProviderFocusSection() {
               <div className="relative z-10 flex h-full min-h-[11rem] flex-col items-start justify-start gap-4 p-5 sm:min-h-[12.5rem] sm:flex-row sm:items-start sm:justify-between sm:p-6">
                 <div className="min-w-0 max-w-md space-y-2">
                   <p className="text-[11px] font-semibold tracking-[0.14em] text-white/75 uppercase">
-                    Recommended next step
+                    {t('focus.recommendedNext')}
                   </p>
                   <h3 className="text-xl font-semibold tracking-tight text-white">
                     {action.title}
@@ -323,11 +349,9 @@ export function ProviderFocusSection() {
           <aside className="flex min-w-0 flex-col gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:border-border/80 sm:p-6">
             <header className="space-y-1">
               <h2 className="text-sm font-semibold text-foreground sm:text-base">
-                Your next steps
+                {t('focus.nextStepsTitle')}
               </h2>
-              <p className="text-sm text-muted-foreground">
-                A few things to move your catalog forward.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('focus.nextStepsSubtitle')}</p>
             </header>
 
             <div className="h-px bg-border" />
@@ -341,7 +365,7 @@ export function ProviderFocusSection() {
                   <li key={step.id} className="relative flex gap-3 pb-5 last:pb-0">
                     {!isLast ? (
                       <span
-                        className="absolute top-7 bottom-0 left-[11px] w-px bg-border"
+                        className="absolute top-7 bottom-0 start-[11px] w-px bg-border"
                         aria-hidden
                       />
                     ) : null}
@@ -366,7 +390,7 @@ export function ProviderFocusSection() {
                           {step.title}
                         </p>
                         <Badge className={cn('shrink-0 rounded-md', statusBadgeClass(step.status))}>
-                          {statusLabel(step.status)}
+                          {statusLabel(step.status, t)}
                         </Badge>
                       </div>
                       <p
@@ -389,7 +413,7 @@ export function ProviderFocusSection() {
               to="/provider/listings"
               className={cn(buttonVariants({ variant: 'outline' }), 'mt-auto w-full')}
             >
-              Open listings manager
+              {t('focus.openListingsManager')}
             </Link>
           </aside>
         </div>

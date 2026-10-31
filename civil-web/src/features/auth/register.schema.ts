@@ -1,15 +1,28 @@
 import { z } from 'zod'
 
+import i18n from '@/i18n'
+
+// Messages are resolved lazily (at parse time) so they follow the active locale.
 export const registerSchema = z.object({
-  firstName: z.string().trim().max(80),
-  lastName: z.string().trim().max(80),
-  email: z.string().trim().min(1, 'Email is required').email('Enter a valid email'),
+  firstName: z
+    .string()
+    .trim()
+    .max(80, { error: () => i18n.t('validation:maxLength', { max: 80 }) }),
+  lastName: z
+    .string()
+    .trim()
+    .max(80, { error: () => i18n.t('validation:maxLength', { max: 80 }) }),
+  email: z
+    .string()
+    .trim()
+    .min(1, { error: () => i18n.t('validation:required') })
+    .email({ error: () => i18n.t('validation:emailInvalid') }),
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128)
-    .regex(/[A-Za-z]/, 'Password must contain a letter')
-    .regex(/[0-9]/, 'Password must contain a number'),
+    .min(8, { error: () => i18n.t('validation:passwordMin') })
+    .max(128, { error: () => i18n.t('validation:maxLength', { max: 128 }) })
+    .regex(/[A-Za-z]/, { error: () => i18n.t('validation:passwordLetter') })
+    .regex(/[0-9]/, { error: () => i18n.t('validation:passwordNumber') }),
 })
 
 export type RegisterValues = z.infer<typeof registerSchema>

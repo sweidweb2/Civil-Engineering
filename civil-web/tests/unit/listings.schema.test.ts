@@ -14,17 +14,18 @@ const valid = {
 }
 
 describe('listingWriteFromForm', () => {
-  it('accepts a complete listing and clears blank optional amounts', () => {
-    const result = listingWriteFromForm(valid)
+  it('accepts a name-only listing', () => {
+    const result = listingWriteFromForm({ ...EMPTY_LISTING_FORM, name: 'Cement' })
     expect(result).toEqual({
       data: {
         name: 'Cement',
-        type: 'MATERIAL',
-        providerId: 'provider-1',
-        categoryId: 'category-1',
-        unit: 'ton',
+        providerId: null,
+        categoryId: null,
+        unit: null,
         currency: 'USD',
-        price: '42.50',
+        price: null,
+        priceMin: null,
+        priceMax: null,
         status: 'ACTIVE',
         description: null,
         brand: null,
@@ -35,9 +36,59 @@ describe('listingWriteFromForm', () => {
     })
   })
 
-  it('rejects a rental price without a rental unit', () => {
-    const result = listingWriteFromForm({ ...valid, rentalPrice: '10' })
-    expect(result).toEqual({ error: 'Rental price and rental unit must be set together' })
+  it('accepts a complete listing and clears blank optional amounts', () => {
+    const result = listingWriteFromForm(valid)
+    expect(result).toEqual({
+      data: {
+        name: 'Cement',
+        providerId: 'provider-1',
+        categoryId: 'category-1',
+        unit: 'ton',
+        currency: 'USD',
+        price: '42.50',
+        priceMin: null,
+        priceMax: null,
+        status: 'ACTIVE',
+        description: null,
+        brand: null,
+        quantityAvailable: null,
+        rentalPrice: null,
+        rentalUnit: null,
+      },
+    })
+  })
+
+  it('accepts a price range when the range toggle is on', () => {
+    const result = listingWriteFromForm({
+      ...valid,
+      hasPriceRange: true,
+      price: '',
+      priceMin: '40',
+      priceMax: '55',
+    })
+    expect(result).toEqual({
+      data: {
+        name: 'Cement',
+        providerId: 'provider-1',
+        categoryId: 'category-1',
+        unit: 'ton',
+        currency: 'USD',
+        price: null,
+        priceMin: '40',
+        priceMax: '55',
+        status: 'ACTIVE',
+        description: null,
+        brand: null,
+        quantityAvailable: null,
+        rentalPrice: null,
+        rentalUnit: null,
+      },
+    })
+  })
+
+  it('rejects rental without a unit when for-rent has a price', () => {
+    const result = listingWriteFromForm({ ...valid, isForRent: true, rentalPrice: '10' })
+    expect(result).toEqual({ error: 'Rental unit is required when a rental price is set' })
   })
 
   it('rejects a price that is not a decimal', () => {

@@ -2,17 +2,20 @@ import type { ListingStatus, ListingType, RentalUnit } from './listings.schema.j
 
 export type Listing = {
   id: string
-  providerId: string
-  providerName: string
-  categoryId: string
-  categoryName: string
-  type: ListingType
+  providerId: string | null
+  providerName: string | null
+  categoryId: string | null
+  categoryName: string | null
+  /** Derived from the linked category kind when a category is set. */
+  type: ListingType | null
   name: string
   description: string | null
   brand: string | null
-  unit: string
-  currency: string
-  price: string
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
   rentalPrice: string | null
   rentalUnit: RentalUnit | null
   quantityAvailable: string | null

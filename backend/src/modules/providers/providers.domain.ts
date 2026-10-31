@@ -8,7 +8,7 @@ export const providersDomain = {
     {
       name: 'Provider',
       description:
-        'Company profile: owner, contact, location, and approval status. Table name is providers (not companies).',
+        'Company profile: optional owner, contact, location, and approval status. Table name is providers (not companies).',
     },
   ],
   valueObjects: [
@@ -17,8 +17,16 @@ export const providersDomain = {
       description: 'PENDING | APPROVED | SUSPENDED — invisible until Admin approves.',
     },
   ],
-  useCases: ['listProviders', 'getProviderById', 'createProvider', 'updateProvider', 'listOwnerCandidates'],
-  relationships: ['Provider.ownerUserId → User (users). One provider per owner.'],
+  useCases: [
+    'listProviders',
+    'getProviderById',
+    'createProvider',
+    'updateProvider',
+    'listOwnerCandidates',
+  ],
+  relationships: [
+    'Provider.ownerUserId → User (users), optional. At most one provider per owner when set.',
+  ],
   externalAccessRules: [
     'Other modules read providers only via the public providers service.',
     'Status changes to APPROVED / SUSPENDED are admin-only.',

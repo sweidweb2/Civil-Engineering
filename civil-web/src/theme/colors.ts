@@ -17,7 +17,7 @@
 export const colors = {
   light: {
     primary: '#287A74',
-    background: '#EEEEEE',
+    background: '#FFFFFF',
     surface: '#FFFFFF',
     muted: '#E8EEEC',
     text: '#1A2A27',

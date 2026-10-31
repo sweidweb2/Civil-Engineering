@@ -1,0 +1,13 @@
+{
+  "required": "This field is required",
+  "emailInvalid": "Enter a valid email",
+  "passwordMin": "Password must be at least 8 characters",
+  "passwordLetter": "Password must contain a letter",
+  "passwordNumber": "Password must contain a number",
+  "passwordsMismatch": "Passwords do not match",
+  "passwordDifferent": "New password must be different from the current password",
+  "maxLength": "Must be at most {{max}} characters",
+  "minLength": "Must be at least {{min}} characters",
+  "validUrl": "Enter a valid URL",
+  "yearsExperienceRange": "Years of experience must be an integer from 0 to 80"
+}

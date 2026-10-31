@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -17,7 +18,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { loginSchema, type LoginValues } from './login.schema'
 
 export function LoginPage() {
-  useDocumentTitle('Sign in')
+  const { t } = useTranslation(['auth', 'validation', 'common'])
+  useDocumentTitle(t('auth:signIn'))
   const login = useAuthStore((s) => s.login)
   const [values, setValues] = useState<LoginValues>({
     email: '',
@@ -39,9 +41,9 @@ export function LoginPage() {
     setIsSubmitting(true)
     try {
       await login(parsed.data.email, parsed.data.password)
-      toast.success('Signed in')
+      toast.success(t('auth:signedIn'))
     } catch (error) {
-      toastApiError(error, 'Could not sign in')
+      toastApiError(error, t('auth:couldNotSignIn'))
     } finally {
       setIsSubmitting(false)
     }
@@ -51,75 +53,77 @@ export function LoginPage() {
     <GuestOnly>
       <Link
         to="/"
-        className={cn(buttonVariants({ variant: 'outline' }), 'fixed top-4 left-4 z-50')}
+        className={cn(buttonVariants({ variant: 'outline' }), 'fixed top-4 start-4 z-50')}
       >
-        <ArrowLeft />
-        Home
+        <ArrowLeft className="rtl:rotate-180" />
+        {t('common:home')}
       </Link>
       <div className="home-canvas flex min-h-svh items-center justify-center bg-background px-4 text-foreground">
         <Card className="w-full max-w-sm">
           <CardContent>
-        <Form onSubmit={onSubmit} className="gap-4" noValidate>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-            <p className="text-sm text-muted-foreground">Use your Civil Engineering account.</p>
-          </div>
-
-          <FieldGroup>
-            <Field data-invalid={Boolean(fieldErrors.email) || undefined}>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                value={values.email}
-                aria-invalid={Boolean(fieldErrors.email) || undefined}
-                onChange={(e) => setValues((prev) => ({ ...prev, email: e.target.value }))}
-              />
-              <FieldError>{fieldErrors.email}</FieldError>
-            </Field>
-
-            <Field data-invalid={Boolean(fieldErrors.password) || undefined}>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={isPasswordVisible ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  value={values.password}
-                  aria-invalid={Boolean(fieldErrors.password) || undefined}
-                  className="pr-9"
-                  onChange={(e) => setValues((prev) => ({ ...prev, password: e.target.value }))}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-                  aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
-                  aria-pressed={isPasswordVisible}
-                  onClick={() => setIsPasswordVisible((prev) => !prev)}
-                >
-                  {isPasswordVisible ? <EyeOff /> : <Eye />}
-                </Button>
+            <Form onSubmit={onSubmit} className="gap-4" noValidate>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-tight">{t('auth:signIn')}</h1>
+                <p className="text-sm text-muted-foreground">{t('auth:signInSubtitle')}</p>
               </div>
-              <FieldError>{fieldErrors.password}</FieldError>
-            </Field>
-          </FieldGroup>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
-          </Button>
+              <FieldGroup>
+                <Field data-invalid={Boolean(fieldErrors.email) || undefined}>
+                  <FieldLabel htmlFor="email">{t('auth:email')}</FieldLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder={t('auth:emailPlaceholder')}
+                    value={values.email}
+                    aria-invalid={Boolean(fieldErrors.email) || undefined}
+                    onChange={(e) => setValues((prev) => ({ ...prev, email: e.target.value }))}
+                  />
+                  <FieldError>{fieldErrors.email}</FieldError>
+                </Field>
 
-          <p className="text-center text-sm text-muted-foreground">
-            No account?{' '}
-            <Link to="/register" className="text-foreground underline-offset-4 hover:underline">
-              Register
-            </Link>
-          </p>
-        </Form>
+                <Field data-invalid={Boolean(fieldErrors.password) || undefined}>
+                  <FieldLabel htmlFor="password">{t('auth:password')}</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={isPasswordVisible ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder={t('auth:passwordPlaceholder')}
+                      value={values.password}
+                      aria-invalid={Boolean(fieldErrors.password) || undefined}
+                      className="pe-9"
+                      onChange={(e) => setValues((prev) => ({ ...prev, password: e.target.value }))}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="absolute top-1/2 end-1 -translate-y-1/2 text-muted-foreground"
+                      aria-label={
+                        isPasswordVisible ? t('auth:hidePassword') : t('auth:showPassword')
+                      }
+                      aria-pressed={isPasswordVisible}
+                      onClick={() => setIsPasswordVisible((prev) => !prev)}
+                    >
+                      {isPasswordVisible ? <EyeOff /> : <Eye />}
+                    </Button>
+                  </div>
+                  <FieldError>{fieldErrors.password}</FieldError>
+                </Field>
+              </FieldGroup>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? t('auth:signingIn') : t('auth:signIn')}
+              </Button>
+
+              <p className="text-center text-sm text-muted-foreground">
+                {t('auth:noAccount')}{' '}
+                <Link to="/register" className="text-foreground underline-offset-4 hover:underline">
+                  {t('auth:register')}
+                </Link>
+              </p>
+            </Form>
           </CardContent>
         </Card>
       </div>

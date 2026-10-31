@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { cn } from 'cn'
+import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
@@ -27,8 +27,10 @@ import {
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
+import { LanguageToggle, setAppLocale } from '@/components/i18n/LanguageToggle'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -42,12 +44,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   Sidebar,
   SidebarContent,
@@ -67,12 +64,14 @@ import {
 import { NotificationInboxSheet } from '@/features/notifications/NotificationInboxSheet'
 import type { AuthUser } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
+import { type AppLocale, useIsRtl, useLocaleStore } from '@/stores/localeStore'
 
 import { PortalPageSearch } from './PortalPageSearch'
 
 export type PanelNavItem = {
   to: string
-  label: string
+  /** Key under the `nav` namespace (without prefix). */
+  labelKey: string
   icon: LucideIcon
   end?: boolean
 }
@@ -80,7 +79,7 @@ export type PanelNavItem = {
 type PanelShellVariant = 'sidebar' | 'navbar'
 
 type PanelShellProps = {
-  title: string
+  titleKey: string
   nav: PanelNavItem[]
   variant?: PanelShellVariant
   children?: ReactNode
@@ -91,8 +90,8 @@ function navIsActive(pathname: string, item: PanelNavItem): boolean {
   return pathname === item.to || pathname.startsWith(`${item.to}/`)
 }
 
-function userDisplayName(user: AuthUser | null): string {
-  if (!user) return 'Signed out'
+function userDisplayName(user: AuthUser | null, signedOutLabel: string): string {
+  if (!user) return signedOutLabel
   const parts = [user.profile?.firstName, user.profile?.lastName].filter(Boolean).join(' ')
   return user.profile?.displayName || parts || user.email.split('@')[0] || user.email
 }
@@ -108,22 +107,18 @@ function userInitials(user: AuthUser | null): string {
   return user.email.slice(0, 2).toUpperCase()
 }
 
-function AccountMenu({
-  user,
-  onLogout,
-}: {
-  user: AuthUser | null
-  onLogout: () => void
-}) {
+function AccountMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () => void }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, setTheme } = useTheme()
+  const { t } = useTranslation(['account', 'common', 'nav'])
+  const locale = useLocaleStore((state) => state.locale)
   const activeTheme = theme === 'colorful' || theme === 'dark' ? theme : 'light'
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="Account menu"
+        aria-label={t('common:accountMenu')}
         className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Avatar size="lg">
@@ -133,14 +128,14 @@ function AccountMenu({
       <DropdownMenuContent align="end" className="min-w-44">
         <DropdownMenuItem onClick={() => navigate('/')}>
           <Home />
-          Home
+          {t('common:home')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {location.pathname.startsWith('/pm') ? (
           <>
             <DropdownMenuItem onClick={() => navigate('/pm/settings')}>
               <Settings />
-              Settings
+              {t('account:settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -149,13 +144,26 @@ function AccountMenu({
           <>
             <DropdownMenuItem onClick={() => navigate('/provider/profile')}>
               <UserRound />
-              Profile
+              {t('account:profile')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         ) : null}
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('account:language')}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={locale}
+            onValueChange={(value) => {
+              if (value === 'en' || value === 'ar') setAppLocale(value as AppLocale)
+            }}
+          >
+            <DropdownMenuRadioItem value="en">{t('account:languageEn')}</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="ar">{t('account:languageAr')}</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t('account:theme')}</DropdownMenuLabel>
           <DropdownMenuRadioGroup
             value={activeTheme}
             onValueChange={(value) => {
@@ -166,22 +174,22 @@ function AccountMenu({
           >
             <DropdownMenuRadioItem value="colorful">
               <Palette />
-              Colorful
+              {t('account:themeColorful')}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="light">
               <Sun />
-              Light
+              {t('account:themeLight')}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="dark">
               <Moon />
-              Dark
+              {t('account:themeDark')}
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout}>
           <LogOut />
-          Sign out
+          {t('common:signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -205,9 +213,11 @@ function PanelNavLinks({
   pathname: string
   orientation?: 'horizontal' | 'vertical'
 }) {
+  const { t } = useTranslation(['nav', 'common'])
+
   return (
     <nav
-      aria-label="Portal"
+      aria-label={t('common:navigation')}
       className={cn(
         'flex gap-1',
         orientation === 'horizontal'
@@ -217,6 +227,7 @@ function PanelNavLinks({
     >
       {nav.map((item) => {
         const active = navIsActive(pathname, item)
+        const label = t(item.labelKey)
         return (
           <NavLink
             key={item.to}
@@ -226,7 +237,7 @@ function PanelNavLinks({
             className={NavLinkClasses(active)}
           >
             <item.icon className="size-4 shrink-0" />
-            <span className="whitespace-nowrap">{item.label}</span>
+            <span className="whitespace-nowrap">{label}</span>
           </NavLink>
         )
       })}
@@ -234,12 +245,40 @@ function PanelNavLinks({
   )
 }
 
-function NavbarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'variant'>) {
+function HeaderActions({
+  nav,
+  user,
+  onLogout,
+  showSearch = true,
+}: {
+  nav: PanelNavItem[]
+  user: AuthUser | null
+  onLogout: () => void
+  showSearch?: boolean
+}) {
+  return (
+    <div className="flex min-w-0 items-center justify-end gap-2">
+      {showSearch ? (
+        <div className="hidden w-40 min-w-0 sm:block md:w-48 lg:w-56">
+          <PortalPageSearch nav={nav} />
+        </div>
+      ) : null}
+      <LanguageToggle />
+      <NotificationInboxSheet />
+      <AccountMenu user={user} onLogout={onLogout} />
+    </div>
+  )
+}
+
+function NavbarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'variant'>) {
+  const { t } = useTranslation(['nav', 'common'])
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const location = useLocation()
+  const isRtl = useIsRtl()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const title = t(titleKey)
 
   useEffect(() => {
     setMobileNavOpen(false)
@@ -254,41 +293,36 @@ function NavbarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'varia
     <div className="flex min-h-svh flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className="mx-auto flex h-14 w-full items-center gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
-          {/* Left: brand */}
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Open navigation"
+                aria-label={t('common:openNavigation')}
                 className="shrink-0 md:hidden"
                 onClick={() => setMobileNavOpen(true)}
               >
                 <Menu />
               </Button>
-              <SheetContent side="left" className="w-[min(20rem,85vw)] gap-4 p-4">
+              <SheetContent
+                side={isRtl ? 'right' : 'left'}
+                className="w-[min(20rem,85vw)] gap-4 p-4"
+              >
                 <SheetHeader className="px-1">
-                  <SheetTitle>Civil Engineering</SheetTitle>
+                  <SheetTitle>{t('common:appName')}</SheetTitle>
                   <p className="text-sm text-muted-foreground">{title}</p>
                 </SheetHeader>
                 <div className="sm:hidden">
                   <PortalPageSearch nav={nav} />
                 </div>
-                <PanelNavLinks
-                  nav={nav}
-                  pathname={location.pathname}
-                  orientation="vertical"
-                />
+                <PanelNavLinks nav={nav} pathname={location.pathname} orientation="vertical" />
               </SheetContent>
             </Sheet>
 
             <div className="flex min-w-0 flex-col">
-              <Link
-                to="/"
-                className="truncate text-sm font-semibold text-foreground"
-              >
-                Civil Engineering
+              <Link to="/" className="truncate text-sm font-semibold text-foreground">
+                {t('common:appName')}
               </Link>
               <span className="hidden truncate text-xs text-muted-foreground sm:inline">
                 {title}
@@ -296,18 +330,12 @@ function NavbarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'varia
             </div>
           </div>
 
-          {/* Center: nav options */}
           <div className="hidden min-w-0 shrink-0 justify-center md:flex">
             <PanelNavLinks nav={nav} pathname={location.pathname} />
           </div>
 
-          {/* Right: search + actions */}
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            <div className="hidden w-40 min-w-0 sm:block md:w-48 lg:w-56">
-              <PortalPageSearch nav={nav} />
-            </div>
-            <NotificationInboxSheet />
-            <AccountMenu user={user} onLogout={() => void onLogout()} />
+          <div className="flex min-w-0 flex-1 justify-end">
+            <HeaderActions nav={nav} user={user} onLogout={() => void onLogout()} />
           </div>
         </div>
       </header>
@@ -319,11 +347,14 @@ function NavbarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'varia
   )
 }
 
-function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'variant'>) {
+function SidebarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'variant'>) {
+  const { t } = useTranslation(['nav', 'common'])
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const location = useLocation()
+  const isRtl = useIsRtl()
+  const title = t(titleKey)
 
   async function onLogout() {
     await logout()
@@ -332,18 +363,18 @@ function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'vari
 
   return (
     <SidebarProvider className="h-svh max-h-svh overflow-hidden">
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
         <SidebarHeader className="overflow-hidden">
           <div className="flex items-center px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <Link
               to="/"
               className="truncate text-sm font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden"
             >
-              Civil Engineering
+              {t('common:appName')}
             </Link>
             <Link
               to="/"
-              aria-label="Civil Engineering"
+              aria-label={t('common:appName')}
               className="hidden size-8 items-center justify-center text-xs font-semibold text-sidebar-foreground group-data-[collapsible=icon]:flex"
             >
               CE
@@ -356,22 +387,25 @@ function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'vari
         <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('common:navigation')}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-1 px-1 group-data-[collapsible=icon]:px-0">
-                {nav.map((item) => (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      render={<NavLink to={item.to} end={item.end} />}
-                      isActive={navIsActive(location.pathname, item)}
-                      tooltip={item.label}
-                      className="rounded-lg data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-active:hover:bg-sidebar-accent data-active:hover:text-sidebar-accent-foreground"
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {nav.map((item) => {
+                  const label = t(item.labelKey)
+                  return (
+                    <SidebarMenuItem key={item.to}>
+                      <SidebarMenuButton
+                        render={<NavLink to={item.to} end={item.end} />}
+                        isActive={navIsActive(location.pathname, item)}
+                        tooltip={label}
+                        className="rounded-lg data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-active:hover:bg-sidebar-accent data-active:hover:text-sidebar-accent-foreground"
+                      >
+                        <item.icon />
+                        <span>{label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -383,7 +417,7 @@ function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'vari
             </Avatar>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {userDisplayName(user)}
+                {userDisplayName(user, t('common:signedOut'))}
               </p>
               <p className="truncate text-xs text-sidebar-foreground/70">{user?.email}</p>
             </div>
@@ -391,7 +425,7 @@ function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'vari
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Sign out"
+              aria-label={t('common:signOut')}
               className="shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
               onClick={() => void onLogout()}
             >
@@ -409,10 +443,12 @@ function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'vari
             </span>
           </div>
           <PortalPageSearch nav={nav} />
-          <div className="flex items-center justify-end gap-2">
-            <NotificationInboxSheet />
-            <AccountMenu user={user} onLogout={() => void onLogout()} />
-          </div>
+          <HeaderActions
+            nav={nav}
+            user={user}
+            onLogout={() => void onLogout()}
+            showSearch={false}
+          />
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
           {children ?? <Outlet />}
@@ -422,44 +458,52 @@ function SidebarPanelShell({ title, nav, children }: Omit<PanelShellProps, 'vari
   )
 }
 
-export function PanelShell({ title, nav, variant = 'sidebar', children }: PanelShellProps) {
+export function PanelShell({ titleKey, nav, variant = 'sidebar', children }: PanelShellProps) {
   if (variant === 'navbar') {
-    return <NavbarPanelShell title={title} nav={nav}>{children}</NavbarPanelShell>
+    return (
+      <NavbarPanelShell titleKey={titleKey} nav={nav}>
+        {children}
+      </NavbarPanelShell>
+    )
   }
-  return <SidebarPanelShell title={title} nav={nav}>{children}</SidebarPanelShell>
+  return (
+    <SidebarPanelShell titleKey={titleKey} nav={nav}>
+      {children}
+    </SidebarPanelShell>
+  )
 }
 
 export const SUPER_NAV: PanelNavItem[] = [
-  { to: '/super', label: 'Home', icon: Home, end: true },
-  { to: '/super/users', label: 'Users', icon: Users },
-  { to: '/super/activity', label: 'Activity', icon: Activity },
-  { to: '/super/errors', label: 'Errors', icon: AlertTriangle },
-  { to: '/super/steps', label: 'Steps', icon: ListOrdered },
-  { to: '/super/input-types', label: 'Input types', icon: FormInput },
-  { to: '/super/settings', label: 'Settings', icon: Settings },
+  { to: '/super', labelKey: 'home', icon: Home, end: true },
+  { to: '/super/users', labelKey: 'users', icon: Users },
+  { to: '/super/activity', labelKey: 'activity', icon: Activity },
+  { to: '/super/errors', labelKey: 'errors', icon: AlertTriangle },
+  { to: '/super/steps', labelKey: 'steps', icon: ListOrdered },
+  { to: '/super/input-types', labelKey: 'inputTypes', icon: FormInput },
+  { to: '/super/settings', labelKey: 'settings', icon: Settings },
 ]
 
 export const ADMIN_NAV: PanelNavItem[] = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/queue', label: 'Queue', icon: UserCheck },
-  { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/providers', label: 'Providers', icon: Store },
-  { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
-  { to: '/admin/directory', label: 'Directory', icon: Library },
-  { to: '/admin/listings', label: 'Listings', icon: Package },
-  { to: '/admin/reviews', label: 'Reviews', icon: Star },
-  { to: '/admin/categories', label: 'Categories', icon: FolderTree },
-  { to: '/admin/steps', label: 'Steps', icon: ListOrdered },
+  { to: '/admin', labelKey: 'dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/queue', labelKey: 'queue', icon: UserCheck },
+  { to: '/admin/users', labelKey: 'users', icon: Users },
+  { to: '/admin/providers', labelKey: 'providers', icon: Store },
+  { to: '/admin/projects', labelKey: 'projects', icon: FolderKanban },
+  { to: '/admin/directory', labelKey: 'directory', icon: Library },
+  { to: '/admin/listings', labelKey: 'listings', icon: Package },
+  { to: '/admin/reviews', labelKey: 'reviews', icon: Star },
+  { to: '/admin/categories', labelKey: 'categories', icon: FolderTree },
+  { to: '/admin/steps', labelKey: 'steps', icon: ListOrdered },
 ]
 
 export const PM_NAV: PanelNavItem[] = [
-  { to: '/pm', label: 'Analytics', icon: ChartColumn, end: true },
-  { to: '/pm/projects', label: 'Manage projects', icon: FolderKanban },
-  { to: '/pm/directory', label: 'Directory', icon: Library },
+  { to: '/pm', labelKey: 'analytics', icon: ChartColumn, end: true },
+  { to: '/pm/projects', labelKey: 'manageProjects', icon: FolderKanban },
+  { to: '/pm/directory', labelKey: 'directory', icon: Library },
 ]
 
 export const PROVIDER_NAV: PanelNavItem[] = [
-  { to: '/provider', label: 'Home', icon: Home, end: true },
-  { to: '/provider/listings', label: 'Listings', icon: Package },
-  { to: '/provider/analytics', label: 'Analytics', icon: ChartColumn },
+  { to: '/provider', labelKey: 'home', icon: Home, end: true },
+  { to: '/provider/listings', labelKey: 'listings', icon: Package },
+  { to: '/provider/analytics', labelKey: 'analytics', icon: ChartColumn },
 ]

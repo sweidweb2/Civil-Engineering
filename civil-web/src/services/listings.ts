@@ -6,17 +6,20 @@ export type RentalUnit = 'HOUR' | 'DAY' | 'WEEK' | 'MONTH'
 
 export type Listing = {
   id: string
-  providerId: string
-  providerName: string
-  categoryId: string
-  categoryName: string
-  type: ListingType
+  providerId: string | null
+  providerName: string | null
+  categoryId: string | null
+  categoryName: string | null
+  /** Derived from category kind when set. */
+  type: ListingType | null
   name: string
   description: string | null
   brand: string | null
-  unit: string
-  currency: string
-  price: string
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
   rentalPrice: string | null
   rentalUnit: RentalUnit | null
   quantityAvailable: string | null
@@ -43,15 +46,16 @@ export type PaginatedListings = {
 }
 
 export type ListingWriteInput = {
-  providerId: string
-  categoryId: string
-  type: ListingType
   name: string
+  providerId?: string | null
+  categoryId?: string | null
   description?: string | null
   brand?: string | null
-  unit: string
-  currency: string
-  price: string
+  unit?: string | null
+  currency?: string | null
+  price?: string | null
+  priceMin?: string | null
+  priceMax?: string | null
   rentalPrice?: string | null
   rentalUnit?: RentalUnit | null
   quantityAvailable?: string | null
@@ -80,6 +84,21 @@ export function rentalUnitLabel(unit: RentalUnit): string {
   if (unit === 'DAY') return 'Day'
   if (unit === 'WEEK') return 'Week'
   return 'Month'
+}
+
+export function formatListingPrice(
+  listing: Pick<Listing, 'currency' | 'price' | 'priceMin' | 'priceMax' | 'unit'>,
+): string {
+  const currency = listing.currency?.trim() || ''
+  const unit = listing.unit?.trim()
+  const suffix = unit ? ` / ${unit}` : ''
+  if (listing.price != null && listing.price !== '') {
+    return `${currency} ${listing.price}${suffix}`.trim()
+  }
+  if (listing.priceMin != null && listing.priceMax != null) {
+    return `${currency} ${listing.priceMin}–${listing.priceMax}${suffix}`.trim()
+  }
+  return '—'
 }
 
 export function listListings(
@@ -123,5 +142,7 @@ export function updateListing(id: string, input: Partial<ListingWriteInput>) {
 }
 
 export function deleteListing(id: string) {
-  return apiRequest<{ data: { outcome: 'deleted' | 'hidden' } }>(`/listings/${id}`, { method: 'DELETE' })
+  return apiRequest<{ data: { outcome: 'deleted' | 'hidden' } }>(`/listings/${id}`, {
+    method: 'DELETE',
+  })
 }

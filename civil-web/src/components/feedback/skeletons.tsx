@@ -82,7 +82,12 @@ export function ThemeIllustration({
         alt=""
         aria-hidden
         decoding="async"
-        className={cn('absolute inset-0 size-full object-center', fitClass, opacityClass, className)}
+        className={cn(
+          'absolute inset-0 size-full object-center',
+          fitClass,
+          opacityClass,
+          className,
+        )}
       />
       <img
         data-theme-asset="dark"
@@ -90,33 +95,18 @@ export function ThemeIllustration({
         alt=""
         aria-hidden
         decoding="async"
-        className={cn('absolute inset-0 size-full object-center', fitClass, opacityClass, className)}
+        className={cn(
+          'absolute inset-0 size-full object-center',
+          fitClass,
+          opacityClass,
+          className,
+        )}
       />
     </>
   )
 }
 
-function IllustrationFrame({
-  lightSrc,
-  darkSrc,
-  className,
-  pulsing = false,
-}: SkeletonPresetProps & { lightSrc: string; darkSrc: string; pulsing?: boolean }) {
-  return (
-    <div
-      className={cn(
-        // Square canvas (assets are 1:1); keep frame square so art is not letterboxed.
-        'relative aspect-square w-full overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
-        className,
-      )}
-    >
-      <ThemeIllustration lightSrc={lightSrc} darkSrc={darkSrc} />
-      {pulsing ? <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" /> : null}
-    </div>
-  )
-}
-
-/** Provider card art: shop, supply yard, or warehouse. */
+/** Provider card art: shop, supply yard, or warehouse — short cover strip (not square). */
 export function ProviderCardMedia({
   className,
   variant = 0,
@@ -124,12 +114,22 @@ export function ProviderCardMedia({
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
   const index = variant % PROVIDER_ILLUSTRATIONS.length
   return (
-    <IllustrationFrame
-      className={className}
-      pulsing={pulsing}
-      lightSrc={PROVIDER_ILLUSTRATIONS[index]}
-      darkSrc={PROVIDER_ILLUSTRATIONS_DARK[index]}
-    />
+    <div
+      className={cn(
+        'relative aspect-[2/1] w-full shrink-0 overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
+        className,
+      )}
+    >
+      <ThemeIllustration
+        lightSrc={PROVIDER_ILLUSTRATIONS[index]}
+        darkSrc={PROVIDER_ILLUSTRATIONS_DARK[index]}
+        objectFit="cover"
+        opacityClass="opacity-90"
+      />
+      {pulsing ? (
+        <div className="pointer-events-none absolute inset-0 animate-pulse bg-foreground/8" />
+      ) : null}
+    </div>
   )
 }
 
@@ -212,18 +212,16 @@ export function CardImageSkeleton({
 /** Listing card: square thumb on the left, price and actions on one row. */
 function ListingCardItemSkeleton() {
   return (
-    <div className="flex min-w-0 items-stretch gap-3 rounded-lg border border-border bg-card p-3">
-      <Skeleton className="size-16 shrink-0 self-center rounded-md" />
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-        <div className="min-w-0 space-y-1.5">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <Skeleton className="h-4 w-24" />
-          <div className="flex gap-1">
-            <Skeleton className="size-7 rounded-lg" />
-            <Skeleton className="size-7 rounded-lg" />
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+      <Skeleton className="aspect-[5/4] w-full rounded-none" />
+      <div className="flex flex-col gap-1.5 px-2 pt-1.5 pb-2">
+        <Skeleton className="h-3 w-3/4" />
+        <Skeleton className="h-2.5 w-1/2" />
+        <div className="flex items-center justify-between gap-1 pt-0.5">
+          <Skeleton className="h-2.5 w-16" />
+          <div className="flex gap-0.5">
+            <Skeleton className="size-6 rounded-md" />
+            <Skeleton className="size-6 rounded-md" />
           </div>
         </div>
       </div>
@@ -267,7 +265,10 @@ export function CardGridSkeleton({
   className,
   count = 6,
   media = 'civil',
-}: SkeletonPresetProps & { count?: number; media?: 'civil' | 'plain' | 'logo' | 'provider' | 'listing' }) {
+}: SkeletonPresetProps & {
+  count?: number
+  media?: 'civil' | 'plain' | 'logo' | 'provider' | 'listing'
+}) {
   return (
     <div
       className={cn(
@@ -275,8 +276,10 @@ export function CardGridSkeleton({
         media === 'plain'
           ? 'gap-4 md:grid-cols-2 lg:grid-cols-3'
           : media === 'listing'
-            ? 'gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3'
-            : 'gap-3 sm:grid-cols-2 xl:grid-cols-3',
+            ? 'gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+            : media === 'provider' || media === 'logo'
+              ? 'gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+              : 'gap-3 sm:grid-cols-2 xl:grid-cols-3',
         className,
       )}
       role="status"
@@ -303,10 +306,7 @@ export function StatGridSkeleton({
       aria-label="Loading"
     >
       {Array.from({ length: count }, (_, i) => (
-        <div
-          key={i}
-          className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
-        >
+        <div key={i} className="flex items-start gap-3 rounded-xl border border-border bg-card p-3">
           <Skeleton className="size-9 shrink-0 rounded-lg" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-3 w-20" />
@@ -415,22 +415,11 @@ export function DetailCardSkeleton({ className }: SkeletonPresetProps) {
 }
 
 /** Stacked list pages (notifications inbox). */
-export function ListSkeleton({
-  className,
-  count = 5,
-}: SkeletonPresetProps & { count?: number }) {
+export function ListSkeleton({ className, count = 5 }: SkeletonPresetProps & { count?: number }) {
   return (
-    <div
-      className={cn('space-y-2', className)}
-      role="status"
-      aria-busy="true"
-      aria-label="Loading"
-    >
+    <div className={cn('space-y-2', className)} role="status" aria-busy="true" aria-label="Loading">
       {Array.from({ length: count }, (_, i) => (
-        <div
-          key={i}
-          className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
-        >
+        <div key={i} className="flex items-start gap-4 rounded-xl border border-border bg-card p-4">
           <Skeleton className="size-9 shrink-0 rounded-lg" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-4 w-1/2" />

@@ -1,0 +1,42 @@
+{
+  "title": "الإشعارات",
+  "description": "إشعاراتك وتنبيهاتك.",
+  "inbox": "صندوق الوارد",
+  "unread": "غير مقروء",
+  "unreadCount": "{{count}} غير مقروء",
+  "upToDate": "لا توجد إشعارات جديدة.",
+  "total": "الإجمالي",
+  "allWithCount": "الكل ({{count}})",
+  "unreadWithCount": "غير مقروء ({{count}})",
+  "markAllRead": "تعليم الكل كمقروء",
+  "markAsRead": "تعليم كمقروء",
+  "markAsUnread": "تعليم كغير مقروء",
+  "viewAll": "عرض كل الإشعارات",
+  "empty": "لا توجد إشعارات بعد.",
+  "emptyAll": "لا توجد إشعارات",
+  "emptyUnread": "لا توجد إشعارات غير مقروءة",
+  "openInbox": "فتح الإشعارات",
+  "openInboxWithUnread": "الإشعارات، {{count}} غير مقروء",
+  "from": "من: {{email}}",
+  "pagination": "صفحة {{page}} من {{totalPages}} (الإجمالي {{total}})",
+  "time": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ {{count}} د",
+    "hoursAgo": "منذ {{count}} س",
+    "daysAgo": "منذ {{count}} ي"
+  },
+  "delete": {
+    "title": "حذف الإشعار",
+    "description": "هل أنت متأكد من حذف هذا الإشعار؟ لا يمكن التراجع عن هذا الإجراء."
+  },
+  "toast": {
+    "markedRead": "تم تعليمه كمقروء",
+    "markedUnread": "تم تعليمه كغير مقروء",
+    "deleted": "تم حذف الإشعار",
+    "allMarkedRead": "تم تعليم جميع الإشعارات كمقروءة",
+    "couldNotMarkRead": "تعذر تعليم الإشعار كمقروء",
+    "couldNotMarkUnread": "تعذر تعليم الإشعار كغير مقروء",
+    "couldNotMarkAllRead": "تعذر تعليم الإشعارات كمقروءة",
+    "couldNotDelete": "تعذر حذف الإشعار"
+  }
+}

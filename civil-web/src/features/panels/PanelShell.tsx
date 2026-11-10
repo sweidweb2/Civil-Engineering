@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
@@ -13,7 +11,6 @@ import {
   Library,
   ListOrdered,
   LogOut,
-  Menu,
   Moon,
   Package,
   Palette,
@@ -44,7 +41,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   Sidebar,
   SidebarContent,
@@ -58,6 +54,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
@@ -76,12 +73,9 @@ export type PanelNavItem = {
   end?: boolean
 }
 
-type PanelShellVariant = 'sidebar' | 'navbar'
-
 type PanelShellProps = {
   titleKey: string
   nav: PanelNavItem[]
-  variant?: PanelShellVariant
   children?: ReactNode
 }
 
@@ -196,73 +190,9 @@ function AccountMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =
   )
 }
 
-function NavLinkClasses(active: boolean) {
-  return cn(
-    'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors outline-none',
-    'hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
-    active ? 'bg-muted text-foreground' : 'text-muted-foreground',
-  )
-}
-
-function PanelNavLinks({
-  nav,
-  pathname,
-  orientation = 'horizontal',
-}: {
-  nav: PanelNavItem[]
-  pathname: string
-  orientation?: 'horizontal' | 'vertical'
-}) {
-  const { t } = useTranslation(['nav', 'common'])
-
-  return (
-    <nav
-      aria-label={t('common:navigation')}
-      className={cn(
-        'flex gap-1',
-        orientation === 'horizontal'
-          ? 'min-w-0 items-center justify-center overflow-x-auto'
-          : 'flex-col',
-      )}
-    >
-      {nav.map((item) => {
-        const active = navIsActive(pathname, item)
-        const label = t(item.labelKey)
-        return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            aria-current={active ? 'page' : undefined}
-            className={NavLinkClasses(active)}
-          >
-            <item.icon className="size-4 shrink-0" />
-            <span className="whitespace-nowrap">{label}</span>
-          </NavLink>
-        )
-      })}
-    </nav>
-  )
-}
-
-function HeaderActions({
-  nav,
-  user,
-  onLogout,
-  showSearch = true,
-}: {
-  nav: PanelNavItem[]
-  user: AuthUser | null
-  onLogout: () => void
-  showSearch?: boolean
-}) {
+function HeaderActions({ user, onLogout }: { user: AuthUser | null; onLogout: () => void }) {
   return (
     <div className="flex min-w-0 items-center justify-end gap-2">
-      {showSearch ? (
-        <div className="hidden w-40 min-w-0 sm:block md:w-48 lg:w-56">
-          <PortalPageSearch nav={nav} />
-        </div>
-      ) : null}
       <LanguageToggle />
       <NotificationInboxSheet />
       <AccountMenu user={user} onLogout={onLogout} />
@@ -270,84 +200,7 @@ function HeaderActions({
   )
 }
 
-function NavbarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'variant'>) {
-  const { t } = useTranslation(['nav', 'common'])
-  const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const isRtl = useIsRtl()
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const title = t(titleKey)
-
-  useEffect(() => {
-    setMobileNavOpen(false)
-  }, [location.pathname])
-
-  async function onLogout() {
-    await logout()
-    navigate('/login', { replace: true })
-  }
-
-  return (
-    <div className="flex min-h-svh flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card">
-        <div className="mx-auto flex h-14 w-full items-center gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={t('common:openNavigation')}
-                className="shrink-0 md:hidden"
-                onClick={() => setMobileNavOpen(true)}
-              >
-                <Menu />
-              </Button>
-              <SheetContent
-                side={isRtl ? 'right' : 'left'}
-                className="w-[min(20rem,85vw)] gap-4 p-4"
-              >
-                <SheetHeader className="px-1">
-                  <SheetTitle>{t('common:appName')}</SheetTitle>
-                  <p className="text-sm text-muted-foreground">{title}</p>
-                </SheetHeader>
-                <div className="sm:hidden">
-                  <PortalPageSearch nav={nav} />
-                </div>
-                <PanelNavLinks nav={nav} pathname={location.pathname} orientation="vertical" />
-              </SheetContent>
-            </Sheet>
-
-            <div className="flex min-w-0 flex-col">
-              <Link to="/" className="truncate text-sm font-semibold text-foreground">
-                {t('common:appName')}
-              </Link>
-              <span className="hidden truncate text-xs text-muted-foreground sm:inline">
-                {title}
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden min-w-0 shrink-0 justify-center md:flex">
-            <PanelNavLinks nav={nav} pathname={location.pathname} />
-          </div>
-
-          <div className="flex min-w-0 flex-1 justify-end">
-            <HeaderActions nav={nav} user={user} onLogout={() => void onLogout()} />
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        {children ?? <Outlet />}
-      </main>
-    </div>
-  )
-}
-
-function SidebarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'variant'>) {
+export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
   const { t } = useTranslation(['nav', 'common'])
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
@@ -363,7 +216,7 @@ function SidebarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'v
 
   return (
     <SidebarProvider className="h-svh max-h-svh overflow-hidden">
-      <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
+      <Sidebar collapsible="icon" variant="inset" side={isRtl ? 'right' : 'left'}>
         <SidebarHeader className="overflow-hidden">
           <div className="flex items-center px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <Link
@@ -433,9 +286,10 @@ function SidebarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'v
             </Button>
           </div>
         </SidebarFooter>
+        <SidebarRail />
       </Sidebar>
       <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
-        <header className="grid h-16 shrink-0 grid-cols-[auto_minmax(0,20rem)_auto] items-center gap-3 border-b border-border bg-card px-6 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,24rem)_minmax(0,1fr)]">
+        <header className="grid h-16 shrink-0 grid-cols-[auto_minmax(0,20rem)_auto] items-center gap-3 border-b border-border px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,24rem)_minmax(0,1fr)] md:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <SidebarTrigger />
             <span className="hidden truncate text-sm font-medium text-foreground sm:inline">
@@ -443,33 +297,13 @@ function SidebarPanelShell({ titleKey, nav, children }: Omit<PanelShellProps, 'v
             </span>
           </div>
           <PortalPageSearch nav={nav} />
-          <HeaderActions
-            nav={nav}
-            user={user}
-            onLogout={() => void onLogout()}
-            showSearch={false}
-          />
+          <HeaderActions user={user} onLogout={() => void onLogout()} />
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
           {children ?? <Outlet />}
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
-}
-
-export function PanelShell({ titleKey, nav, variant = 'sidebar', children }: PanelShellProps) {
-  if (variant === 'navbar') {
-    return (
-      <NavbarPanelShell titleKey={titleKey} nav={nav}>
-        {children}
-      </NavbarPanelShell>
-    )
-  }
-  return (
-    <SidebarPanelShell titleKey={titleKey} nav={nav}>
-      {children}
-    </SidebarPanelShell>
   )
 }
 

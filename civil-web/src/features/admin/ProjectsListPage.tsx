@@ -72,7 +72,6 @@ import {
   type ProjectType,
 } from '@/services/projects'
 
-import { ProjectProgressTimeline } from './components/ProjectProgressTimeline'
 import { useProjectOptions } from './hooks/useProjectOptions'
 import { scheduleProgress } from './lib/schedule-progress'
 
@@ -260,11 +259,9 @@ export function ProjectsListPage() {
   const typeFilterOptions = [{ value: 'all', label: t('projects:allTypes') }, ...typeOptions]
   const navigate = useNavigate()
   const location = useLocation()
-  const isPmPortal = location.pathname.startsWith('/pm')
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [statusFilter, setStatusFilter] = useState<'all' | ProjectStatus>('all')
   const [typeFilter, setTypeFilter] = useState<'all' | ProjectType>('all')
-  const [timelineVersion, setTimelineVersion] = useState(0)
   const limit = 20
 
   const load = useCallback(
@@ -324,7 +321,6 @@ export function ProjectsListPage() {
       const result = await createProject(createData)
       toast.success(t('projects:created'))
       setCreateOpen(false)
-      setTimelineVersion((version) => version + 1)
       void remote.refetch()
       navigate(`${portalBaseFromPath(location.pathname)}/projects/${result.data.id}`)
     } catch (error) {
@@ -347,7 +343,6 @@ export function ProjectsListPage() {
       await archiveProject(deletingProject.id)
       toast.success(t('projects:archived'))
       setDeleteOpen(false)
-      setTimelineVersion((version) => version + 1)
       void remote.refetch()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('projects:couldNotArchive'))
@@ -368,8 +363,6 @@ export function ProjectsListPage() {
           {t('projects:create')}
         </Button>
       </div>
-
-      {isPmPortal ? null : <ProjectProgressTimeline refreshKey={timelineVersion} />}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <Input

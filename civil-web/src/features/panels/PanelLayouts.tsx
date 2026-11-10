@@ -19,11 +19,11 @@ export function AdminPanelLayout() {
 export function PmPanelLayout() {
   const { t } = useTranslation('nav')
   useDocumentTitle(t('pmPanel'))
-  return <PanelShell titleKey="pmPanel" nav={PM_NAV} variant="navbar" />
+  return <PanelShell titleKey="pmPanel" nav={PM_NAV} />
 }
 
 export function ProviderPanelLayout() {
   const { t } = useTranslation('nav')
   useDocumentTitle(t('providerPanel'))
-  return <PanelShell titleKey="providerPanel" nav={PROVIDER_NAV} variant="navbar" />
+  return <PanelShell titleKey="providerPanel" nav={PROVIDER_NAV} />
 }

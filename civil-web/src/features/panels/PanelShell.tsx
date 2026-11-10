@@ -55,7 +55,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { NotificationInboxSheet } from '@/features/notifications/NotificationInboxSheet'
@@ -217,8 +216,8 @@ export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
   return (
     <SidebarProvider className="h-svh max-h-svh overflow-hidden">
       <Sidebar collapsible="icon" variant="inset" side={isRtl ? 'right' : 'left'}>
-        <SidebarHeader className="overflow-hidden">
-          <div className="flex items-center px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+        <SidebarHeader className="h-16 shrink-0 justify-center overflow-hidden border-b border-sidebar-border">
+          <div className="flex min-w-0 flex-col justify-center gap-0.5 px-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
             <Link
               to="/"
               className="truncate text-sm font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden"
@@ -232,12 +231,11 @@ export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
             >
               CE
             </Link>
+            <p className="truncate text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+              {title}
+            </p>
           </div>
-          <p className="truncate px-2 text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-            {title}
-          </p>
         </SidebarHeader>
-        <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>{t('common:navigation')}</SidebarGroupLabel>

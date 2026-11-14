@@ -52,13 +52,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
+import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
 import { type Category, listCategories } from '@/services/categories'
 import {

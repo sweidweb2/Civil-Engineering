@@ -23,7 +23,13 @@ export type AppDeps = {
 export function createApp(deps: AppDeps = {}) {
   const config = deps.config ?? loadConfig()
   const app = express()
-  const pool = deps.pool ?? (config.databaseUrl || process.env.DATABASE_URL ? getPool() : undefined)
+  // Honor explicit `pool: undefined` (tests) — `??` would still auto-open from DATABASE_URL.
+  const pool =
+    'pool' in deps
+      ? deps.pool
+      : config.databaseUrl || process.env.DATABASE_URL
+        ? getPool()
+        : undefined
 
   if (config.trustProxy) {
     app.set('trust proxy', 1)

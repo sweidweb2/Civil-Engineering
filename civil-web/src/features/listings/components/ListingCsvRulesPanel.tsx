@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { API_BASE_URL } from '@/services/api'
-import { localizedCategoryName, type Category } from '@/services/categories'
+import { type Category, localizedCategoryName } from '@/services/categories'
 import { useLocaleStore } from '@/stores/localeStore'
 
 type ListingCsvRulesPanelProps = {

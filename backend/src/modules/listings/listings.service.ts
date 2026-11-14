@@ -5,7 +5,6 @@ import { forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProvidersService } from '../providers/index.js'
-import { parseImportRow } from './listings-import.js'
 import type {
   CreateListingRecordInput,
   ListingPriceFields,
@@ -28,6 +27,7 @@ import type {
   ListingTypeCounts,
   PaginatedListings,
 } from './listings.types.js'
+import { parseImportRow } from './listings-import.js'
 
 export type ListingsService = {
   listListings: (query: ListListingsQuery, actor: AuthActor) => Promise<PaginatedListings>
@@ -166,7 +166,9 @@ function listingHasAnyPrice(row: ListingPriceFields) {
 
 /** Keep Decimal(18, 4) as a fixed 4-place string for Prisma. */
 function formatAdjustedPrice(value: number): string {
-  const clamped = Math.max(0, Math.min(value, 99_999_999_999_999.9999))
+  // Max integer digits for Decimal(18,4); avoid non-safe float literals (eslint no-loss-of-precision).
+  const maxDecimal184 = 99_999_999_999_999
+  const clamped = Math.max(0, Math.min(value, maxDecimal184))
   return (Math.round(clamped * 10_000) / 10_000).toFixed(4)
 }
 

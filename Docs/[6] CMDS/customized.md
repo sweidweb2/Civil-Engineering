@@ -1,13 +1,39 @@
-npm run db:migrate # apply pending migrations
-npm run db:seed # seed
+# Customized commands (repo root)
 
-# Same gates as CI quality job (also runs on git pre-push)
+## Database
 
-npm run ci:local
+```bash
+npm run db:migrate   # apply pending Prisma migrations
+npm run db:seed      # seed
+```
 
+## Husky / quality (same as git hooks + CI quality job)
+
+| When           | What runs                                           |
+| -------------- | --------------------------------------------------- |
+| **pre-commit** | `npx lint-staged` (Prettier/ESLint on staged files) |
+| **pre-push**   | `npm run ci:local`                                  |
+| **CI quality** | format · lint · typecheck                           |
+
+```bash
+npm run format:check   # Prettier --check
+npm run lint           # ESLint (web + backend)
+npm run typecheck      # tsc (web + backend)
+npm run ci:local       # all three (husky pre-push)
+```
+
+## Tests (CI app jobs; e2e off in CI)
+
+```bash
+npm run test:unit          # backend + web unit
+npm run test:integration   # backend integration (embedded Postgres locally)
+npm run test:ci            # husky quality (ci:local) + unit + integration
+
+# Per-app / e2e (local only; CI_RUN_E2E=false)
 npm run test:unit --prefix backend
-npm run test:integration --prefix backend
+npm run test:integration --prefix backend          # CI-style (needs DATABASE_URL)
+npm run test:integration:local --prefix backend   # embedded Postgres
 npm run test:e2e --prefix backend
-
 npm run test:unit --prefix civil-web
 npm run test:e2e --prefix civil-web
+```

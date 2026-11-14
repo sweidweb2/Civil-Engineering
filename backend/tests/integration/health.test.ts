@@ -22,7 +22,7 @@ describe('backend integration (health)', () => {
   })
 
   it('GET /api/v1/health/db without pool returns 503', async () => {
-    const app = createApp({ config })
+    const app = createApp({ config, pool: undefined })
     const res = await request(app).get('/api/v1/health/db')
 
     expect(res.status).toBe(503)

@@ -13,15 +13,14 @@ If a change would alter stack, layers, API shape, or module boundaries — **ask
 
 ## Repository layout
 
-| Path                  | Own                                            |
-| --------------------- | ---------------------------------------------- |
-| `civil-web/`          | React web client                               |
-| `civil-mobile/`       | React Native (Expo) client                     |
-| `backend/`            | Express API + Prisma + jobs                    |
-| `docker-compose*.yml` | Root Compose (local / production)              |
-| `Docs/`               | Architecture, checklists, prompts, decisions   |
-| `.cursor/rules/`      | AI / coding rules                              |
-| `infrastructure/`     | Optional — Nginx / extra Docker only when real |
+| Path              | Own                                           |
+| ----------------- | --------------------------------------------- |
+| `civil-web/`      | React web client                              |
+| `civil-mobile/`   | React Native (Expo) client                    |
+| `backend/`        | Express API + Prisma + jobs                   |
+| `Docs/`           | Architecture, checklists, prompts, decisions  |
+| `.cursor/rules/`  | AI / coding rules                             |
+| `infrastructure/` | Optional — only when real deploy/proxy config |
 
 Work in the smallest relevant app. Do not cross-wire clients into the database.
 
@@ -29,9 +28,9 @@ Work in the smallest relevant app. Do not cross-wire clients into the database.
 
 - **Monolith backend**, domain modules under `backend/src/modules/`.
 - **Layer flow:** Route → Controller → Service → Repository → Prisma → PostgreSQL.
-- Controllers stay thin — **no** business workflows, Prisma, or Redis there.
+- Controllers stay thin — **no** business workflows, or Prisma there.
 - Repositories — **data access only**; no business orchestration.
-- Web / mobile — **REST `/api/v1` only**; never Postgres, Redis, or Prisma.
+- Web / mobile — **REST `/api/v1` only**; never Postgres or Prisma.
 - Validation: **Zod** on the backend (security); frontend Zod is UX only.
 - Client state: **Zustand** for UI/client state — not an API cache. Conventions: [`Docs/[3] Decisions/[5] Client State (Zustand).md`](<../[3]%20Decisions/[5]%20Client%20State%20(Zustand).md>).
 - Theme tokens live in `src/theme/` — not one-off magic numbers in components.
@@ -86,11 +85,11 @@ Branch topic work from **`play`**. Promote with PR `play` → `dev`, then `dev` 
 
 ### Env alignment
 
-| Branch | Local / deploy env |
-| --- | --- |
-| `play` | `.env` + `docker-compose.yml` |
-| `dev` | `.env.staging` + `docker-compose.staging.yml` (staging VPS later) |
-| `main` | `.env.production` + `docker-compose.production.yml` (prod VPS later) |
+| Branch | Local / deploy env                    |
+| ------ | ------------------------------------- |
+| `play` | `.env`                                |
+| `dev`  | `.env.staging` (staging deploy later) |
+| `main` | `.env.production` (prod deploy later) |
 
 ## Commit conventions
 
@@ -148,7 +147,7 @@ Quality toolchain: [`Docs/[3] Decisions/[1] Formatting & Linting.md`](../[3]%20D
 - Each app has `.env`, `.env.staging`, `.env.production` — **local only**.
 - Commit **`.env.example`** templates when present; never real values.
 - Public client vars only: `VITE_*` (web), `EXPO_PUBLIC_*` (mobile).
-- Backend owns JWT secrets, DB, Redis, and storage credentials.
+- Backend owns JWT secrets, DB, and storage credentials.
 
 ## Documentation
 
@@ -180,7 +179,7 @@ Relevant places: `Docs/[1] Main App/`, root `README.md`, and `.cursor/rules/` wh
 - [Formatting & Linting](../[3]%20Decisions/[1]%20Formatting%20%26%20Linting.md)
 - [Git Branch Strategy](../[3]%20Decisions/[2]%20Git%20Branch%20Strategy.md)
 - [CI & Testing](../[3]%20Decisions/[3]%20CI%20%26%20Testing.md)
-- [Docker & Infrastructure](../[3]%20Decisions/[4]%20Docker%20%26%20Infrastructure.md)
+- [Docker & Infrastructure](../[3]%20Decisions/[4]%20Docker%20%26%20Infrastructure.md) (superseded)
 - [Libraries](./[4]%20Libraries.md)
 - Root [README](../../README.md)
 - `.cursor/rules/project-core.mdc`

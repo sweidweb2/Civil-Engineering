@@ -1,11 +1,11 @@
-import { useTranslation } from 'react-i18next'
 import { useCallback, useState } from 'react'
 import { Box, HardHat, Layers, Wrench } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, CivilCardMedia, StatGridSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader, TablePager, ToolbarCard } from '@/components/layout'
+import {  PageHeader, STAT_GRID_CLASS, StatCard, TablePager, ToolbarCard  } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,6 @@ import {
 import { listVerifications, type User } from '@/services/users'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { directoryWindows, readPageWindow } from './lib/directory-page'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 

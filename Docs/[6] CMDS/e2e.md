@@ -2,28 +2,14 @@
 
 ## Backend E2E (Vitest + Test Postgres)
 
-1. **Start the test Postgres DB**
+1. **Run backend E2E tests**
 
    ```bash
    cd backend
-   npm run test:db:up
-   ```
-   - Spins up Docker Compose from `docker-compose.test.yml` on port `5433`.
-   - If the DB is already running, it will be reused for testing.
-
-2. **Run backend E2E tests**
-
-   ```bash
    npm run test:e2e
    ```
-   - Target: All E2E test suites using isolated Postgres (never touches local dev/prod DB).
-   - If no Docker Postgres is up, will fall back to an embedded/in-memory Postgres.
-
-3. **(Optional) Clean up test database**
-   ```bash
-   npm run test:db:down
-   ```
-   - Stops and removes the test Postgres container(s).
+   - Target: All E2E test suites using isolated Postgres (never touches local dev/prod/Supabase DB).
+   - Uses **embedded-postgres**, auto-started by e2e `globalSetup`. No Docker needed.
 
 ---
 
@@ -59,6 +45,6 @@
 
 - Playwright automatically starts Vite at [`http://127.0.0.1:5173`] (spawning a new server if not already running).
 - E2E tests use test accounts and seed data – never production.
-- For troubleshooting or CI config, see `civil-web/playwright.config.ts` and `backend/docker-compose.test.yml`.
+- For troubleshooting or CI config, see `civil-web/playwright.config.ts`.
 
 ---

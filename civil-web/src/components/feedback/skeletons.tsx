@@ -8,7 +8,7 @@ type SkeletonPresetProps = {
 
 /**
  * Card art: one calm isometric subject, centered, with a wide empty margin.
- * Light assets use warm off-white (#fef8ef); dark assets use charcoal-green (#121916).
+ * Light assets use `illustration-canvas`; dark assets use the dark canvas token.
  * Solid faces only — never a wireframe. Flat soft shading. No people, text, or clutter.
  */
 export const CIVIL_ILLUSTRATIONS = [
@@ -116,7 +116,7 @@ export function ProviderCardMedia({
   return (
     <div
       className={cn(
-        'relative aspect-[2/1] w-full shrink-0 overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
+        'relative aspect-[2/1] w-full shrink-0 overflow-hidden bg-illustration-canvas',
         className,
       )}
     >
@@ -143,7 +143,7 @@ export function ProjectCardMedia({
   return (
     <div
       className={cn(
-        'relative h-44 w-full overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
+        'relative h-44 w-full overflow-hidden bg-illustration-canvas',
         className,
       )}
     >
@@ -169,7 +169,7 @@ export function CivilCardMedia({
   return (
     <div
       className={cn(
-        'relative h-44 w-full shrink-0 overflow-hidden bg-[#fef8ef] dark:bg-[#121916]',
+        'relative h-44 w-full shrink-0 overflow-hidden bg-illustration-canvas',
         className,
       )}
     >

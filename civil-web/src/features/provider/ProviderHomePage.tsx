@@ -8,9 +8,6 @@ import { useAuthStore } from '@/stores/authStore'
 
 import { ProviderFocusSection } from './ProviderFocusSection'
 
-/** Light mint matches the hero SVG canvas; dark uses the theme background. */
-const PROVIDER_HOME_BG = 'bg-[#f7fbf9] dark:bg-background'
-
 export function ProviderHomePage() {
   const { t } = useTranslation(['provider', 'common'])
   useDocumentTitle(t('provider:home.documentTitle'))
@@ -25,8 +22,7 @@ export function ProviderHomePage() {
   return (
     <div
       className={cn(
-        'relative -mx-4 -mt-6 flex min-h-[calc(100svh-3.5rem)] min-w-0 flex-col pb-6 sm:-mx-6 sm:min-h-[calc(100svh-4rem)] lg:-mx-8',
-        PROVIDER_HOME_BG,
+        'relative -mx-4 -mt-6 flex min-h-[calc(100svh-3.5rem)] min-w-0 flex-col bg-provider-home-canvas pb-6 sm:-mx-6 sm:min-h-[calc(100svh-4rem)] lg:-mx-8',
       )}
     >
       <section

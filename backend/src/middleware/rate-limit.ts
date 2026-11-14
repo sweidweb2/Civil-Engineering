@@ -3,8 +3,6 @@ import rateLimit from 'express-rate-limit'
 
 import type { AppConfig } from '../config/index.js'
 import { ErrorCodes } from '../errors/error-codes.js'
-import { getRedis } from '../redis/index.js'
-import { createRedisRateLimitStore } from './rate-limit-redis-store.js'
 
 const rateLimitHandler: RequestHandler = (_req, res) => {
   res.status(429).json({
@@ -13,17 +11,16 @@ const rateLimitHandler: RequestHandler = (_req, res) => {
   })
 }
 
-/** General API limiter. Skipped in test so suites stay stable. */
+/**
+ * In-process rate limit (express-rate-limit memory store).
+ * Fine for a single API instance; multi-instance later → edge (Nginx/CDN) or a shared store.
+ */
 export function createApiRateLimiter(config: AppConfig) {
-  const redis = getRedis(config)
   return rateLimit({
     windowMs: config.rateLimitWindowMs,
     limit: config.rateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
-    ...(redis
-      ? { store: createRedisRateLimitStore(redis, 'api', config.rateLimitWindowMs) }
-      : {}),
     skip: (req) =>
       config.env === 'test' ||
       req.path === '/api/v1/health' ||
@@ -34,15 +31,11 @@ export function createApiRateLimiter(config: AppConfig) {
 
 /** Stricter limiter for auth endpoints (brute-force resistance). */
 export function createAuthRateLimiter(config: AppConfig) {
-  const redis = getRedis(config)
   return rateLimit({
     windowMs: config.authRateLimitWindowMs,
     limit: config.authRateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
-    ...(redis
-      ? { store: createRedisRateLimitStore(redis, 'auth', config.authRateLimitWindowMs) }
-      : {}),
     skip: () => config.env === 'test',
     handler: rateLimitHandler,
   })

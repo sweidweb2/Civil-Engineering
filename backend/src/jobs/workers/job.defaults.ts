@@ -1,7 +1,6 @@
 /**
- * Shared BullMQ job defaults — locked in Docs/[3] Decisions/[8] Redis.md.
- * Import these when the first durable worker is wired; do not invent per-job
- * retry policy unless a use case documents a deliberate override.
+ * Shared retry defaults if/when a durable job runner is introduced.
+ * Keep sync seams in `jobs/index.ts` until then.
  */
 
 /** Max attempts including the first run (5 = 1 try + 4 retries). */
@@ -18,16 +17,9 @@ export const JOB_BACKOFF = {
 /** Keep recent completed jobs for short debugging; trim by count. */
 export const JOB_REMOVE_ON_COMPLETE = { count: 1_000 } as const
 
-/**
- * Keep failed jobs for inspection / manual redrive.
- * Never auto-discard permanently failed side-effect jobs.
- */
+/** Keep failed jobs for inspection / manual redrive. */
 export const JOB_REMOVE_ON_FAIL = false as const
 
-/**
- * Default `defaultJobOptions` for BullMQ Queue constructors.
- * Workers must log when a job exhausts attempts (see Redis.md).
- */
 export const defaultJobOptions = {
   attempts: JOB_ATTEMPTS,
   backoff: JOB_BACKOFF,

@@ -5,7 +5,6 @@ import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
-import { cacheKeys, readThroughCache } from '../../redis/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import { assertMimeMatchesContent } from '../files/mime-sniff.js'
 import type { ListingsService } from '../listings/listings.service.js'
@@ -67,13 +66,10 @@ export function createListingImagesService(deps: ListingImagesServiceDeps): List
       return `${publicBase}/${storagePath.replace(/^\//, '')}`
     }
     const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
-    const cacheTtlSec = Math.max(30, Math.min(expiresInSec - 60, 240))
-    return readThroughCache(cacheKeys.storagePresignGet(storagePath), cacheTtlSec, () =>
-      storage.presignGet({
-        key: storagePath,
-        expiresInSec,
-      }),
-    )
+    return storage.presignGet({
+      key: storagePath,
+      expiresInSec,
+    })
   }
 
   async function processAndUploadImage(
@@ -134,9 +130,7 @@ export function createListingImagesService(deps: ListingImagesServiceDeps): List
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw validationError(
-          `File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`,
-        )
+        throw validationError(`File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`)
       }
 
       const currentCount = await repository.countByListingId(listingId)

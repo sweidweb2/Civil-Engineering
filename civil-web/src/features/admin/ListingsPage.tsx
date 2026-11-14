@@ -12,7 +12,7 @@ import {
   TableSkeleton,
   ThemeIllustration,
 } from '@/components/feedback/skeletons'
-import { RowActions, TablePager } from '@/components/layout'
+import { PageHeader, RowActions, TablePager } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,7 +75,7 @@ function ListingIllustration({
     <div
       className={
         className ??
-        'relative size-10 shrink-0 self-center overflow-hidden rounded-md bg-[#f4f1eb] dark:bg-[#121916]'
+        'relative size-10 shrink-0 self-center overflow-hidden rounded-md bg-listing-canvas'
       }
       title={name}
     >
@@ -139,7 +139,7 @@ function ListingCardCover({
       <ListingIllustration
         type={type}
         name={name}
-        className="relative aspect-[5/4] w-full shrink-0 overflow-hidden bg-[#f4f1eb] dark:bg-[#121916]"
+        className="relative aspect-[5/4] w-full shrink-0 overflow-hidden bg-listing-canvas"
       />
     )
   }
@@ -332,13 +332,20 @@ export function ListingsBrowser({
           <h2 className="text-sm font-medium">{t('admin:listings.title')}</h2>
           {addButton}
         </div>
-      ) : null}
+      ) : (
+        <PageHeader
+          className="mb-0"
+          title={t('admin:listings.title')}
+          description={t('admin:listings.description')}
+          actions={addButton}
+        />
+      )}
 
       <div
         className={
           embedded
             ? 'flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'
-            : 'grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3'
+            : 'flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'
         }
       >
         {embedded ? null : (
@@ -365,7 +372,7 @@ export function ListingsBrowser({
             </Button>
           </div>
         )}
-        <div className={embedded ? 'min-w-0 flex-1' : 'flex min-w-0 justify-center'}>
+        <div className={embedded ? 'min-w-0 flex-1' : 'min-w-0 flex-1 sm:max-w-sm'}>
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -374,7 +381,6 @@ export function ListingsBrowser({
             className="w-full max-w-sm"
           />
         </div>
-        {embedded ? null : <div className="flex justify-end">{addButton}</div>}
       </div>
 
       <AsyncState

@@ -1,6 +1,7 @@
 import { cn } from 'cn'
 import type { LucideIcon } from 'lucide-react'
 
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Project } from '@/services/projects'
 
@@ -29,14 +30,14 @@ export function ProjectMetricCard({ icon: Icon, label, value, change, barShift =
   const bars = barHeights(barShift)
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-foreground/10">
+    <Card size="sm" className="flex min-w-0 flex-col gap-3 p-4 shadow-sm">
       <div className="flex min-w-0 items-center gap-2">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground ring-1 ring-foreground/10">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
           <Icon className="size-3.5" aria-hidden />
         </span>
         <p className="truncate text-sm text-muted-foreground">{label}</p>
       </div>
-      <p className="text-[1.75rem] leading-none font-semibold tracking-tight text-foreground">{value}</p>
+      <p className="text-[1.75rem] leading-none font-semibold tracking-tight text-primary">{value}</p>
       <p className="text-sm leading-none">
         <span className={cn('font-medium', positive ? 'text-success' : 'text-destructive')}>
           {positive ? '+' : ''}
@@ -53,18 +54,18 @@ export function ProjectMetricCard({ icon: Icon, label, value, change, barShift =
           />
         ))}
       </div>
-    </div>
+    </Card>
   )
 }
 
 export function ProjectMetricCardSkeleton() {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+    <Card size="sm" className="flex flex-col gap-3 p-4">
       <Skeleton className="h-7 w-28" />
       <Skeleton className="h-7 w-16" />
       <Skeleton className="h-4 w-32" />
       <Skeleton className="h-7 w-full rounded-full" />
-    </div>
+    </Card>
   )
 }
 

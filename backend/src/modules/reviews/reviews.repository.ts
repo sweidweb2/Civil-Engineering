@@ -1,12 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import { Prisma, type ReviewStatus, type ReviewTargetType } from '../../generated/prisma/client.js'
-import { invalidateCache, readThroughCache } from '../../redis/redis.cache.js'
-import { cacheKeys } from '../../redis/redis.keys.js'
-import {
-  findListingNames,
-  listingExists,
-  listListingChoices,
-} from '../listings/index.js'
+import { findListingNames, listingExists, listListingChoices } from '../listings/index.js'
 import type { ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type { ReviewStatusCounts, ReviewTargetOption } from './reviews.types.js'
 
@@ -73,9 +67,7 @@ export type ReviewsRepository = {
 function personName(profile: ProfileName, email: string): string {
   if (!profile) return email
   return (
-    profile.displayName ||
-    [profile.firstName, profile.lastName].filter(Boolean).join(' ') ||
-    email
+    profile.displayName || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || email
   )
 }
 
@@ -104,25 +96,35 @@ async function targetNameMap(rows: ReviewRow[]): Promise<Map<string, string>> {
 
   const [providers, workers, listings] = await Promise.all([
     providerIds.length
-      ? prisma.provider.findMany({ where: { id: { in: providerIds } }, select: { id: true, name: true } })
+      ? prisma.provider.findMany({
+          where: { id: { in: providerIds } },
+          select: { id: true, name: true },
+        })
       : [],
     workerIds.length
       ? prisma.user.findMany({
           where: { id: { in: workerIds } },
-          select: { id: true, email: true, profile: { select: { displayName: true, firstName: true, lastName: true } } },
+          select: {
+            id: true,
+            email: true,
+            profile: { select: { displayName: true, firstName: true, lastName: true } },
+          },
         })
       : [],
     findListingNames(listingIds),
   ])
 
   for (const provider of providers) names.set(key('PROVIDER', provider.id), provider.name)
-  for (const worker of workers) names.set(key('WORKER', worker.id), personName(worker.profile, worker.email))
+  for (const worker of workers)
+    names.set(key('WORKER', worker.id), personName(worker.profile, worker.email))
   for (const listing of listings) names.set(key('LISTING', listing.id), listing.name)
   return names
 }
 
 function uniqueIds(rows: ReviewRow[], targetType: ReviewTargetType): string[] {
-  return [...new Set(rows.filter((row) => row.targetType === targetType).map((row) => row.targetId))]
+  return [
+    ...new Set(rows.filter((row) => row.targetType === targetType).map((row) => row.targetId)),
+  ]
 }
 
 function key(targetType: ReviewTargetType, targetId: string): string {
@@ -131,7 +133,9 @@ function key(targetType: ReviewTargetType, targetId: string): string {
 
 async function withNames(rows: ReviewRow[]): Promise<ReviewRecord[]> {
   const names = await targetNameMap(rows)
-  return rows.map((row) => toRecord(row, names.get(key(row.targetType, row.targetId)) ?? 'Removed target'))
+  return rows.map((row) =>
+    toRecord(row, names.get(key(row.targetType, row.targetId)) ?? 'Removed target'),
+  )
 }
 
 function ilikePattern(value: string): string {
@@ -180,7 +184,9 @@ function reviewSearchFilter(query: ListReviewsQuery): Prisma.Sql {
   `
 }
 
-async function searchReviews(query: ListReviewsQuery): Promise<{ items: ReviewRecord[]; total: number }> {
+async function searchReviews(
+  query: ListReviewsQuery,
+): Promise<{ items: ReviewRecord[]; total: number }> {
   const filter = reviewSearchFilter(query)
   const limit = query.limit
   const offset = (query.page - 1) * query.limit
@@ -216,7 +222,9 @@ async function searchReviews(query: ListReviewsQuery): Promise<{ items: ReviewRe
   return { items: await withNames(ordered), total: Number(countRows[0]?.total ?? 0) }
 }
 
-async function listReviews(query: ListReviewsQuery): Promise<{ items: ReviewRecord[]; total: number }> {
+async function listReviews(
+  query: ListReviewsQuery,
+): Promise<{ items: ReviewRecord[]; total: number }> {
   if (query.q) return searchReviews(query)
   const where: Prisma.ReviewWhereInput = {
     ...(query.status ? { status: query.status } : {}),
@@ -243,7 +251,6 @@ export function createReviewsRepository(): ReviewsRepository {
     },
 
     async countByStatus() {
-      return readThroughCache(cacheKeys.reviewStatusCounts(), 60, async () => {
       const groups = await prisma.review.groupBy({
         by: ['status'],
         _count: { _all: true },
@@ -253,7 +260,6 @@ export function createReviewsRepository(): ReviewsRepository {
         counts[group.status] = group._count._all
       }
       return counts
-      })
     },
 
     async findById(id) {
@@ -276,7 +282,10 @@ export function createReviewsRepository(): ReviewsRepository {
 
     async findTargetState(targetType, targetId) {
       if (targetType === 'PROVIDER') {
-        const provider = await prisma.provider.findUnique({ where: { id: targetId }, select: { id: true } })
+        const provider = await prisma.provider.findUnique({
+          where: { id: targetId },
+          select: { id: true },
+        })
         return provider ? 'ok' : 'missing'
       }
       if (targetType === 'LISTING') {
@@ -306,7 +315,11 @@ export function createReviewsRepository(): ReviewsRepository {
         where: { role: 'WORKER' },
         orderBy: { email: 'asc' },
         take: 100,
-        select: { id: true, email: true, profile: { select: { displayName: true, firstName: true, lastName: true } } },
+        select: {
+          id: true,
+          email: true,
+          profile: { select: { displayName: true, firstName: true, lastName: true } },
+        },
       })
       return rows.map((row) => ({
         id: row.id,
@@ -324,7 +337,6 @@ export function createReviewsRepository(): ReviewsRepository {
       if (!record) {
         throw new Error('Created review could not be loaded')
       }
-      await invalidateCache(cacheKeys.reviewStatusCounts())
       return record
     },
 
@@ -344,13 +356,11 @@ export function createReviewsRepository(): ReviewsRepository {
       if (!record) {
         throw new Error('Updated review could not be loaded')
       }
-      await invalidateCache(cacheKeys.reviewStatusCounts())
       return record
     },
 
     async delete(id) {
       await prisma.review.delete({ where: { id } })
-      await invalidateCache(cacheKeys.reviewStatusCounts())
     },
   }
 }

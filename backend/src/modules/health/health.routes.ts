@@ -7,7 +7,6 @@ export function createHealthRoutes(controller: HealthController): Router {
 
   router.get('/', controller.getHealth)
   router.get('/db', controller.getDbHealth)
-  router.get('/redis', controller.getRedisHealth)
 
   return router
 }

@@ -160,7 +160,7 @@ cd backend && npm i zod
 cd backend && npm i helmet
 ```
 
-**express-rate-limit** — installed (API + auth rate limiting)
+**express-rate-limit** — installed (API + auth rate limiting; in-process memory store, no Redis)
 
 ```bash
 cd backend && npm i express-rate-limit
@@ -205,8 +205,8 @@ cd backend && npm i @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
 
 **Test PostgreSQL**
 
-- Docker (preferred in CI): `docker-compose.test.yml` on port **5433**
-- Local fallback: **embedded-postgres** auto-starts in e2e `globalSetup`
+- **embedded-postgres** auto-starts in e2e `globalSetup` (no Docker; `docker-compose.test.yml` removed)
+- Production/dev app DB is Supabase Postgres
 - Client: `pg`
 
 ```bash
@@ -231,9 +231,7 @@ npm run prisma:generate
 npm run prisma:migrate:dev
 npm run test:unit
 npm run test:integration
-npm run test:db:up          # Docker Postgres (optional if embedded works)
-npm run test:e2e            # real Postgres + /health/db
-npm run test:db:down
+npm run test:e2e            # embedded Postgres + /health/db
 ```
 
 ---

@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { expect, type Page } from '@playwright/test'
 
-/** Seed passwords from `backend/prisma/seed.ts` (local Docker + migrate + seed). */
+/** Seed passwords from `backend/prisma/seed.ts` (Supabase + migrate + seed). */
 export const SEED_PASSWORD = 'password'
 
 export const SEED_USERS = {

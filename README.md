@@ -10,10 +10,9 @@ A modular monolith that serves multiple client interfaces (admin/distributor on 
 
 ```
 React Web  ──┐
-             ├── REST /api/v1 ──► Express (monolith) ──► PostgreSQL + Prisma
+             ├── REST /api/v1 ──► Express (monolith) ──► PostgreSQL (Supabase) + Prisma
 React Native─┘                        │
-                                      ├── Redis (cache / queue)
-                                      └── Storage (TBD)
+                                      └── Storage (Cloudflare R2)
 ```
 
 - **Overall:** modular monolith (not microservices)
@@ -24,11 +23,11 @@ Source of truth for locked decisions: `Docs/[1] Main App/[1] Tech Stack.md` (and
 
 ## Branches
 
-| Branch | Role | Env |
-| --- | --- | --- |
-| **`play`** | Daily development — work here | Local `.env` / `docker-compose.yml` |
-| **`dev`** | Staging | `.env.staging` / `docker-compose.staging.yml` |
-| **`main`** | Production | `.env.production` / `docker-compose.production.yml` |
+| Branch     | Role                          | Env               |
+| ---------- | ----------------------------- | ----------------- |
+| **`play`** | Daily development — work here | Local `.env`      |
+| **`dev`**  | Staging                       | `.env.staging`    |
+| **`main`** | Production                    | `.env.production` |
 
 Promote with PRs: **`play` → `dev` → `main`**. CI is the **same** on push/PR to `dev` and `main`. Auto-deploy (staging on `dev`, prod on `main`) comes later.
 
@@ -44,34 +43,32 @@ Details: `Docs/[3] Decisions/[2] Git Branch Strategy.md`
 
 ## Tech stack
 
-| Area          | Choice                           |
-| ------------- | -------------------------------- |
-| Web           | React + TypeScript + Vite        |
-| Mobile        | React Native + TypeScript + Expo |
-| Backend       | Express + TypeScript             |
-| Database      | PostgreSQL + Prisma              |
-| Cache / queue | Redis                            |
-| Storage       | TBD                              |
-| API           | REST `/api/v1`                   |
-| Auth          | JWT + refresh tokens             |
-| Validation    | Zod                              |
-| Client state  | Zustand                          |
-| Deploy        | Docker + Nginx on Hostinger VPS  |
+| Area          | Choice                                  |
+| ------------- | --------------------------------------- |
+| Web           | React + TypeScript + Vite               |
+| Mobile        | React Native + TypeScript + Expo        |
+| Backend       | Express + TypeScript                    |
+| Database      | Supabase Postgres + Prisma              |
+| Cache / queue | None (in-process rate limit; sync jobs) |
+| Storage       | Cloudflare R2                           |
+| API           | REST `/api/v1`                          |
+| Auth          | JWT + refresh tokens                    |
+| Validation    | Zod                                     |
+| Client state  | Zustand                                 |
+| Deploy        | TBD (no Docker required locally)        |
 
 ## Project structure
 
 ```text
 Civil-Engineering-v1/
 ├── civil-web/          # React web app
-│   ├── Dockerfile
-│   ├── .dockerignore
 │   └── src/
 │       ├── features/
 │       ├── components/
 │       ├── theme/
 │       ├── hooks/
 │       └── services/
-├── civil-mobile/       # React Native (Expo) — no production Dockerfile
+├── civil-mobile/       # React Native (Expo)
 │   └── src/
 │       ├── features/
 │       ├── components/
@@ -80,8 +77,6 @@ Civil-Engineering-v1/
 │       ├── hooks/
 │       └── services/
 ├── backend/            # Express API
-│   ├── Dockerfile
-│   ├── .dockerignore
 │   └── src/
 │       ├── modules/    # DDD domains (auth, users, projects, …)
 │       ├── middleware/
@@ -90,15 +85,12 @@ Civil-Engineering-v1/
 │       └── jobs/
 ├── Docs/               # Numbered docs: Main App, Prompts, Decisions, Database
 ├── .cursor/rules/      # Cursor / AI project rules
-├── docker-compose.yml
-├── docker-compose.staging.yml
-├── docker-compose.production.yml
 ├── .editorconfig
 ├── .gitignore
 └── README.md
 ```
 
-Optional later: `infrastructure/nginx/` and `infrastructure/docker/` when real Nginx / extra Docker config is needed (do not create empty).
+Optional later: `infrastructure/` only when real deploy/proxy config exists (do not create empty).
 
 ## Environment setup
 
@@ -118,14 +110,14 @@ Public client vars only: `VITE_*` (web), `EXPO_PUBLIC_*` (mobile). All secrets s
 
 ## How to run (local)
 
-Prerequisites: **Node.js** (LTS), **npm**, and locally (or via Docker) **PostgreSQL** + **Redis** for the API.
+Prerequisites: **Node.js** (LTS), **npm**, and a **Supabase Postgres** `DATABASE_URL` for the API. No Docker or Redis required.
 
 ### Backend
 
 ```bash
 cd backend
 npm install
-# ensure .env has DATABASE_URL, REDIS_URL, JWT secrets
+# ensure .env has DATABASE_URL (Supabase), JWT secrets
 npm run dev   # add this script when the app bootstrap exists
 ```
 
@@ -149,63 +141,36 @@ npm start
 
 Then open in Expo Go / simulator. Set `EXPO_PUBLIC_API_BASE_URL` to your machine API URL (use LAN IP for a physical device).
 
-## Docker setup
+## Docker / Redis
 
-Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md` · rules: `.cursor/rules/docker.mdc`
-
-### Can I run without Docker?
-
-Yes. `cd backend && npm run dev` and `cd civil-web && npm run dev` start on your machine **without any containers**.
-
-- **Web** always works without Docker.
-- **API** boots without Docker; anything that needs the database needs Postgres running (`docker compose up -d`).
-
-### Local (day-to-day)
+Removed. No Dockerfiles, Compose files, or Redis. Local dev is just npm:
 
 ```bash
-docker compose up -d          # Postgres only
-cd backend && npm run dev     # uses backend/.env → DATABASE_URL @ 127.0.0.1
+cd backend && npm run dev     # uses backend/.env → DATABASE_URL (Supabase Postgres)
 cd civil-web && npm run dev   # uses civil-web/.env → API at localhost:3000
 ```
 
-`backend/.env` is aligned with Compose defaults (`postgres` / `postgres` / `civil` on port `5432`). Redis: `REDIS_URL=redis://127.0.0.1:6379` (Compose service `civil-redis`).
-
-### Staging / production Compose
-
-Replace `CHANGE_ME` secrets in the matching env files first. Compose loads those files and **overrides** `DATABASE_URL` so the API talks to the `postgres` service (not localhost).
-
-```bash
-# Staging
-docker compose -f docker-compose.staging.yml up -d --build
-
-# Production (set POSTGRES_USER / POSTGRES_PASSWORD in the host env)
-docker compose -f docker-compose.production.yml up -d --build
-```
-
-**Mobile:** not a Docker service (Play / App Store).  
-**Nginx:** add `infrastructure/nginx/` when ready (sole public entry).
+Backend tests use embedded-postgres (no Docker). Decisions: `Docs/[3] Decisions/[4] Docker & Infrastructure.md` and `[8] Redis.md` (both superseded).
 
 ## Deployment
 
-- **Host:** Hostinger VPS
-- **Runtime:** Docker
-- **Edge:** Nginx (HTTPS, proxy `/api` → API, serve web build)
-- **Clients:** web via Nginx; mobile via store / EAS builds (not a Docker service on the VPS)
+- **Host / runtime / edge proxy:** TBD (earlier Hostinger VPS + Docker + Nginx plan superseded)
+- **Clients:** mobile via store / EAS builds
 - **Migrations:** run as an explicit release step (not silently on every API boot unless that pattern is locked later)
 
 ## Documentation
 
-| Doc                                          | Purpose                                            |
-| -------------------------------------------- | -------------------------------------------------- |
-| `Docs/[1] Main App/[1] Tech Stack.md`        | Locked technical decisions                         |
-| `Docs/[1] Main App/[2] Bedrock Checklist.md` | Foundation checklist                               |
-| `Docs/[3] Decisions/`                        | Locked decisions (format/lint, git, CI, Docker, …) |
-| `Docs/[2] Prompts/`                          | Master AI / agent prompts                          |
-| `.cursor/rules/`                             | Always-on and scoped coding rules                  |
+| Doc                                          | Purpose                                    |
+| -------------------------------------------- | ------------------------------------------ |
+| `Docs/[1] Main App/[1] Tech Stack.md`        | Locked technical decisions                 |
+| `Docs/[1] Main App/[2] Bedrock Checklist.md` | Foundation checklist                       |
+| `Docs/[3] Decisions/`                        | Locked decisions (format/lint, git, CI, …) |
+| `Docs/[2] Prompts/`                          | Master AI / agent prompts                  |
+| `.cursor/rules/`                             | Always-on and scoped coding rules          |
 
 ## Principles (short)
 
 - Understand existing architecture before changing it
 - Keep layers thin; never bypass Route → Controller → Service → Repository
-- Clients never touch Postgres / Redis / Prisma
+- Clients never touch Postgres / Prisma
 - Ask before changing architecture or adding libraries

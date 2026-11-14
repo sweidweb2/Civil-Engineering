@@ -9,6 +9,8 @@
     "lint": "npm run lint --prefix civil-web && npm run lint --prefix civil-mobile && npm run lint --prefix backend",
     "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix civil-mobile && npm run typecheck --prefix backend",
     "db:migrate:local": "npm run prisma:migrate:deploy --prefix backend",
+    "db:migrate:remote": "npm run db:migrate:remote --prefix backend",
+    "db:seed:remote": "npm run db:seed:remote --prefix backend",
     "prepare": "husky"
   },
   "devDependencies": {

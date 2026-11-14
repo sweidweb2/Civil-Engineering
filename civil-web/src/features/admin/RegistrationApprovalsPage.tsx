@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel, RowActions, TablePager, ToolbarCard } from '@/components/layout'
+import {  DataPanel, RowActions, STAT_GRID_CLASS, StatCard, TablePager, ToolbarCard  } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +45,6 @@ import {
   RegistrationFormDialog,
   type RegistrationFormValues,
 } from './components/RegistrationFormDialog'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { USER_TABLE_HEADERS, UserAttributeCells } from './components/UserCells'
 import { PAGE_SIZE } from './lib/text'
 import { toAdminUserRow } from './users.rows'

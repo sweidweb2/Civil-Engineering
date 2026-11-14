@@ -1,11 +1,10 @@
 /**
- * index.ts — single entry point for the web theme.
+ * index.ts — single JS entry for the web theme.
  *
- * Components should import from here:
- *   import { theme, colors, spacing } from '@/theme'
- *   // or: import { theme } from '../theme'
+ * CSS classes: mirrored tokens live in `src/index.css` (runtime source for Tailwind).
+ * Programmatic color (SVG fills, charts): import from here.
  *
- * Web includes breakpoints + zIndex; mobile does not.
+ *   import { theme, colors, withAlpha, spacing } from '@/theme'
  */
 
 export * from './breakpoints'

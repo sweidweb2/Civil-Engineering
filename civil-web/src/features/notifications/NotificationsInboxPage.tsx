@@ -18,8 +18,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ListSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
-import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
+import { PageHeader, STAT_GRID_CLASS, StatCard } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,

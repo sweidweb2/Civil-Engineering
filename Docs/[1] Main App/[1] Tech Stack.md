@@ -2,15 +2,16 @@
 
 ## 1. Technology Stack
 
-| Area              | Decision                  |
-| ----------------- | ------------------------- |
-| **Web**           | React + TypeScript        |
-| **Mobile**        | React Native + TypeScript |
-| **Backend**       | Express + TypeScript      |
-| **Database**      | PostgreSQL + Prisma       |
-| **Cache / Queue** | Redis                     |
-| **Storage**       | Cloudflare R2 (S3 API)    |
-| **Deployment**    | Nginx + Dockerization     |
+| Area              | Decision                                                                   |
+| ----------------- | -------------------------------------------------------------------------- |
+| **Web**           | React + TypeScript                                                         |
+| **Mobile**        | React Native + TypeScript                                                  |
+| **Backend**       | Express + TypeScript                                                       |
+| **Database**      | Supabase Postgres + Prisma                                                 |
+| **Cache / Queue** | None (no Redis; jobs sync; rate limit in-process via `express-rate-limit`) |
+| **Storage**       | Cloudflare R2 (S3 API)                                                     |
+| **Local run**     | `npm` in `backend/` + `civil-web/` (no Docker required)                    |
+| **Deployment**    | TBD (Docker/Hostinger/Nginx plan superseded)                               |
 
 ---
 
@@ -48,11 +49,11 @@
                     │                     │
                     └──────────┬──────────┘
                                │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-         PostgreSQL          Redis           Storage
-          + Prisma
+              ┌────────────────┴────────────────┐
+              │                                 │
+              ▼                                 ▼
+         PostgreSQL          Storage
+       (Supabase) + Prisma     (R2)
 
                     ▲
                     │ REST API
@@ -266,38 +267,15 @@ Business logic
 
 ## 11. Infrastructure
 
-Deployment layout:
+**Database:** Supabase Postgres (accessed only by the Express API via Prisma).
 
-```
-Hostinger VPS
-      │
-      ▼
-   Docker
-      │
-      ├── Nginx          (sole public entry — when configured)
-      ├── Web            (Vite static / civil-web image)
-      ├── Express API
-      ├── PostgreSQL
-      ├── Redis
-      └── Other required services (e.g. worker — only if needed)
-```
+**Local development:** run `npm` in `backend/` and `civil-web/`. **No Docker required.** Tests use `embedded-postgres`.
 
-Nginx is the reverse proxy and entry point for the deployed application.
+**Rate limiting:** in-process memory (`express-rate-limit`), per API instance.
 
-### Docker layout (locked)
+**Removed (superseded):** Redis, BullMQ, Dockerfiles, Docker Compose, `.dockerignore`, `/api/v1/health/redis`. Jobs stay synchronous. See `Docs/[3] Decisions/[8] Redis.md` and `Docs/[3] Decisions/[4] Docker & Infrastructure.md`.
 
-Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`
-
-| Artifact                             | Location                                                  |
-| ------------------------------------ | --------------------------------------------------------- |
-| Web Dockerfile + `.dockerignore`     | `civil-web/`                                              |
-| Backend Dockerfile + `.dockerignore` | `backend/`                                                |
-| Mobile production Dockerfile         | none (Play / App Store)                                   |
-| Local Compose                        | root `docker-compose.yml`                                 |
-| Production Compose                   | root `docker-compose.production.yml`                      |
-| `infrastructure/`                    | optional — create when Nginx / extra Docker infra is real |
-
-Compose may orchestrate web, API, PostgreSQL, Redis, and an optional worker. Exact production topology remains flexible.
+**Production deploy:** TBD. The earlier Hostinger VPS + Docker + Nginx plan is not the current baseline; record a new decision before locking a host or proxy.
 
 ---
 
@@ -328,10 +306,8 @@ The backend is the single entry point for business logic, authorization, and dat
 The following points are **not yet locked**:
 
 - Detailed DDD domain boundaries
-- Exact production Docker topology (which optional services run on the VPS)
-- Exact Nginx / TLS / domain wiring (`infrastructure/nginx/` when ready)
+- Production hosting / deploy topology (Docker plan superseded)
+- Reverse proxy / TLS / domain wiring (if/when needed)
 - Some infrastructure/security / monitoring choices (to be decided during implementation)
-
-Docker **file layout** (where Dockerfiles and Compose live) is locked — see §11 and the Docker decision doc.
 
 All other listed items above are the **locked technical baseline** for the project.

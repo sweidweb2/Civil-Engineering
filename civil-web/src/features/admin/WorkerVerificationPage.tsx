@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel, RowActions, TablePager, ToolbarCard } from '@/components/layout'
+import {  DataPanel, RowActions, STAT_GRID_CLASS, StatCard, TablePager, ToolbarCard  } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +50,6 @@ import {
 } from '@/services/users'
 
 import type { VerificationStatus, WorkerVerificationRow } from './admin.types'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { UserAttributeCells, VerificationBadge, WORKER_TABLE_HEADERS } from './components/UserCells'
 import { PAGE_SIZE } from './lib/text'
 import { toAdminUserRow } from './users.rows'

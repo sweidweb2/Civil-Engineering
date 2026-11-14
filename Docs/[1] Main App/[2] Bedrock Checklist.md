@@ -118,7 +118,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Authn / authz on API defined
 - [x] API docs approach chosen — **OpenAPI 3.x** (spec is the contract; UI viewer TBD e.g. Swagger UI / Scalar)
 
-> Spec approach: [`Docs/[3] Decisions/[9] API Docs (OpenAPI).md`](../[3]%20Decisions/[9]%20API%20Docs%20(OpenAPI).md). Swagger UI is a viewer, not a competing standard.
+> Spec approach: [`Docs/[3] Decisions/[9] API Docs (OpenAPI).md`](<../[3]%20Decisions/[9]%20API%20Docs%20(OpenAPI).md>). Swagger UI is a viewer, not a competing standard.
 
 ---
 
@@ -213,7 +213,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
   - [x] Optional single global crash fallback screen (not a set of error routes) — `ErrorBoundary`
   - [x] Rule locked: no dedicated 404/500-style error pages on mobile — toast / inline / navigate instead
 - [x] Deep linking (if in scope) — Expo Router + `scheme: civilmobile` in `app.json`; custom link map TBD with features
-- [x] Notifications (if in scope) — Expo Push bedrock: `DeviceToken` + `POST/DELETE /api/v1/devices`, sync `notifyUser` / `enqueueNotifyUser`, mobile `expo-notifications` register + tap→`data.path`/`data.url`; inbox / Redis queue / domain events deferred
+- [x] Notifications (if in scope) — Expo Push bedrock: `DeviceToken` + `POST/DELETE /api/v1/devices`, sync `notifyUser` / `enqueueNotifyUser`, mobile `expo-notifications` register + tap→`data.path`/`data.url`; inbox / domain events deferred (no Redis queue)
 - [x] Dev / preview / prod env config
 
 > Note: Routes under `src/app/` stay thin; screens live in `src/features/<feature>/`. No mobile error-page catalog (web-only).
@@ -399,29 +399,20 @@ Track foundation work only. Check items when done. Do not expand into essays her
 - [x] Public prefix rules: `VITE_*` / `EXPO_PUBLIC_*`
 - [x] Config module (backend) loads env centrally
 - [x] Env validation (Zod in `backend/src/config`) — CORS key: `CORS_ORIGINS`
-- [x] Local `DATABASE_URL` aligned with Compose Postgres (`127.0.0.1` / db `civil`)
-- [x] Staging/prod Compose overrides `DATABASE_URL` host to `postgres`
-- [x] Redis env optional / skipped until Redis is wired → **wired**: `REDIS_URL` + Compose `redis` service
+- [x] `DATABASE_URL` points at Supabase Postgres (Compose removed)
+- [x] Redis removed — no `REDIS_URL`
 
 ---
 
-## 15. Redis / Queue Foundation
+## 15. Redis / Queue Foundation — SUPERSEDED (removed)
 
-- [x] Redis role decided (cache / queue / both)
-- [x] Cache key convention — `civil:` prefix (`redis.keys.ts`)
-- [x] Cache TTL policy — always set TTL (helpers default 120s)
-- [x] Cache invalidation strategy — `del` + list version bump
-- [x] What not to cache defined
-- [x] Queue library chosen — **BullMQ** when first durable async job needs it (not installed yet)
-- [x] Job structure defined — `jobs/` sync enqueue seam + `jobs/workers/` placeholder
-- [x] Retry / backoff rules — **5 attempts**, exponential from **2s**; locked in Redis.md + `jobs/workers/job.defaults.ts`
-- [x] Failed-job handling — keep BullMQ failed set + error log (`removeOnFail: false`); locked in Redis.md + defaults
-- [x] Idempotency rules — documented (sync notify/delete seams today)
-- [x] BullMQ workers runtime — deferred intentionally until first durable async job; defaults exported from `jobs/workers/`
-- [x] Queue monitoring approach — `/api/v1/health/redis` now; BullMQ board later
-- [x] Rule locked: Redis is not miscellaneous storage
+- [x] Redis removed (`ioredis`, cache helpers, `/api/v1/health/redis` deleted)
+- [x] Rate limiting — in-process memory (`express-rate-limit`)
+- [x] Jobs stay synchronous (`jobs/` seams); no BullMQ
+- [x] Idempotency rules — documented (sync notify/delete seams)
+- [ ] Caching strategy — TBD if needed (client / CDN / presign)
 
-> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — **backend only** (web/mobile never connect). Compose: `redis:7-alpine`. Client: `ioredis` + cache helpers. Domain cache callers + BullMQ package/workers still deferred until a real async job.
+> Decision: [`Docs/[3] Decisions/[8] Redis.md`](../[3]%20Decisions/[8]%20Redis.md) — superseded.
 
 ---
 
@@ -442,7 +433,7 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ## 17. Security Foundation
 
-- [x] HTTPS — TLS at Nginx edge only; Express internal HTTP + `TRUST_PROXY` in staging/prod
+- [x] HTTPS — TLS at the edge proxy only (deploy host TBD); Express internal HTTP + `TRUST_PROXY` when behind a proxy
 - [x] CORS allowlist
 - [x] Security headers (Helmet)
 - [x] Rate limiting — general API + stricter `/auth/*` (`express-rate-limit`)
@@ -493,30 +484,16 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ---
 
-## 20. Docker / Deployment Foundation
+## 20. Docker / Deployment Foundation — SUPERSEDED (Docker removed)
 
-Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisions/[4]%20Docker%20%26%20Infrastructure.md)
+Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisions/[4]%20Docker%20%26%20Infrastructure.md) — superseded.
 
-- [x] Docker strategy locked (local + production; Compose at root; no mobile prod Dockerfile)
-- [x] `civil-web/Dockerfile` + `.dockerignore`
-- [x] `backend/Dockerfile` + `.dockerignore`
-- [x] Rule locked: no production Dockerfile for `civil-mobile/`
-- [x] `docker-compose.yml` (dev — Postgres only)
-- [x] `docker-compose.staging.yml` (Postgres + Redis + API + web)
-- [x] `docker-compose.production.yml` (Postgres + Redis + API + web)
-- [x] Services planned: Nginx (when ready), web, API, Postgres, Redis (+ worker if needed)
-- [x] Container networking (Compose network)
-- [x] Volumes (Postgres required)
-- [x] Health checks (Compose + Dockerfiles)
-- [x] Restart / resource / logging policy (documented; production restart in override)
-- [x] Secrets injection (env / host — not baked into images)
-- [x] Nginx reverse proxy (rule locked; config folder when ready)
-- [ ] SSL / domains / firewall / backups
-- [x] Rule locked: Nginx is sole public entry
-- [ ] `infrastructure/nginx/` (create when Nginx config is real — not empty)
-- [ ] `infrastructure/docker/` (only if needed beyond root Compose)
+- [x] Dockerfiles, `.dockerignore`, and all Docker Compose files removed; no Docker required locally
+- [x] Secrets injection (env / host)
+- [ ] Production deploy target / topology — TBD
+- [ ] Reverse proxy / SSL / domains / firewall / backups — TBD with deploy decision
 
-> Note: Scaffold Dockerfiles + Compose exist. Edge Nginx config and hardened VPS wiring remain TODO.
+> Note: Hostinger VPS + Docker + Nginx was the earlier plan and is no longer the baseline.
 
 ---
 
@@ -528,7 +505,6 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] CI: lint
 - [x] CI: tests
 - [x] CI: build
-- [ ] CI: Docker build (when ready)
 - [ ] CI: migration checks (when ready)
 - [ ] Deploy to staging — auto after CI green on **`dev`** (later)
 - [ ] Deploy to production — auto after CI green on **`main`** (later)
@@ -553,13 +529,13 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] Application logs — Pino → stdout (`backend/src/logging/`, `LOG_LEVEL`)
 - [x] Request logs — `pino-http` access middleware → stdout (skips `/api/v1/health*`)
 - [x] Error tracking — `error_logs` table + SUPER inbox (`GET /api/v1/error-logs`); persists unexpected/5xx only (not every 400)
-- [x] DB / Redis monitoring — health probes + VPS/provider tools (not CRUD tables); `/api/v1/health/db`, `/api/v1/health/redis`
-- [x] Host metrics (CPU / RAM / disk / uptime) — use VPS provider panel/alerts
-- [x] Health / readiness / liveness endpoints — `/api/v1/health`, `/db`, `/redis`
-- [x] Alerts — VPS provider panel + health probes for now; richer channels later
+- [x] DB monitoring — health probe + Supabase/provider tools (not CRUD tables); `/api/v1/health/db`
+- [x] Host metrics (CPU / RAM / disk / uptime) — use deploy-host provider panel/alerts (host TBD)
+- [x] Health / readiness / liveness endpoints — `/api/v1/health`, `/db`
+- [x] Alerts — provider panel + health probes for now; richer channels later
 
 > Decision: [`Docs/[3] Decisions/[7] Observability.md`](../[3]%20Decisions/[7]%20Observability.md)  
-> Also: `activity_logs` audit + SUPER UI (`/super/activity`). High-volume logs stay off PostgreSQL. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only). Docker/Compose: API JSON logs on stdout (`docker logs`).
+> Also: `activity_logs` audit + SUPER UI (`/super/activity`). High-volume logs stay off PostgreSQL. Seed: `super@example.com` / `admin@example.com` (password `password`, local/dev only). API JSON logs go to stdout.
 
 ---
 
@@ -572,7 +548,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] Auth documented
 - [x] Env vars documented
 - [x] Local setup documented
-- [x] Deployment / Docker documented (`Docs/[3] Decisions/[4] Docker & Infrastructure.md`)
+- [x] Deployment / Docker documented (superseded — Docker removed; `Docs/[3] Decisions/[4] Docker & Infrastructure.md`)
 - [x] Code rules documented (`.cursor/rules/`)
 - [x] Key decisions recorded (`Docs/[3] Decisions/`)
 - [x] Docs kept in sync with code
@@ -603,12 +579,9 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 - [x] `civil-mobile/src/` feature + theme + services + navigation layout
 - [x] `backend/src/modules/` + middleware / config / database / jobs
 - [x] `backend/prisma/` schema + migrations
-- [x] Root `docker-compose.yml` + `docker-compose.staging.yml` + `docker-compose.production.yml`
-- [x] `civil-web/Dockerfile` + `.dockerignore`
-- [x] `backend/Dockerfile` + `.dockerignore`
-- [ ] `infrastructure/nginx/` (when ready — do not create empty)
-- [ ] `infrastructure/docker/` (when ready — do not create empty)
-- [x] `.github/workflows/ci.yml` — quality + tests + build (Docker build / CD later)
+- [x] Docker/Compose/Dockerfiles removed (no Docker required)
+- [ ] `infrastructure/` (only when real deploy/proxy config exists — do not create empty)
+- [x] `.github/workflows/ci.yml` — quality + tests + build (CD later)
 - [x] Rule locked: do not create every folder/abstraction before features
 - [x] Order locked: boundaries → infra you need → standards → design system → feature development
-- [x] Docker layout decision locked (`Docs/[3] Decisions/[4] Docker & Infrastructure.md`)
+- [x] Docker layout decision superseded — Docker removed (`Docs/[3] Decisions/[4] Docker & Infrastructure.md`)

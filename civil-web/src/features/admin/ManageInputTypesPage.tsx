@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 import { FormInput, Pencil, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
+import {  DataPanel, PageHeader, RowActions, STAT_GRID_CLASS, StatCard, TablePager  } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -49,7 +49,6 @@ import {
 } from '@/services/input-types'
 
 import { AdminConfirmDeleteDialog } from './components/AdminConfirmDeleteDialog'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { useAdminCrudPage } from './hooks/useAdminCrudPage'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 

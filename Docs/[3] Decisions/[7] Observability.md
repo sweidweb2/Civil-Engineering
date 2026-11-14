@@ -1,8 +1,9 @@
 # Decision — Observability
 
-**Status:** LOCKED + runtime implemented (Pino app/access logs; health probes incl. Redis)  
+**Status:** LOCKED + runtime implemented (Pino app/access logs; health probes `/health`, `/health/db`)  
 **Date:** 2026-09-20  
-**Applies to:** `backend/` ops, Docker / VPS; not client apps as the log authority
+**Update 2026-11-14:** Redis and Docker removed — no `/api/v1/health/redis`; logs go to stdout wherever the API runs (deploy host TBD).  
+**Applies to:** `backend/` ops; not client apps as the log authority
 
 ---
 
@@ -15,11 +16,11 @@ Do **not** build CRUD screens and PostgreSQL tables for high-volume logs, host m
 Analogy: site **monitoring, inspection, and warning systems** around the building — not part of the building’s business rooms.
 
 | Belongs in PostgreSQL (business / curated) | Belongs in logging / monitoring infra |
-| --- | --- |
-| `users`, `projects`, `expenses`, … | Application logs (stdout) |
-| `activity_logs` (audit inbox) | Request / access logs (stdout) |
-| `error_logs` (SUPER inbox, unexpected/5xx) | CPU / RAM / disk, DB/Redis health |
-| | Alerts to humans (email/Slack/…) |
+| ------------------------------------------ | ------------------------------------- |
+| `users`, `projects`, `expenses`, …         | Application logs (stdout)             |
+| `activity_logs` (audit inbox)              | Request / access logs (stdout)        |
+| `error_logs` (SUPER inbox, unexpected/5xx) | CPU / RAM / disk, DB health           |
+|                                            | Alerts to humans (email/Slack/…)      |
 
 **Exception already locked:** curated SUPER inboxes (`error_logs`, `activity_logs`) are OK — low volume, actionable in-app. That is **not** a pattern for every request or every `info` line.
 
@@ -45,15 +46,10 @@ Pino logger
    ↓
 stdout / stderr
    ↓
-Docker logs
+Host / terminal logs (deploy host TBD)
 ```
 
-Inspect:
-
-```bash
-docker logs backend
-docker logs -f backend
-```
+Locally, logs appear in the `npm run dev` terminal.
 
 ### Why Pino?
 
@@ -117,25 +113,22 @@ Capture:
 
 ### Why not save every request to PostgreSQL?
 
-At **100,000 requests/day** that is **100,000 INSERTs** just to record “someone hit GET /projects”. Unnecessary DB load. Keep access logs in Docker / server logging.
+At **100,000 requests/day** that is **100,000 INSERTs** just to record “someone hit GET /projects”. Unnecessary DB load. Keep access logs in stdout / server logging.
 
 **Locked choice:** access-log middleware → same Pino / stdout stream. Skip noisy paths if needed (e.g. health checks).
 
 ---
 
-## 3. DB / Redis monitoring
+## 3. DB monitoring
 
 Not “what business data exists?” — **“is infrastructure healthy?”**
 
-PostgreSQL examples: up/down, connections, slow queries, CPU/disk (via host/provider).  
-Redis examples (when wired): up/down, memory, clients, hit rate.
+PostgreSQL (Supabase) examples: up/down, connections, slow queries, CPU/disk (via Supabase dashboard).
 
-Do **not** invent app tables like `database_monitoring` / `redis_monitoring`.
+Do **not** invent app tables like `database_monitoring`.
 
 ```text
-                ┌── PostgreSQL
-Backend ────────┤
-                └── Redis (when present)
+Backend ──── PostgreSQL (Supabase)
 
 Monitoring / provider tools
     ↓
@@ -146,9 +139,8 @@ App-side health probes:
 
 - `GET /api/v1/health`
 - `GET /api/v1/health/db`
-- `GET /api/v1/health/redis` (requires `REDIS_URL`)
 
-Deep Postgres/Redis performance stays on the **VPS / provider panel** — not app CRUD tables.
+Deep Postgres performance stays on the **Supabase / provider panel** — not app CRUD tables.
 
 ---
 
@@ -182,7 +174,7 @@ Do **not** require an `alerts` CRUD table in the app for infrastructure alerts.
              │                         │
      users/projects/etc.          stdout/stderr
      activity_logs / error_logs        │
-                                     Docker
+                                  Host / server
                                        │
                                   Server logs
                                        │
@@ -199,16 +191,15 @@ You do **not** build a full logging/monitoring product inside the civil app.
 
 - [x] Pino application logger (`backend/src/logging/`)
 - [x] Request / access logging middleware (`pino-http`, skips `/api/v1/health*`)
-- [x] Health endpoints (`/api/v1/health`, `/db`, `/redis`)
+- [x] Health endpoints (`/api/v1/health`, `/db`)
 - [x] Curated `error_logs` + `activity_logs` (not general log storage)
 - [x] No secrets in logs (Pino `redact` paths + serializers without bodies)
 
-**Docker / VPS**
+**Host / provider**
 
-- [x] Host metrics via provider panel
-- [x] Docker logs as the log sink (API logs JSON to stdout; `docker logs` / Compose)
-- [x] Postgres health via `/api/v1/health/db` + provider tooling for deeper metrics
-- [x] Redis monitoring via `/api/v1/health/redis` + provider tooling for deeper metrics
+- [x] Host metrics via provider panel (deploy host TBD)
+- [x] stdout as the log sink (API logs JSON to stdout)
+- [x] Postgres health via `/api/v1/health/db` + Supabase tooling for deeper metrics
 
 **Later**
 
@@ -222,4 +213,4 @@ You do **not** build a full logging/monitoring product inside the civil app.
 
 - [Bedrock Checklist](../[1]%20Main%20App/[2]%20Bedrock%20Checklist.md) §23
 - [Security Foundation](./[6]%20Security%20Foundation.md) — no sensitive data in logs
-- [Docker & Infrastructure](./[4]%20Docker%20%26%20Infrastructure.md)
+- [Docker & Infrastructure](./[4]%20Docker%20%26%20Infrastructure.md) — superseded

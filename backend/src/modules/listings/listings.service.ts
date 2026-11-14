@@ -2,7 +2,6 @@ import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
-import { cacheKeys, readThroughCache } from '../../redis/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import {
   findProviderIdByOwnerUserId,
@@ -170,14 +169,11 @@ export function createListingsService(
       return `${publicBase}/${storagePath.replace(/^\//, '')}`
     }
     const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
-    const cacheTtlSec = Math.max(30, Math.min(expiresInSec - 60, 240))
     try {
-      return await readThroughCache(cacheKeys.storagePresignGet(storagePath), cacheTtlSec, () =>
-        storage.presignGet({
-          key: storagePath,
-          expiresInSec,
-        }),
-      )
+      return await storage.presignGet({
+        key: storagePath,
+        expiresInSec,
+      })
     } catch {
       return null
     }

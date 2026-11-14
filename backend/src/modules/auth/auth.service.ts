@@ -1,7 +1,6 @@
 import type { AppConfig } from '../../config/index.js'
 import { conflict, unauthorized } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
-import { cacheKeys, getRedis } from '../../redis/index.js'
 import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
 import type { ChangePasswordBody, LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
@@ -48,38 +47,22 @@ function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {
   }
 }
 
-/**
- * Deny a refresh jti until expiry. Postgres is authoritative; Redis is a fast cache when available.
- */
+/** Deny a refresh jti until expiry. Postgres (Supabase) is the sole store. */
 async function denyRefreshToken(
   repository: AuthRepository,
-  config: AppConfig,
+  _config: AppConfig,
   jti: string,
   ttlSec: number,
 ): Promise<void> {
   const expiresAt = new Date(Date.now() + ttlSec * 1000)
   await repository.denyRefreshJti(jti, expiresAt)
-
-  const redis = getRedis(config)
-  if (redis) {
-    await redis.set(cacheKeys.refreshDeny(jti), '1', 'EX', ttlSec).catch(() => undefined)
-  }
 }
 
 async function isRefreshDenied(
   repository: AuthRepository,
-  config: AppConfig,
+  _config: AppConfig,
   jti: string,
 ): Promise<boolean> {
-  const redis = getRedis(config)
-  if (redis) {
-    try {
-      const hit = await redis.get(cacheKeys.refreshDeny(jti))
-      if (hit != null) return true
-    } catch {
-      // Fall through to Postgres.
-    }
-  }
   return repository.isRefreshJtiDenied(jti)
 }
 

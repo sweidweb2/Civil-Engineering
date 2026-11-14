@@ -1,87 +1,26 @@
 ---
-description: Docker, Compose, Nginx, networking, volumes, and production deploy conventions
+description: SUPERSEDED — Docker/Compose removed from the app; no Dockerfiles or Compose in repo
 globs: "**/Dockerfile*,**/docker-compose*.{yml,yaml},**/compose*.{yml,yaml},**/nginx/**/*,**/*nginx*.conf"
 alwaysApply: false
 ---
 
-# Docker & Deployment
+# Docker & Deployment — SUPERSEDED
 
-Target: Hostinger VPS via Docker. Nginx is the only public entry when deployed.
-Align with `Docs/[1] Main App/[1] Tech Stack.md` and locked decision
-`Docs/[3] Decisions/[4] Docker & Infrastructure.md`.
+Docker has been **removed** from the app. Decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md` (superseded).
 
-## Locked layout
+## Current state
 
-| Artifact | Location |
-| --- | --- |
-| Web Dockerfile + `.dockerignore` | `civil-web/` |
-| Backend Dockerfile + `.dockerignore` | `backend/` |
-| Mobile production Dockerfile | **none** (Play / App Store) |
-| Local Compose | root `docker-compose.yml` |
-| Production Compose | root `docker-compose.production.yml` |
-| Test Postgres Compose | `backend/docker-compose.test.yml` |
-| `infrastructure/nginx/` | create when Nginx config is real — not empty scaffolding |
-| `infrastructure/docker/` | only if Compose alone is not enough |
+- No app `Dockerfile`s, no `.dockerignore`, no Docker Compose files (root, staging, production, or test).
+- Local dev and tests do **not** require Docker: run `npm` in `backend/` and `civil-web/`; tests use `embedded-postgres`.
+- Database is Supabase Postgres. No Redis.
+- Do **not** add Dockerfiles, Compose files, or container-based instructions unless the user asks and a new decision is recorded.
+- Production deploy topology (host, proxy, TLS) is **TBD** — ask before choosing or locking one.
 
-## Container responsibilities
+## Still applies to any future deploy
 
-| Service | Responsibility |
-| --- | --- |
-| `nginx` (when added) | TLS termination, reverse proxy, sole public HTTP/HTTPS |
-| `web` | Built Vite static assets (image may use Nginx internally) |
-| `api` (Express) | App API only — no public port except via edge Nginx |
-| `postgres` | Source of truth data |
-| `redis` | Cache / queue only |
-| Other | Only when justified (e.g. workers); ask before adding |
-
-- One concern per container. Do not put Postgres or Redis inside the API image.
-- Mobile is not deployed as a Docker service on the VPS.
-- Keep Docker consistent with the modular monolith — do not invent microservices.
-
-## Dockerfile rules
-
-- Multi-stage builds for Node apps (build → lean runtime).
-- Run as non-root where practical; pin base image tags (avoid `:latest` in production).
-- Copy dependency manifests first; leverage layer cache.
-- Never bake secrets, `.env`, or private keys into images — inject at runtime.
-- Production image: build artifacts + runtime deps only (no devDependencies, no source maps unless needed).
-- Application Dockerfiles live with their apps (`civil-web/`, `backend/`).
-- Use `.dockerignore` per build context.
-
-## Docker Compose structure
-
-- Orchestrate at the monorepo root only.
-- Local: `docker-compose.yml`. Production: `docker-compose.production.yml` (override / combine).
-- Exact production topology remains flexible — do not over-add services.
-- Services declare explicit `depends_on` where startup order matters; healthchecks for `postgres` / `api` / `redis` / `web` where appropriate.
-- Keep env via `env_file` / Compose `environment` referencing host/secrets — not hardcoded production passwords in git.
-
-## Nginx
-
-- Sole publicly exposed HTTP/HTTPS endpoint (when `infrastructure/nginx/` exists).
-- Proxy `/api/` (or `/api/v1/`) to the Express service on the internal Docker network.
-- Serve or front the web SPA/static files; route unknown paths to `index.html` for client-side routing.
-- Do not expose Postgres, Redis, or Express ports to the public internet.
-
-## Networking
-
-- Put app services on a private Docker bridge network.
-- Publish only edge Nginx ports (`80`/`443`) to the host in final production.
-- API reaches Postgres/Redis by Compose service DNS names — never via public IPs.
-- Prefer internal URLs inside the network (`http://api:PORT`), not `localhost` from other containers.
-
-## Volumes
-
-- Persist Postgres data on a named volume (required).
-- Persist Redis only if durability is required; otherwise ephemeral is acceptable for cache.
-- Mount Nginx config/certs as needed; prefer managed cert volumes or host mounts — do not commit private keys.
-- Do not bind-mount application source into production containers.
-
-## Production configuration
-
-- Restart policy: `unless-stopped` (or equivalent) for core services.
-- Resource limits where the VPS is constrained; log to stdout/stderr for Docker logging.
-- TLS at Nginx; HTTP→HTTPS redirect.
-- Separate secrets from Compose committed to git (Hostinger env, Docker secrets, or untracked `.env`).
-- Migrations run as an explicit release step (one-off container/job), not silently on every API start unless that pattern is already established.
-- Ask before changing the public proxy layout, exposed ports, or adding new long-running services.
+- Never bake secrets/`.env` into artifacts; inject at runtime.
+- Migrations are an explicit release step.
+- Log to stdout/stderr.
+- Do not expose the database or internal services publicly.
+- Keep the modular monolith — no microservices.
+- If Nginx config becomes real, put it under `infrastructure/nginx/` (not empty scaffolding).

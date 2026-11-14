@@ -4,21 +4,6 @@ import type { AuthRepository, AuthUserRecord } from '../../src/modules/auth/auth
 import { createAuthService } from '../../src/modules/auth/auth.service.js'
 import { loadTestConfig } from '../helpers/test-config.js'
 
-const redisStore = new Map<string, string>()
-
-vi.mock('../../src/redis/index.js', () => ({
-  cacheKeys: {
-    refreshDeny: (jti: string) => `civil:auth:refresh:deny:${jti}`,
-  },
-  getRedis: vi.fn(() => ({
-    get: vi.fn(async (key: string) => redisStore.get(key) ?? null),
-    set: vi.fn(async (key: string, value: string, _mode: string, _ttl: number) => {
-      redisStore.set(key, value)
-      return 'OK'
-    }),
-  })),
-}))
-
 vi.mock('../../src/modules/auth/auth.tokens.js', () => ({
   hashPassword: vi.fn(async (password: string) => `hash:${password}`),
   verifyPassword: vi.fn(
@@ -55,7 +40,6 @@ describe('auth.service', () => {
   let repository: AuthRepository
 
   beforeEach(() => {
-    redisStore.clear()
     repository = {
       findByEmail: vi.fn(),
       findById: vi.fn(),

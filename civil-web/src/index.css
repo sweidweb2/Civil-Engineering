@@ -36,12 +36,18 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-deep: var(--primary-deep);
+  --color-primary-dark: var(--primary-dark);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-illustration-canvas: var(--illustration-canvas);
+  --color-listing-canvas: var(--listing-canvas);
+  --color-provider-home-canvas: var(--provider-home-canvas);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -52,11 +58,8 @@
 }
 
 :root {
-  /* 60-30-10 — source: src/theme/colors.ts (light)
-     60% dominant: background canvas
-     30% secondary: card / sidebar / muted / quiet fills
-     10% accent: primary on CTAs, active nav, focus, key numbers
-     Mint stays chart-only (chart-2). */
+  /* Mirrored from src/theme/colors.ts (light) — keep in sync.
+     60% canvas / 30% surfaces / 10% primary accent. Mint = chart-2 only. */
   --background: #ffffff;
   --foreground: #1a2a27;
   --card: #ffffff;
@@ -65,6 +68,9 @@
   --popover-foreground: #1a2a27;
   --primary: #287a74;
   --primary-foreground: #ffffff;
+  --primary-soft: #3f9a93;
+  --primary-deep: #1f5f5a;
+  --primary-dark: #245e59;
   --secondary: #e8eeec;
   --secondary-foreground: #1a2a27;
   --muted: #e8eeec;
@@ -83,6 +89,9 @@
   --chart-3: #2f9e71;
   --chart-4: #2563eb;
   --chart-5: #d97706;
+  --illustration-canvas: #fef8ef;
+  --listing-canvas: #f4f1eb;
+  --provider-home-canvas: #f7fbf9;
   --radius: 0.625rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #1a2a27;
@@ -110,7 +119,7 @@
 }
 
 .dark {
-  /* 60-30-10 dark — canvas / surfaces / same brand accent */
+  /* Mirrored from src/theme/colors.ts (dark) */
   --background: #121916;
   --foreground: #e8eeec;
   --card: #1c2421;
@@ -119,6 +128,9 @@
   --popover-foreground: #e8eeec;
   --primary: #287a74;
   --primary-foreground: #ffffff;
+  --primary-soft: #3f9a93;
+  --primary-deep: #1f5f5a;
+  --primary-dark: #245e59;
   --secondary: #24302c;
   --secondary-foreground: #e8eeec;
   --muted: #24302c;
@@ -137,6 +149,9 @@
   --chart-3: #2f9e71;
   --chart-4: #60a5fa;
   --chart-5: #fbbf24;
+  --illustration-canvas: #121916;
+  --listing-canvas: #121916;
+  --provider-home-canvas: #121916;
   --sidebar: #1c2421;
   --sidebar-foreground: #e8eeec;
   --sidebar-primary: #287a74;
@@ -268,30 +283,30 @@
   }
 }
 
-/* LoaderGrid — route navigation spinner */
+/* LoaderGrid — route navigation spinner (uses CSS vars from theme) */
 @keyframes before8 {
   0% {
     width: 0.5em;
     box-shadow:
-      1em -0.5em rgba(40, 122, 116, 0.75),
-      -1em 0.5em rgba(111, 207, 151, 0.75);
+      1em -0.5em color-mix(in oklab, var(--primary) 75%, transparent),
+      -1em 0.5em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
   35% {
     width: 2.5em;
     box-shadow:
-      0 -0.5em rgba(40, 122, 116, 0.75),
-      0 0.5em rgba(111, 207, 151, 0.75);
+      0 -0.5em color-mix(in oklab, var(--primary) 75%, transparent),
+      0 0.5em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
   70% {
     width: 0.5em;
     box-shadow:
-      -1em -0.5em rgba(40, 122, 116, 0.75),
-      1em 0.5em rgba(111, 207, 151, 0.75);
+      -1em -0.5em color-mix(in oklab, var(--primary) 75%, transparent),
+      1em 0.5em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
   100% {
     box-shadow:
-      1em -0.5em rgba(40, 122, 116, 0.75),
-      -1em 0.5em rgba(111, 207, 151, 0.75);
+      1em -0.5em color-mix(in oklab, var(--primary) 75%, transparent),
+      -1em 0.5em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
 }
 
@@ -299,25 +314,25 @@
   0% {
     height: 0.5em;
     box-shadow:
-      0.5em 1em rgba(40, 122, 116, 0.75),
-      -0.5em -1em rgba(111, 207, 151, 0.75);
+      0.5em 1em color-mix(in oklab, var(--primary) 75%, transparent),
+      -0.5em -1em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
   35% {
     height: 2.5em;
     box-shadow:
-      0.5em 0 rgba(40, 122, 116, 0.75),
-      -0.5em 0 rgba(111, 207, 151, 0.75);
+      0.5em 0 color-mix(in oklab, var(--primary) 75%, transparent),
+      -0.5em 0 color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
   70% {
     height: 0.5em;
     box-shadow:
-      0.5em -1em rgba(40, 122, 116, 0.75),
-      -0.5em 1em rgba(111, 207, 151, 0.75);
+      0.5em -1em color-mix(in oklab, var(--primary) 75%, transparent),
+      -0.5em 1em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
   100% {
     box-shadow:
-      0.5em 1em rgba(40, 122, 116, 0.75),
-      -0.5em -1em rgba(111, 207, 151, 0.75);
+      0.5em 1em color-mix(in oklab, var(--primary) 75%, transparent),
+      -0.5em -1em color-mix(in oklab, var(--chart-2) 75%, transparent);
   }
 }
 
@@ -352,7 +367,7 @@
   display: block;
 }
 
-/* Public home — beige sampled from the hero illustration. */
+/* Public home — beige from theme colors.light.homeCanvas. */
 .home-canvas {
   --background: #f8f3ed;
   --foreground: #1a2a27;

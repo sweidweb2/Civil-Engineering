@@ -9,6 +9,7 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
 import { type Listing, listListings } from '@/services/listings'
 import { getMyProvider } from '@/services/providers'
+import { colors } from '@/theme'
 
 type MetricKey = 'listings' | 'value'
 type PeriodKey = '7' | '30'
@@ -213,7 +214,7 @@ function CatalogBarChart({
                 `L ${frontX + barW} ${currentTop}`,
                 'Z',
               ].join(' ')}
-              fill="#3F9A93"
+              fill={colors.light.primarySoft}
             />
             <path
               d={[
@@ -223,7 +224,7 @@ function CatalogBarChart({
                 `L ${frontX + barW} ${currentTop + currentH}`,
                 'Z',
               ].join(' ')}
-              fill="#1F5F5A"
+              fill={colors.light.primaryDeep}
             />
 
             {index % labelEvery === 0 || index === points.length - 1 ? (
@@ -327,7 +328,7 @@ export function ProviderAnalyticsSection() {
         total: listings.length,
       }),
       icon: PackageCheck,
-      iconClass: 'from-primary to-[#1F5F5A]',
+      iconClass: 'from-primary to-primary-deep',
     },
     {
       title: t('analytics.catalogValue'),
@@ -338,7 +339,7 @@ export function ProviderAnalyticsSection() {
         categories,
       }),
       icon: CircleDollarSign,
-      iconClass: 'from-[#2F9E71] to-primary',
+      iconClass: 'from-success to-primary',
     },
     {
       title: t('analytics.addedThisMonth'),
@@ -346,7 +347,7 @@ export function ProviderAnalyticsSection() {
       value: String(addedThisMonth),
       footer: t('analytics.typeMix', { materials, equipment, services }),
       icon: Boxes,
-      iconClass: 'from-[#3F9A93] to-primary',
+      iconClass: 'from-primary-soft to-primary',
     },
     {
       title: t('analytics.liveRate'),
@@ -354,7 +355,7 @@ export function ProviderAnalyticsSection() {
       value: `${liveRate}%`,
       footer: liveRate >= 70 ? t('analytics.healthyVisibility') : t('analytics.activateMore'),
       icon: Percent,
-      iconClass: 'from-primary/80 to-[#245E59]',
+      iconClass: 'from-primary/80 to-primary-dark',
     },
   ]
 

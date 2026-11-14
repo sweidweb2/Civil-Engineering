@@ -36,7 +36,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
   const config = deps.config ?? loadConfig()
 
   const healthRepository = createHealthRepository(deps.pool)
-  const healthService = createHealthService(healthRepository, config)
+  const healthService = createHealthService(healthRepository)
   const healthController = createHealthController(healthService)
 
   // Projects first so getProjectsService() singleton includes storage for list mainImageUrl

@@ -1,11 +1,11 @@
-import { useTranslation } from 'react-i18next'
 import { useCallback, useState } from 'react'
 import { CheckCircle2, Clock, Eye, Pencil, Plus, Star, Trash2, XCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel, PageHeader, RowActions, TablePager, ToolbarCard } from '@/components/layout'
+import {  DataPanel, PageHeader, RowActions, STAT_GRID_CLASS, StatCard, TablePager, ToolbarCard  } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +52,6 @@ import {
 } from '@/services/reviews'
 
 import { ReviewFormDialog } from './components/ReviewFormDialog'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const TAB_VALUES: Array<ReviewStatus | 'all'> = ['all', 'PENDING', 'ACCEPTED', 'REJECTED']

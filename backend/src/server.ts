@@ -3,7 +3,6 @@ import 'dotenv/config'
 import { createApp } from './app.js'
 import { loadConfig } from './config/index.js'
 import { getLogger } from './logging/index.js'
-import { closeRedis } from './redis/index.js'
 
 const config = loadConfig()
 const logger = getLogger()
@@ -16,9 +15,7 @@ const server = app.listen(config.port, () => {
 function shutdown(signal: string) {
   logger.info({ signal }, 'shutting down')
   server.close(() => {
-    void closeRedis().finally(() => {
-      process.exit(0)
-    })
+    process.exit(0)
   })
 }
 

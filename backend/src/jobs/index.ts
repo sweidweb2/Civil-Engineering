@@ -1,12 +1,6 @@
 /**
- * Background jobs / workers.
- *
- * Decision: Docs/[3] Decisions/[8] Redis.md
- * - Queue library when needed: BullMQ
- * - Layout: enqueue wrappers here; workers in jobs/workers/ when wired
- * - Retry / failed-job defaults: jobs/workers/job.defaults.ts
- * - Today: push notify may still run sync via enqueueNotifyUser
- * - Storage object delete runs sync until BullMQ (Docs/[3] Decisions/[10] Storage)
+ * Background job seams (sync today).
+ * Notify + storage delete run inline until a real queue is justified later.
  */
 
 import { loadConfig } from '../config/index.js'
@@ -24,28 +18,23 @@ export type JobEnvelope<TPayload> = {
   idempotencyKey?: string
 }
 
-/**
- * Enqueue (or run) a user push notification.
- * Sync until BullMQ worker is introduced — same function signature stays.
- */
+/** Run a user push notification (sync). */
 export async function enqueueNotifyUser(
   userId: string,
   payload: NotifyUserPayload,
   _options?: { idempotencyKey?: string },
 ): Promise<void> {
-  // TODO(BullMQ): push onto queue with retries / dead-letter instead of sync await
   await notifyUser(userId, payload)
 }
 
 /**
  * Hard-delete an R2 object after soft-delete in Postgres.
- * Sync stub until BullMQ — idempotent if the object is already gone.
+ * Sync — idempotent if the object is already gone.
  */
 export async function enqueueDeleteStorageObject(
   payload: { fileId: string; key: string },
   _options?: { idempotencyKey?: string },
 ): Promise<void> {
-  // TODO(BullMQ): queue delete-storage-object with retries
   try {
     const config = loadConfig()
     if (!config.storage) {

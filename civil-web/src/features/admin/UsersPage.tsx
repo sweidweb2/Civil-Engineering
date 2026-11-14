@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next'
 import { useCallback, useMemo, useState } from 'react'
 import {
   Briefcase,
@@ -11,12 +10,13 @@ import {
   Users,
   UserX,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
+import { DataPanel, PageHeader, RowActions, STAT_GRID_CLASS, TablePager } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,7 +75,6 @@ import {
   ProjectMetricCardSkeleton,
 } from './components/ProjectMetricCard'
 import { RoleBarChart } from './components/RoleBarChart'
-import { STAT_GRID_CLASS } from './components/StatCard'
 import { USER_TABLE_HEADERS, UserAttributeCells } from './components/UserCells'
 import { UserFormDialog } from './components/UserFormDialog'
 import { PAGE_SIZE, pageCount } from './lib/text'

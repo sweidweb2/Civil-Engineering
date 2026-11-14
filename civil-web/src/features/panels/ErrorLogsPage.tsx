@@ -4,10 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel } from '@/components/layout/data-panel'
-import { PageHeader } from '@/components/layout/page-header'
-import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
-import { TablePager } from '@/components/layout/table-pager'
+import { DataPanel, PageHeader, STAT_GRID_CLASS, StatCard, TablePager } from '@/components/layout'
 import {
   Table,
   TableBody,

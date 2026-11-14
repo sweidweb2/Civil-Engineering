@@ -5,11 +5,6 @@ import type { HealthService } from './health.service.js'
 export type HealthController = {
   getHealth: (req: Request, res: Response, next: NextFunction) => void
   getDbHealth: (req: Request, res: Response, next: NextFunction) => Promise<void>
-  getRedisHealth: (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => Promise<void>
 }
 
 export function createHealthController(service: HealthService): HealthController {
@@ -21,15 +16,6 @@ export function createHealthController(service: HealthService): HealthController
     async getDbHealth(_req, res, next) {
       try {
         const result = await service.getDbHealth()
-        res.status(200).json(result)
-      } catch (error) {
-        next(error)
-      }
-    },
-
-    async getRedisHealth(_req, res, next) {
-      try {
-        const result = await service.getRedisHealth()
         res.status(200).json(result)
       } catch (error) {
         next(error)

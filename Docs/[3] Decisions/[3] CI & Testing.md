@@ -82,10 +82,10 @@ Shared / broader triggers include (non-exhaustive):
 - Root `package.json`, lockfiles, Prettier/ESLint/tsconfig
 - `.github/**`
 - `Docs/**` only → docs-only job (quality optional; skip app tests unless desired)
-- `infrastructure/**` (when present), root `docker-compose*.yml`, app `Dockerfile`s / Nginx config
+- `infrastructure/**` (when present)
 - `.cursor/rules/**` → treat as shared (at least format/lint/typecheck; full suite if rules imply contract changes — default **broader**)
 
-Docker layout decision: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`.
+Docker/Compose were removed (superseded: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`). Backend tests use embedded-postgres — no Docker in CI.
 ---
 
 ## CI / PR pipeline
@@ -116,12 +116,12 @@ Unit + integration + format/lint/typecheck/build run on push/PR to **both** `dev
 
 ### Deploy (deferred)
 
-| Branch | After CI green |
-| --- | --- |
-| `dev` | Auto-deploy **staging** VPS (not implemented yet) |
+| Branch | After CI green                                       |
+| ------ | ---------------------------------------------------- |
+| `dev`  | Auto-deploy **staging** VPS (not implemented yet)    |
 | `main` | Auto-deploy **production** VPS (not implemented yet) |
 
-Do not add CD jobs until Hostinger / Nginx / secrets are ready. Branch roles: see [Git Branch Strategy](./[2]%20Git%20Branch%20Strategy.md) (`play` → `dev` → `main`).
+Do not add CD jobs until the deploy target (TBD) / secrets are ready. Branch roles: see [Git Branch Strategy](./[2]%20Git%20Branch%20Strategy.md) (`play` → `dev` → `main`).
 
 ---
 

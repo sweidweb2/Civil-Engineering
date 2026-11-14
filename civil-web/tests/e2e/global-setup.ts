@@ -1,6 +1,6 @@
 /**
  * Ensures the API is reachable before seeded Playwright flows run.
- * Local: docker compose up (Postgres/Redis) + `cd backend && npm run dev` (+ seed once).
+ * Local: Supabase Postgres + `cd backend && npm run dev` (+ seed once).
  */
 async function globalSetup() {
   const apiBase =
@@ -17,8 +17,7 @@ async function globalSetup() {
     throw new Error(
       [
         `E2E global setup: API health check failed (${healthUrl}): ${reason}`,
-        'Start Docker Postgres/Redis, then run the API with seed data:',
-        '  docker compose up -d',
+        'Start the API with seed data (Supabase via backend/.env):',
         '  cd backend && npx prisma migrate deploy && npm run prisma:seed && npm run dev',
       ].join('\n'),
       { cause: error },

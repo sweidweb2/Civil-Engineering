@@ -3,7 +3,8 @@ import { FileText, ListOrdered, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
-import { PageHeader } from '@/components/layout/page-header'
+import { PageHeader } from '@/components/layout'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ManageStepsPage } from '@/features/admin/ManageStepsPage'
@@ -70,12 +71,13 @@ export function PmSettingsPage() {
               const Icon = item.icon
               const isActive = section === item.id
               return (
-                <button
+                <Button
                   key={item.id}
                   type="button"
+                  variant="ghost"
                   onClick={() => selectSection(item.id)}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-start transition-colors',
+                    'h-auto w-full items-start justify-start gap-3 rounded-lg px-3 py-2.5 text-start',
                     isActive
                       ? 'bg-muted text-foreground'
                       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -89,7 +91,7 @@ export function PmSettingsPage() {
                       {item.description}
                     </span>
                   </span>
-                </button>
+                </Button>
               )
             })}
           </CardContent>

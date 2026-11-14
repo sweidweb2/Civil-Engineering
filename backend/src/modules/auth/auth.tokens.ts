@@ -79,8 +79,11 @@ export function verifyRefreshToken(config: AppConfig, token: string): RefreshTok
   return payload
 }
 
-/** Remaining lifetime in seconds for Redis TTL (min 1). */
-export function refreshTtlSeconds(payload: RefreshTokenPayload, fallbackSec = 7 * 24 * 3600): number {
+/** Remaining lifetime in seconds for deny-list expiry (min 1). */
+export function refreshTtlSeconds(
+  payload: RefreshTokenPayload,
+  fallbackSec = 7 * 24 * 3600,
+): number {
   if (typeof payload.exp === 'number') {
     return Math.max(1, payload.exp - Math.floor(Date.now() / 1000))
   }

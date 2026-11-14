@@ -1,5 +1,5 @@
 ---
-description: Express backend layered DDD modules, REST, Prisma, Redis
+description: Express backend layered DDD modules, REST, Prisma
 globs: backend/**/*
 alwaysApply: false
 ---
@@ -37,4 +37,4 @@ Shared cross-cutting code stays in `middleware/`, `config/`, `database/`, `jobs/
 
 - REST paths: `/api/v1/...`
 - Auth: JWT access + refresh; protect routes with middleware; never trust client-only checks.
-- Use Redis for cache/queue workloads; PostgreSQL remains source of truth.
+- No Redis/BullMQ: jobs stay synchronous; rate limiting is in-process (`express-rate-limit`); PostgreSQL (Supabase) is source of truth.

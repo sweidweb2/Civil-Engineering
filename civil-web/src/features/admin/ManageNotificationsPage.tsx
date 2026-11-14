@@ -15,8 +15,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { StatGridSkeleton, TableSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader, TablePager } from '@/components/layout'
-import { STAT_GRID_CLASS, StatCard } from '@/components/layout/stat-card'
+import { PageHeader, STAT_GRID_CLASS, StatCard, TablePager } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -56,7 +56,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -566,11 +565,9 @@ export function ManageNotificationsPage() {
                       key={user.id}
                       className="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-muted"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={formData.receiverIds.includes(user.id)}
-                        onChange={() => handleToggleRecipient(user.id)}
-                        className="cursor-pointer"
+                        onCheckedChange={() => handleToggleRecipient(user.id)}
                       />
                       <span className="text-sm">{userLabel(user)}</span>
                     </label>

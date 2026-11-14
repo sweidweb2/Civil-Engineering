@@ -6,7 +6,6 @@ import {
   runInTransaction as defaultRunInTransaction,
 } from '../../database/transaction.js'
 import { conflict, notFound, validationError } from '../../errors/app-error.js'
-import { cacheKeys, readThroughCache } from '../../redis/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { StepsService } from '../steps/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
@@ -26,7 +25,10 @@ export type ProjectsService = {
   listProjects: (
     query: ListProjectsQuery,
     actor: AuthActor,
-  ) => Promise<{ data: Project[]; meta: { total: number; page: number; limit: number; totalPages: number } }>
+  ) => Promise<{
+    data: Project[]
+    meta: { total: number; page: number; limit: number; totalPages: number }
+  }>
   getProjectById: (id: string) => Promise<Project>
   /** Cross-module / HTTP: load project and enforce owner-or-admin. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<Project>
@@ -34,7 +36,9 @@ export type ProjectsService = {
   updateProject: (id: string, input: UpdateProjectBody, actor: AuthActor) => Promise<Project>
   archiveProject: (id: string, actor: AuthActor) => Promise<void>
   getSummary: (actor: AuthActor) => Promise<{ data: ProjectSummary }>
-  listTimeline: (actor: AuthActor) => Promise<{ data: ProjectTimelineItem[]; meta: { total: number } }>
+  listTimeline: (
+    actor: AuthActor,
+  ) => Promise<{ data: ProjectTimelineItem[]; meta: { total: number } }>
 }
 
 export type ProjectSummary = {
@@ -95,7 +99,10 @@ export function createProjectsService(
     }
   }
 
-  function assertSchedule(startDate: string | null | undefined, endDate: string | null | undefined) {
+  function assertSchedule(
+    startDate: string | null | undefined,
+    endDate: string | null | undefined,
+  ) {
     if (!startDate || !endDate) return
     if (new Date(endDate).getTime() <= new Date(startDate).getTime()) {
       throw validationError('End date must be after the start date')
@@ -110,18 +117,11 @@ export function createProjectsService(
       return `${publicBase}/${storagePath.replace(/^\//, '')}`
     }
     const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
-    // Cache below URL expiry so clients never receive a near-expired signed URL from Redis.
-    const cacheTtlSec = Math.max(30, Math.min(expiresInSec - 60, 240))
     try {
-      return await readThroughCache(
-        cacheKeys.storagePresignGet(storagePath),
-        cacheTtlSec,
-        () =>
-          storage.presignGet({
-            key: storagePath,
-            expiresInSec,
-          }),
-      )
+      return await storage.presignGet({
+        key: storagePath,
+        expiresInSec,
+      })
     } catch {
       return null
     }
@@ -151,9 +151,7 @@ export function createProjectsService(
 
       const data = projects.map(({ mainImageStoragePath, ...project }) => ({
         ...presentProject(project),
-        mainImageUrl: mainImageStoragePath
-          ? (urlByPath.get(mainImageStoragePath) ?? null)
-          : null,
+        mainImageUrl: mainImageStoragePath ? (urlByPath.get(mainImageStoragePath) ?? null) : null,
       }))
 
       return {

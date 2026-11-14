@@ -6,7 +6,7 @@ import { getPrisma } from '../../src/database/prisma.js'
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
-/** Default matches `docker-compose.test.yml` (host 5433). CI uses 5432 via env. */
+/** Default local test URL when DATABASE_URL is unset (embedded-postgres / manual). */
 export const DEFAULT_TEST_DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:5433/civil_test'
 
 export function ensureTestDatabaseUrl(): string {

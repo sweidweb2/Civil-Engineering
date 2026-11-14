@@ -1,11 +1,11 @@
-import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useState } from 'react'
 import { Ban, CheckCircle2, Clock, Plus, Store } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, ProviderCardMedia } from '@/components/feedback/skeletons'
-import { PageHeader, TablePager, ToolbarCard } from '@/components/layout'
+import { PageHeader, STAT_GRID_CLASS, StatCard, TablePager, ToolbarCard } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +21,6 @@ import {
 } from '@/services/providers'
 
 import { ProviderFormDialog } from './components/ProviderFormDialog'
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: ProviderStatusCounts = { PENDING: 0, APPROVED: 0, SUSPENDED: 0 }

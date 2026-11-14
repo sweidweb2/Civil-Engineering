@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { StatGridSkeleton } from '@/components/feedback/skeletons'
-import { PageHeader } from '@/components/layout/page-header'
+import { PageHeader, STAT_GRID_CLASS, StatCard } from '@/components/layout'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -22,8 +22,6 @@ import { listProjects } from '@/services/projects'
 import { listProviders } from '@/services/providers'
 import { listReviews } from '@/services/reviews'
 import { listUsers, listVerifications } from '@/services/users'
-
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 
 type DashboardStats = {
   registeredUsers: number

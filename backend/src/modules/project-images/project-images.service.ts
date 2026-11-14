@@ -5,7 +5,6 @@ import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
-import { cacheKeys, readThroughCache } from '../../redis/index.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import { assertMimeMatchesContent } from '../files/mime-sniff.js'
 import type { ProjectsService } from '../projects/projects.service.js'
@@ -27,18 +26,18 @@ export type ProjectImagesService = {
     actor: AuthActor,
     projectId: string,
     file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
-    input: UploadProjectImageBody
+    input: UploadProjectImageBody,
   ) => Promise<ProjectImageWithUrl>
   updateProjectImage: (
     actor: AuthActor,
     imageId: string,
-    input: UpdateProjectImageBody
+    input: UpdateProjectImageBody,
   ) => Promise<ProjectImageWithUrl>
   deleteProjectImage: (actor: AuthActor, imageId: string) => Promise<void>
   reorderProjectImages: (
     actor: AuthActor,
     projectId: string,
-    input: ReorderProjectImagesBody
+    input: ReorderProjectImagesBody,
   ) => Promise<ProjectImageWithUrl[]>
   getMainImageUrl: (projectId: string) => Promise<string | null>
 }
@@ -63,23 +62,18 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
       return `${publicBase}/${storagePath.replace(/^\//, '')}`
     }
     const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
-    const cacheTtlSec = Math.max(30, Math.min(expiresInSec - 60, 240))
-    return readThroughCache(cacheKeys.storagePresignGet(storagePath), cacheTtlSec, () =>
-      storage.presignGet({
-        key: storagePath,
-        expiresInSec,
-      }),
-    )
+    return storage.presignGet({
+      key: storagePath,
+      expiresInSec,
+    })
   }
 
   async function processAndUploadImage(
     buffer: Buffer,
     projectId: string,
-    imageId: string
+    imageId: string,
   ): Promise<string> {
-    const webpBuffer = await sharp(buffer)
-      .webp({ quality: 85, effort: 4 })
-      .toBuffer()
+    const webpBuffer = await sharp(buffer).webp({ quality: 85, effort: 4 }).toBuffer()
 
     const key = `projects/${projectId}/images/${imageId}.webp`
 
@@ -96,14 +90,14 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
     async listProjectImages(actor, projectId) {
       await assertProjectAccess(actor, projectId)
       const images = await repository.findByProjectId(projectId)
-      
+
       const imagesWithUrls = await Promise.all(
         images.map(async (image) => ({
           ...image,
           url: await getImageUrl(image.storagePath),
-        }))
+        })),
       )
-      
+
       return imagesWithUrls
     },
 
@@ -135,9 +129,7 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw validationError(
-          `File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`,
-        )
+        throw validationError(`File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`)
       }
 
       const currentCount = await repository.countByProjectId(projectId)
@@ -220,18 +212,16 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
       }
 
       await Promise.all(
-        input.imageIds.map((id, index) =>
-          repository.update(id, { displayOrder: index })
-        )
+        input.imageIds.map((id, index) => repository.update(id, { displayOrder: index })),
       )
 
       const updatedImages = await repository.findByProjectId(projectId)
-      
+
       return Promise.all(
         updatedImages.map(async (image) => ({
           ...image,
           url: await getImageUrl(image.storagePath),
-        }))
+        })),
       )
     },
 

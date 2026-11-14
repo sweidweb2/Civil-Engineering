@@ -17,10 +17,7 @@ const baseEnvSchema = z.object({
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
-  REDIS_URL: z.string().min(1).optional(),
-  LOG_LEVEL: z
-    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
-    .default('info'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   STORAGE_PROVIDER: z.enum(['r2']).optional(),
   STORAGE_ENDPOINT: z.string().min(1).optional(),
   STORAGE_BUCKET: z.string().min(1).optional(),
@@ -52,7 +49,6 @@ export type AppConfig = {
   corsOrigins: string[]
   trustProxy: boolean
   databaseUrl?: string
-  redisUrl?: string
   jwtAccessSecret?: string
   jwtRefreshSecret?: string
   jwtAccessExpiresIn: string
@@ -182,7 +178,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: parseCorsOrigins(env.CORS_ORIGINS, data.NODE_ENV),
     trustProxy,
     databaseUrl: data.DATABASE_URL,
-    redisUrl: data.REDIS_URL,
     jwtAccessSecret: data.JWT_ACCESS_SECRET,
     jwtRefreshSecret: data.JWT_REFRESH_SECRET,
     jwtAccessExpiresIn: data.JWT_ACCESS_EXPIRES_IN,

@@ -1,111 +1,52 @@
 # Decision — Redis / Cache / Queue
 
-**Status:** LOCKED (client + Compose + retry/failed-job policy); BullMQ package/workers when first real async job needs them  
-**Date:** 2026-09-20  
+**Status:** SUPERSEDED — Redis **removed** from the app  
+**Original date:** 2026-09-20  
+**Superseded:** 2026-11-14  
 **Applies to:** `backend/` only
+
+> Redis (`ioredis`), BullMQ, Redis cache helpers, and the `/api/v1/health/redis` endpoint no longer exist. Do not reintroduce them without a new decision.
 
 ---
 
-## Who uses Redis?
+## Current state
 
-| App | Talks to Redis? |
-| --- | --- |
-| **`backend/`** | **Yes** — sole Redis client (cache / queue / short-lived ops data) |
-| **`civil-web/`** | **No** — REST `/api/v1` only |
-| **`civil-mobile/`** | **No** — REST `/api/v1` only |
+| Concern                                         | Now                                                                                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Redis / `ioredis`                               | **None** — dependency and code deleted                                                                                  |
+| Cache helpers (`civil:*` keys, `redis.keys.ts`) | **Removed**                                                                                                             |
+| Rate limiting                                   | **In-process memory** via `express-rate-limit` (per API instance)                                                       |
+| Caching                                         | Not server-side by default. Use **client-side** caching, **CDN** (static assets), and **presigned URLs** (R2) as needed |
+| Job queue (BullMQ)                              | **None** — jobs stay **synchronous** (`backend/src/jobs/` wrappers run inline)                                          |
+| Health                                          | `/api/v1/health/redis` **removed** (DB health only)                                                                     |
+| Source of truth                                 | **PostgreSQL (Supabase)**                                                                                               |
 
-Web and mobile **benefit indirectly** when the API caches or queues work. They never open a Redis connection.
+Web and mobile are unchanged: REST `/api/v1` only.
 
 ```text
 Web / Mobile
     ↓  REST only
-Express API  ←→  Redis (cache / queue)
+Express API (in-process rate limit)
     ↓
-PostgreSQL (source of truth)
+PostgreSQL (Supabase) · Cloudflare R2
 ```
 
-**Rule locked:** Redis is not miscellaneous storage and not a second database.
-
 ---
 
-## Role
+## Consequences
 
-| Use | Notes |
-| --- | --- |
-| **Cache** | Hot, repeatable reads with TTL + invalidation |
-| **Queue** | Background jobs via **BullMQ** when needed (not every notify must be queued yet) |
-| **Other** | Rate-limit counters / short-lived metadata only when justified |
+- **Rate limits are per process.** With multiple API instances limits are not shared; acceptable for the current single-instance setup.
+- **No retry/backoff queue.** Sync jobs must fail loudly (log + error), not silently drop. Retry in-request or via client if needed.
+- **No server cache invalidation to maintain.** If hot reads become a measured problem, prefer query/index fixes first.
 
----
+## If caching / queues are needed later (TBD)
 
-## Libraries
-
-| Concern | Choice |
-| --- | --- |
-| Redis client | **`ioredis`** |
-| Job queue (when needed) | **BullMQ** (Redis-backed) |
-| Local / Compose image | **`redis:7-alpine`** |
-
----
-
-## Cache keys
-
-Prefix everything with `civil:`.
-
-| Pattern | Example |
-| --- | --- |
-| Entity | `civil:project:{id}` |
-| List (versioned) | `civil:projects:list:v{n}:p{page}:l{limit}` |
-| User-scoped | `civil:user:{userId}:…` |
-| Rate / counter | `civil:rl:{scope}:{id}` |
-
-Helpers: `backend/src/redis/redis.keys.ts`
-
----
-
-## TTL / invalidation / do-not-cache
-
-| Policy | Rule |
-| --- | --- |
-| TTL | **Always** set TTL on cache keys (default helpers use seconds) |
-| Typical TTL | Short hot reads: **60s–300s**; tune per use case |
-| Invalidation | On write: `del` entity key and/or bump list version |
-| Do not cache | Passwords/tokens as SoR; money/inventory without DB authority; unbounded dumps; anything that must be correct on every read without a clear invalidation plan |
-
-Postgres remains source of truth.
-
----
-
-## Jobs / workers
-
-| Item | Decision |
-| --- | --- |
-| Layout | `backend/src/jobs/` — enqueue wrappers; workers when BullMQ is wired |
-| Seam today | `enqueueNotifyUser` / `enqueueDeleteStorageObject` may still run sync until a queue is justified |
-| Defaults module | `backend/src/jobs/workers/job.defaults.ts` — shared options for first BullMQ Queue |
-| Retry / backoff | **5 attempts** (1 try + 4 retries); **exponential** backoff, initial delay **2s** (2→4→8→16s) |
-| Failed jobs | Keep in BullMQ **failed set** (`removeOnFail: false`); **log error** with job name, id, idempotencyKey, reason — no silent drop; manual redrive / board later |
-| Completed trim | `removeOnComplete: { count: 1000 }` — short debug retention only |
-| Idempotency | Job payloads + idempotency keys where side effects are unsafe to repeat |
-| Runtime | **Deferred** — do not install/run BullMQ until the first durable async job needs it |
-| Monitoring | Redis `PING` via health; BullMQ metrics/UI later |
-
----
-
-## Compose / env
-
-| Env | Redis URL |
-| --- | --- |
-| Local npm API | `REDIS_URL=redis://127.0.0.1:6379` (Compose publishes port) |
-| API in Compose | `REDIS_URL=redis://redis:6379` (service DNS) |
-| Test | Optional — omit `REDIS_URL` → cache helpers no-op / skip |
-
-Do not publish Redis to the public internet — internal Docker network (+ localhost bind for local npm).
+Not locked. Requires a new decision doc before adding any shared store (Redis or otherwise) or queue library. Keep Postgres as source of truth.
 
 ---
 
 ## Related
 
-- [Bedrock Checklist](../[1]%20Main%20App/[2]%20Bedrock%20Checklist.md) §15
-- [Docker & Infrastructure](./[4]%20Docker%20%26%20Infrastructure.md)
-- [Observability](./[7]%20Observability.md) — Redis monitoring via infra, not CRUD tables
+- [Tech Stack](../[1]%20Main%20App/[1]%20Tech%20Stack.md)
+- [Docker & Infrastructure](./[4]%20Docker%20%26%20Infrastructure.md) — also superseded
+- [Observability](./[7]%20Observability.md)

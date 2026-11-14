@@ -1,8 +1,11 @@
 import { prisma } from '../../database/prisma.js'
 import type { Prisma, Role, UserStatus, VerificationStatus } from '../../generated/prisma/client.js'
-import { invalidateCache, readThroughCache } from '../../redis/redis.cache.js'
-import { cacheKeys } from '../../redis/redis.keys.js'
-import type { ListApprovalsQuery, ListLookupQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
+import type {
+  ListApprovalsQuery,
+  ListLookupQuery,
+  ListUsersQuery,
+  ListVerificationsQuery,
+} from './users.schema.js'
 import { APPROVAL_ROLES, type User, type UserLookup } from './users.types.js'
 
 type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>
@@ -111,18 +114,6 @@ export type UsersRepository = {
   /** Stores File.id in Profile.avatarUrl (private R2 object; resolve via files download URL). */
   setAvatarFileId: (userId: string, fileId: string | null) => Promise<User>
   delete: (id: string) => Promise<'deleted' | 'in_use'>
-}
-
-const USER_COUNT_TTL_SECONDS = 60
-
-const userCountKeys = [
-  cacheKeys.userDirectoryCounts(),
-  cacheKeys.userApprovalCounts(),
-  cacheKeys.userVerificationCounts(),
-]
-
-function invalidateUserCounts(): Promise<void> {
-  return invalidateCache(...userCountKeys)
 }
 
 const approvalRoles: Role[] = [...APPROVAL_ROLES]
@@ -262,7 +253,6 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countDirectory() {
-      return readThroughCache(cacheKeys.userDirectoryCounts(), USER_COUNT_TTL_SECONDS, async () => {
       const now = new Date()
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
@@ -335,7 +325,6 @@ export function createUsersRepository(): UsersRepository {
           CLIENT: count(current.roleClient),
         },
       }
-      })
     },
 
     async findApprovals(query) {
@@ -360,14 +349,12 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countApprovals() {
-      return readThroughCache(cacheKeys.userApprovalCounts(), USER_COUNT_TTL_SECONDS, async () => {
       const [pending, approved, providersPending] = await Promise.all([
         prisma.user.count({ where: { role: { in: approvalRoles }, status: 'PENDING' } }),
         prisma.user.count({ where: { role: { in: approvalRoles }, status: 'ACTIVE' } }),
         prisma.user.count({ where: { role: 'PROVIDER', status: 'PENDING' } }),
       ])
       return { pending, approved, providersPending }
-      })
     },
 
     async findVerifications(query) {
@@ -392,7 +379,6 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countVerifications() {
-      return readThroughCache(cacheKeys.userVerificationCounts(), USER_COUNT_TTL_SECONDS, async () => {
       const workers = { role: 'WORKER' as const }
       const [total, unverified, requested, verified] = await Promise.all([
         prisma.user.count({ where: workers }),
@@ -401,7 +387,6 @@ export function createUsersRepository(): UsersRepository {
         prisma.user.count({ where: { ...workers, verificationStatus: 'VERIFIED' } }),
       ])
       return { workers: total, unverified, requested, verified }
-      })
     },
 
     async updateVerification(id, verificationStatus) {
@@ -413,7 +398,6 @@ export function createUsersRepository(): UsersRepository {
         },
         include: { profile: true },
       })
-      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -459,7 +443,6 @@ export function createUsersRepository(): UsersRepository {
         },
         include: { profile: true },
       })
-      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -491,7 +474,6 @@ export function createUsersRepository(): UsersRepository {
         },
         include: { profile: true },
       })
-      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -501,7 +483,6 @@ export function createUsersRepository(): UsersRepository {
         data: { status },
         include: { profile: true },
       })
-      await invalidateUserCounts()
       return mapToUser(user)
     },
 
@@ -524,7 +505,6 @@ export function createUsersRepository(): UsersRepository {
     async delete(id) {
       try {
         await prisma.user.delete({ where: { id } })
-        await invalidateUserCounts()
         return 'deleted'
       } catch (error) {
         if (isPrismaCode(error, 'P2003') || isPrismaCode(error, 'P2014')) {

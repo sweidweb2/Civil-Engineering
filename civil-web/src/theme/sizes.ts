@@ -1,11 +1,14 @@
 /**
  * sizes.ts — reusable layout / control dimensions (web, px).
+ * Sidebar widths match `components/ui/sidebar.tsx` (16rem / 3rem).
+ * Header matches PanelShell `h-16` (64px).
  */
 
 export const sizes = {
-  header: 56,
-  sidebar: 240,
-  sidebarCollapsed: 64,
+  header: 64,
+  sidebar: 256,
+  sidebarCollapsed: 48,
+  sidebarMobile: 288,
   buttonHeight: 36,
   buttonHeightSm: 32,
   buttonHeightLg: 40,

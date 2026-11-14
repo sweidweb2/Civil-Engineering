@@ -16,6 +16,7 @@ import {
   type ProjectStatus,
   type ProjectSummary,
 } from '@/services/projects'
+import { colors, withAlpha } from '@/theme'
 
 type MetricKey = 'projects' | 'budget'
 type PeriodKey = '7' | '30'
@@ -210,7 +211,7 @@ function PerformanceBarChart({
                 `L ${frontX + barW} ${currentTop}`,
                 'Z',
               ].join(' ')}
-              fill="#3F9A93"
+              fill={colors.light.primarySoft}
             />
             <path
               d={[
@@ -220,7 +221,7 @@ function PerformanceBarChart({
                 `L ${frontX + barW} ${currentTop + currentH}`,
                 'Z',
               ].join(' ')}
-              fill="#1F5F5A"
+              fill={colors.light.primaryDeep}
             />
 
             {index % labelEvery === 0 || index === points.length - 1 ? (
@@ -315,8 +316,8 @@ function buildPortfolioMix(
       label: labels.inProgress,
       count: inProgress,
       statuses: ['IN_PROGRESS'] as ProjectStatus[],
-      fill: 'rgba(40, 122, 116, 0.22)',
-      stroke: '#287A74',
+      fill: withAlpha(colors.light.primary, 0.22),
+      stroke: colors.light.primary,
       cx: 188,
       cy: 132,
       r: 74,
@@ -329,8 +330,8 @@ function buildPortfolioMix(
       label: labels.pipeline,
       count: pipeline,
       statuses: ['DRAFT', 'PLANNING', 'APPROVED'] as ProjectStatus[],
-      fill: 'rgba(217, 119, 6, 0.18)',
-      stroke: '#D97706',
+      fill: withAlpha(colors.light.warning, 0.18),
+      stroke: colors.light.warning,
       cx: 108,
       cy: 142,
       r: 64,
@@ -343,8 +344,8 @@ function buildPortfolioMix(
       label: labels.completed,
       count: completed,
       statuses: ['COMPLETED'] as ProjectStatus[],
-      fill: 'rgba(111, 207, 151, 0.28)',
-      stroke: '#2F9E71',
+      fill: withAlpha(colors.light.chartMint, 0.28),
+      stroke: colors.light.success,
       cx: 148,
       cy: 78,
       r: 50,
@@ -547,7 +548,7 @@ export function PmAnalyticsDashboard() {
       value: String(total),
       footer: t('dashboard.planningOnHold', { planning, onHold }),
       icon: FolderKanban,
-      iconClass: 'from-primary to-[#1F5F5A]',
+      iconClass: 'from-primary to-primary-deep',
     },
     {
       title: t('dashboard.inProgress'),
@@ -555,7 +556,7 @@ export function PmAnalyticsDashboard() {
       value: String(inProgress),
       footer: t('dashboard.completedMomentum', { completed }),
       icon: TrendingUp,
-      iconClass: 'from-[#3F9A93] to-primary',
+      iconClass: 'from-primary-soft to-primary',
     },
     {
       title: t('dashboard.portfolioBudget'),
@@ -565,7 +566,7 @@ export function PmAnalyticsDashboard() {
         amount: formatCompact(actualCostTotal, intlLocale, currency),
       }),
       icon: CircleDollarSign,
-      iconClass: 'from-[#2F9E71] to-primary',
+      iconClass: 'from-success to-primary',
     },
     {
       title: t('dashboard.averageProgress'),
@@ -573,7 +574,7 @@ export function PmAnalyticsDashboard() {
       value: `${averageProgress}%`,
       footer: averageProgress >= 60 ? t('dashboard.trackingWell') : t('dashboard.pushStalled'),
       icon: averageProgress >= 50 ? CheckCircle2 : PauseCircle,
-      iconClass: 'from-primary/80 to-[#245E59]',
+      iconClass: 'from-primary/80 to-primary-dark',
     },
   ]
 

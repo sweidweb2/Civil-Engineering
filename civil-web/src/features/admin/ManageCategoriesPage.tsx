@@ -1,11 +1,11 @@
-import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Box, Briefcase, HardHat, Pencil, Trash2, Wrench } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
-import { DataPanel, PageHeader, RowActions, TablePager } from '@/components/layout'
+import {  DataPanel, PageHeader, RowActions, STAT_GRID_CLASS, StatCard, TablePager  } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +61,6 @@ import {
   updateCategory,
 } from '@/services/categories'
 
-import { STAT_GRID_CLASS, StatCard } from './components/StatCard'
 import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: CategoryKindCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0, WORKER: 0 }

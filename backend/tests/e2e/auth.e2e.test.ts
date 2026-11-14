@@ -5,7 +5,7 @@ import { clearUsers, disconnectPrisma, migrateTestDatabase } from '../helpers/te
 import { createE2EApp } from './helpers.js'
 
 /**
- * Auth e2e against Test PostgreSQL (embedded via globalSetup or Docker).
+ * Auth e2e against Test PostgreSQL (embedded via globalSetup or DATABASE_URL).
  * Requires DATABASE_URL from globalSetup + JWT secrets.
  */
 describe('backend e2e (auth)', () => {

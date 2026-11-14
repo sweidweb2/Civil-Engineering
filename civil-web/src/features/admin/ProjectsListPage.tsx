@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, ProjectCardMedia } from '@/components/feedback/skeletons'
+import { PageHeader } from '@/components/layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -353,16 +354,17 @@ export function ProjectsListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('nav:manageProjects')}</h1>
-          <p className="text-sm text-muted-foreground">{t('projects:manageDescription')}</p>
-        </div>
-        <Button onClick={handleCreateOpen}>
-          <Plus className="size-4" />
-          {t('projects:create')}
-        </Button>
-      </div>
+      <PageHeader
+        className="mb-0"
+        title={t('nav:manageProjects')}
+        description={t('projects:manageDescription')}
+        actions={
+          <Button onClick={handleCreateOpen}>
+            <Plus className="size-4" />
+            {t('projects:create')}
+          </Button>
+        }
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <Input

@@ -15,23 +15,22 @@ Source of truth: `Docs/[01] Main App/Tech Stack.md`. Do not invent alternate sta
 | Web | `civil-web/` | React + TypeScript browser client |
 | Mobile | `civil-mobile/` | React Native + TypeScript client |
 
-Both clients talk to the same versioned REST API only. Never let web/mobile touch PostgreSQL, Redis, or Prisma directly.
+Both clients talk to the same versioned REST API only. Never let web/mobile touch PostgreSQL or Prisma directly.
 
 ## Locked stack
 
 - Web: React + TypeScript
 - Mobile: React Native + TypeScript
 - Backend: Express + TypeScript (monolith, layered, DDD modules)
-- DB: PostgreSQL + Prisma
-- Cache/queue: Redis
+- DB: Supabase Postgres + Prisma
+- No Redis / BullMQ: jobs stay synchronous; rate limiting is in-process memory (`express-rate-limit`)
 - API: REST under `/api/v1`
 - Auth: JWT access + refresh tokens
 - Clients: feature-based folders + Zustand (UI/client state only)
 - Validation: Zod on clients (UX) and backend (security) — frontend Zod is not a security boundary
-- Deploy: Docker + Nginx reverse proxy (Hostinger VPS)
-- Docker layout: app Dockerfiles in `civil-web/` + `backend/`; Compose at repo root; no mobile production Dockerfile; `infrastructure/` only when Nginx/config is real — see `Docs/[3] Decisions/[4] Docker & Infrastructure.md`
+- Local run: `npm` in `backend/` and `civil-web/` — **no Docker required**; no Dockerfiles/Compose in repo (superseded: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`, `[8] Redis.md`)
 
-Still open (do not invent as locked): exact domain boundaries, exact production Docker topology / monitoring.  
+Still open (do not invent as locked): exact domain boundaries, production deploy/hosting topology (TBD), monitoring.  
 Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage (Cloudflare R2).md`.
 
 ## Project architecture & principles
@@ -56,10 +55,9 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 - Controller: HTTP in/out only. Service: business logic. Repository: data access. Schema (Zod): validate at the edge before logic
 
 **Infrastructure**
-- Nginx: public entry / TLS / reverse proxy
-- Express: app API
-- PostgreSQL: source of truth
-- Redis: cache/queue — not a substitute for DB authority
+- Express: app API (in-process rate limiting; sync jobs)
+- PostgreSQL (Supabase): source of truth
+- Reverse proxy / TLS: TBD with production deploy decision
 
 ## Hard rules
 
@@ -67,7 +65,7 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 2. Keep each layer thin — no Prisma in controllers, no HTTP in repositories, no DB in clients.
 3. Validate and authorize on the backend for every mutating or sensitive read.
 4. Version APIs as `/api/v1/...`; do not break the contract casually.
-5. Optimize with clear boundaries first (correct queries, Redis where justified) — not premature microservices.
+5. Optimize with clear boundaries first (correct queries and indexes first) — not premature microservices.
 6. If a decision is marked open in Tech Stack.md, ask or leave a clear TBD — do not silently lock it.
 
 ## Working principles
@@ -87,7 +85,7 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 
 - Database query efficiency — select only needed fields; use indexes intentionally; keep heavy work in repositories/services
 - N+1 prevention — prefer Prisma `include`/`select` or batched queries; never loop per-row DB calls
-- Caching — use Redis for hot, repeatable reads; always define invalidation; Postgres remains source of truth
+- Caching — no server-side shared cache (no Redis); use client caching, CDN, and presigned URLs where justified; Postgres remains source of truth
 - Pagination — list endpoints must paginate (cursor or page/limit); never return unbounded collections by default
 - API payload size — return lean DTOs; avoid over-fetching relations and unused fields
 - Frontend rendering — keep lists virtualized/paginated when large; avoid unnecessary re-renders and stuffing API data into Zustand
@@ -107,7 +105,7 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 - **Authentication handling**: attach access token centrally; refresh-token flow in one place; on auth failure clear session and route to login
 - **Request/response handling**: consistent JSON parsing, timeout, and typed error mapping; never leak raw transport errors to UI unchecked
 - **Loading/error states**: handle per request/feature; avoid a single global loading boolean for the whole app
-- **Caching**: client cache only when justified; Redis caching is backend-side; invalidate on mutations that change listed data
+- **Caching**: client cache only when justified; no Redis/server cache layer; invalidate on mutations that change listed data
 - **Server-state management**: treat server data as source-of-truth from the API; do not fork conflicting copies across Zustand and component trees
 
 ## TypeScript rules
@@ -155,7 +153,7 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 
 - **Secrets/environment variables**: never commit secrets; use env/runtime injection; restrict who can read production secrets
 - **CORS**: allow only known web origins; do not use `*` with credentials
-- **Rate limiting**: protect auth and sensitive endpoints; prefer gateway/Nginx or Express middleware
+- **Rate limiting**: protect auth and sensitive endpoints; Express middleware (`express-rate-limit`, in-process memory — per instance)
 - **Input validation**: Zod on every external input (body/query/params); frontend Zod is UX only
 - **SQL injection prevention**: Prisma only — no raw SQL unless parameterized and justified
 - **XSS protection**: encode/escape output; do not `dangerouslySetInnerHTML` without sanitization
@@ -169,12 +167,12 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 - **Error logging**: log with stack/context once at the boundary; do not double-log and rethrow noisily
 - **Request logging**: concise access logs via middleware; skip noisy health checks if present
 - **Sensitive-data restrictions**: never log passwords, tokens, refresh tokens, full payment data, or raw PII dumps
-- **Production logging**: stdout/stderr for Docker; structured logs preferred; no verbose body logging in production
+- **Production logging**: stdout/stderr; structured logs preferred; no verbose body logging in production
 
 ## Testing
 
 - **Unit tests**: services, pure utils, schema validation — fast, no real DB unless using lightweight doubles
-- **Integration tests**: module paths with DB/Redis where justified (repository/service + Prisma)
+- **Integration tests**: module paths with DB (embedded-postgres) where justified (repository/service + Prisma)
 - **API tests**: HTTP against routes/controllers with auth cases
 - **E2E tests**: critical user flows only (web); keep suite small and stable
 - **What should be tested**: business rules, authz boundaries, validation, regressions for bugs fixed
@@ -228,15 +226,15 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 - **Permission checks**: enforce on every sensitive action; default deny
 - **Resource ownership**: verify the caller may access the specific resource id (project/expense/etc.), not just “is authenticated”
 
-## Redis / cache / queue
+## Cache / jobs (no Redis)
 
-- **What belongs in Redis**: hot read caches, rate-limit counters, short-lived session/metadata, job queues — not the system of record
-- **Cache strategy**: cache expensive, repeatable reads with an explicit key scheme (`entity:id`, list keys versioned)
-- **Cache invalidation**: invalidate or bump version on writes that affect that data
-- **TTL**: always set TTL on cache keys unless a deliberate exception is documented
-- **Queue/job responsibilities**: background work (emails, heavy aggregation, retries) in `jobs/`; API handlers stay fast
+Redis and BullMQ were removed (`Docs/[3] Decisions/[8] Redis.md`, superseded). Do not reintroduce without a new decision.
+
+- **Cache**: no shared server cache; use client caching, CDN, presigned URLs; Postgres is the system of record
+- **Rate limiting**: in-process memory (`express-rate-limit`), per instance
+- **Jobs**: stay synchronous behind wrappers in `jobs/`; API handlers stay fast; log failures, never swallow
 - **Idempotency**: jobs and critical POSTs must be safe to retry (idempotency keys where needed)
-- **Retry rules**: bounded retries with backoff; dead-letter or log permanently failed jobs; do not retry non-idempotent side effects blindly
+- **Retry rules**: bounded retries; do not retry non-idempotent side effects blindly
 
 ## Storage / file handling
 
@@ -254,7 +252,7 @@ Flow: **Route → Controller → Service → Repository → Prisma (models/entit
 | Layer | Must do | Must NOT do |
 | --- | --- | --- |
 | **Routes** | Wire path/method to controller + middleware (auth, validate) | Business logic, Prisma, response shaping, authz decisions |
-| **Controllers** | Parse HTTP, call one service, map result/error to response | Business rules, Prisma/DB, Redis, cross-module orchestration |
+| **Controllers** | Parse HTTP, call one service, map result/error to response | Business rules, Prisma/DB, cross-module orchestration |
 | **Services** | Domain/application logic, authz coordination, orchestrate repos/jobs | Touch `req`/`res`, import Prisma Client, leak HTTP details |
 | **Repositories** | Data access via Prisma; focused query methods | Business rules, HTTP, calling other modules’ controllers/services casually |
 | **Models/entities** | Prisma schema models as persistence shape / relations | App business workflows, HTTP DTOs, authz |
@@ -273,10 +271,10 @@ Flow: **Route → Controller → Service → Repository → Prisma (models/entit
 
 ## Environment & configuration
 
-- **Development / staging / production**: distinct environments with separate credentials, DB, Redis, and API URLs — never point dev tools at production data by default.
+- **Development / staging / production**: distinct environments with separate credentials, DB, and API URLs — never point dev tools at production data by default.
 - **Environment variables**: all secrets and environment-specific values via env (or secret store); document required keys; provide `.env.example` without real secrets.
 - **Configuration management**: load config once through a central `config/` module; do not scatter `process.env` reads across business code.
-- **Secrets**: never commit `.env`, keys, or tokens; inject at runtime (Docker/host); rotate when leaked.
+- **Secrets**: never commit `.env`, keys, or tokens; inject at runtime (host/env); rotate when leaked.
 - **Environment-specific behavior**: feature flags/URLs/log levels via config — avoid `if (production)` branches deep in domain logic; keep differences at edges (config, logging, CORS origins).
 
 ## Frontend architecture (`civil-web`)
@@ -302,7 +300,7 @@ civil-web/src/
 - **Services/API layer**: all HTTP through `services/`; features do not reinvent clients
 - **UI vs business logic**: UI in components; domain/authz rules stay on the backend — client may mirror for UX only
 - **Shared components**: truly reusable UI in `components/`; do not dump feature-specific widgets there
-- **Responsibility boundaries**: web never touches Postgres/Redis/Prisma; talk to `/api/v1` only
+- **Responsibility boundaries**: web never touches Postgres/Prisma; talk to `/api/v1` only
 
 ## Mobile architecture (`civil-mobile`)
 

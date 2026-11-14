@@ -22,16 +22,11 @@ test.describe('PM shell navigation', () => {
     await expect(page).toHaveURL(/\/pm\/projects/)
   })
 
-  test('opens settings profile and steps tabs', async ({ page }) => {
+  test('opens settings profile', async ({ page }) => {
     await page.getByRole('button', { name: 'Account menu' }).click()
     await page.getByRole('menuitem', { name: 'Settings' }).click()
     await expect(page).toHaveURL(/\/pm\/settings/)
     await expect(page.getByRole('heading', { name: 'Settings' }).first()).toBeVisible()
-
-    await page.getByRole('button', { name: /Steps Templates/ }).click()
-    await expect(page).toHaveURL(/tab=steps/)
-    await expect(page.getByRole('heading', { name: 'Steps' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Add step' })).toBeVisible()
   })
 
   test('creates a project from the PM projects page', async ({ page }) => {

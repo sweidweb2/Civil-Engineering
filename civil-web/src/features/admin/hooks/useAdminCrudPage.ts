@@ -10,7 +10,7 @@ type UseAdminCrudPageOptions<TRow, TForm> = {
 
 /**
  * Shared dialog / delete / busy state for admin table CRUD pages
- * (ManageSteps, ManageCategories, ManageReviews, …).
+ * (ManageCategories, ManageReviews, …).
  */
 export function useAdminCrudPage<TRow extends { id: string }, TForm>({
   emptyForm,

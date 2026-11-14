@@ -93,17 +93,23 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         entityId: input.entityId,
       })
 
-      const uploadUrl = await storage.presignPut({
-        key,
-        contentType: input.mime,
-        expiresInSec: uploadTtl,
-      })
+      try {
+        const uploadUrl = await storage.presignPut({
+          key,
+          contentType: input.mime,
+          expiresInSec: uploadTtl,
+        })
 
-      return {
-        fileId,
-        key,
-        uploadUrl,
-        headers: { 'Content-Type': input.mime },
+        return {
+          fileId,
+          key,
+          uploadUrl,
+          headers: { 'Content-Type': input.mime },
+        }
+      } catch (error) {
+        // Compensate: no usable upload URL — drop the PENDING row (no R2 object yet).
+        await repository.markDeleted(fileId).catch(() => undefined)
+        throw error
       }
     },
 

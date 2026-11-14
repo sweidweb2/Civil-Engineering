@@ -1,5 +1,8 @@
+import { runInTransaction } from '../../database/transaction.js'
 import { prisma } from '../../database/prisma.js'
+import { validationError } from '../../errors/app-error.js'
 import type { ProjectImage, ProjectImagesRepository } from './project-images.types.js'
+import { Prisma } from '../../generated/prisma/client.js'
 
 function mapToProjectImage(row: {
   id: string
@@ -52,12 +55,95 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
       return mapToProjectImage(image)
     },
 
+    async createAtomic(data) {
+      try {
+        return await runInTransaction(async (tx) => {
+          // Serialize concurrent uploads for this project (count + main flag).
+          await tx.$executeRaw`SELECT id FROM projects WHERE id = ${data.projectId} FOR UPDATE`
+
+          const count = await tx.projectImage.count({ where: { projectId: data.projectId } })
+          if (count >= data.maxImages) {
+            throw validationError(`Maximum ${data.maxImages} images per projects`)
+          }
+
+          let isMain = data.isMain === true
+          if (!isMain && data.autoMainIfEmpty && count === 0) {
+            isMain = true
+          }
+
+          if (isMain) {
+            await tx.projectImage.updateMany({
+              where: { projectId: data.projectId, isMain: true },
+              data: { isMain: false },
+            })
+          }
+
+          const image = await tx.projectImage.create({
+            data: {
+              projectId: data.projectId,
+              storagePath: data.storagePath,
+              isMain,
+              displayOrder: data.displayOrder ?? count,
+            },
+          })
+          return mapToProjectImage(image)
+        })
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw validationError('Only one main image is allowed per project')
+        }
+        throw error
+      }
+    },
+
     async update(id, data) {
       const image = await prisma.projectImage.update({
         where: { id },
         data,
       })
       return mapToProjectImage(image)
+    },
+
+    async setMainAtomic(projectId, imageId) {
+      try {
+        return await runInTransaction(async (tx) => {
+          await tx.$executeRaw`SELECT id FROM projects WHERE id = ${projectId} FOR UPDATE`
+          const existing = await tx.projectImage.findFirst({
+            where: { id: imageId, projectId },
+          })
+          if (!existing) {
+            throw validationError('Image does not belong to this project')
+          }
+          await tx.projectImage.updateMany({
+            where: { projectId, isMain: true },
+            data: { isMain: false },
+          })
+          const image = await tx.projectImage.update({
+            where: { id: imageId },
+            data: { isMain: true },
+          })
+          return mapToProjectImage(image)
+        })
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw validationError('Only one main image is allowed per project')
+        }
+        throw error
+      }
+    },
+
+    async reorderAtomic(projectId, orderedIds) {
+      await runInTransaction(async (tx) => {
+        await tx.$executeRaw`SELECT id FROM projects WHERE id = ${projectId} FOR UPDATE`
+        for (let index = 0; index < orderedIds.length; index += 1) {
+          const id = orderedIds[index]
+          if (!id) continue
+          await tx.projectImage.updateMany({
+            where: { id, projectId },
+            data: { displayOrder: index },
+          })
+        }
+      })
     },
 
     async delete(id) {

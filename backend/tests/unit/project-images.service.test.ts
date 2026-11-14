@@ -45,7 +45,25 @@ describe('projectImagesService', () => {
       findById: vi.fn(async () => makeImage()),
       countByProjectId: vi.fn(async () => 1),
       create: vi.fn(async (data) => makeImage({ ...data, id: 'img-new' })),
+      createAtomic: vi.fn(async (data) => {
+        const count = await repository.countByProjectId(data.projectId)
+        if (count >= data.maxImages) {
+          const { validationError } = await import('../../src/errors/app-error.js')
+          throw validationError(`Maximum ${data.maxImages} images per projects`)
+        }
+        return makeImage({
+          projectId: data.projectId,
+          storagePath: data.storagePath,
+          isMain: data.isMain === true,
+          displayOrder: data.displayOrder ?? count,
+          id: 'img-new',
+        })
+      }),
       update: vi.fn(async (id, data) => makeImage({ id, ...data })),
+      setMainAtomic: vi.fn(async (projectId, imageId) =>
+        makeImage({ id: imageId, projectId, isMain: true }),
+      ),
+      reorderAtomic: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),
       unsetMainImage: vi.fn(async () => undefined),
       findMainImageByProjectId: vi.fn(async () => makeImage({ isMain: true })),
@@ -139,7 +157,9 @@ describe('projectImagesService', () => {
       },
       { isMain: true },
     )
-    expect(repository.unsetMainImage).toHaveBeenCalledWith('p1')
+    expect(repository.createAtomic).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: 'p1', isMain: true, maxImages: 15 }),
+    )
     expect(storage.putObject).toHaveBeenCalled()
     expect(created.storagePath).toMatch(/^projects\/p1\/images\/.+\.webp$/)
   })

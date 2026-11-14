@@ -1,7 +1,13 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import { conflict, notFound, validationError } from '../../errors/app-error.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
+import {
+  conflict,
+  isUniqueConflictError,
+  notFound,
+  validationError,
+} from '../../errors/app-error.js'
 import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsRepository } from './projects.repository.js'
@@ -175,7 +181,14 @@ export function createProjectsService(
         progress: scheduleProgress(input.startDate, input.endDate),
       }
 
-      return presentProject(await repository.create(payload))
+      try {
+        return presentProject(await translateUniqueConflict(() => repository.create(payload)))
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('Project code already in use', 'CODE_IN_USE')
+        }
+        throw error
+      }
     },
 
     async updateProject(id, input, actor) {
@@ -192,12 +205,21 @@ export function createProjectsService(
       const endDate = input.endDate !== undefined ? input.endDate : current.endDate
       assertSchedule(startDate, endDate)
 
-      return presentProject(
-        await repository.update(id, {
-          ...input,
-          progress: scheduleProgress(startDate, endDate),
-        }),
-      )
+      try {
+        return presentProject(
+          await translateUniqueConflict(() =>
+            repository.update(id, {
+              ...input,
+              progress: scheduleProgress(startDate, endDate),
+            }),
+          ),
+        )
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('Project code already in use', 'CODE_IN_USE')
+        }
+        throw error
+      }
     },
 
     async archiveProject(id, actor) {

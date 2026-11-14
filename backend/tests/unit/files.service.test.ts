@@ -52,6 +52,8 @@ describe('filesService', () => {
       findById: vi.fn(async () => file),
       markReady: vi.fn(async (id, size) => pendingFile({ id, size, status: 'READY' })),
       markDeleted: vi.fn(async (id) => pendingFile({ id, status: 'DELETED' })),
+      listDeleted: vi.fn(async () => []),
+      listStalePending: vi.fn(async () => []),
     }
 
     const storage: StorageService = {
@@ -98,6 +100,24 @@ describe('filesService', () => {
     expect(result.headers['Content-Type']).toBe('image/jpeg')
     expect(repository.createPending).toHaveBeenCalled()
     expect(storage.presignPut).toHaveBeenCalled()
+  })
+
+  it('marks PENDING deleted when presignPut fails', async () => {
+    const { service, repository, storage } = setup()
+    vi.mocked(storage.presignPut).mockRejectedValueOnce(new Error('signer down'))
+
+    await expect(
+      service.presign(actor, {
+        entityType: 'USER',
+        entityId: 'user-1',
+        mime: 'image/jpeg',
+        size: 1000,
+        originalName: 'Avatar.JPG',
+      }),
+    ).rejects.toThrow('signer down')
+
+    expect(repository.createPending).toHaveBeenCalled()
+    expect(repository.markDeleted).toHaveBeenCalled()
   })
 
   it('forbids attaching to another user', async () => {

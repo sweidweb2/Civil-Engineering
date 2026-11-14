@@ -58,7 +58,6 @@ model User {
   files                File[]
   provider             Provider?
   projects             Project[]
-  steps                Step[]
   reviews              Review[]
   sentNotifications    Notification[] @relation("SentNotifications")
   receivedNotifications Notification[] @relation("ReceivedNotifications")
@@ -379,6 +378,7 @@ model ListingImage {
   @@index([listingId])
   @@index([listingId, displayOrder])
   @@index([listingId, isMain])
+  /// Partial unique (one main per listing) — see migration `gallery_one_main_partial_unique`.
   @@map("listing_images")
 }
 
@@ -461,36 +461,8 @@ model ProjectImage {
   @@index([projectId])
   @@index([projectId, displayOrder])
   @@index([projectId, isMain])
+  /// Partial unique (one main per project) — see migration `gallery_one_main_partial_unique`.
   @@map("project_images")
-}
-
-// =============================================================================
-// steps — Per-user step templates
-// =============================================================================
-
-enum StepStatus {
-  ACTIVE
-  INACTIVE
-  /// Hidden from new projects (like inactive) but kept for history / soft-retire.
-  ARCHIVED
-}
-
-/// User-owned step templates.
-model Step {
-  id        String     @id @default(cuid())
-  name      String
-  orderNb   Int        @default(0)
-  status    StepStatus @default(ACTIVE)
-  userId    String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, orderNb])
-  @@index([userId])
-  @@index([userId, status])
-  @@index([userId, orderNb])
-  @@map("steps")
 }
 
 // =============================================================================

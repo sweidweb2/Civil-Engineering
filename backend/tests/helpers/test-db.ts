@@ -49,7 +49,6 @@ export async function clearUsers(): Promise<void> {
   await prisma.provider.deleteMany()
   await prisma.projectImage.deleteMany()
   await prisma.project.deleteMany()
-  await prisma.step.deleteMany()
   await prisma.managerProfile.deleteMany()
   await prisma.notification.deleteMany()
   await prisma.review.deleteMany()

@@ -76,7 +76,25 @@ describe('listingImagesService', () => {
       findById: vi.fn(async () => makeImage()),
       countByListingId: vi.fn(async () => 1),
       create: vi.fn(async (data) => makeImage({ ...data, id: 'img-new' })),
+      createAtomic: vi.fn(async (data) => {
+        const count = await repository.countByListingId(data.listingId)
+        if (count >= data.maxImages) {
+          const { validationError } = await import('../../src/errors/app-error.js')
+          throw validationError(`Maximum ${data.maxImages} images per listings`)
+        }
+        return makeImage({
+          listingId: data.listingId,
+          storagePath: data.storagePath,
+          isMain: data.isMain === true || (data.autoMainIfEmpty && count === 0),
+          displayOrder: data.displayOrder ?? count,
+          id: 'img-new',
+        })
+      }),
       update: vi.fn(async (id, data) => makeImage({ id, ...data })),
+      setMainAtomic: vi.fn(async (listingId, imageId) =>
+        makeImage({ id: imageId, listingId, isMain: true }),
+      ),
+      reorderAtomic: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),
       unsetMainImage: vi.fn(async () => undefined),
       findMainImageByListingId: vi.fn(async () => makeImage({ isMain: true })),
@@ -178,7 +196,9 @@ describe('listingImagesService', () => {
       },
       { isMain: true },
     )
-    expect(repository.unsetMainImage).toHaveBeenCalledWith('listing-1')
+    expect(repository.createAtomic).toHaveBeenCalledWith(
+      expect.objectContaining({ listingId: 'listing-1', maxImages: 15, autoMainIfEmpty: true }),
+    )
     expect(storage.putObject).toHaveBeenCalled()
     expect(created.storagePath).toMatch(/^listings\/listing-1\/images\/.+\.webp$/)
   })
@@ -195,6 +215,6 @@ describe('listingImagesService', () => {
       makeImage({ id: 'img-2', isMain: false }),
     ])
     await service().deleteListingImage(owner, 'img-1')
-    expect(repository.update).toHaveBeenCalledWith('img-2', { isMain: true })
+    expect(repository.setMainAtomic).toHaveBeenCalledWith('listing-1', 'img-2')
   })
 })

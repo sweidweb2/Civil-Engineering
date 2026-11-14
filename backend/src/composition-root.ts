@@ -18,7 +18,6 @@ import { createProjectImagesModule } from './modules/project-images/index.js'
 import { buildProjectsService, createProjectsModule } from './modules/projects/index.js'
 import { buildProvidersService, createProvidersModule } from './modules/providers/index.js'
 import { createReviewsModule } from './modules/reviews/index.js'
-import { createStepsModule } from './modules/steps/index.js'
 import { createManagerProfilesModule, createUsersModule } from './modules/users/index.js'
 import { getStorageService, type StorageService } from './storage/index.js'
 
@@ -41,7 +40,6 @@ export type CompositionRoot = {
   listings: Router
   listingImages: Router
   reviews: Router
-  steps: Router
   projects: Router
   projectImages: Router
   notifications: Router
@@ -55,7 +53,7 @@ export type CompositionRoot = {
  *
  * The `getXService()` singletons in each module remain only for standalone/test use;
  * nothing on this path reads them for modules that take deps (providers, listings,
- * projects, files). Dependency-free services (categories, steps, logging, devices)
+ * projects, files). Dependency-free services (categories, logging, devices)
  * still use their singletons, which cannot be shadowed by someone else's deps.
  */
 export function createCompositionRoot(deps: CompositionRootDeps = {}): CompositionRoot {
@@ -83,7 +81,6 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
     listings: createListingsModule({ service: listingsService }),
     listingImages: createListingImagesModule({ ...moduleDeps, listingsService }),
     reviews: createReviewsModule({ listingsService }),
-    steps: createStepsModule(),
     projects: createProjectsModule({ service: projectsService }),
     projectImages: createProjectImagesModule({ ...moduleDeps, projectsService }),
     notifications: createNotificationsModule(),

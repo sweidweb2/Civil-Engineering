@@ -252,7 +252,14 @@ export function createProvidersService(
       })
 
       const previous = provider.logoUrl
-      const updated = await repository.update(id, { logoUrl: key })
+      let updated
+      try {
+        updated = await repository.update(id, { logoUrl: key })
+      } catch (error) {
+        // Compensate: DB failed after R2 put — remove the orphan object.
+        await storage.deleteObject(key).catch(() => undefined)
+        throw error
+      }
 
       if (previous && previous !== key && !/^https?:\/\//i.test(previous)) {
         try {

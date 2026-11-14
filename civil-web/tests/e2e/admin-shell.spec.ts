@@ -9,7 +9,7 @@ test.describe('admin shell navigation', () => {
     await openSeedHome(page, 'admin')
   })
 
-  test('opens queue, users, projects, directory, steps', async ({ page }) => {
+  test('opens queue, users, projects, directory', async ({ page }) => {
     await page.getByRole('link', { name: 'Workers requests' }).click()
     await expect(page).toHaveURL(/\/admin\/queue/)
     await expect(page.getByRole('heading', { name: 'User queue' })).toBeVisible()
@@ -25,10 +25,6 @@ test.describe('admin shell navigation', () => {
     await page.getByRole('link', { name: 'Directory' }).click()
     await expect(page).toHaveURL(/\/admin\/directory/)
     await expect(page.getByRole('heading', { name: 'Directory' })).toBeVisible()
-
-    await page.getByRole('link', { name: 'Steps' }).click()
-    await expect(page).toHaveURL(/\/admin\/steps/)
-    await expect(page.getByRole('heading', { name: 'Manage steps' })).toBeVisible()
   })
 
   test('opens marketplace pages', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { Prisma, type ReviewStatus, type ReviewTargetType } from '../../generated/prisma/client.js'
 import type { ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type { ReviewStatusCounts, ReviewTargetOption } from './reviews.types.js'
@@ -327,10 +328,12 @@ export function createReviewsRepository(): ReviewsRepository {
     },
 
     async create(input) {
-      const row = await prisma.review.create({
-        data: input,
-        include: reviewInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.review.create({
+          data: input,
+          include: reviewInclude,
+        }),
+      )
       const [record] = await withNames([row])
       if (!record) {
         throw new Error('Created review could not be loaded')

@@ -1,11 +1,8 @@
 {
   "settings": "Settings",
-  "settingsDescription": "Manage your profile and project step templates.",
-  "chooseSection": "Choose a section to edit.",
+  "settingsDescription": "Manage your profile and account settings.",
   "profile": "Profile",
   "profileDescription": "Account and professional details",
-  "steps": "Steps",
-  "stepsDescription": "Templates assigned to new projects",
   "general": "General",
   "additionalInfo": "Additional info",
   "personalDetails": "Personal details",

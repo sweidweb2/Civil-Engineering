@@ -9,14 +9,10 @@ test.describe('super shell navigation', () => {
     await openSeedHome(page, 'super')
   })
 
-  test('opens users and steps', async ({ page }) => {
+  test('opens users', async ({ page }) => {
     await page.getByRole('link', { name: 'Users' }).click()
     await expect(page).toHaveURL(/\/super\/users/)
     await expect(page.getByRole('heading', { name: 'Manage users' })).toBeVisible()
-
-    await page.getByRole('link', { name: 'Steps' }).click()
-    await expect(page).toHaveURL(/\/super\/steps/)
-    await expect(page.getByRole('heading', { name: 'Manage steps' })).toBeVisible()
   })
 
   test('opens activity, errors, notifications, and settings', async ({ page }) => {

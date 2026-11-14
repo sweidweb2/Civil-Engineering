@@ -1,5 +1,6 @@
 import type { AppConfig } from '../../config/index.js'
-import { conflict, unauthorized } from '../../errors/app-error.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
+import { conflict, isUniqueConflictError, unauthorized } from '../../errors/app-error.js'
 import { enqueuePurgeExpiredDeniedRefreshTokens } from '../../jobs/index.js'
 import { getLogger } from '../../logging/index.js'
 import type { LoggingService } from '../logging/index.js'
@@ -58,10 +59,9 @@ function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {
   }
 }
 
-/** Deny a refresh jti until expiry. Postgres (Supabase) is the sole store. */
+/** Deny a refresh jti until expiry (logout — idempotent). */
 async function denyRefreshToken(
   repository: AuthRepository,
-  _config: AppConfig,
   jti: string,
   ttlSec: number,
 ): Promise<void> {
@@ -69,12 +69,14 @@ async function denyRefreshToken(
   await repository.denyRefreshJti(jti, expiresAt)
 }
 
-async function isRefreshDenied(
+/** Atomically claim jti for rotation; losers are treated as reuse. */
+async function claimRefreshToken(
   repository: AuthRepository,
-  _config: AppConfig,
   jti: string,
-): Promise<boolean> {
-  return repository.isRefreshJtiDenied(jti)
+  ttlSec: number,
+): Promise<'claimed' | 'reuse'> {
+  const expiresAt = new Date(Date.now() + ttlSec * 1000)
+  return repository.claimRefreshJti(jti, expiresAt)
 }
 
 export function createAuthService(
@@ -90,13 +92,23 @@ export function createAuthService(
       }
 
       const passwordHash = await hashPassword(input.password)
-      const user = await repository.createUserWithProfile({
-        email: input.email,
-        passwordHash,
-        role: 'CLIENT',
-        firstName: input.firstName,
-        lastName: input.lastName,
-      })
+      let user: AuthUserRecord
+      try {
+        user = await translateUniqueConflict(() =>
+          repository.createUserWithProfile({
+            email: input.email,
+            passwordHash,
+            role: 'CLIENT',
+            firstName: input.firstName,
+            lastName: input.lastName,
+          }),
+        )
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('Email already registered')
+        }
+        throw error
+      }
 
       try {
         await logging?.recordActivity({
@@ -159,17 +171,16 @@ export function createAuthService(
         throw unauthorized('Invalid or expired refresh token')
       }
 
-      if (await isRefreshDenied(repository, config, payload.jti)) {
-        throw unauthorized('Invalid or expired refresh token')
-      }
-
       const user = await repository.findById(payload.sub)
       if (!user || user.status !== 'ACTIVE') {
         throw unauthorized('Invalid or expired refresh token')
       }
 
-      // Rotate: denylist the presented refresh before issuing a new pair.
-      await denyRefreshToken(repository, config, payload.jti, refreshTtlSeconds(payload))
+      // Atomic single-use claim — concurrent refreshes of the same jti cannot both win.
+      const claim = await claimRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
+      if (claim === 'reuse') {
+        throw unauthorized('Invalid or expired refresh token')
+      }
 
       // Best-effort denylist GC (covers serverless where the hourly scheduler does not run).
       void maybePurgeDeniedRefreshTokens()
@@ -182,7 +193,7 @@ export function createAuthService(
       try {
         const payload = verifyRefreshToken(config, input.refreshToken)
         userId = payload.sub
-        await denyRefreshToken(repository, config, payload.jti, refreshTtlSeconds(payload))
+        await denyRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
       } catch {
         // Client still discards tokens; logging is best-effort.
       }

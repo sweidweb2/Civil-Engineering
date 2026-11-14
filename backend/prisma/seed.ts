@@ -3,7 +3,7 @@
  * Passwords are intentional placeholders for local use only — never use in production.
  *
  * Covers registration approvals, worker verification, providers, platform categories,
- * listings (the directory catalog), projects, reviews, PM step templates, and manager CV profiles.
+ * listings (the directory catalog), projects, reviews, and manager CV profiles.
  * The Directory screen still reads sample cards, not these rows.
  */
 import 'dotenv/config'
@@ -69,40 +69,6 @@ const SEED_MANAGER_PROFILES: SeedManagerProfile[] = [
     cvUrl: 'https://example.com/cv/layla-hassan.pdf',
     availability: 'Open to new projects from Q2 2026',
     projectTypes: 'Residential towers, warehouses, villa fit-outs',
-  },
-]
-
-type SeedStepTemplate = {
-  ownerEmail: string
-  name: string
-  orderNb: number
-  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
-}
-
-const SEED_STEP_TEMPLATES: SeedStepTemplate[] = [
-  {
-    ownerEmail: 'pm@example.com',
-    name: 'Site survey',
-    orderNb: 0,
-    status: 'ACTIVE',
-  },
-  {
-    ownerEmail: 'pm@example.com',
-    name: 'Foundation',
-    orderNb: 1,
-    status: 'ACTIVE',
-  },
-  {
-    ownerEmail: 'pm@example.com',
-    name: 'Structure',
-    orderNb: 2,
-    status: 'ACTIVE',
-  },
-  {
-    ownerEmail: 'pm@example.com',
-    name: 'Archived handoff notes',
-    orderNb: 3,
-    status: 'ARCHIVED',
   },
 ]
 
@@ -768,30 +734,6 @@ async function main() {
       const category = await upsertCategory(prisma, seed, parent?.id ?? null)
       categories.set(`${seed.kind}:${seed.slug}`, category)
       console.info(`[prisma seed] category ${seed.kind} ${seed.name}`)
-    }
-
-    for (const seed of SEED_STEP_TEMPLATES) {
-      const owner = users.get(seed.ownerEmail)
-      if (!owner) throw new Error(`Missing step owner ${seed.ownerEmail}`)
-      const existing = await prisma.step.findFirst({
-        where: { userId: owner.id, name: seed.name },
-      })
-      if (existing) {
-        await prisma.step.update({
-          where: { id: existing.id },
-          data: { orderNb: seed.orderNb, status: seed.status },
-        })
-      } else {
-        await prisma.step.create({
-          data: {
-            userId: owner.id,
-            name: seed.name,
-            orderNb: seed.orderNb,
-            status: seed.status,
-          },
-        })
-      }
-      console.info(`[prisma seed] step ${seed.status} ${seed.name} for ${seed.ownerEmail}`)
     }
 
     const listings = new Map<string, { id: string }>()

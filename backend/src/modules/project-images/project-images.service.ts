@@ -86,10 +86,26 @@ function adaptRepository(repository: ProjectImagesRepository): OwnerGalleryRepos
       })
       return { ...image, ownerId: image.projectId }
     },
+    createAtomic: async (data) => {
+      const image = await repository.createAtomic({
+        projectId: data.ownerId,
+        storagePath: data.storagePath,
+        isMain: data.isMain,
+        displayOrder: data.displayOrder,
+        maxImages: data.maxImages,
+        autoMainIfEmpty: data.autoMainIfEmpty,
+      })
+      return { ...image, ownerId: image.projectId }
+    },
     update: async (id, data) => {
       const image = await repository.update(id, data)
       return { ...image, ownerId: image.projectId }
     },
+    setMainAtomic: async (ownerId, imageId) => {
+      const image = await repository.setMainAtomic(ownerId, imageId)
+      return { ...image, ownerId: image.projectId }
+    },
+    reorderAtomic: (ownerId, orderedIds) => repository.reorderAtomic(ownerId, orderedIds),
     delete: (id) => repository.delete(id),
     unsetMainImage: (ownerId) => repository.unsetMainImage(ownerId),
     findMainImageByOwnerId: async (ownerId) => {

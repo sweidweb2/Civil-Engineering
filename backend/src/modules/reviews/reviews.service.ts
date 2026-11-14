@@ -1,6 +1,12 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
-import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import {
+  conflict,
+  forbidden,
+  isUniqueConflictError,
+  notFound,
+  validationError,
+} from '../../errors/app-error.js'
 import type { ListingsService } from '../listings/index.js'
 import type { ReviewRecord, ReviewsRepository } from './reviews.repository.js'
 import type { CreateReviewBody, ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
@@ -171,15 +177,22 @@ export function createReviewsService(
       await assertTarget(input.targetType, input.targetId)
       await assertUnique(authorId, input.targetType, input.targetId)
 
-      const created = await repository.create({
-        authorId,
-        targetType: input.targetType,
-        targetId: input.targetId,
-        rating: input.rating,
-        comment: input.comment,
-        status: admin ? (input.status ?? 'PENDING') : 'PENDING',
-      })
-      return toReviewDto(await withListingName(created))
+      try {
+        const created = await repository.create({
+          authorId,
+          targetType: input.targetType,
+          targetId: input.targetId,
+          rating: input.rating,
+          comment: input.comment,
+          status: admin ? (input.status ?? 'PENDING') : 'PENDING',
+        })
+        return toReviewDto(await withListingName(created))
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('This author already reviewed that target', 'REVIEW_ALREADY_EXISTS')
+        }
+        throw error
+      }
     },
 
     async updateReview(id, input, actor) {

@@ -34,7 +34,6 @@ import { ProjectsListPage } from '@/features/projects/ProjectsListPage'
 import { ProviderProfilePage } from '@/features/provider/ProviderProfilePage'
 import { ManageProvidersPage } from '@/features/providers/ManageProvidersPage'
 import { ManageReviewsPage } from '@/features/reviews/ManageReviewsPage'
-import { ManageStepsPage } from '@/features/steps/ManageStepsPage'
 import { UserDetailsPage } from '@/features/users/UserDetailsPage'
 import { UserQueuePage } from '@/features/users/UserQueuePage'
 import { UsersPage } from '@/features/users/UsersPage'
@@ -88,7 +87,6 @@ function App() {
             <Route path="activity" element={<ActivityLogsPage />} />
             <Route path="errors" element={<ErrorLogsPage />} />
             <Route path="notifications" element={<ManageNotificationsPage />} />
-            <Route path="steps" element={<ManageStepsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
@@ -120,7 +118,6 @@ function App() {
             <Route path="listings/:id" element={<ListingDetailsPage />} />
             <Route path="reviews" element={<ManageReviewsPage />} />
             <Route path="categories" element={<ManageCategoriesPage />} />
-            <Route path="steps" element={<ManageStepsPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 
@@ -141,7 +138,6 @@ function App() {
             <Route path="projects" element={<ProjectsListPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />
-            <Route path="steps" element={<Navigate to="/pm/settings?tab=steps" replace />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

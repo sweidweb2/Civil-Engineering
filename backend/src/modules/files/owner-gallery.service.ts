@@ -31,10 +31,21 @@ export type OwnerGalleryRepository = {
     isMain?: boolean
     displayOrder?: number
   }) => Promise<OwnerGalleryImage>
+  createAtomic: (data: {
+    ownerId: string
+    storagePath: string
+    isMain?: boolean
+    displayOrder?: number
+    maxImages: number
+    autoMainIfEmpty: boolean
+  }) => Promise<OwnerGalleryImage>
   update: (
     id: string,
     data: { isMain?: boolean; displayOrder?: number },
   ) => Promise<OwnerGalleryImage>
+  setMainAtomic: (ownerId: string, imageId: string) => Promise<OwnerGalleryImage>
+  /** Apply displayOrder updates for one owner in a single transaction. */
+  reorderAtomic: (ownerId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
   unsetMainImage: (ownerId: string) => Promise<void>
   findMainImageByOwnerId: (ownerId: string) => Promise<OwnerGalleryImage | null>
@@ -88,27 +99,17 @@ export type OwnerGalleryServiceDeps = {
 export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerGalleryService {
   const { repository, policy, storage, config } = deps
 
-  function getImageUrl(storagePath: string): Promise<string> {
-    return resolvePublicOrPresignedUrl({ config, storage, storagePath })
+  async function getImageUrl(storagePath: string): Promise<string | null> {
+    try {
+      return await resolvePublicOrPresignedUrl({ config, storage, storagePath })
+    } catch {
+      return null
+    }
   }
 
   async function withUrl(image: OwnerGalleryImage): Promise<OwnerGalleryImageWithUrl> {
-    return { ...image, url: await getImageUrl(image.storagePath) }
-  }
-
-  async function processAndUploadImage(
-    buffer: Buffer,
-    ownerId: string,
-    imageId: string,
-  ): Promise<string> {
-    const webpBuffer = await toWebpBuffer(buffer)
-    const key = `${policy.keyPrefix}/${ownerId}/images/${imageId}.webp`
-    await storage.putObject({
-      key,
-      body: webpBuffer,
-      contentType: 'image/webp',
-    })
-    return key
+    const url = await getImageUrl(image.storagePath)
+    return { ...image, url: url ?? '' }
   }
 
   return {
@@ -129,27 +130,31 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       await policy.assertCanManage(actor, ownerId)
       assertAllowedImageUpload(file)
 
-      const currentCount = await repository.countByOwnerId(ownerId)
-      if (currentCount >= MAX_GALLERY_IMAGES) {
-        throw validationError(`Maximum ${MAX_GALLERY_IMAGES} images per ${policy.keyPrefix}`)
-      }
-
       const imageId = randomUUID().replace(/-/g, '')
-      const storagePath = await processAndUploadImage(file.buffer, ownerId, imageId)
-      const isMain = policy.autoMain
-        ? input.isMain === true || currentCount === 0
-        : (input.isMain ?? false)
+      const storagePath = `${policy.keyPrefix}/${ownerId}/images/${imageId}.webp`
+      const webpBuffer = await toWebpBuffer(file.buffer)
 
-      if (isMain) {
-        await repository.unsetMainImage(ownerId)
-      }
-
-      const image = await repository.create({
+      // DB first (count + main under row lock) so concurrent uploads cannot overrun the cap
+      // or create dual mains; R2 put is compensated if it fails after insert.
+      const image = await repository.createAtomic({
         ownerId,
         storagePath,
-        isMain,
-        displayOrder: input.displayOrder ?? currentCount,
+        isMain: input.isMain,
+        displayOrder: input.displayOrder,
+        maxImages: MAX_GALLERY_IMAGES,
+        autoMainIfEmpty: policy.autoMain,
       })
+
+      try {
+        await storage.putObject({
+          key: storagePath,
+          body: webpBuffer,
+          contentType: 'image/webp',
+        })
+      } catch (error) {
+        await repository.delete(image.id).catch(() => undefined)
+        throw error
+      }
 
       return withUrl(image)
     },
@@ -159,8 +164,12 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       if (!image) throw notFound('Image not found', policy.notFoundCode)
       await policy.assertCanManage(actor, image.ownerId)
 
-      if (input.isMain) {
-        await repository.unsetMainImage(image.ownerId)
+      if (input.isMain === true) {
+        const updated = await repository.setMainAtomic(image.ownerId, imageId)
+        if (input.displayOrder !== undefined) {
+          return withUrl(await repository.update(imageId, { displayOrder: input.displayOrder }))
+        }
+        return withUrl(updated)
       }
 
       const updated = await repository.update(imageId, input)
@@ -178,7 +187,7 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
         const remaining = await repository.findByOwnerId(image.ownerId)
         const next = remaining[0]
         if (next) {
-          await repository.update(next.id, { isMain: true })
+          await repository.setMainAtomic(image.ownerId, next.id)
         }
       }
 
@@ -202,9 +211,7 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
         throw validationError(`Invalid image IDs: ${invalidIds.join(', ')}`)
       }
 
-      await Promise.all(
-        input.imageIds.map((id, index) => repository.update(id, { displayOrder: index })),
-      )
+      await repository.reorderAtomic(ownerId, input.imageIds)
 
       const updatedImages = await repository.findByOwnerId(ownerId)
       return Promise.all(updatedImages.map((image) => withUrl(image)))

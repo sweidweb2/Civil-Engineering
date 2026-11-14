@@ -1,5 +1,5 @@
 import { prisma } from '../../database/prisma.js'
-import type { Role, UserStatus } from '../../generated/prisma/client.js'
+import { Prisma, type Role, type UserStatus } from '../../generated/prisma/client.js'
 
 export type AuthUserRecord = {
   id: string
@@ -38,6 +38,11 @@ export type AuthRepository = {
   updatePasswordHash: (userId: string, passwordHash: string) => Promise<void>
   /** Persist a denied refresh jti until expiresAt (idempotent). */
   denyRefreshJti: (jti: string, expiresAt: Date) => Promise<void>
+  /**
+   * Atomically claim a refresh jti for rotation.
+   * `claimed` — first winner; `reuse` — jti already denied (concurrent/replay).
+   */
+  claimRefreshJti: (jti: string, expiresAt: Date) => Promise<'claimed' | 'reuse'>
   isRefreshJtiDenied: (jti: string) => Promise<boolean>
   /** Delete expired denylist rows. Returns number removed. */
   purgeExpiredDeniedRefreshTokens: (now?: Date) => Promise<number>
@@ -112,6 +117,34 @@ export function createAuthRepository(): AuthRepository {
         create: { jti, expiresAt },
         update: { expiresAt },
       })
+    },
+
+    async claimRefreshJti(jti, expiresAt) {
+      // Single-statement claim — concurrent refreshes cannot both insert the same jti.
+      const inserted = await prisma.$executeRaw`
+        INSERT INTO denied_refresh_tokens (jti, "expiresAt", "createdAt")
+        VALUES (${jti}, ${expiresAt}, NOW())
+        ON CONFLICT (jti) DO NOTHING
+      `
+      if (inserted === 1) return 'claimed'
+
+      const existing = await prisma.deniedRefreshToken.findUnique({
+        where: { jti },
+        select: { expiresAt: true },
+      })
+      if (existing && existing.expiresAt.getTime() <= Date.now()) {
+        await prisma.deniedRefreshToken.delete({ where: { jti } }).catch(() => undefined)
+        try {
+          await prisma.deniedRefreshToken.create({ data: { jti, expiresAt } })
+          return 'claimed'
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            return 'reuse'
+          }
+          throw error
+        }
+      }
+      return 'reuse'
     },
 
     async isRefreshJtiDenied(jti) {

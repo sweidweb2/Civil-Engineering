@@ -1,11 +1,8 @@
 {
   "settings": "الإعدادات",
-  "settingsDescription": "إدارة ملفك الشخصي وقوالب خطوات المشروع.",
-  "chooseSection": "اختر قسماً للتعديل.",
+  "settingsDescription": "إدارة ملفك الشخصي وإعدادات الحساب.",
   "profile": "الملف الشخصي",
   "profileDescription": "تفاصيل الحساب والمعلومات المهنية",
-  "steps": "الخطوات",
-  "stepsDescription": "القوالب المعيَّنة للمشاريع الجديدة",
   "general": "عام",
   "additionalInfo": "معلومات إضافية",
   "personalDetails": "البيانات الشخصية",

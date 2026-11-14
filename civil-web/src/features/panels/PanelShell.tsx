@@ -8,7 +8,6 @@ import {
   Home,
   LayoutDashboard,
   Library,
-  ListOrdered,
   Loader2,
   LogOut,
   Moon,
@@ -330,7 +329,6 @@ export const SUPER_NAV: PanelNavItem[] = [
   { to: '/super/users', labelKey: 'users', icon: Users },
   { to: '/super/activity', labelKey: 'activity', icon: Activity },
   { to: '/super/errors', labelKey: 'errors', icon: AlertTriangle },
-  { to: '/super/steps', labelKey: 'steps', icon: ListOrdered },
   { to: '/super/settings', labelKey: 'settings', icon: Settings },
 ]
 
@@ -344,7 +342,6 @@ export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin/listings', labelKey: 'listings', icon: Package },
   { to: '/admin/reviews', labelKey: 'reviews', icon: Star },
   { to: '/admin/categories', labelKey: 'categories', icon: FolderTree },
-  { to: '/admin/steps', labelKey: 'steps', icon: ListOrdered },
 ]
 
 export const PM_NAV: PanelNavItem[] = [

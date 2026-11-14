@@ -47,6 +47,7 @@ describe('auth.service', () => {
       createUserWithProfile: vi.fn(),
       updatePasswordHash: vi.fn(),
       denyRefreshJti: vi.fn(async () => undefined),
+      claimRefreshJti: vi.fn(async () => 'claimed' as const),
       isRefreshJtiDenied: vi.fn(async () => false),
       purgeExpiredDeniedRefreshTokens: vi.fn(async () => 0),
     }
@@ -142,7 +143,7 @@ describe('auth.service', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     })
-    expect(repository.denyRefreshJti).toHaveBeenCalledWith('jti-1', expect.any(Date))
+    expect(repository.claimRefreshJti).toHaveBeenCalledWith('jti-1', expect.any(Date))
   })
 
   it('rejects invalid refresh tokens', async () => {
@@ -158,16 +159,21 @@ describe('auth.service', () => {
     await expect(service.logout({ refreshToken: 'anything' })).resolves.toBeUndefined()
   })
 
-  it('rejects refresh after logout denylists the jti', async () => {
+  it('rejects concurrent refresh reuse of the same jti', async () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser())
-    vi.mocked(repository.isRefreshJtiDenied).mockResolvedValue(true)
+    vi.mocked(repository.claimRefreshJti).mockResolvedValue('reuse')
     const service = createAuthService(repository, config)
 
-    await service.logout({ refreshToken: 'good' })
     await expect(service.refreshTokens({ refreshToken: 'good' })).rejects.toMatchObject({
       status: 401,
     })
-    expect(repository.denyRefreshJti).toHaveBeenCalled()
+    expect(repository.claimRefreshJti).toHaveBeenCalled()
+  })
+
+  it('logout denylists the refresh jti', async () => {
+    const service = createAuthService(repository, config)
+    await service.logout({ refreshToken: 'good' })
+    expect(repository.denyRefreshJti).toHaveBeenCalledWith('jti-1', expect.any(Date))
   })
 
   it('changes password when current password is correct', async () => {

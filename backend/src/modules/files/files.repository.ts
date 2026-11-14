@@ -19,6 +19,10 @@ export type FilesRepository = {
   findById: (id: string) => Promise<FileRecord | null>
   markReady: (id: string, size: number) => Promise<FileRecord>
   markDeleted: (id: string) => Promise<FileRecord>
+  /** Soft-deleted rows still needing R2 cleanup (oldest first). */
+  listDeleted: (take: number) => Promise<Array<{ id: string; key: string }>>
+  /** Stale PENDING uploads that never completed (no blob expected after TTL). */
+  listStalePending: (olderThan: Date, take: number) => Promise<Array<{ id: string; key: string }>>
 }
 
 export function createFilesRepository(): FilesRepository {
@@ -56,6 +60,24 @@ export function createFilesRepository(): FilesRepository {
         where: { id },
         data: { status: 'DELETED' satisfies FileStatusName },
       }) as Promise<FileRecord>
+    },
+
+    async listDeleted(take) {
+      return prisma.file.findMany({
+        where: { status: 'DELETED' },
+        orderBy: { updatedAt: 'asc' },
+        take,
+        select: { id: true, key: true },
+      })
+    },
+
+    async listStalePending(olderThan, take) {
+      return prisma.file.findMany({
+        where: { status: 'PENDING', createdAt: { lte: olderThan } },
+        orderBy: { createdAt: 'asc' },
+        take,
+        select: { id: true, key: true },
+      })
     },
   }
 }

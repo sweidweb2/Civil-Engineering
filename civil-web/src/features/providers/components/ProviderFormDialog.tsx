@@ -405,7 +405,6 @@ export function ProviderFormDialog({
                   <Input
                     id="provider-name"
                     maxLength={120}
-                    placeholder={t('admin:providers.form.namePlaceholder')}
                     value={form.name}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, name: event.target.value }))
@@ -422,7 +421,6 @@ export function ProviderFormDialog({
                   <Textarea
                     id="provider-description"
                     maxLength={2000}
-                    placeholder={t('admin:providers.form.descriptionPlaceholder')}
                     value={form.description}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, description: event.target.value }))
@@ -469,7 +467,6 @@ export function ProviderFormDialog({
                       type="url"
                       dir="ltr"
                       maxLength={500}
-                      placeholder={t('admin:providers.form.logoPlaceholder')}
                       value={form.logoUrl}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, logoUrl: event.target.value }))
@@ -496,7 +493,6 @@ export function ProviderFormDialog({
                   <Input
                     id="provider-phone"
                     maxLength={20}
-                    placeholder={t('admin:providers.form.phonePlaceholder')}
                     value={form.phone}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, phone: event.target.value }))
@@ -512,7 +508,6 @@ export function ProviderFormDialog({
                   <Input
                     id="provider-whatsapp"
                     maxLength={20}
-                    placeholder={t('admin:providers.form.whatsappPlaceholder')}
                     value={form.whatsapp}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, whatsapp: event.target.value }))
@@ -530,7 +525,6 @@ export function ProviderFormDialog({
                     type="email"
                     dir="ltr"
                     maxLength={254}
-                    placeholder={t('admin:providers.form.emailPlaceholder')}
                     value={form.email}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, email: event.target.value }))
@@ -548,7 +542,6 @@ export function ProviderFormDialog({
                     type="url"
                     dir="ltr"
                     maxLength={500}
-                    placeholder={t('admin:providers.form.websitePlaceholder')}
                     value={form.website}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, website: event.target.value }))
@@ -574,7 +567,6 @@ export function ProviderFormDialog({
                   <Input
                     id="provider-address"
                     maxLength={200}
-                    placeholder={t('admin:providers.form.addressPlaceholder')}
                     value={form.address}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, address: event.target.value }))
@@ -591,7 +583,6 @@ export function ProviderFormDialog({
                     <Input
                       id="provider-city"
                       maxLength={80}
-                      placeholder={t('admin:providers.form.cityPlaceholder')}
                       value={form.city}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, city: event.target.value }))
@@ -607,7 +598,6 @@ export function ProviderFormDialog({
                     <Input
                       id="provider-country"
                       maxLength={80}
-                      placeholder={t('admin:providers.form.countryPlaceholder')}
                       value={form.country}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, country: event.target.value }))
@@ -625,7 +615,6 @@ export function ProviderFormDialog({
                     <Input
                       id="provider-lat"
                       inputMode="decimal"
-                      placeholder={t('admin:providers.form.latitudePlaceholder')}
                       value={form.lat}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, lat: event.target.value }))
@@ -641,7 +630,6 @@ export function ProviderFormDialog({
                     <Input
                       id="provider-lng"
                       inputMode="decimal"
-                      placeholder={t('admin:providers.form.longitudePlaceholder')}
                       value={form.lng}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, lng: event.target.value }))

@@ -27,8 +27,11 @@ type Props = {
   idPrefix: string
   /** When set, show provider select (create/edit dialog for admins). */
   providers?: Provider[]
-  /** Slot after identity fields (e.g. main image uploader in the dialog). */
-  afterIdentity?: ReactNode
+  /**
+   * Optional media slot (e.g. main image). When set, sits beside the identity
+   * text fields so heights line up in the dialog.
+   */
+  mediaSlot?: ReactNode
   showBrand?: boolean
   showQuantity?: boolean
   showDescription?: boolean
@@ -40,7 +43,7 @@ export function ListingFields({
   categories,
   idPrefix,
   providers,
-  afterIdentity,
+  mediaSlot,
   showBrand = true,
   showQuantity = true,
   showDescription = true,
@@ -55,45 +58,44 @@ export function ListingFields({
     onChange({ ...form, ...partial })
   }
 
-  return (
-    <div className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+  const identityFields = (
+    <div className="grid min-w-0 flex-1 gap-3">
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-name`}>{t('admin:listings.form.name')}</Label>
+        <Input
+          id={`${idPrefix}-name`}
+          value={form.name}
+          maxLength={160}
+          onChange={(event) => patch({ name: event.target.value })}
+        />
+      </div>
+      {providers ? (
         <div className="grid gap-1.5">
-          <Label htmlFor={`${idPrefix}-name`}>{t('admin:listings.form.name')}</Label>
-          <Input
-            id={`${idPrefix}-name`}
-            value={form.name}
-            maxLength={160}
-            placeholder={t('admin:listings.form.namePlaceholder')}
-            onChange={(event) => patch({ name: event.target.value })}
-          />
+          <Label htmlFor={`${idPrefix}-provider`}>{t('admin:listings.form.provider')}</Label>
+          <Select
+            items={providers.map((provider) => ({
+              value: provider.id,
+              label: provider.name,
+            }))}
+            value={form.providerId}
+            onValueChange={(value) => {
+              if (value) patch({ providerId: value })
+            }}
+          >
+            <SelectTrigger id={`${idPrefix}-provider`} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {providers.map((provider) => (
+                <SelectItem key={provider.id} value={provider.id}>
+                  {provider.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        {providers ? (
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${idPrefix}-provider`}>{t('admin:listings.form.provider')}</Label>
-            <Select
-              items={providers.map((provider) => ({
-                value: provider.id,
-                label: provider.name,
-              }))}
-              value={form.providerId}
-              onValueChange={(value) => {
-                if (value) patch({ providerId: value })
-              }}
-            >
-              <SelectTrigger id={`${idPrefix}-provider`} className="w-full">
-                <SelectValue placeholder={t('admin:listings.form.selectProvider')} />
-              </SelectTrigger>
-              <SelectContent>
-                {providers.map((provider) => (
-                  <SelectItem key={provider.id} value={provider.id}>
-                    {provider.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
+      ) : null}
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor={`${idPrefix}-category`}>{t('admin:listings.form.category')}</Label>
           <Select
@@ -107,7 +109,7 @@ export function ListingFields({
             }}
           >
             <SelectTrigger id={`${idPrefix}-category`} className="w-full">
-              <SelectValue placeholder={t('admin:listings.form.selectCategory')} />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {categories.map((category) => (
@@ -131,7 +133,7 @@ export function ListingFields({
             }}
           >
             <SelectTrigger id={`${idPrefix}-status`} className="w-full">
-              <SelectValue placeholder={t('admin:listings.form.selectStatus')} />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ACTIVE">{t('admin:listingStatus.ACTIVE')}</SelectItem>
@@ -140,8 +142,19 @@ export function ListingFields({
           </Select>
         </div>
       </div>
+    </div>
+  )
 
-      {afterIdentity}
+  return (
+    <div className="grid gap-3">
+      {mediaSlot ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          {identityFields}
+          <div className="flex shrink-0 sm:w-32">{mediaSlot}</div>
+        </div>
+      ) : (
+        identityFields
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
@@ -150,7 +163,6 @@ export function ListingFields({
             id={`${idPrefix}-currency`}
             value={form.currency}
             maxLength={3}
-            placeholder={t('admin:listings.form.currencyPlaceholder')}
             onChange={(event) => patch({ currency: event.target.value })}
           />
         </div>
@@ -160,7 +172,6 @@ export function ListingFields({
             id={`${idPrefix}-unit`}
             value={form.unit}
             maxLength={40}
-            placeholder={t('admin:listings.form.unitPlaceholder')}
             onChange={(event) => patch({ unit: event.target.value })}
           />
         </div>
@@ -171,7 +182,6 @@ export function ListingFields({
               id={`${idPrefix}-brand`}
               value={form.brand}
               maxLength={120}
-              placeholder={t('admin:listings.form.brandPlaceholder')}
               onChange={(event) => patch({ brand: event.target.value })}
             />
           </div>
@@ -183,7 +193,6 @@ export function ListingFields({
               id={`${idPrefix}-qty`}
               inputMode="decimal"
               maxLength={18}
-              placeholder={t('admin:listings.form.quantityPlaceholder')}
               value={form.quantityAvailable}
               onChange={(event) => patch({ quantityAvailable: event.target.value })}
             />
@@ -214,7 +223,6 @@ export function ListingFields({
               id={`${idPrefix}-price-min`}
               inputMode="decimal"
               maxLength={18}
-              placeholder={t('admin:listings.form.minPricePlaceholder')}
               value={form.priceMin}
               onChange={(event) => patch({ priceMin: event.target.value })}
             />
@@ -225,7 +233,6 @@ export function ListingFields({
               id={`${idPrefix}-price-max`}
               inputMode="decimal"
               maxLength={18}
-              placeholder={t('admin:listings.form.maxPricePlaceholder')}
               value={form.priceMax}
               onChange={(event) => patch({ priceMax: event.target.value })}
             />
@@ -238,7 +245,6 @@ export function ListingFields({
             id={`${idPrefix}-price`}
             inputMode="decimal"
             maxLength={18}
-            placeholder={t('admin:listings.form.pricePlaceholder')}
             value={form.price}
             onChange={(event) => patch({ price: event.target.value })}
           />
@@ -282,7 +288,7 @@ export function ListingFields({
               onValueChange={(value) => patch({ rentalUnit: value ?? '' })}
             >
               <SelectTrigger id={`${idPrefix}-rental-unit`} className="w-full">
-                <SelectValue placeholder={t('admin:listings.form.selectRentalUnit')} />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {RENTAL_UNITS.map((unit) => (

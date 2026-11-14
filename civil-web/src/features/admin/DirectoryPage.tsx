@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
+import { ellipsis, pageCount } from '@/lib/text'
 import {
   formatListingPrice,
   type Listing,
@@ -31,6 +31,9 @@ import { directoryWindows, readPageWindow } from './lib/directory-page'
 
 type DirectorySource = 'materials' | 'equipment' | 'workers'
 type DirectoryFilter = DirectoryKind | 'all'
+
+/** Directory card grid page size (independent of table PAGE_SIZE). */
+const DIRECTORY_PAGE_SIZE = 20
 
 type DirectoryStats = {
   materials: number
@@ -100,7 +103,7 @@ async function loadDirectory(input: {
   const equipmentIsList = !q && input.kind === 'equipment'
   const workerIsList = !q && input.kind === 'worker'
   const materialLimit =
-    materialIsList || (!q && input.kind === 'all' && input.page === 1) ? PAGE_SIZE : 1
+    materialIsList || (!q && input.kind === 'all' && input.page === 1) ? DIRECTORY_PAGE_SIZE : 1
   const materialPage = materialIsList ? input.page : 1
 
   const [materials, equipment, workers] = await Promise.all([
@@ -108,13 +111,13 @@ async function loadDirectory(input: {
     listingSlice(
       'EQUIPMENT',
       equipmentIsList ? input.page : 1,
-      equipmentIsList ? PAGE_SIZE : 1,
+      equipmentIsList ? DIRECTORY_PAGE_SIZE : 1,
       locale,
     ),
     input.includeWorkers
       ? listVerifications({
           page: workerIsList ? input.page : 1,
-          limit: workerIsList ? PAGE_SIZE : 1,
+          limit: workerIsList ? DIRECTORY_PAGE_SIZE : 1,
         })
       : Promise.resolve(null),
   ])
@@ -133,11 +136,11 @@ async function loadDirectory(input: {
 
   if (q && (input.kind === 'material' || input.kind === 'equipment')) {
     const type: ListingType = input.kind === 'material' ? 'MATERIAL' : 'EQUIPMENT'
-    const page = await listingSlice(type, input.page, PAGE_SIZE, locale, q)
+    const page = await listingSlice(type, input.page, DIRECTORY_PAGE_SIZE, locale, q)
     return { stats, items: page.items, total: page.total }
   }
   if (q && input.kind === 'worker') {
-    const page = await listVerifications({ page: input.page, limit: PAGE_SIZE, q })
+    const page = await listVerifications({ page: input.page, limit: DIRECTORY_PAGE_SIZE, q })
     return { stats, items: page.data.map(workerItem), total: page.meta.total }
   }
 
@@ -160,13 +163,13 @@ async function loadDirectory(input: {
     })
   }
 
-  const pageStart = (input.page - 1) * PAGE_SIZE
+  const pageStart = (input.page - 1) * DIRECTORY_PAGE_SIZE
   const combinedTotal = totals.reduce((sum, entry) => sum + entry.total, 0)
-  if (!q && input.page === 1 && materials.total >= PAGE_SIZE) {
-    return { stats, items: materials.items.slice(0, PAGE_SIZE), total: combinedTotal }
+  if (!q && input.page === 1 && materials.total >= DIRECTORY_PAGE_SIZE) {
+    return { stats, items: materials.items.slice(0, DIRECTORY_PAGE_SIZE), total: combinedTotal }
   }
 
-  const plan = directoryWindows(totals, pageStart, PAGE_SIZE)
+  const plan = directoryWindows(totals, pageStart, DIRECTORY_PAGE_SIZE)
   const chunks = await Promise.all(
     plan.map(async (window) => {
       if (!q && input.page === 1 && window.source === 'materials') {
@@ -343,13 +346,17 @@ export function DirectoryPage() {
               <CardGridSkeleton className="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />
             }
           >
-            <DirectoryCards items={items} />
-            <TablePager
-              page={page}
-              totalPages={pageCount(total)}
-              total={total}
-              onPageChange={setPage}
-            />
+            <div className="flex min-w-0 flex-col gap-4">
+              <DirectoryCards items={items} />
+              <div className="sticky bottom-0 z-10 -mx-1 border-t bg-background/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                <TablePager
+                  page={page}
+                  totalPages={pageCount(total, DIRECTORY_PAGE_SIZE)}
+                  total={total}
+                  onPageChange={setPage}
+                />
+              </div>
+            </div>
           </AsyncState>
         </TabsContent>
       </Tabs>

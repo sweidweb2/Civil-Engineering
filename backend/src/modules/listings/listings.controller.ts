@@ -11,6 +11,8 @@ export type ListingsController = {
   create: RequestHandler
   update: RequestHandler
   remove: RequestHandler
+  bulkAdjustPrices: RequestHandler
+  importListings: RequestHandler
 }
 
 export function createListingsController(service: ListingsService): ListingsController {
@@ -44,6 +46,16 @@ export function createListingsController(service: ListingsService): ListingsCont
 
     remove: wrap(async (req, res) => {
       const result = await service.deleteListing(String(req.params.id), parseAuthActor(req))
+      res.status(200).json({ data: result })
+    }),
+
+    bulkAdjustPrices: wrap(async (req, res) => {
+      const result = await service.bulkAdjustPrices(req.body, parseAuthActor(req))
+      res.status(200).json({ data: result })
+    }),
+
+    importListings: wrap(async (req, res) => {
+      const result = await service.importListings(req.body, parseAuthActor(req))
       res.status(200).json({ data: result })
     }),
   }

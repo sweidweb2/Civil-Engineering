@@ -170,9 +170,82 @@ export const updateListingBodySchema = z
     path: ['rentalUnit'],
   })
 
+export const bulkPriceDirectionSchema = z.enum(['increase', 'decrease'])
+export const bulkPriceModeSchema = z.enum(['percentage', 'amount'])
+
+export const bulkPriceAdjustBodySchema = z
+  .object({
+    /** Required for admins; providers are scoped to their own provider. */
+    providerId: z.preprocess(
+      (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+      z.string().trim().min(1).optional(),
+    ),
+    direction: bulkPriceDirectionSchema,
+    mode: bulkPriceModeSchema,
+    value: decimalText('Value'),
+  })
+  .superRefine((body, ctx) => {
+    const amount = Number(body.value)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Value must be greater than zero',
+        path: ['value'],
+      })
+      return
+    }
+    if (body.mode === 'percentage' && body.direction === 'decrease' && amount > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Decrease percentage cannot exceed 100',
+        path: ['value'],
+      })
+    }
+  })
+
 export type ListingType = z.infer<typeof listingTypeSchema>
 export type ListingStatus = z.infer<typeof listingStatusSchema>
 export type RentalUnit = z.infer<typeof rentalUnitSchema>
 export type ListListingsQuery = z.infer<typeof listListingsQuerySchema>
 export type CreateListingBody = z.infer<typeof createListingBodySchema>
 export type UpdateListingBody = z.infer<typeof updateListingBodySchema>
+/** Max rows accepted in one CSV import payload (excluding empty lines). */
+export const LISTING_IMPORT_MAX_ROWS = 500
+
+const importCell = z.preprocess((value) => {
+  if (value === undefined || value === null) return ''
+  return String(value).trim()
+}, z.string().max(4000))
+
+export const listingImportRowSchema = z.object({
+  name: importCell,
+  category: importCell.optional(),
+  description: importCell.optional(),
+  brand: importCell.optional(),
+  unit: importCell.optional(),
+  currency: importCell.optional(),
+  price: importCell.optional(),
+  price_min: importCell.optional(),
+  price_max: importCell.optional(),
+  rental_price: importCell.optional(),
+  rental_unit: importCell.optional(),
+  quantity_available: importCell.optional(),
+  status: importCell.optional(),
+})
+
+export const importListingsBodySchema = z.object({
+  providerId: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().min(1).optional(),
+  ),
+  rows: z
+    .array(listingImportRowSchema)
+    .min(1, 'At least one row is required')
+    .max(LISTING_IMPORT_MAX_ROWS, `At most ${LISTING_IMPORT_MAX_ROWS} rows allowed`),
+})
+
+export type BulkPriceDirection = z.infer<typeof bulkPriceDirectionSchema>
+export type BulkPriceMode = z.infer<typeof bulkPriceModeSchema>
+export type BulkPriceAdjustBody = z.infer<typeof bulkPriceAdjustBodySchema>
+export type ListingImportRow = z.infer<typeof listingImportRowSchema>
+export type ImportListingsBody = z.infer<typeof importListingsBodySchema>

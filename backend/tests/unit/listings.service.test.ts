@@ -65,6 +65,30 @@ function setup(opts?: {
       scope: 'PLATFORM' as const,
       isActive: true,
     })),
+    findListingCategoriesForImport: vi.fn(async () => [
+      {
+        id: 'cat-1',
+        name: 'Cement',
+        nameAr: null,
+        slug: 'cement',
+        kind: 'MATERIAL' as const,
+      },
+    ]),
+    findPriceFieldsByProviderId: vi.fn(async () =>
+      listing
+        ? [
+            {
+              id: listing.id,
+              price: listing.price,
+              priceMin: listing.priceMin,
+              priceMax: listing.priceMax,
+              rentalPrice: listing.rentalPrice,
+            },
+          ]
+        : [],
+    ),
+    updatePrices: vi.fn(async () => undefined),
+    createMany: vi.fn(async (inputs) => inputs.length),
     create: vi.fn(async (input) =>
       record({
         name: input.name,
@@ -217,6 +241,53 @@ describe('listingsService', () => {
     await expect(service.deleteListing('lst-1', admin)).resolves.toEqual({ outcome: 'hidden' })
     expect(repository.hide).toHaveBeenCalledWith('lst-1')
     expect(repository.delete).not.toHaveBeenCalled()
+  })
+
+  it('bulk-increases prices by percentage for a provider', async () => {
+    const { service, repository } = setup({
+      listing: record({ price: '100', rentalPrice: '50' }),
+    })
+    await expect(
+      service.bulkAdjustPrices(
+        { providerId: 'prv-1', direction: 'increase', mode: 'percentage', value: '10' },
+        admin,
+      ),
+    ).resolves.toEqual({ updated: 1, skipped: 0 })
+    expect(repository.updatePrices).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: 'lst-1',
+        price: '110.0000',
+        rentalPrice: '55.0000',
+      }),
+    ])
+  })
+
+  it('requires providerId for admin bulk price adjust', async () => {
+    const { service } = setup()
+    await expect(
+      service.bulkAdjustPrices({ direction: 'increase', mode: 'amount', value: '5' }, admin),
+    ).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('imports valid CSV rows and reports skipped invalid ones', async () => {
+    const { service, repository } = setup()
+    const result = await service.importListings(
+      {
+        providerId: 'prv-1',
+        rows: [
+          { name: 'Good listing', category: 'Cement', price: '9' },
+          { name: '', price: '1' },
+          { name: 'Unknown cat', category: 'Nope' },
+        ],
+      },
+      admin,
+    )
+    expect(result.created).toBe(1)
+    expect(result.skipped).toBe(2)
+    expect(result.errors).toHaveLength(2)
+    expect(repository.createMany).toHaveBeenCalledWith([
+      expect.objectContaining({ name: 'Good listing', categoryId: 'cat-1', price: '9' }),
+    ])
   })
 })
 

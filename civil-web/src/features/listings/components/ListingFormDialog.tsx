@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, Loader2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -211,7 +211,7 @@ export function ListingFormDialog({
   }
 
   const mainImageSlot = (
-    <div className="grid gap-1.5">
+    <div className="flex h-full min-h-[7.25rem] w-full flex-col gap-1.5">
       <Label id="listing-main-image-label">{t('admin:listings.form.mainImage')}</Label>
       <input
         ref={fileInputRef}
@@ -230,7 +230,7 @@ export function ListingFormDialog({
         aria-labelledby="listing-main-image-label"
         aria-disabled={isSaving}
         className={cn(
-          'group relative flex aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 outline-none transition-colors',
+          'group relative flex min-h-0 w-full flex-1 cursor-pointer overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 outline-none transition-colors',
           'hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring',
           mainImagePreview && 'border-solid border-border bg-muted',
           isSaving && 'pointer-events-none cursor-not-allowed opacity-60',
@@ -254,8 +254,8 @@ export function ListingFormDialog({
               className="absolute inset-0 size-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 p-3">
-              <span className="text-sm font-medium text-white">
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1.5 p-2">
+              <span className="truncate text-xs font-medium text-white">
                 {t('admin:listings.form.changeImage')}
               </span>
               {mainImageFile ? (
@@ -263,28 +263,25 @@ export function ListingFormDialog({
                   type="button"
                   size="icon-sm"
                   variant="secondary"
-                  className="shrink-0 shadow-sm"
+                  className="size-7 shrink-0 shadow-sm"
                   aria-label={t('admin:listings.form.removeImage')}
                   onClick={(event) => {
                     event.stopPropagation()
                     clearMainImageSelection()
                   }}
                 >
-                  <X className="size-4" />
+                  <X className="size-3.5" />
                 </Button>
               ) : null}
             </div>
           </>
         ) : (
-          <div className="m-auto flex flex-col items-center gap-2 px-4 text-center">
-            <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-border bg-background text-muted-foreground">
-              <ImagePlus className="size-5" />
+          <div className="m-auto flex flex-col items-center gap-1.5 px-2 text-center">
+            <span className="flex size-8 items-center justify-center rounded-full border border-dashed border-border bg-background text-muted-foreground">
+              <ImagePlus className="size-4" />
             </span>
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-xs font-medium text-foreground">
               {t('admin:listings.form.chooseImage')}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {t('admin:listings.form.mainImageHint')}
             </span>
           </div>
         )}
@@ -293,7 +290,13 @@ export function ListingFormDialog({
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (isSaving) return
+        onOpenChange(next)
+      }}
+    >
       <DialogContent className="max-h-[min(90vh,44rem)] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
@@ -307,7 +310,7 @@ export function ListingFormDialog({
           categories={categoryOptions}
           idPrefix="listing"
           providers={lockedProviderId ? undefined : providerOptions}
-          afterIdentity={mainImageSlot}
+          mediaSlot={mainImageSlot}
         />
         <DialogFooter>
           <Button
@@ -319,6 +322,7 @@ export function ListingFormDialog({
             {t('common:cancel')}
           </Button>
           <Button type="button" onClick={() => void save()} disabled={isSaving}>
+            {isSaving ? <Loader2 className="animate-spin" aria-hidden /> : null}
             {isSaving ? t('common:saving') : t('common:save')}
           </Button>
         </DialogFooter>

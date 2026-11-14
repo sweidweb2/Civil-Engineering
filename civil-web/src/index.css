@@ -264,8 +264,8 @@
     height: 1.875rem;
     transform: translateY(-50%);
     border-radius: 9999px;
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
     font-size: 0.75rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;

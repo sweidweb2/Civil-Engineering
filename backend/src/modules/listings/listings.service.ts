@@ -5,8 +5,23 @@ import { forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProvidersService } from '../providers/index.js'
-import type { ListingRecord, ListingsRepository } from './listings.repository.js'
-import type { CreateListingBody, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
+import { parseImportRow } from './listings-import.js'
+import type {
+  CreateListingRecordInput,
+  ListingPriceFields,
+  ListingPriceUpdate,
+  ListingRecord,
+  ListingsRepository,
+} from './listings.repository.js'
+import type {
+  BulkPriceAdjustBody,
+  BulkPriceDirection,
+  BulkPriceMode,
+  CreateListingBody,
+  ImportListingsBody,
+  ListListingsQuery,
+  UpdateListingBody,
+} from './listings.schema.js'
 import type {
   Listing,
   ListingSnapshot,
@@ -20,6 +35,8 @@ export type ListingsService = {
   createListing: (input: CreateListingBody, actor: AuthActor) => Promise<Listing>
   updateListing: (id: string, input: UpdateListingBody, actor: AuthActor) => Promise<Listing>
   deleteListing: (id: string, actor: AuthActor) => Promise<DeleteListingResult>
+  bulkAdjustPrices: (input: BulkPriceAdjustBody, actor: AuthActor) => Promise<BulkPriceAdjustResult>
+  importListings: (input: ImportListingsBody, actor: AuthActor) => Promise<ImportListingsResult>
   assertAccessible: (id: string, actor: AuthActor) => Promise<Listing>
   assertManageable: (id: string, actor: AuthActor) => Promise<Listing>
   /** Internal lookups for other modules (no actor / authorization). */
@@ -37,6 +54,17 @@ export type ListingsService = {
 
 export type DeleteListingResult = {
   outcome: 'deleted' | 'hidden'
+}
+
+export type BulkPriceAdjustResult = {
+  updated: number
+  skipped: number
+}
+
+export type ImportListingsResult = {
+  created: number
+  skipped: number
+  errors: Array<{ row: number; reason: string }>
 }
 
 export type ListingsServiceDeps = {
@@ -121,6 +149,44 @@ function normalizePricing(input: {
     priceMin: input.priceMin ?? null,
     priceMax: input.priceMax ?? null,
   }
+}
+
+function hasPricedField(value: string | null) {
+  return value != null && value !== ''
+}
+
+function listingHasAnyPrice(row: ListingPriceFields) {
+  return (
+    hasPricedField(row.price) ||
+    hasPricedField(row.priceMin) ||
+    hasPricedField(row.priceMax) ||
+    hasPricedField(row.rentalPrice)
+  )
+}
+
+/** Keep Decimal(18, 4) as a fixed 4-place string for Prisma. */
+function formatAdjustedPrice(value: number): string {
+  const clamped = Math.max(0, Math.min(value, 99_999_999_999_999.9999))
+  return (Math.round(clamped * 10_000) / 10_000).toFixed(4)
+}
+
+function adjustAmount(
+  raw: string | null,
+  direction: BulkPriceDirection,
+  mode: BulkPriceMode,
+  delta: number,
+): string | null {
+  if (!hasPricedField(raw)) return raw
+  const current = Number(raw)
+  if (!Number.isFinite(current)) return raw
+  let next: number
+  if (mode === 'percentage') {
+    const factor = direction === 'increase' ? 1 + delta / 100 : 1 - delta / 100
+    next = current * factor
+  } else {
+    next = direction === 'increase' ? current + delta : current - delta
+  }
+  return formatAdjustedPrice(next)
 }
 
 export function createListingsService(
@@ -380,5 +446,75 @@ export function createListingsService(
       await repository.delete(id)
       return { outcome: 'deleted' as const }
     },
+
+    async bulkAdjustPrices(input, actor) {
+      const providerId = await resolveManageProviderId(actor, input.providerId)
+
+      const delta = Number(input.value)
+      const rows = await repository.findPriceFieldsByProviderId(providerId)
+      const updates: ListingPriceUpdate[] = []
+      let skipped = 0
+      for (const row of rows) {
+        if (!listingHasAnyPrice(row)) {
+          skipped += 1
+          continue
+        }
+        updates.push({
+          id: row.id,
+          price: adjustAmount(row.price, input.direction, input.mode, delta),
+          priceMin: adjustAmount(row.priceMin, input.direction, input.mode, delta),
+          priceMax: adjustAmount(row.priceMax, input.direction, input.mode, delta),
+          rentalPrice: adjustAmount(row.rentalPrice, input.direction, input.mode, delta),
+        })
+      }
+      await repository.updatePrices(updates)
+      return { updated: updates.length, skipped }
+    },
+
+    async importListings(input, actor) {
+      const providerId = await resolveManageProviderId(actor, input.providerId)
+      const categories = await repository.findListingCategoriesForImport()
+      const creates: CreateListingRecordInput[] = []
+      const errors: ImportListingsResult['errors'] = []
+
+      for (let index = 0; index < input.rows.length; index += 1) {
+        const row = input.rows[index]!
+        const parsed = parseImportRow(row, providerId, categories)
+        if (!parsed.ok) {
+          errors.push({ row: index + 2, reason: parsed.reason })
+          continue
+        }
+        creates.push(parsed.data)
+      }
+
+      const created = await repository.createMany(creates)
+      return {
+        created,
+        skipped: errors.length,
+        errors: errors.slice(0, 50),
+      }
+    },
+  }
+
+  async function resolveManageProviderId(
+    actor: AuthActor,
+    requestedProviderId: string | undefined,
+  ): Promise<string> {
+    if (actor.roles.includes('PROVIDER') && !isAdmin(actor.roles)) {
+      const providerId = await resolveOwnedProviderId(actor)
+      if (requestedProviderId && requestedProviderId !== providerId) {
+        throw forbidden('You can only manage listings for your own provider')
+      }
+      return providerId
+    }
+    if (isAdmin(actor.roles)) {
+      if (!requestedProviderId) {
+        throw validationError('providerId is required')
+      }
+      const provider = await repository.findProvider(requestedProviderId)
+      if (!provider) throw notFound('Provider not found', 'LISTING_PROVIDER_NOT_FOUND')
+      return requestedProviderId
+    }
+    throw forbidden('Only admins and providers can manage listings')
   }
 }

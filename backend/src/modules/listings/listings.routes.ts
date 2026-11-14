@@ -6,7 +6,9 @@ import { authorize } from '../../middleware/authorize.js'
 import { validate } from '../../middleware/validate.js'
 import type { ListingsController } from './listings.controller.js'
 import {
+  bulkPriceAdjustBodySchema,
   createListingBodySchema,
+  importListingsBodySchema,
   listingIdParamsSchema,
   listListingsQuerySchema,
   updateListingBodySchema,
@@ -22,6 +24,18 @@ export function createListingsRoutes(controller: ListingsController): Router {
     authorize('SUPER', 'ADMIN', 'MANAGER', 'PROVIDER'),
     validate({ query: listListingsQuerySchema }),
     controller.list,
+  )
+  router.post(
+    '/bulk-price-adjust',
+    authorize(...ADMIN_ROLES, 'PROVIDER'),
+    validate({ body: bulkPriceAdjustBodySchema }),
+    controller.bulkAdjustPrices,
+  )
+  router.post(
+    '/import',
+    authorize(...ADMIN_ROLES, 'PROVIDER'),
+    validate({ body: importListingsBodySchema }),
+    controller.importListings,
   )
   router.get(
     '/:id',

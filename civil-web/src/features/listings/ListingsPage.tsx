@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Eye, LayoutGrid, Pencil, Plus, Table2, Trash2 } from 'lucide-react'
+import {
+  Download,
+  Eye,
+  LayoutGrid,
+  MoreHorizontal,
+  Pencil,
+  Percent,
+  Plus,
+  Table2,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -24,8 +35,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -35,6 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -42,6 +60,7 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import { ApiError } from '@/services/api'
+import { type Category, listCategories } from '@/services/categories'
 import {
   deleteListing,
   formatListingPrice,
@@ -53,7 +72,11 @@ import {
 import { getMyProvider } from '@/services/providers'
 import { useLocaleStore } from '@/stores/localeStore'
 
+import { BulkPriceAdjustDialog } from './components/BulkPriceAdjustDialog'
+import { buildListingImportRulesText } from './components/ListingCsvRulesPanel'
 import { ListingFormDialog } from './components/ListingFormDialog'
+import { ListingImportDialog } from './components/ListingImportDialog'
+import { downloadListingImportBundle } from './listings-csv'
 
 type ListingView = 'cards' | 'table'
 
@@ -266,6 +289,8 @@ export function ListingsBrowser({
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const [view, setView] = useState<ListingView>(embedded ? 'table' : 'cards')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [bulkPriceOpen, setBulkPriceOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editing, setEditing] = useState<Listing | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Listing | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -300,6 +325,27 @@ export function ListingsBrowser({
     setDialogOpen(true)
   }
 
+  async function handleDownloadTemplate() {
+    try {
+      const result = await listCategories(1, 100, { includeCounts: false })
+      const categories = result.data.filter(
+        (category: Category) =>
+          category.isActive &&
+          (category.kind === 'MATERIAL' ||
+            category.kind === 'EQUIPMENT' ||
+            category.kind === 'SERVICE'),
+      )
+      const rulesText = buildListingImportRulesText((key) => t(`admin:${key}`), categories, locale)
+      downloadListingImportBundle(rulesText)
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : t('admin:listings.import.couldNotDownloadTemplate'),
+      )
+    }
+  }
+
   async function confirmDelete() {
     if (!pendingDelete) return
     const id = pendingDelete.id
@@ -321,20 +367,47 @@ export function ListingsBrowser({
   }
 
   const showCards = !embedded && view === 'cards'
-  const addButton = canManage ? (
-    <Button type="button" onClick={openCreate}>
-      <Plus />
-      {t('admin:listings.addListing')}
-    </Button>
-  ) : null
+  const canTools = canManage && Boolean(providerId)
+  const manageActions =
+    canManage || canTools ? (
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {canTools ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={t('admin:listings.moreActions')}
+              className={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
+            >
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              <DropdownMenuItem onClick={() => setBulkPriceOpen(true)}>
+                <Percent />
+                {t('admin:listings.bulkPrice.action')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void handleDownloadTemplate()}>
+                <Download />
+                {t('admin:listings.import.downloadTemplate')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportOpen(true)}>
+                <Upload />
+                {t('admin:listings.import.action')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+        {canManage ? (
+          <Button type="button" onClick={openCreate}>
+            <Plus />
+            {t('admin:listings.addListing')}
+          </Button>
+        ) : null}
+      </div>
+    ) : null
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
       {embedded ? (
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <h2 className="text-sm font-medium">{t('admin:listings.title')}</h2>
-          {addButton}
-        </div>
+        <h2 className="text-sm font-medium">{t('admin:listings.title')}</h2>
       ) : manageOwn ? null : (
         <PageHeader className="mb-0" title={t('admin:listings.title')} />
       )}
@@ -376,7 +449,9 @@ export function ListingsBrowser({
         )}
         <div
           className={
-            embedded ? 'min-w-0 flex-1 sm:max-w-sm' : 'min-w-0 w-full sm:justify-self-center'
+            embedded
+              ? 'flex min-w-0 flex-1 items-center gap-3'
+              : 'min-w-0 w-full sm:justify-self-center'
           }
         >
           <Input
@@ -384,10 +459,11 @@ export function ListingsBrowser({
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('admin:listings.filterPlaceholder')}
             aria-label={t('admin:listings.filterAria')}
-            className="w-full"
+            className={embedded ? 'min-w-0 flex-1' : 'w-full'}
           />
+          {embedded ? manageActions : null}
         </div>
-        {embedded ? null : <div className="flex shrink-0 sm:justify-self-end">{addButton}</div>}
+        {embedded ? null : <div className="flex shrink-0 sm:justify-self-end">{manageActions}</div>}
       </div>
 
       <AsyncState
@@ -540,6 +616,26 @@ export function ListingsBrowser({
           void remote.refetch()
         }}
       />
+
+      {providerId ? (
+        <>
+          <BulkPriceAdjustDialog
+            open={bulkPriceOpen}
+            providerId={providerId}
+            onOpenChange={setBulkPriceOpen}
+            onApplied={() => void remote.refetch()}
+          />
+          <ListingImportDialog
+            open={importOpen}
+            providerId={providerId}
+            onOpenChange={setImportOpen}
+            onImported={() => {
+              setPage(1)
+              void remote.refetch()
+            }}
+          />
+        </>
+      ) : null}
 
       <AlertDialog
         open={pendingDelete !== null}

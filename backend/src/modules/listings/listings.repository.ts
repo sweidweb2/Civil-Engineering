@@ -65,6 +65,22 @@ export type ListingChoiceFilters = {
   q?: string
 }
 
+export type ListingPriceFields = {
+  id: string
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
+  rentalPrice: string | null
+}
+
+export type ListingPriceUpdate = {
+  id: string
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
+  rentalPrice: string | null
+}
+
 export type ListingsRepository = {
   findMany: (query: ListListingsQuery) => Promise<{ items: ListingRecord[]; total: number }>
   countByType: (providerId?: string) => Promise<ListingTypeCounts>
@@ -83,7 +99,19 @@ export type ListingsRepository = {
     scope: 'PLATFORM' | 'PROVIDER'
     isActive: boolean
   } | null>
+  findListingCategoriesForImport: () => Promise<
+    Array<{
+      id: string
+      name: string
+      nameAr: string | null
+      slug: string
+      kind: 'MATERIAL' | 'EQUIPMENT' | 'SERVICE'
+    }>
+  >
+  findPriceFieldsByProviderId: (providerId: string) => Promise<ListingPriceFields[]>
+  updatePrices: (updates: ListingPriceUpdate[]) => Promise<void>
   create: (input: CreateListingRecordInput) => Promise<ListingRecord>
+  createMany: (inputs: CreateListingRecordInput[]) => Promise<number>
   update: (id: string, input: UpdateListingBody) => Promise<ListingRecord>
   countListingReviews: (id: string) => Promise<number>
   hide: (id: string) => Promise<ListingRecord>
@@ -330,12 +358,74 @@ export function createListingsRepository(): ListingsRepository {
       })
     },
 
+    async findListingCategoriesForImport() {
+      const rows = await prisma.category.findMany({
+        where: {
+          scope: 'PLATFORM',
+          isActive: true,
+          kind: { in: ['MATERIAL', 'EQUIPMENT', 'SERVICE'] },
+        },
+        select: { id: true, name: true, nameAr: true, slug: true, kind: true },
+        orderBy: { name: 'asc' },
+      })
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        nameAr: row.nameAr,
+        slug: row.slug,
+        kind: row.kind as 'MATERIAL' | 'EQUIPMENT' | 'SERVICE',
+      }))
+    },
+
+    async findPriceFieldsByProviderId(providerId) {
+      const rows = await prisma.listing.findMany({
+        where: { providerId },
+        select: {
+          id: true,
+          price: true,
+          priceMin: true,
+          priceMax: true,
+          rentalPrice: true,
+        },
+      })
+      return rows.map((row) => ({
+        id: row.id,
+        price: decimalToString(row.price),
+        priceMin: decimalToString(row.priceMin),
+        priceMax: decimalToString(row.priceMax),
+        rentalPrice: decimalToString(row.rentalPrice),
+      }))
+    },
+
+    async updatePrices(updates) {
+      if (updates.length === 0) return
+      await prisma.$transaction(
+        updates.map((update) =>
+          prisma.listing.update({
+            where: { id: update.id },
+            data: {
+              price: update.price,
+              priceMin: update.priceMin,
+              priceMax: update.priceMax,
+              rentalPrice: update.rentalPrice,
+            },
+          }),
+        ),
+      )
+    },
+
     async create(input) {
       const row = await prisma.listing.create({
         data: input,
         include: listingInclude,
       })
       return toRecord(row)
+    },
+
+    async createMany(inputs) {
+      if (inputs.length === 0) return 0
+      const result = await prisma.listing.createMany({ data: inputs })
+      return result.count
     },
 
     async update(id, input) {

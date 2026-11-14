@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Loader2, Save } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -158,7 +158,11 @@ export function ListingDetailsPage() {
                   {t('common:cancel')}
                 </Button>
                 <Button type="button" onClick={() => void handleSave()} disabled={isSaving}>
-                  <Save className="size-4" />
+                  {isSaving ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Save className="size-4" />
+                  )}
                   {isSaving ? t('common:saving') : t('common:save')}
                 </Button>
               </div>

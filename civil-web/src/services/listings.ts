@@ -161,3 +161,59 @@ export function deleteListing(id: string) {
     method: 'DELETE',
   })
 }
+
+export type BulkPriceDirection = 'increase' | 'decrease'
+export type BulkPriceMode = 'percentage' | 'amount'
+
+export type BulkPriceAdjustInput = {
+  providerId?: string
+  direction: BulkPriceDirection
+  mode: BulkPriceMode
+  value: string
+}
+
+export type BulkPriceAdjustResult = {
+  updated: number
+  skipped: number
+}
+
+export function bulkAdjustListingPrices(input: BulkPriceAdjustInput) {
+  return apiRequest<{ data: BulkPriceAdjustResult }>('/listings/bulk-price-adjust', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export type ListingImportRow = {
+  name: string
+  category?: string
+  description?: string
+  brand?: string
+  unit?: string
+  currency?: string
+  price?: string
+  price_min?: string
+  price_max?: string
+  rental_price?: string
+  rental_unit?: string
+  quantity_available?: string
+  status?: string
+}
+
+export type ImportListingsInput = {
+  providerId?: string
+  rows: ListingImportRow[]
+}
+
+export type ImportListingsResult = {
+  created: number
+  skipped: number
+  errors: Array<{ row: number; reason: string }>
+}
+
+export function importListings(input: ImportListingsInput) {
+  return apiRequest<{ data: ImportListingsResult }>('/listings/import', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}

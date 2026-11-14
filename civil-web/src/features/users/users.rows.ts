@@ -42,10 +42,12 @@ const ROLE_LABELS: Record<AuthRole, string> = {
   CLIENT: 'Client',
 }
 
-export const USER_ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = USER_ROLES.map((role) => ({
-  value: role,
-  label: ROLE_LABELS[role],
-}))
+export const USER_ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = USER_ROLES.map(
+  (role) => ({
+    value: role,
+    label: ROLE_LABELS[role],
+  }),
+)
 
 export function roleLabel(role: AuthRole): string {
   return ROLE_LABELS[role]

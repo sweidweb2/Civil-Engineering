@@ -246,7 +246,8 @@
     content: counter(table-row);
     position: absolute;
     top: 50%;
-    left: 0.75rem;
+    /* Logical start so the # badge stays in the index column under RTL */
+    inset-inline-start: 0.75rem;
     z-index: 1;
     display: flex;
     align-items: center;
@@ -269,7 +270,7 @@
   }
 
   [data-slot='table'][data-index='plain'] [data-slot='table-body'] tr:not(:has([colspan]))::after {
-    left: 0;
+    inset-inline-start: 0;
     width: 3.5rem;
     height: auto;
     border-radius: 0;

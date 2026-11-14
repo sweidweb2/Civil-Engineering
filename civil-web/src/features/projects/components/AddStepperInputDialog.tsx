@@ -27,12 +27,12 @@ import {
   localizedCategoryName,
   localizedCategoryParentName,
 } from '@/services/categories'
-import { useLocaleStore } from '@/stores/localeStore'
 import {
   INPUT_TYPES_PICKER_QUERY_KEY,
   type InputType,
   listInputTypesForPicker,
 } from '@/services/input-types'
+import { useLocaleStore } from '@/stores/localeStore'
 
 export type AddStepperInputValues = {
   label: string

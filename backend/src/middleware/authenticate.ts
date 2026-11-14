@@ -38,8 +38,6 @@ function extractAccessToken(req: {
  */
 export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler {
   let resolvePrincipal = deps.resolvePrincipal
-  // Load once per factory — avoid re-parsing Zod env on every request.
-  const config = loadConfig()
 
   return async (req, _res, next) => {
     try {
@@ -48,7 +46,9 @@ export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler 
         throw unauthorized()
       }
 
-      const payload = verifyAccessToken(config, token)
+      // Resolve config per request so tests can `resetConfigCache()` after setting JWT secrets.
+      // `loadConfig()` is memoized — production still pays once per process until reset.
+      const payload = verifyAccessToken(loadConfig(), token)
       resolvePrincipal ??= createDbAccessPrincipalResolver()
       const principal = await resolvePrincipal(payload.sub)
 

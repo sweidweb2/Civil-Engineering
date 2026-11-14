@@ -41,11 +41,11 @@ export function StepperNodeList({ nodes, selectedId, onSelect }: StepperNodeList
               {index < nodes.length - 1 ? (
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute top-7 left-1/2 z-0 h-0.5 w-full overflow-hidden rounded-full bg-border"
+                  className="pointer-events-none absolute top-7 start-1/2 z-0 h-0.5 w-full overflow-hidden rounded-full bg-border"
                 >
                   <div
                     className={cn(
-                      'h-full origin-left rounded-full bg-primary transition-transform duration-500 ease-out',
+                      'h-full origin-left rounded-full bg-primary transition-transform duration-500 ease-out rtl:origin-right',
                       lineFilled ? 'scale-x-100' : 'scale-x-0',
                     )}
                   />

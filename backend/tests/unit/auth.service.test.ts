@@ -112,7 +112,9 @@ describe('auth.service', () => {
   })
 
   it('rejects login for pending users after the password matches', async () => {
-    vi.mocked(repository.findByEmail).mockResolvedValue(makeUser({ status: 'PENDING', role: 'WORKER' }))
+    vi.mocked(repository.findByEmail).mockResolvedValue(
+      makeUser({ status: 'PENDING', role: 'WORKER' }),
+    )
     const service = createAuthService(repository, config)
 
     await expect(

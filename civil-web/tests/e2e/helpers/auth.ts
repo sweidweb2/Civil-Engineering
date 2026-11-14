@@ -21,11 +21,7 @@ export function authStatePath(role: SeedRole): string {
  * UI login (uses form submit). Prefer `test.use({ storageState })` from auth.setup
  * so the suite does not burn the auth rate limiter.
  */
-export async function loginAs(
-  page: Page,
-  email: string,
-  password = SEED_PASSWORD,
-): Promise<void> {
+export async function loginAs(page: Page, email: string, password = SEED_PASSWORD): Promise<void> {
   await page.goto('/login')
   await page.evaluate(() => {
     localStorage.clear()

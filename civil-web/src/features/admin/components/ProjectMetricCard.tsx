@@ -12,7 +12,8 @@ function barHeights(shift: number): number[] {
   const count = 32
   return Array.from({ length: count }, (_, index) => {
     const position = (index + shift) % count
-    const sourceIndex = Math.round((position / (count - 1)) * (BAR_HEIGHTS.length - 1)) % BAR_HEIGHTS.length
+    const sourceIndex =
+      Math.round((position / (count - 1)) * (BAR_HEIGHTS.length - 1)) % BAR_HEIGHTS.length
     return BAR_HEIGHTS[sourceIndex]
   })
 }
@@ -25,7 +26,13 @@ type ProjectMetricCardProps = {
   barShift?: number
 }
 
-export function ProjectMetricCard({ icon: Icon, label, value, change, barShift = 0 }: ProjectMetricCardProps) {
+export function ProjectMetricCard({
+  icon: Icon,
+  label,
+  value,
+  change,
+  barShift = 0,
+}: ProjectMetricCardProps) {
   const positive = change >= 0
   const bars = barHeights(barShift)
 
@@ -37,7 +44,9 @@ export function ProjectMetricCard({ icon: Icon, label, value, change, barShift =
         </span>
         <p className="truncate text-sm text-muted-foreground">{label}</p>
       </div>
-      <p className="text-[1.75rem] leading-none font-semibold tracking-tight text-primary">{value}</p>
+      <p className="text-[1.75rem] leading-none font-semibold tracking-tight text-primary">
+        {value}
+      </p>
       <p className="text-sm leading-none">
         <span className={cn('font-medium', positive ? 'text-success' : 'text-destructive')}>
           {positive ? '+' : ''}
@@ -99,11 +108,18 @@ export function datesMonthChange(dates: string[]): number {
   return monthOverMonth(thisMonth, lastMonth)
 }
 
-export function monthlyCountChange(projects: Project[], match: (project: Project) => boolean): number {
+export function monthlyCountChange(
+  projects: Project[],
+  match: (project: Project) => boolean,
+): number {
   const current = monthWindow(0)
   const previous = monthWindow(-1)
-  const thisMonth = projects.filter((project) => match(project) && createdIn(project, current.start, current.end)).length
-  const lastMonth = projects.filter((project) => match(project) && createdIn(project, previous.start, previous.end)).length
+  const thisMonth = projects.filter(
+    (project) => match(project) && createdIn(project, current.start, current.end),
+  ).length
+  const lastMonth = projects.filter(
+    (project) => match(project) && createdIn(project, previous.start, previous.end),
+  ).length
   return monthOverMonth(thisMonth, lastMonth)
 }
 

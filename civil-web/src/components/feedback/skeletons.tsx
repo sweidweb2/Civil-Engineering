@@ -141,12 +141,7 @@ export function ProjectCardMedia({
 }: SkeletonPresetProps & { variant?: number; pulsing?: boolean }) {
   const index = variant % PROJECT_ILLUSTRATIONS.length
   return (
-    <div
-      className={cn(
-        'relative h-44 w-full overflow-hidden bg-illustration-canvas',
-        className,
-      )}
-    >
+    <div className={cn('relative h-44 w-full overflow-hidden bg-illustration-canvas', className)}>
       <ThemeIllustration
         lightSrc={PROJECT_ILLUSTRATIONS[index]}
         darkSrc={PROJECT_ILLUSTRATIONS_DARK[index]}

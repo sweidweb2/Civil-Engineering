@@ -165,8 +165,8 @@ export function UnifiedSection() {
               className={cn(
                 'flex flex-col',
                 index > 0 &&
-                  'mt-10 border-t border-border pt-10 md:mt-0 md:border-t-0 md:border-l md:pt-0 md:pl-8',
-                index < unifiedStages.length - 1 && 'md:pr-8',
+                  'mt-10 border-t border-border pt-10 md:mt-0 md:border-t-0 md:border-s md:pt-0 md:ps-8',
+                index < unifiedStages.length - 1 && 'md:pe-8',
               )}
             >
               <p className="text-xs font-medium tracking-wide text-muted-foreground">

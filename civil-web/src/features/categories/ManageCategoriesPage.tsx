@@ -281,9 +281,7 @@ export function ManageCategoriesPage() {
                 <TableHead>{t('admin:categories.headers.kind')}</TableHead>
                 <TableHead>{t('admin:categories.headers.parent')}</TableHead>
                 <TableHead>{t('admin:categories.headers.status')}</TableHead>
-                {isAdmin ? (
-                  <TableHead className="text-right">{t('common:actions')}</TableHead>
-                ) : null}
+                {isAdmin ? <TableHead className="text-end">{t('common:actions')}</TableHead> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -321,7 +319,7 @@ export function ManageCategoriesPage() {
                         </Badge>
                       </TableCell>
                       {isAdmin ? (
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <RowActions>
                             <Button
                               type="button"

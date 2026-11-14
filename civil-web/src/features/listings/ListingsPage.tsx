@@ -458,7 +458,7 @@ export function ListingsBrowser({
                   <TableHead>{t('admin:listings.headers.category')}</TableHead>
                   <TableHead>{t('admin:listings.headers.price')}</TableHead>
                   <TableHead>{t('admin:listings.headers.status')}</TableHead>
-                  <TableHead className="text-right">{t('common:actions')}</TableHead>
+                  <TableHead className="text-end">{t('common:actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -481,7 +481,7 @@ export function ListingsBrowser({
                       <TableCell className="max-w-56 truncate" title={listing.name}>
                         <button
                           type="button"
-                          className="truncate text-left font-medium hover:underline"
+                          className="truncate text-start font-medium hover:underline"
                           onClick={() => navigate(`${listingsBase}/${listing.id}`)}
                         >
                           {ellipsis(listing.name, 36)}
@@ -509,7 +509,7 @@ export function ListingsBrowser({
                             : t('admin:listingStatus.INACTIVE')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-end">
                         <ListingActions
                           listing={listing}
                           detailsPath={`${listingsBase}/${listing.id}`}

@@ -1,12 +1,19 @@
 /**
  * typography.ts — type ramp + semantic text styles (web).
- * Font stack matches Geist Variable loaded in index.css.
+ * English: Geist Variable. Arabic (html[lang=ar]): Noto Sans Arabic via index.css.
  */
 
 const fontFamily = {
   sans: "'Geist Variable', ui-sans-serif, system-ui, sans-serif",
   display: "'Geist Variable', ui-sans-serif, system-ui, sans-serif",
+  arabic: "'Noto Sans Arabic Variable', 'Geist Variable', ui-sans-serif, system-ui, sans-serif",
   mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+} as const
+
+const lineHeightArabic = {
+  tight: 1.35,
+  normal: 1.65,
+  relaxed: 1.8,
 } as const
 
 const fontSize = {
@@ -44,6 +51,7 @@ export const typography = {
   fontSize,
   fontWeight,
   lineHeight,
+  lineHeightArabic,
   letterSpacing,
   styles: {
     heading1: {

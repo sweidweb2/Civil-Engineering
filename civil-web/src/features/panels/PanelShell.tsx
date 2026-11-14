@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { LanguageToggle } from '@/components/i18n/LanguageToggle'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -287,7 +288,9 @@ export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
               <p className="truncate text-sm font-medium text-sidebar-foreground">
                 {userDisplayName(user, t('common:signedOut'))}
               </p>
-              <p className="truncate text-xs text-sidebar-foreground/70">{user?.email}</p>
+              <p className="truncate text-xs text-sidebar-foreground/70">
+                {user?.email ? <LtrIsolate>{user.email}</LtrIsolate> : null}
+              </p>
             </div>
             <Button
               type="button"

@@ -17,7 +17,7 @@
   "emptyUnread": "لا توجد إشعارات غير مقروءة",
   "openInbox": "فتح الإشعارات",
   "openInboxWithUnread": "الإشعارات، {{count}} غير مقروء",
-  "from": "من: {{email}}",
+  "from": "من: <ltr>{{email}}</ltr>",
   "pagination": "صفحة {{page}} من {{totalPages}} (الإجمالي {{total}})",
   "time": {
     "justNow": "الآن",

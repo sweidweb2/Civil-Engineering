@@ -36,7 +36,7 @@ export function PrinciplesSection() {
           >
             Civil engineering principles
           </h2>
-          <p className="max-w-sm text-sm leading-6 text-muted-foreground sm:pt-2 sm:text-right">
+          <p className="max-w-sm text-sm leading-6 text-muted-foreground sm:pt-2 sm:text-end">
             A simple order for civil work: decide the need, keep the estimate beside what was spent,
             and contact people directly.
           </p>

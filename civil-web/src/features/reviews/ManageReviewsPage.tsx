@@ -234,8 +234,8 @@ export function ManageReviewsPage() {
                     <TableHead>{t('admin:reviews.headers.target')}</TableHead>
                     <TableHead>{t('admin:reviews.headers.rating')}</TableHead>
                     <TableHead>{t('admin:reviews.headers.status')}</TableHead>
-                    <TableHead className="text-right">{t('admin:reviews.statusActions')}</TableHead>
-                    <TableHead className="text-right">{t('common:actions')}</TableHead>
+                    <TableHead className="text-end">{t('admin:reviews.statusActions')}</TableHead>
+                    <TableHead className="text-end">{t('common:actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -272,7 +272,7 @@ export function ManageReviewsPage() {
                             {statusLabel(row.status)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <RowActions>
                             {row.status !== 'ACCEPTED' ? (
                               <Button
@@ -297,7 +297,7 @@ export function ManageReviewsPage() {
                             ) : null}
                           </RowActions>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <RowActions>
                             <Button
                               type="button"

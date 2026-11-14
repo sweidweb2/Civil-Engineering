@@ -394,7 +394,7 @@ export function DetailCardSkeleton({ className }: SkeletonPresetProps) {
         {Array.from({ length: 8 }, (_, i) => (
           <div
             key={i}
-            className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] border-b border-border sm:odd:border-r"
+            className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] border-b border-border sm:odd:border-e"
           >
             <div className="px-3 py-2.5">
               <Skeleton className="h-3 w-16" />

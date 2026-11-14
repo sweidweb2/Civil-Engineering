@@ -105,6 +105,7 @@
     "RENOVATION": "Renovation",
     "OTHER": "Other"
   },
+  "vsLastMonth": "vs last month",
   "timeline": {
     "title": "In progress timeline",
     "description": "Current projects on a shared date axis. Today is marked so you can see where you are.",
@@ -116,5 +117,80 @@
     "endEstimated": "end estimated from progress",
     "barTitle": "{{name}} · {{progress}}% · {{start}} – {{end}}",
     "barTitleEstimated": "{{name}} · {{progress}}% · {{start}} – {{end}} (end estimated from progress)"
+  },
+  "tabs": {
+    "stages": "Stages",
+    "details": "Details"
+  },
+  "stages": {
+    "title": "Project stages",
+    "description": "Fill each stage when ready. Incomplete steps stay highlighted until saved with all required fields.",
+    "stepNumber": "Step {{number}}",
+    "incomplete": "Missing info",
+    "complete": "Complete",
+    "saveStep": "Save step",
+    "saving": "Saving…",
+    "saved": "Stage saved",
+    "couldNotSave": "Could not save stage",
+    "status": "Status",
+    "selectStatus": "Select status",
+    "uploadFile": "Upload file",
+    "uploading": "Uploading…",
+    "clearFile": "Clear",
+    "fileUploaded": "File uploaded",
+    "couldNotUploadFile": "Could not upload file",
+    "filePathPlaceholder": "Upload a file to set the path",
+    "names": {
+      "geotechnical": "Geotechnical Study",
+      "design": "Design",
+      "licensing": "Licensing",
+      "materials": "Material Procurement & Importation",
+      "maintenance": "Maintenance"
+    },
+    "statusValues": {
+      "NOT_STARTED": "Not started",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "ON_HOLD": "On hold"
+    },
+    "fields": {
+      "soilType": "Soil type",
+      "soilBearingCapacity": "Soil bearing capacity",
+      "groundwaterLevel": "Groundwater level",
+      "foundationRecommendation": "Foundation recommendation",
+      "reportFilePath": "Report file",
+      "consultantName": "Consultant name",
+      "startDate": "Start date",
+      "completionDate": "Completion date",
+      "notes": "Notes",
+      "architecturalDesignPath": "Architectural design",
+      "structuralDesignPath": "Structural design",
+      "mepDesignPath": "MEP design",
+      "architectName": "Architect name",
+      "structuralEngineerName": "Structural engineer name",
+      "mepEngineerName": "MEP engineer name",
+      "permitNumber": "Permit number",
+      "issuingAuthority": "Issuing authority",
+      "applicationDate": "Application date",
+      "approvalDate": "Approval date",
+      "permitFilePath": "Permit file",
+      "expiryDate": "Expiry date",
+      "supplierName": "Supplier name",
+      "materialDescription": "Material description",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "totalCost": "Total cost",
+      "currency": "Currency",
+      "originCountry": "Origin country",
+      "orderDate": "Order date",
+      "expectedArrivalDate": "Expected arrival date",
+      "actualArrivalDate": "Actual arrival date",
+      "invoiceFilePath": "Invoice file",
+      "maintenanceType": "Maintenance type",
+      "description": "Description",
+      "responsiblePerson": "Responsible person",
+      "scheduledDate": "Scheduled date",
+      "cost": "Cost"
+    }
   }
 }

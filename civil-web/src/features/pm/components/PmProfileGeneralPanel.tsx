@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -322,7 +323,8 @@ export function PmProfileGeneralPanel() {
           <CardHeader>
             <CardTitle>{t('personalDetails')}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {account?.email} · {account?.role}
+              {account?.email ? <LtrIsolate>{account.email}</LtrIsolate> : null}
+              {account?.role ? <> · {account.role}</> : null}
             </p>
           </CardHeader>
           <CardContent>
@@ -367,6 +369,8 @@ export function PmProfileGeneralPanel() {
                 <Label htmlFor="profile-phone">{t('phone')}</Label>
                 <Input
                   id="profile-phone"
+                  type="tel"
+                  dir="ltr"
                   value={form.phone}
                   maxLength={20}
                   placeholder={t('placeholderPhone')}

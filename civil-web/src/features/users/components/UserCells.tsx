@@ -2,6 +2,7 @@ import { Copy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -120,13 +121,21 @@ export function UserAttributeCells({
       </TableCell>
       <TableCell title={row.email} className="max-w-52">
         <div className="flex min-w-0 items-center gap-1">
-          <span className="min-w-0 truncate">{ellipsis(row.email, 24)}</span>
+          <span className="min-w-0 truncate">
+            <LtrIsolate>{ellipsis(row.email, 24)}</LtrIsolate>
+          </span>
           <CopyButton value={row.email} label={t('common:email')} />
         </div>
       </TableCell>
       <TableCell title={row.profile.phone ?? undefined} className="max-w-36">
         <div className="flex min-w-0 items-center gap-1">
-          <span className="min-w-0 truncate">{ellipsis(row.profile.phone, 16)}</span>
+          <span className="min-w-0 truncate">
+            {row.profile.phone ? (
+              <LtrIsolate>{ellipsis(row.profile.phone, 16)}</LtrIsolate>
+            ) : (
+              ellipsis(row.profile.phone, 16)
+            )}
+          </span>
           {row.profile.phone ? (
             <CopyButton value={row.profile.phone} label={t('common:phone')} />
           ) : null}

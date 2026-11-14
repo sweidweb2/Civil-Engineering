@@ -96,6 +96,7 @@ export function RegistrationFormDialog({
             <Input
               id="approval-email"
               type="email"
+              dir="ltr"
               maxLength={254}
               placeholder={t('admin:registrations.form.emailPlaceholder')}
               value={form.email}

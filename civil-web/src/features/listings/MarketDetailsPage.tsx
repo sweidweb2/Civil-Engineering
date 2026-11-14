@@ -5,6 +5,7 @@ import { useLocation, useParams } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailCardSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,23 +55,44 @@ export function MarketDetailsPage() {
     ? [
         {
           label: t('admin:markets.fields.owner'),
-          value:
-            provider.owner?.displayName ||
-            provider.owner?.email ||
-            t('admin:providers.form.noOwner'),
+          value: provider.owner?.displayName ? (
+            provider.owner.displayName
+          ) : provider.owner?.email ? (
+            <LtrIsolate>{provider.owner.email}</LtrIsolate>
+          ) : (
+            t('admin:providers.form.noOwner')
+          ),
         },
-        { label: t('admin:markets.fields.ownerEmail'), value: provider.owner?.email ?? '—' },
+        {
+          label: t('admin:markets.fields.ownerEmail'),
+          value: provider.owner?.email ? <LtrIsolate>{provider.owner.email}</LtrIsolate> : '—',
+        },
         { label: t('admin:markets.fields.name'), value: provider.name },
         { label: t('admin:markets.fields.description'), value: provider.description ?? '—' },
         {
           label: t('admin:markets.fields.status'),
           value: t(`admin:providerStatus.${provider.status}`),
         },
-        { label: t('admin:markets.fields.logo'), value: provider.logoUrl ?? '—' },
-        { label: t('admin:markets.fields.phone'), value: provider.phone ?? '—' },
-        { label: t('admin:markets.fields.whatsapp'), value: provider.whatsapp ?? '—' },
-        { label: t('admin:markets.fields.email'), value: provider.email ?? '—' },
-        { label: t('admin:markets.fields.website'), value: provider.website ?? '—' },
+        {
+          label: t('admin:markets.fields.logo'),
+          value: provider.logoUrl ? <LtrIsolate>{provider.logoUrl}</LtrIsolate> : '—',
+        },
+        {
+          label: t('admin:markets.fields.phone'),
+          value: provider.phone ? <LtrIsolate>{provider.phone}</LtrIsolate> : '—',
+        },
+        {
+          label: t('admin:markets.fields.whatsapp'),
+          value: provider.whatsapp ? <LtrIsolate>{provider.whatsapp}</LtrIsolate> : '—',
+        },
+        {
+          label: t('admin:markets.fields.email'),
+          value: provider.email ? <LtrIsolate>{provider.email}</LtrIsolate> : '—',
+        },
+        {
+          label: t('admin:markets.fields.website'),
+          value: provider.website ? <LtrIsolate>{provider.website}</LtrIsolate> : '—',
+        },
         { label: t('admin:markets.fields.address'), value: provider.address ?? '—' },
         { label: t('admin:markets.fields.city'), value: provider.city ?? '—' },
         { label: t('admin:markets.fields.country'), value: provider.country ?? '—' },

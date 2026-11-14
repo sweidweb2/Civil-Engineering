@@ -13,11 +13,12 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { ListSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { PageHeader, STAT_GRID_CLASS, StatCard } from '@/components/layout'
 import {
   AlertDialog,
@@ -230,7 +231,12 @@ export function NotificationsInboxPage() {
                           </p>
                           {notification.sender && (
                             <p className="mt-2 text-xs text-muted-foreground">
-                              {t('notifications:from', { email: notification.sender.email })}
+                              <Trans
+                                i18nKey="from"
+                                ns="notifications"
+                                values={{ email: notification.sender.email }}
+                                components={{ ltr: <LtrIsolate /> }}
+                              />
                             </p>
                           )}
                         </div>

@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -361,7 +362,7 @@ export function ProviderMainInfoPanel() {
           <CardHeader>
             <CardTitle>{t('provider:profile.accountDetails')}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {account?.email}
+              {account?.email ? <LtrIsolate>{account.email}</LtrIsolate> : null}
               {provider ? ` · ${provider.name}` : ''}
             </p>
           </CardHeader>
@@ -407,6 +408,8 @@ export function ProviderMainInfoPanel() {
                 <Label htmlFor="provider-phone">{t('provider:profile.phone')}</Label>
                 <Input
                   id="provider-phone"
+                  type="tel"
+                  dir="ltr"
                   value={form.phone}
                   maxLength={20}
                   placeholder={t('provider:profile.placeholderPhone')}

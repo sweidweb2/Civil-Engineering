@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailCardSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { PageHeader } from '@/components/layout/page-header'
 import {
   AlertDialog,
@@ -60,7 +61,7 @@ export function UserDetailsPage() {
   const fields = useMemo(() => {
     if (!user) return null
     return [
-      { label: t('admin:users.fields.email'), value: user.email },
+      { label: t('admin:users.fields.email'), value: <LtrIsolate>{user.email}</LtrIsolate> },
       { label: t('admin:users.fields.role'), value: t(`admin:roles.${user.role}`) },
       { label: t('admin:users.fields.status'), value: t(`admin:userStatus.${user.status}`) },
       {
@@ -72,8 +73,14 @@ export function UserDetailsPage() {
       { label: t('admin:users.fields.firstName'), value: user.profile.firstName ?? '—' },
       { label: t('admin:users.fields.lastName'), value: user.profile.lastName ?? '—' },
       { label: t('admin:users.fields.displayName'), value: user.profile.displayName ?? '—' },
-      { label: t('admin:users.fields.phone'), value: user.profile.phone ?? '—' },
-      { label: t('admin:users.fields.avatar'), value: user.profile.avatarUrl ?? '—' },
+      {
+        label: t('admin:users.fields.phone'),
+        value: user.profile.phone ? <LtrIsolate>{user.profile.phone}</LtrIsolate> : '—',
+      },
+      {
+        label: t('admin:users.fields.avatar'),
+        value: user.profile.avatarUrl ? <LtrIsolate>{user.profile.avatarUrl}</LtrIsolate> : '—',
+      },
       { label: t('admin:users.fields.profileCreated'), value: formatWhen(user.profile.createdAt) },
       { label: t('admin:users.fields.profileUpdated'), value: formatWhen(user.profile.updatedAt) },
     ]
@@ -160,7 +167,7 @@ export function UserDetailsPage() {
                   {fields!.map((field) => (
                     <div
                       key={field.label}
-                      className="grid min-w-0 grid-cols-[minmax(0,8rem)_minmax(0,1fr)] border-b border-border sm:odd:border-r"
+                      className="grid min-w-0 grid-cols-[minmax(0,8rem)_minmax(0,1fr)] border-b border-border sm:odd:border-e"
                     >
                       <dt className="bg-muted/50 px-3 py-2.5 text-xs font-medium text-muted-foreground">
                         {field.label}

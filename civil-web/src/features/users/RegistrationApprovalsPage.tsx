@@ -243,7 +243,7 @@ export function RegistrationQueue() {
                     {USER_TABLE_HEADERS.map((header) => (
                       <TableHead key={header}>{t(`admin:users.headers.${header}`)}</TableHead>
                     ))}
-                    <TableHead className="text-right">{t('common:actions')}</TableHead>
+                    <TableHead className="text-end">{t('common:actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -262,7 +262,7 @@ export function RegistrationQueue() {
                     rows.map((row) => (
                       <TableRow key={row.id}>
                         <UserAttributeCells row={row} showAvatar />
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <RowActions>
                             {tab === 'pending' ? (
                               <Button

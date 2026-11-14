@@ -1,5 +1,6 @@
 import { cn } from 'cn'
 import type { LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,6 +34,7 @@ export function ProjectMetricCard({
   change,
   barShift = 0,
 }: ProjectMetricCardProps) {
+  const { t } = useTranslation('projects')
   const positive = change >= 0
   const bars = barHeights(barShift)
 
@@ -48,11 +50,13 @@ export function ProjectMetricCard({
         {value}
       </p>
       <p className="text-sm leading-none">
-        <span className={cn('font-medium', positive ? 'text-success' : 'text-destructive')}>
+        <span
+          className={cn('font-medium tabular-nums', positive ? 'text-success' : 'text-destructive')}
+        >
           {positive ? '+' : ''}
           {change.toFixed(1)}%
         </span>
-        <span className="text-muted-foreground"> vs last month</span>
+        <span className="text-muted-foreground"> {t('vsLastMonth')}</span>
       </p>
       <div className="flex h-8 items-end gap-px" aria-hidden>
         {bars.map((height, index) => (

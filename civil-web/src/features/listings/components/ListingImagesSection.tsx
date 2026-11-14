@@ -112,7 +112,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                 {t('admin:listings.images.uploaded')}
               </TableHead>
               {canManage ? (
-                <TableHead className="text-right">{t('admin:listings.images.actions')}</TableHead>
+                <TableHead className="text-end">{t('admin:listings.images.actions')}</TableHead>
               ) : null}
             </TableRow>
           </TableHeader>
@@ -185,7 +185,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                     {new Date(image.createdAt).toLocaleString()}
                   </TableCell>
                   {canManage ? (
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button
                         type="button"
                         size="icon-sm"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import {
   Bell,
   Edit,
@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { StatGridSkeleton, TableSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { PageHeader, STAT_GRID_CLASS, StatCard, TablePager } from '@/components/layout'
 import {
   AlertDialog,
@@ -88,6 +89,16 @@ function userLabel(user: UserLookup): string {
   return user.name ? `${user.name} · ${user.email}` : user.email
 }
 
+function IsolatedUserEmail({ name, email }: { name?: string | null; email: string }) {
+  return name ? (
+    <>
+      {name} · <LtrIsolate>{email}</LtrIsolate>
+    </>
+  ) : (
+    <LtrIsolate>{email}</LtrIsolate>
+  )
+}
+
 export function ManageNotificationsPage() {
   const { t } = useTranslation(['admin', 'common'])
   const { formatDateTime } = useLocaleFormat()
@@ -129,10 +140,10 @@ export function ManageNotificationsPage() {
   const totalPages = Math.max(1, remote.status === 'success' ? remote.data.meta.totalPages : 1)
   const users: UserLookup[] = usersRemote.status === 'success' ? usersRemote.data.data : []
 
-  function receiverLabel(notification: Notification): string {
+  function receiverLabel(notification: Notification): ReactNode {
     const receiver = notification.receiver
     if (!receiver) return t('common:unknown')
-    return receiver.name ? `${receiver.name} · ${receiver.email}` : receiver.email
+    return <IsolatedUserEmail name={receiver.name} email={receiver.email} />
   }
 
   useEffect(() => {
@@ -370,7 +381,7 @@ export function ManageNotificationsPage() {
                   <TableHead>{t('admin:notificationsAdmin.headers.receiver')}</TableHead>
                   <TableHead>{t('admin:notificationsAdmin.headers.status')}</TableHead>
                   <TableHead>{t('admin:notificationsAdmin.headers.created')}</TableHead>
-                  <TableHead className="text-right">{t('common:actions')}</TableHead>
+                  <TableHead className="text-end">{t('common:actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -409,7 +420,7 @@ export function ManageNotificationsPage() {
                       <TableCell className="whitespace-nowrap text-sm">
                         {formatDateTime(notification.createdAt)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-end">
                         <div className="flex justify-end gap-1">
                           {notification.deletedAt ? (
                             <>
@@ -546,7 +557,7 @@ export function ManageNotificationsPage() {
                   <SelectContent>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        {userLabel(user)}
+                        <IsolatedUserEmail name={user.name} email={user.email} />
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -569,7 +580,9 @@ export function ManageNotificationsPage() {
                         checked={formData.receiverIds.includes(user.id)}
                         onCheckedChange={() => handleToggleRecipient(user.id)}
                       />
-                      <span className="text-sm">{userLabel(user)}</span>
+                      <span className="text-sm">
+                        <IsolatedUserEmail name={user.name} email={user.email} />
+                      </span>
                     </label>
                   ))}
                 </div>

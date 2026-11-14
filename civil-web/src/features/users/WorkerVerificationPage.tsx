@@ -269,7 +269,7 @@ export function VerificationQueue() {
                   <TableHead key={header}>{t(`admin:users.headers.${header}`)}</TableHead>
                 ))}
                 <TableHead>{t('admin:verification.headerVerification')}</TableHead>
-                <TableHead className="text-right">{t('common:actions')}</TableHead>
+                <TableHead className="text-end">{t('common:actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -289,7 +289,7 @@ export function VerificationQueue() {
                     <TableCell>
                       <VerificationBadge status={row.verification} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <RowActions>
                         <Button
                           type="button"
@@ -308,7 +308,7 @@ export function VerificationQueue() {
                             )
                           }
                         >
-                          <ChevronsRight />
+                          <ChevronsRight className="rtl:rotate-180" />
                         </Button>
                         <Button
                           type="button"
@@ -348,6 +348,7 @@ export function VerificationQueue() {
               <Input
                 id="worker-email"
                 type="email"
+                dir="ltr"
                 maxLength={254}
                 placeholder={t('admin:verification.form.emailPlaceholder')}
                 value={form.email}

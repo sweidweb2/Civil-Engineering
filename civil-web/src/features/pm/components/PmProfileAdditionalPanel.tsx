@@ -382,6 +382,7 @@ export function PmProfileAdditionalPanel() {
                   <Input
                     id="cv-website"
                     type="url"
+                    dir="ltr"
                     value={form.website}
                     maxLength={500}
                     placeholder={t('additional.placeholderWebsite')}
@@ -396,6 +397,7 @@ export function PmProfileAdditionalPanel() {
                   <Input
                     id="cv-linkedin"
                     type="url"
+                    dir="ltr"
                     value={form.linkedinUrl}
                     maxLength={500}
                     placeholder={t('additional.placeholderLinkedin')}
@@ -413,6 +415,7 @@ export function PmProfileAdditionalPanel() {
                   <Input
                     id="cv-url"
                     type="url"
+                    dir="ltr"
                     value={form.cvUrl}
                     maxLength={500}
                     placeholder={t('additional.placeholderCvUrl')}

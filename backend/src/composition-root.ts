@@ -1,4 +1,4 @@
-import type { Router } from 'express'
+import { Router, type Router as ExpressRouter } from 'express'
 import type { Pool } from 'pg'
 
 import { type AppConfig, loadConfig } from './config/index.js'
@@ -15,6 +15,7 @@ import { buildListingsService, createListingsModule } from './modules/listings/i
 import { createLoggingModule } from './modules/logging/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
 import { createProjectImagesModule } from './modules/project-images/index.js'
+import { createProjectStagesModule } from './modules/project-stages/index.js'
 import { buildProjectsService, createProjectsModule } from './modules/projects/index.js'
 import { buildProvidersService, createProvidersModule } from './modules/providers/index.js'
 import { createReviewsModule } from './modules/reviews/index.js'
@@ -28,21 +29,21 @@ export type CompositionRootDeps = {
 }
 
 export type CompositionRoot = {
-  health: Router
-  auth: Router
-  devices: Router
-  files: Router
-  logging: Router
-  users: Router
-  managerProfiles: Router
-  providers: Router
-  categories: Router
-  listings: Router
-  listingImages: Router
-  reviews: Router
-  projects: Router
-  projectImages: Router
-  notifications: Router
+  health: ExpressRouter
+  auth: ExpressRouter
+  devices: ExpressRouter
+  files: ExpressRouter
+  logging: ExpressRouter
+  users: ExpressRouter
+  managerProfiles: ExpressRouter
+  providers: ExpressRouter
+  categories: ExpressRouter
+  listings: ExpressRouter
+  listingImages: ExpressRouter
+  reviews: ExpressRouter
+  projects: ExpressRouter
+  projectImages: ExpressRouter
+  notifications: ExpressRouter
 }
 
 /**
@@ -81,7 +82,12 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
     listings: createListingsModule({ service: listingsService }),
     listingImages: createListingImagesModule({ ...moduleDeps, listingsService }),
     reviews: createReviewsModule({ listingsService }),
-    projects: createProjectsModule({ service: projectsService }),
+    projects: (() => {
+      const projectsRouter = Router()
+      projectsRouter.use(createProjectsModule({ service: projectsService }))
+      projectsRouter.use(createProjectStagesModule({ projectsService }))
+      return projectsRouter
+    })(),
     projectImages: createProjectImagesModule({ ...moduleDeps, projectsService }),
     notifications: createNotificationsModule(),
   }

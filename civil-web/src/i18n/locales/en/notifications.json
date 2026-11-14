@@ -17,7 +17,7 @@
   "emptyUnread": "No unread notifications",
   "openInbox": "Open notifications",
   "openInboxWithUnread": "Notifications, {{count}} unread",
-  "from": "From: {{email}}",
+  "from": "From: <ltr>{{email}}</ltr>",
   "pagination": "Page {{page}} of {{totalPages}} ({{total}} total)",
   "time": {
     "justNow": "Just now",

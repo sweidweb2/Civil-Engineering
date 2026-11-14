@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { CardGridSkeleton, CivilCardMedia, StatGridSkeleton } from '@/components/feedback/skeletons'
+import { LtrIsolate } from '@/components/i18n/LtrIsolate'
 import { PageHeader, STAT_GRID_CLASS, StatCard, TablePager, ToolbarCard } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -208,13 +209,21 @@ function DirectoryCards({ items }: { items: DirectoryItem[] }) {
               {ellipsis(item.name, 36)}
             </CardTitle>
             <CardDescription className="truncate" title={item.location}>
-              {ellipsis(item.location, 32)}
+              {item.kind === 'worker' && item.location !== '—' ? (
+                <LtrIsolate>{ellipsis(item.location, 32)}</LtrIsolate>
+              ) : (
+                ellipsis(item.location, 32)
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant="outline">{ellipsis(item.category, 16)}</Badge>
             <span className="truncate text-xs text-muted-foreground">
-              {ellipsis(item.source, 22)}
+              {item.kind === 'worker' ? (
+                <LtrIsolate>{ellipsis(item.source, 22)}</LtrIsolate>
+              ) : (
+                ellipsis(item.source, 22)
+              )}
             </span>
             <span className="text-xs font-medium text-primary">{item.price}</span>
           </CardContent>

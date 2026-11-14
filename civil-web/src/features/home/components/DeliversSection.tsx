@@ -11,7 +11,7 @@ function FlowRow({
 }) {
   const radius = 7
   return (
-    <svg viewBox={`0 0 280 ${height}`} className="mt-2 h-auto w-full" aria-hidden>
+    <svg viewBox={`0 0 280 ${height}`} className="mt-2 h-auto w-full rtl:-scale-x-100" aria-hidden>
       {links.map(([from, to]) => {
         const start = nodes[from]
         const end = nodes[to]
@@ -95,14 +95,14 @@ function PlanActualArt() {
       className="relative flex flex-col gap-3 rounded-xl bg-background p-4 ring-1 ring-foreground/10 sm:block"
       aria-hidden
     >
-      <div className="rounded-lg bg-card p-4 ring-1 ring-foreground/10 sm:mr-24">
+      <div className="rounded-lg bg-card p-4 ring-1 ring-foreground/10 sm:me-24">
         <p className="text-xs font-semibold text-foreground">Cost record</p>
         <div className="mt-3 flex flex-col gap-2">
           <div className="max-w-[15rem] rounded-lg bg-background px-3 py-2">
             <p className="text-[10px] font-medium text-muted-foreground">Plan</p>
             <p className="text-xs text-foreground">Listed prices for the job</p>
           </div>
-          <div className="ml-6 max-w-[15rem] rounded-lg bg-primary/10 px-3 py-2">
+          <div className="ms-6 max-w-[15rem] rounded-lg bg-primary/10 px-3 py-2">
             <p className="text-[10px] font-medium text-primary">Actual</p>
             <p className="text-xs text-foreground">Expenses recorded on site</p>
           </div>
@@ -114,17 +114,17 @@ function PlanActualArt() {
           <span className="size-5 shrink-0 rounded-full bg-primary" />
         </div>
       </div>
-      <div className="rounded-lg bg-card p-3 ring-1 ring-foreground/10 sm:absolute sm:top-7 sm:right-3 sm:w-28">
+      <div className="rounded-lg bg-card p-3 ring-1 ring-foreground/10 sm:absolute sm:top-7 sm:end-3 sm:w-28">
         <p className="text-[10px] font-semibold text-foreground">This job</p>
         <div className="mt-2">
           <p className="text-[10px] text-muted-foreground">Plan</p>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-background">
+          <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-background">
             <div className="h-full w-4/5 rounded-full bg-foreground/25" />
           </div>
         </div>
         <div className="mt-2">
           <p className="text-[10px] text-muted-foreground">Actual</p>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-background">
+          <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-background">
             <div className="h-full w-1/2 rounded-full bg-primary" />
           </div>
         </div>
@@ -164,7 +164,7 @@ function DirectoryArt() {
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                 <span>{bar.label}</span>
               </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-background">
+              <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-background">
                 <div className="h-full rounded-full bg-primary" style={{ width: bar.width }} />
               </div>
             </div>
@@ -190,7 +190,7 @@ export function DeliversSection() {
           >
             What this app delivers
           </h2>
-          <p className="max-w-sm text-sm leading-6 text-muted-foreground sm:text-right">
+          <p className="max-w-sm text-sm leading-6 text-muted-foreground sm:text-end">
             One place for the project record, the estimate beside real spend, and the people a civil
             team looks up.
           </p>

@@ -10,7 +10,7 @@ export function CtaSection() {
       <img
         src="/illustrations/cta-civil-sketch.png?v=2"
         alt="A sketched figure holding a line up to a bridge truss"
-        className="pointer-events-none absolute top-1/2 left-16 hidden w-72 -translate-y-1/2 xl:block"
+        className="pointer-events-none absolute top-1/2 start-16 hidden w-72 -translate-y-1/2 xl:block"
       />
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-4 py-20 text-center sm:px-6">
         <h2

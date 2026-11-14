@@ -34,6 +34,7 @@ import {
   toProviderWriteInput,
   updateProvider,
 } from '@/services/providers'
+import { useIsRtl } from '@/stores/localeStore'
 
 export type ProviderFormValues = {
   ownerUserId: string
@@ -183,6 +184,7 @@ export function ProviderFormDialog({
   onSaved,
 }: ProviderFormDialogProps) {
   const { t } = useTranslation(['admin', 'common'])
+  const isRtl = useIsRtl()
   const [form, setForm] = useState<ProviderFormValues>(EMPTY_PROVIDER_FORM)
   const [candidates, setCandidates] = useState<ProviderOwnerCandidate[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -334,12 +336,17 @@ export function ProviderFormDialog({
           })}
         </ol>
 
-        <div className="overflow-hidden">
+        <div className="overflow-hidden" dir="ltr">
           <div
             className="flex w-full items-start transition-transform duration-300 ease-out motion-reduce:transition-none"
             style={{ transform: `translateX(-${step * 100}%)` }}
           >
-            <div className="w-full shrink-0" inert={step !== 0} aria-hidden={step !== 0}>
+            <div
+              className="w-full shrink-0"
+              dir={isRtl ? 'rtl' : 'ltr'}
+              inert={step !== 0}
+              aria-hidden={step !== 0}
+            >
               <div className="grid gap-3">
                 <div className="grid gap-1.5">
                   <FieldLabel
@@ -460,6 +467,7 @@ export function ProviderFormDialog({
                     <Input
                       id="provider-logo"
                       type="url"
+                      dir="ltr"
                       maxLength={500}
                       placeholder={t('admin:providers.form.logoPlaceholder')}
                       value={form.logoUrl}
@@ -472,7 +480,12 @@ export function ProviderFormDialog({
               </div>
             </div>
 
-            <div className="w-full shrink-0" inert={step !== 1} aria-hidden={step !== 1}>
+            <div
+              className="w-full shrink-0"
+              dir={isRtl ? 'rtl' : 'ltr'}
+              inert={step !== 1}
+              aria-hidden={step !== 1}
+            >
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <FieldLabel
@@ -515,6 +528,7 @@ export function ProviderFormDialog({
                   <Input
                     id="provider-email"
                     type="email"
+                    dir="ltr"
                     maxLength={254}
                     placeholder={t('admin:providers.form.emailPlaceholder')}
                     value={form.email}
@@ -532,6 +546,7 @@ export function ProviderFormDialog({
                   <Input
                     id="provider-website"
                     type="url"
+                    dir="ltr"
                     maxLength={500}
                     placeholder={t('admin:providers.form.websitePlaceholder')}
                     value={form.website}
@@ -543,7 +558,12 @@ export function ProviderFormDialog({
               </div>
             </div>
 
-            <div className="w-full shrink-0" inert={step !== 2} aria-hidden={step !== 2}>
+            <div
+              className="w-full shrink-0"
+              dir={isRtl ? 'rtl' : 'ltr'}
+              inert={step !== 2}
+              aria-hidden={step !== 2}
+            >
               <div className="grid gap-3">
                 <div className="grid gap-1.5">
                   <FieldLabel
@@ -639,7 +659,7 @@ export function ProviderFormDialog({
             <Button
               type="button"
               variant="outline"
-              className="sm:mr-auto"
+              className="sm:me-auto"
               onClick={() => setStep((current) => Math.max(0, current - 1))}
             >
               {t('common:back')}

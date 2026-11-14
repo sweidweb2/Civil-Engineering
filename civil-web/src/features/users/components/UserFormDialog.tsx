@@ -107,6 +107,7 @@ export function UserFormDialog({ open, mode, initial, onOpenChange, onSave }: Us
             <Input
               id="user-email"
               type="email"
+              dir="ltr"
               maxLength={254}
               placeholder={t('admin:users.form.emailPlaceholder')}
               value={form.email}

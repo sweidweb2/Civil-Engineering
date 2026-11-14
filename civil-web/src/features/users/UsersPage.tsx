@@ -266,7 +266,7 @@ export function UsersPage() {
           <CardHeader className="p-0">
             <button
               type="button"
-              className="flex w-full items-start justify-between gap-3 px-(--card-spacing) py-(--card-spacing) text-left"
+              className="flex w-full items-start justify-between gap-3 px-(--card-spacing) py-(--card-spacing) text-start"
               aria-expanded={chartsOpen}
               aria-controls="users-charts"
               onClick={() => setChartsOpen((open) => !open)}
@@ -427,7 +427,7 @@ export function UsersPage() {
                         void onToggleStatus(id)
                       }}
                     />
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <RowActions>
                         <Link
                           to={`${usersPath}/${row.id}`}

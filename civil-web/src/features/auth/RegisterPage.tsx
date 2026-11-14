@@ -100,6 +100,7 @@ export function RegisterPage() {
                   <Input
                     id="email"
                     type="email"
+                    dir="ltr"
                     autoComplete="email"
                     value={values.email}
                     aria-invalid={Boolean(fieldErrors.email) || undefined}

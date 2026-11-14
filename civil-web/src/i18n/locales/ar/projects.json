@@ -105,6 +105,7 @@
     "RENOVATION": "تجديد",
     "OTHER": "أخرى"
   },
+  "vsLastMonth": "مقارنة بالشهر الماضي",
   "timeline": {
     "title": "الجدول الزمني قيد التنفيذ",
     "description": "المشاريع الحالية على محور تاريخ مشترك. يُعلَّم اليوم لتعرف موقعك.",
@@ -116,5 +117,80 @@
     "endEstimated": "نهاية مقدَّرة من التقدم",
     "barTitle": "{{name}} · {{progress}}% · {{start}} – {{end}}",
     "barTitleEstimated": "{{name}} · {{progress}}% · {{start}} – {{end}} (نهاية مقدَّرة من التقدم)"
+  },
+  "tabs": {
+    "stages": "المراحل",
+    "details": "التفاصيل"
+  },
+  "stages": {
+    "title": "مراحل المشروع",
+    "description": "املأ كل مرحلة عند الجاهزية. تبقى الخطوات غير المكتملة مميزة حتى تُحفظ بكل الحقول المطلوبة.",
+    "stepNumber": "الخطوة {{number}}",
+    "incomplete": "معلومات ناقصة",
+    "complete": "مكتمل",
+    "saveStep": "حفظ الخطوة",
+    "saving": "جاري الحفظ…",
+    "saved": "تم حفظ المرحلة",
+    "couldNotSave": "تعذر حفظ المرحلة",
+    "status": "الحالة",
+    "selectStatus": "اختر الحالة",
+    "uploadFile": "رفع ملف",
+    "uploading": "جاري الرفع…",
+    "clearFile": "مسح",
+    "fileUploaded": "تم رفع الملف",
+    "couldNotUploadFile": "تعذر رفع الملف",
+    "filePathPlaceholder": "ارفع ملفاً لتعيين المسار",
+    "names": {
+      "geotechnical": "الدراسة الجيوتقنية",
+      "design": "التصميم",
+      "licensing": "التراخيص",
+      "materials": "شراء واستيراد المواد",
+      "maintenance": "الصيانة"
+    },
+    "statusValues": {
+      "NOT_STARTED": "لم يبدأ",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "COMPLETED": "مكتمل",
+      "ON_HOLD": "معلّق"
+    },
+    "fields": {
+      "soilType": "نوع التربة",
+      "soilBearingCapacity": "قدرة تحمل التربة",
+      "groundwaterLevel": "منسوب المياه الجوفية",
+      "foundationRecommendation": "توصية الأساسات",
+      "reportFilePath": "ملف التقرير",
+      "consultantName": "اسم الاستشاري",
+      "startDate": "تاريخ البدء",
+      "completionDate": "تاريخ الإنجاز",
+      "notes": "ملاحظات",
+      "architecturalDesignPath": "التصميم المعماري",
+      "structuralDesignPath": "التصميم الإنشائي",
+      "mepDesignPath": "تصميم الكهروميكانيك",
+      "architectName": "اسم المعماري",
+      "structuralEngineerName": "اسم المهندس الإنشائي",
+      "mepEngineerName": "اسم مهندس الكهروميكانيك",
+      "permitNumber": "رقم التصريح",
+      "issuingAuthority": "الجهة المُصدرة",
+      "applicationDate": "تاريخ التقديم",
+      "approvalDate": "تاريخ الموافقة",
+      "permitFilePath": "ملف التصريح",
+      "expiryDate": "تاريخ الانتهاء",
+      "supplierName": "اسم المورّد",
+      "materialDescription": "وصف المواد",
+      "quantity": "الكمية",
+      "unit": "الوحدة",
+      "totalCost": "التكلفة الإجمالية",
+      "currency": "العملة",
+      "originCountry": "بلد المنشأ",
+      "orderDate": "تاريخ الطلب",
+      "expectedArrivalDate": "تاريخ الوصول المتوقع",
+      "actualArrivalDate": "تاريخ الوصول الفعلي",
+      "invoiceFilePath": "ملف الفاتورة",
+      "maintenanceType": "نوع الصيانة",
+      "description": "الوصف",
+      "responsiblePerson": "المسؤول",
+      "scheduledDate": "التاريخ المجدول",
+      "cost": "التكلفة"
+    }
   }
 }

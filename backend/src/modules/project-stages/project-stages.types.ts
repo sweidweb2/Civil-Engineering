@@ -5,16 +5,16 @@ export type StageKey = 'geotechnical' | 'design' | 'licensing' | 'materials' | '
 export type GeotechnicalStudy = {
   id: string
   projectId: string
-  soilType: string
-  soilBearingCapacity: string
+  soilType: string | null
+  soilBearingCapacity: string | null
   groundwaterLevel: string | null
-  foundationRecommendation: string
-  reportFilePath: string
-  consultantName: string
+  foundationRecommendation: string | null
+  reportFilePath: string | null
+  consultantName: string | null
   status: ProjectStageStatus
-  startDate: string
-  completionDate: string
-  notes: string
+  startDate: string | null
+  completionDate: string | null
+  notes: string | null
   createdAt: string
   updatedAt: string
 }
@@ -22,16 +22,16 @@ export type GeotechnicalStudy = {
 export type ProjectDesign = {
   id: string
   projectId: string
-  architecturalDesignPath: string
-  structuralDesignPath: string
-  mepDesignPath: string
-  architectName: string
-  structuralEngineerName: string
-  mepEngineerName: string
+  architecturalDesignPath: string | null
+  structuralDesignPath: string | null
+  mepDesignPath: string | null
+  architectName: string | null
+  structuralEngineerName: string | null
+  mepEngineerName: string | null
   status: ProjectStageStatus
-  startDate: string
-  completionDate: string
-  notes: string
+  startDate: string | null
+  completionDate: string | null
+  notes: string | null
   createdAt: string
   updatedAt: string
 }
@@ -39,14 +39,14 @@ export type ProjectDesign = {
 export type ProjectLicensing = {
   id: string
   projectId: string
-  permitNumber: string
-  issuingAuthority: string
-  applicationDate: string
+  permitNumber: string | null
+  issuingAuthority: string | null
+  applicationDate: string | null
   approvalDate: string | null
-  permitFilePath: string
+  permitFilePath: string | null
   status: ProjectStageStatus
   expiryDate: string | null
-  notes: string
+  notes: string | null
   createdAt: string
   updatedAt: string
 }
@@ -54,19 +54,19 @@ export type ProjectLicensing = {
 export type MaterialProcurement = {
   id: string
   projectId: string
-  supplierName: string
-  materialDescription: string
-  quantity: string
-  unit: string
-  totalCost: string
-  currency: string
-  originCountry: string
-  orderDate: string
-  expectedArrivalDate: string
+  supplierName: string | null
+  materialDescription: string | null
+  quantity: string | null
+  unit: string | null
+  totalCost: string | null
+  currency: string | null
+  originCountry: string | null
+  orderDate: string | null
+  expectedArrivalDate: string | null
   actualArrivalDate: string | null
-  invoiceFilePath: string
+  invoiceFilePath: string | null
   status: ProjectStageStatus
-  notes: string
+  notes: string | null
   createdAt: string
   updatedAt: string
 }
@@ -74,15 +74,15 @@ export type MaterialProcurement = {
 export type ProjectMaintenance = {
   id: string
   projectId: string
-  maintenanceType: string
-  description: string
-  responsiblePerson: string
-  scheduledDate: string
+  maintenanceType: string | null
+  description: string | null
+  responsiblePerson: string | null
+  scheduledDate: string | null
   completionDate: string | null
-  cost: string
+  cost: string | null
   status: ProjectStageStatus
-  reportFilePath: string
-  notes: string
+  reportFilePath: string | null
+  notes: string | null
   createdAt: string
   updatedAt: string
 }
@@ -90,6 +90,7 @@ export type ProjectMaintenance = {
 export type StageSlot<T> = {
   exists: boolean
   isComplete: boolean
+  missingCount: number
   data: T | null
 }
 

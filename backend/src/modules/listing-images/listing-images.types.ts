@@ -21,7 +21,7 @@ export type UpdateListingImageData = {
 }
 
 export type ListingImageWithUrl = ListingImage & {
-  url: string
+  url: string | null
 }
 
 export type CreateListingImageAtomicInput = CreateListingImageData & {
@@ -36,7 +36,11 @@ export type ListingImagesRepository = {
   create: (data: CreateListingImageData) => Promise<ListingImage>
   createAtomic: (data: CreateListingImageAtomicInput) => Promise<ListingImage>
   update: (id: string, data: UpdateListingImageData) => Promise<ListingImage>
-  setMainAtomic: (listingId: string, imageId: string) => Promise<ListingImage>
+  setMainAtomic: (
+    listingId: string,
+    imageId: string,
+    opts?: { displayOrder?: number },
+  ) => Promise<ListingImage>
   reorderAtomic: (listingId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
   unsetMainImage: (listingId: string) => Promise<void>

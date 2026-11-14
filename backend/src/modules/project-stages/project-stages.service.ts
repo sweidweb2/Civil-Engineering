@@ -2,11 +2,16 @@ import type { AuthActor } from '../../authz/index.js'
 import { conflict, isUniqueConflictError } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import {
+  designMissing,
+  geotechnicalMissing,
   isDesignComplete,
   isGeotechnicalComplete,
   isLicensingComplete,
   isMaintenanceComplete,
   isMaterialsComplete,
+  licensingMissing,
+  maintenanceMissing,
+  materialsMissing,
 } from './project-stages.completeness.js'
 import type { ProjectStagesRepository } from './project-stages.repository.js'
 import type {
@@ -26,9 +31,19 @@ import type {
   StageSlot,
 } from './project-stages.types.js'
 
-function slot<T>(data: T | null, isComplete: (value: T) => boolean): StageSlot<T> {
-  if (!data) return { exists: false, isComplete: false, data: null }
-  return { exists: true, isComplete: isComplete(data), data }
+function slot<T>(
+  data: T | null,
+  isComplete: (value: T) => boolean,
+  missing: (value: T) => string[],
+): StageSlot<T> {
+  if (!data) return { exists: false, isComplete: false, missingCount: 0, data: null }
+  const missingKeys = missing(data)
+  return {
+    exists: true,
+    isComplete: isComplete(data),
+    missingCount: missingKeys.length,
+    data,
+  }
 }
 
 export type ProjectStagesService = {
@@ -93,11 +108,11 @@ export function createProjectStagesService(deps: ProjectStagesServiceDeps): Proj
       await assertProject(projectId, actor)
       const rows = await repository.findAllByProjectId(projectId)
       return {
-        geotechnical: slot(rows.geotechnical, isGeotechnicalComplete),
-        design: slot(rows.design, isDesignComplete),
-        licensing: slot(rows.licensing, isLicensingComplete),
-        materials: slot(rows.materials, isMaterialsComplete),
-        maintenance: slot(rows.maintenance, isMaintenanceComplete),
+        geotechnical: slot(rows.geotechnical, isGeotechnicalComplete, geotechnicalMissing),
+        design: slot(rows.design, isDesignComplete, designMissing),
+        licensing: slot(rows.licensing, isLicensingComplete, licensingMissing),
+        materials: slot(rows.materials, isMaterialsComplete, materialsMissing),
+        maintenance: slot(rows.maintenance, isMaintenanceComplete, maintenanceMissing),
       }
     },
 

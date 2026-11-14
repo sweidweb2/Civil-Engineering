@@ -107,6 +107,7 @@ export type ProjectMaintenance = {
 export type StageSlot<T> = {
   exists: boolean
   isComplete: boolean
+  missingCount: number
   data: T | null
 }
 
@@ -118,10 +119,11 @@ export type ProjectStagesSummary = {
   maintenance: StageSlot<ProjectMaintenance>
 }
 
+/** Client form draft — empty string means unset; API layer may send null. */
 export type UpsertGeotechnicalInput = {
   soilType: string
   soilBearingCapacity: string
-  groundwaterLevel?: string | null
+  groundwaterLevel: string | null
   foundationRecommendation: string
   reportFilePath: string
   consultantName: string
@@ -148,10 +150,10 @@ export type UpsertLicensingInput = {
   permitNumber: string
   issuingAuthority: string
   applicationDate: string
-  approvalDate?: string | null
+  approvalDate: string | null
   permitFilePath: string
   status: ProjectStageStatus
-  expiryDate?: string | null
+  expiryDate: string | null
   notes: string
 }
 
@@ -165,7 +167,7 @@ export type UpsertMaterialsInput = {
   originCountry: string
   orderDate: string
   expectedArrivalDate: string
-  actualArrivalDate?: string | null
+  actualArrivalDate: string | null
   invoiceFilePath: string
   status: ProjectStageStatus
   notes: string
@@ -176,7 +178,7 @@ export type UpsertMaintenanceInput = {
   description: string
   responsiblePerson: string
   scheduledDate: string
-  completionDate?: string | null
+  completionDate: string | null
   cost: string
   status: ProjectStageStatus
   reportFilePath: string

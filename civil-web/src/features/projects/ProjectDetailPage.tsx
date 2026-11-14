@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Building2, Calendar, FileText, MapPin, Save, TrendingUp } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,8 +7,6 @@ import { toast } from 'sonner'
 import { AsyncState } from '@/components/feedback/async-state'
 import { DetailSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout/page-header'
-import { ProjectGallery } from '@/components/projects/ProjectGallery'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -25,7 +23,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import {
@@ -37,22 +34,11 @@ import {
   type UpdateProjectInput,
 } from '@/services/projects'
 
+import { ProjectDetailsTab } from './components/details/ProjectDetailsTab'
+import { ProjectIdentityHeader } from './components/ProjectIdentityHeader'
 import { ProjectStagesStepper } from './components/ProjectStagesStepper'
 import { useProjectOptions } from './hooks/useProjectOptions'
 import { scheduleProgress } from './lib/schedule-progress'
-
-function getStatusColor(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'IN_PROGRESS':
-      return 'default'
-    case 'COMPLETED':
-      return 'secondary'
-    case 'CANCELLED':
-      return 'destructive'
-    default:
-      return 'outline'
-  }
-}
 
 function toDate(iso: string | null | undefined): Date | undefined {
   if (!iso) return undefined
@@ -85,13 +71,13 @@ function ScheduleProgress({
 
 export function ProjectDetailPage() {
   const { t } = useTranslation(['projects', 'common'])
-  const { formatDate, formatDateTime } = useLocaleFormat()
-  const { statusOptions, typeOptions, statusLabel, typeLabel } = useProjectOptions()
+  const { statusOptions, typeOptions } = useProjectOptions()
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
   const projectsPath = `${portalBaseFromPath(location.pathname)}/projects`
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState('stages')
 
   const load = useCallback(() => {
     if (!id) throw new Error(t('projects:idRequired'))
@@ -127,6 +113,7 @@ export function ProjectDetailPage() {
       type: project.type || undefined,
       notes: project.notes || undefined,
     })
+    setActiveTab('details')
     setIsEditing(true)
   }
 
@@ -177,31 +164,29 @@ export function ProjectDetailPage() {
         loadingFallback={<DetailSkeleton />}
       >
         {project && (
-          <div className="min-w-0 space-y-4">
-            <Tabs defaultValue="stages" className="min-w-0 gap-4">
+          <div className="min-w-0 space-y-5">
+            <ProjectIdentityHeader project={project} onEdit={handleEdit} isEditing={isEditing} />
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 gap-4">
               <TabsList>
                 <TabsTrigger value="stages">{t('projects:tabs.stages')}</TabsTrigger>
                 <TabsTrigger value="details">{t('projects:tabs.details')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="stages" className="min-w-0">
-                <ProjectStagesStepper projectId={project.id} />
+                <ProjectStagesStepper project={project} />
               </TabsContent>
 
-              <TabsContent value="details" className="min-w-0 space-y-4">
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  {!isEditing ? <Button onClick={handleEdit}>{t('projects:edit')}</Button> : null}
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{t('projects:basicInfo')}</CardTitle>
-                      <CardDescription>{t('projects:basicInfoDescription')}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {isEditing ? (
-                        <>
+              <TabsContent value="details" className="min-w-0">
+                {isEditing ? (
+                  <div className="min-h-[min(42rem,calc(100svh-16rem))] space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>{t('projects:basicInfo')}</CardTitle>
+                          <CardDescription>{t('projects:basicInfoDescription')}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                           <Field>
                             <Label htmlFor="name">{t('projects:projectName')}</Label>
                             <Input
@@ -256,58 +241,17 @@ export function ProjectDetailPage() {
                               </SelectContent>
                             </Select>
                           </Field>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <FileText className="size-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{t('projects:projectName')}</p>
-                              <p className="text-sm text-muted-foreground">{project.name}</p>
-                            </div>
-                          </div>
-                          {project.code && (
-                            <div className="flex items-center gap-3">
-                              <FileText className="size-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">{t('projects:projectCode')}</p>
-                                <p className="text-sm text-muted-foreground">{project.code}</p>
-                              </div>
-                            </div>
-                          )}
-                          {project.description && (
-                            <div className="flex items-start gap-3">
-                              <FileText className="size-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">{t('common:description')}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {project.description}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-3">
-                            <Building2 className="size-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{t('common:type')}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {typeLabel(project.type)}
-                              </p>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{t('projects:statusProgress')}</CardTitle>
-                      <CardDescription>{t('projects:statusProgressDescription')}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {isEditing ? (
-                        <>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>{t('projects:statusProgress')}</CardTitle>
+                          <CardDescription>
+                            {t('projects:statusProgressDescription')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                           <Field>
                             <Label htmlFor="status">{t('common:status')}</Label>
                             <Select
@@ -361,70 +305,9 @@ export function ProjectDetailPage() {
                             startDate={formData.startDate}
                             endDate={formData.endDate}
                           />
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <FileText className="size-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{t('common:status')}</p>
-                              <Badge variant={getStatusColor(project.status)} className="mt-1">
-                                {statusLabel(project.status)}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Calendar className="size-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{t('projects:startDate')}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDate(project.startDate)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Calendar className="size-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{t('projects:endDate')}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDate(project.endDate)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <TrendingUp className="size-4 text-muted-foreground" />
-                            <div className="flex-1">
-                              <ScheduleProgress
-                                startDate={project.startDate}
-                                endDate={project.endDate}
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      <div className="flex items-center gap-3">
-                        <Calendar className="size-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{t('common:created')}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDateTime(project.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Calendar className="size-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{t('common:updated')}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDateTime(project.updatedAt)}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
 
-                  {isEditing ? (
-                    <>
                       <Card>
                         <CardHeader>
                           <CardTitle>{t('projects:location')}</CardTitle>
@@ -486,74 +369,27 @@ export function ProjectDetailPage() {
                           </Field>
                         </CardContent>
                       </Card>
+                    </div>
 
-                      <Card className="md:col-span-2">
-                        <CardContent className="flex items-center justify-end gap-3 pt-6">
-                          <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
-                            {t('common:cancel')}
-                          </Button>
-                          <Button onClick={() => void handleSave()} disabled={isSaving}>
-                            <Save className="size-4" />
-                            {isSaving ? t('common:saving') : t('projects:saveChanges')}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </>
-                  ) : (
-                    <>
-                      {(project.address || project.city || project.country) && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>{t('projects:location')}</CardTitle>
-                            <CardDescription>{t('projects:locationDescription')}</CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            {project.address && (
-                              <div className="flex items-start gap-3">
-                                <MapPin className="size-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">{t('projects:address')}</p>
-                                  <p className="text-sm text-muted-foreground">{project.address}</p>
-                                </div>
-                              </div>
-                            )}
-                            {project.city && (
-                              <div className="flex items-center gap-3">
-                                <MapPin className="size-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">{t('projects:city')}</p>
-                                  <p className="text-sm text-muted-foreground">{project.city}</p>
-                                </div>
-                              </div>
-                            )}
-                            {project.country && (
-                              <div className="flex items-center gap-3">
-                                <MapPin className="size-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">{t('projects:country')}</p>
-                                  <p className="text-sm text-muted-foreground">{project.country}</p>
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      )}
-                      {project.notes && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>{t('common:notes')}</CardTitle>
-                            <CardDescription>{t('projects:notesDescription')}</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-sm text-muted-foreground">{project.notes}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      <ProjectGallery projectId={project.id} />
-                    </>
-                  )}
-                </div>
+                    <Card>
+                      <CardContent className="flex items-center justify-end gap-3 pt-6">
+                        <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                          {t('common:cancel')}
+                        </Button>
+                        <Button onClick={() => void handleSave()} disabled={isSaving}>
+                          <Save className="size-4" />
+                          {isSaving ? t('common:saving') : t('projects:saveChanges')}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <ProjectDetailsTab
+                    project={project}
+                    onEdit={handleEdit}
+                    onUpdated={() => void remote.refetch()}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           </div>

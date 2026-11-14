@@ -10,132 +10,99 @@ function filled(value: string | null | undefined): boolean {
   return value != null && value.trim() !== ''
 }
 
-export function isGeotechnicalComplete(
-  data: Pick<
-    GeotechnicalStudy,
-    | 'soilType'
-    | 'soilBearingCapacity'
-    | 'foundationRecommendation'
-    | 'reportFilePath'
-    | 'consultantName'
-    | 'status'
-    | 'startDate'
-    | 'completionDate'
-    | 'notes'
-  >,
-): boolean {
-  return (
-    filled(data.soilType) &&
-    filled(data.soilBearingCapacity) &&
-    filled(data.foundationRecommendation) &&
-    filled(data.reportFilePath) &&
-    filled(data.consultantName) &&
-    filled(data.status) &&
-    filled(data.startDate) &&
-    filled(data.completionDate) &&
-    filled(data.notes)
-  )
+export const GEOTECHNICAL_REQUIRED = [
+  'soilType',
+  'soilBearingCapacity',
+  'foundationRecommendation',
+  'reportFilePath',
+  'consultantName',
+  'startDate',
+  'completionDate',
+] as const
+
+export const DESIGN_REQUIRED = [
+  'architecturalDesignPath',
+  'structuralDesignPath',
+  'mepDesignPath',
+  'architectName',
+  'structuralEngineerName',
+  'mepEngineerName',
+  'startDate',
+  'completionDate',
+] as const
+
+export const LICENSING_REQUIRED = [
+  'permitNumber',
+  'issuingAuthority',
+  'applicationDate',
+  'permitFilePath',
+] as const
+
+export const MATERIALS_REQUIRED = [
+  'supplierName',
+  'materialDescription',
+  'quantity',
+  'unit',
+  'totalCost',
+  'currency',
+  'originCountry',
+  'orderDate',
+  'expectedArrivalDate',
+  'invoiceFilePath',
+] as const
+
+export const MAINTENANCE_REQUIRED = [
+  'maintenanceType',
+  'description',
+  'responsiblePerson',
+  'scheduledDate',
+  'cost',
+  'reportFilePath',
+] as const
+
+function missingFrom<T extends Record<string, string | null | undefined>>(
+  data: T,
+  keys: readonly (keyof T)[],
+): string[] {
+  return keys.filter((key) => !filled(data[key] as string | null | undefined)) as string[]
 }
 
-export function isDesignComplete(
-  data: Pick<
-    ProjectDesign,
-    | 'architecturalDesignPath'
-    | 'structuralDesignPath'
-    | 'mepDesignPath'
-    | 'architectName'
-    | 'structuralEngineerName'
-    | 'mepEngineerName'
-    | 'status'
-    | 'startDate'
-    | 'completionDate'
-    | 'notes'
-  >,
-): boolean {
-  return (
-    filled(data.architecturalDesignPath) &&
-    filled(data.structuralDesignPath) &&
-    filled(data.mepDesignPath) &&
-    filled(data.architectName) &&
-    filled(data.structuralEngineerName) &&
-    filled(data.mepEngineerName) &&
-    filled(data.status) &&
-    filled(data.startDate) &&
-    filled(data.completionDate) &&
-    filled(data.notes)
-  )
+export function geotechnicalMissing(data: Partial<GeotechnicalStudy>): string[] {
+  return missingFrom(data as Record<string, string | null | undefined>, [...GEOTECHNICAL_REQUIRED])
 }
 
-export function isLicensingComplete(
-  data: Pick<
-    ProjectLicensing,
-    'permitNumber' | 'issuingAuthority' | 'applicationDate' | 'permitFilePath' | 'status' | 'notes'
-  >,
-): boolean {
-  return (
-    filled(data.permitNumber) &&
-    filled(data.issuingAuthority) &&
-    filled(data.applicationDate) &&
-    filled(data.permitFilePath) &&
-    filled(data.status) &&
-    filled(data.notes)
-  )
+export function designMissing(data: Partial<ProjectDesign>): string[] {
+  return missingFrom(data as Record<string, string | null | undefined>, [...DESIGN_REQUIRED])
 }
 
-export function isMaterialsComplete(
-  data: Pick<
-    MaterialProcurement,
-    | 'supplierName'
-    | 'materialDescription'
-    | 'quantity'
-    | 'unit'
-    | 'totalCost'
-    | 'currency'
-    | 'originCountry'
-    | 'orderDate'
-    | 'expectedArrivalDate'
-    | 'invoiceFilePath'
-    | 'status'
-    | 'notes'
-  >,
-): boolean {
-  return (
-    filled(data.supplierName) &&
-    filled(data.materialDescription) &&
-    filled(data.quantity) &&
-    filled(data.unit) &&
-    filled(data.totalCost) &&
-    filled(data.currency) &&
-    filled(data.originCountry) &&
-    filled(data.orderDate) &&
-    filled(data.expectedArrivalDate) &&
-    filled(data.invoiceFilePath) &&
-    filled(data.status) &&
-    filled(data.notes)
-  )
+export function licensingMissing(data: Partial<ProjectLicensing>): string[] {
+  return missingFrom(data as Record<string, string | null | undefined>, [...LICENSING_REQUIRED])
 }
 
-export function isMaintenanceComplete(
-  data: Pick<
-    ProjectMaintenance,
-    | 'maintenanceType'
-    | 'description'
-    | 'responsiblePerson'
-    | 'scheduledDate'
-    | 'cost'
-    | 'status'
-    | 'reportFilePath'
-    | 'notes'
-  >,
-): boolean {
-  return (
-    filled(data.maintenanceType) &&
-    filled(data.description) &&
-    filled(data.responsiblePerson) &&
-    filled(data.scheduledDate) &&
-    filled(data.cost) &&
-    filled(data.status) &&
-    filled(data.reportFilePath) &&
-    filled(data.notes)
-  )
+export function materialsMissing(data: Partial<MaterialProcurement>): string[] {
+  return missingFrom(data as Record<string, string | null | undefined>, [...MATERIALS_REQUIRED])
+}
+
+export function maintenanceMissing(data: Partial<ProjectMaintenance>): string[] {
+  return missingFrom(data as Record<string, string | null | undefined>, [...MAINTENANCE_REQUIRED])
+}
+
+export function isGeotechnicalComplete(data: Partial<GeotechnicalStudy>): boolean {
+  return geotechnicalMissing(data).length === 0
+}
+
+export function isDesignComplete(data: Partial<ProjectDesign>): boolean {
+  return designMissing(data).length === 0
+}
+
+export function isLicensingComplete(data: Partial<ProjectLicensing>): boolean {
+  return licensingMissing(data).length === 0
+}
+
+export function isMaterialsComplete(data: Partial<MaterialProcurement>): boolean {
+  return materialsMissing(data).length === 0
+}
+
+export function isMaintenanceComplete(data: Partial<ProjectMaintenance>): boolean {
+  return maintenanceMissing(data).length === 0
 }

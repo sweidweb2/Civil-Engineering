@@ -1,8 +1,8 @@
-import { runInTransaction } from '../../database/transaction.js'
 import { prisma } from '../../database/prisma.js'
+import { runInTransaction } from '../../database/transaction.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { validationError } from '../../errors/app-error.js'
 import type { ProjectImage, ProjectImagesRepository } from './project-images.types.js'
-import { Prisma } from '../../generated/prisma/client.js'
 
 function mapToProjectImage(row: {
   id: string
@@ -56,7 +56,7 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
     },
 
     async createAtomic(data) {
-      try {
+      return translateUniqueConflict(async () => {
         return await runInTransaction(async (tx) => {
           // Serialize concurrent uploads for this project (count + main flag).
           await tx.$executeRaw`SELECT id FROM projects WHERE id = ${data.projectId} FOR UPDATE`
@@ -88,12 +88,7 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
           })
           return mapToProjectImage(image)
         })
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          throw validationError('Only one main image is allowed per project')
-        }
-        throw error
-      }
+      })
     },
 
     async update(id, data) {
@@ -104,8 +99,8 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
       return mapToProjectImage(image)
     },
 
-    async setMainAtomic(projectId, imageId) {
-      try {
+    async setMainAtomic(projectId, imageId, opts) {
+      return translateUniqueConflict(async () => {
         return await runInTransaction(async (tx) => {
           await tx.$executeRaw`SELECT id FROM projects WHERE id = ${projectId} FOR UPDATE`
           const existing = await tx.projectImage.findFirst({
@@ -120,16 +115,14 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
           })
           const image = await tx.projectImage.update({
             where: { id: imageId },
-            data: { isMain: true },
+            data: {
+              isMain: true,
+              ...(opts?.displayOrder !== undefined ? { displayOrder: opts.displayOrder } : {}),
+            },
           })
           return mapToProjectImage(image)
         })
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          throw validationError('Only one main image is allowed per project')
-        }
-        throw error
-      }
+      })
     },
 
     async reorderAtomic(projectId, orderedIds) {

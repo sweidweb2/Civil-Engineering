@@ -41,7 +41,7 @@ function DatePicker({
             disabled={disabled}
             data-empty={!value}
             className={cn(
-              'w-full justify-start text-start font-normal data-[empty=true]:text-muted-foreground',
+              'h-10 w-full justify-start text-start font-normal data-[empty=true]:text-muted-foreground',
               className,
             )}
           />

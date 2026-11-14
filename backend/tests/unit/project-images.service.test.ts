@@ -60,8 +60,13 @@ describe('projectImagesService', () => {
         })
       }),
       update: vi.fn(async (id, data) => makeImage({ id, ...data })),
-      setMainAtomic: vi.fn(async (projectId, imageId) =>
-        makeImage({ id: imageId, projectId, isMain: true }),
+      setMainAtomic: vi.fn(async (projectId, imageId, opts) =>
+        makeImage({
+          id: imageId,
+          projectId,
+          isMain: true,
+          ...(opts?.displayOrder !== undefined ? { displayOrder: opts.displayOrder } : {}),
+        }),
       ),
       reorderAtomic: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),

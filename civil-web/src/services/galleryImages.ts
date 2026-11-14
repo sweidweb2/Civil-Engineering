@@ -4,7 +4,8 @@ import { apiRequest } from './api'
 export type GalleryImageBase = {
   id: string
   storagePath: string
-  url: string
+  /** Null when storage URL resolution fails (list/get still succeed). */
+  url: string | null
   isMain: boolean
   displayOrder: number
   createdAt: string

@@ -101,8 +101,8 @@ function adaptRepository(repository: ListingImagesRepository): OwnerGalleryRepos
       const image = await repository.update(id, data)
       return { ...image, ownerId: image.listingId }
     },
-    setMainAtomic: async (ownerId, imageId) => {
-      const image = await repository.setMainAtomic(ownerId, imageId)
+    setMainAtomic: async (ownerId, imageId, opts) => {
+      const image = await repository.setMainAtomic(ownerId, imageId, opts)
       return { ...image, ownerId: image.listingId }
     },
     reorderAtomic: (ownerId, orderedIds) => repository.reorderAtomic(ownerId, orderedIds),

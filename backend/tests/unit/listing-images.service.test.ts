@@ -91,8 +91,13 @@ describe('listingImagesService', () => {
         })
       }),
       update: vi.fn(async (id, data) => makeImage({ id, ...data })),
-      setMainAtomic: vi.fn(async (listingId, imageId) =>
-        makeImage({ id: imageId, listingId, isMain: true }),
+      setMainAtomic: vi.fn(async (listingId, imageId, opts) =>
+        makeImage({
+          id: imageId,
+          listingId,
+          isMain: true,
+          ...(opts?.displayOrder !== undefined ? { displayOrder: opts.displayOrder } : {}),
+        }),
       ),
       reorderAtomic: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),
@@ -215,6 +220,6 @@ describe('listingImagesService', () => {
       makeImage({ id: 'img-2', isMain: false }),
     ])
     await service().deleteListingImage(owner, 'img-1')
-    expect(repository.setMainAtomic).toHaveBeenCalledWith('listing-1', 'img-2')
+    expect(repository.setMainAtomic).toHaveBeenCalledWith('listing-1', 'img-2', undefined)
   })
 })

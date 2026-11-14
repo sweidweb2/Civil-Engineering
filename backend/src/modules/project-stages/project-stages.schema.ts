@@ -34,17 +34,6 @@ function blankToNull(value: unknown) {
   return typeof value === 'string' ? value.trim() : value
 }
 
-/** Accept ISO datetime or YYYY-MM-DD date strings. */
-function dateString(label: string) {
-  return z
-    .string()
-    .trim()
-    .min(1, `${label} is required`)
-    .refine((value) => !Number.isNaN(Date.parse(value)), {
-      message: `${label} must be a valid date`,
-    })
-}
-
 function optionalDateString(label: string) {
   return z.preprocess(
     blankToNull,
@@ -59,12 +48,11 @@ function optionalDateString(label: string) {
   )
 }
 
-function requiredText(max: number, label: string) {
-  return z
-    .string()
-    .trim()
-    .min(1, `${label} is required`)
-    .max(max, `${label} must be at most ${max} characters`)
+function optionalText(max: number, label: string) {
+  return z.preprocess(
+    blankToNull,
+    z.string().max(max, `${label} must be at most ${max} characters`).nullable().optional(),
+  )
 }
 
 function dateOrder(earlier: string | null | undefined, later: string | null | undefined): boolean {
@@ -72,18 +60,19 @@ function dateOrder(earlier: string | null | undefined, later: string | null | un
   return new Date(later).getTime() >= new Date(earlier).getTime()
 }
 
+/** Draft-friendly upsert: all content fields optional; status required. */
 export const upsertGeotechnicalBodySchema = z
   .object({
-    soilType: requiredText(120, 'Soil type'),
-    soilBearingCapacity: decimalText('Soil bearing capacity'),
+    soilType: optionalText(120, 'Soil type'),
+    soilBearingCapacity: optionalDecimal('Soil bearing capacity'),
     groundwaterLevel: optionalDecimal('Groundwater level'),
-    foundationRecommendation: requiredText(5000, 'Foundation recommendation'),
-    reportFilePath: requiredText(500, 'Report file path'),
-    consultantName: requiredText(120, 'Consultant name'),
+    foundationRecommendation: optionalText(5000, 'Foundation recommendation'),
+    reportFilePath: optionalText(500, 'Report file path'),
+    consultantName: optionalText(120, 'Consultant name'),
     status: projectStageStatusSchema,
-    startDate: dateString('Start date'),
-    completionDate: dateString('Completion date'),
-    notes: requiredText(5000, 'Notes'),
+    startDate: optionalDateString('Start date'),
+    completionDate: optionalDateString('Completion date'),
+    notes: optionalText(5000, 'Notes'),
   })
   .refine((value) => dateOrder(value.startDate, value.completionDate), {
     message: 'Completion date must be on or after the start date',
@@ -92,16 +81,16 @@ export const upsertGeotechnicalBodySchema = z
 
 export const upsertDesignBodySchema = z
   .object({
-    architecturalDesignPath: requiredText(500, 'Architectural design path'),
-    structuralDesignPath: requiredText(500, 'Structural design path'),
-    mepDesignPath: requiredText(500, 'MEP design path'),
-    architectName: requiredText(120, 'Architect name'),
-    structuralEngineerName: requiredText(120, 'Structural engineer name'),
-    mepEngineerName: requiredText(120, 'MEP engineer name'),
+    architecturalDesignPath: optionalText(500, 'Architectural design path'),
+    structuralDesignPath: optionalText(500, 'Structural design path'),
+    mepDesignPath: optionalText(500, 'MEP design path'),
+    architectName: optionalText(120, 'Architect name'),
+    structuralEngineerName: optionalText(120, 'Structural engineer name'),
+    mepEngineerName: optionalText(120, 'MEP engineer name'),
     status: projectStageStatusSchema,
-    startDate: dateString('Start date'),
-    completionDate: dateString('Completion date'),
-    notes: requiredText(5000, 'Notes'),
+    startDate: optionalDateString('Start date'),
+    completionDate: optionalDateString('Completion date'),
+    notes: optionalText(5000, 'Notes'),
   })
   .refine((value) => dateOrder(value.startDate, value.completionDate), {
     message: 'Completion date must be on or after the start date',
@@ -110,14 +99,14 @@ export const upsertDesignBodySchema = z
 
 export const upsertLicensingBodySchema = z
   .object({
-    permitNumber: requiredText(120, 'Permit number'),
-    issuingAuthority: requiredText(200, 'Issuing authority'),
-    applicationDate: dateString('Application date'),
+    permitNumber: optionalText(120, 'Permit number'),
+    issuingAuthority: optionalText(200, 'Issuing authority'),
+    applicationDate: optionalDateString('Application date'),
     approvalDate: optionalDateString('Approval date'),
-    permitFilePath: requiredText(500, 'Permit file path'),
+    permitFilePath: optionalText(500, 'Permit file path'),
     status: projectStageStatusSchema,
     expiryDate: optionalDateString('Expiry date'),
-    notes: requiredText(5000, 'Notes'),
+    notes: optionalText(5000, 'Notes'),
   })
   .refine((value) => dateOrder(value.applicationDate, value.approvalDate), {
     message: 'Approval date must be on or after the application date',
@@ -130,19 +119,19 @@ export const upsertLicensingBodySchema = z
 
 export const upsertMaterialsBodySchema = z
   .object({
-    supplierName: requiredText(200, 'Supplier name'),
-    materialDescription: requiredText(5000, 'Material description'),
-    quantity: decimalText('Quantity'),
-    unit: requiredText(40, 'Unit'),
-    totalCost: decimalText('Total cost'),
-    currency: requiredText(10, 'Currency'),
-    originCountry: requiredText(100, 'Origin country'),
-    orderDate: dateString('Order date'),
-    expectedArrivalDate: dateString('Expected arrival date'),
+    supplierName: optionalText(200, 'Supplier name'),
+    materialDescription: optionalText(5000, 'Material description'),
+    quantity: optionalDecimal('Quantity'),
+    unit: optionalText(40, 'Unit'),
+    totalCost: optionalDecimal('Total cost'),
+    currency: optionalText(10, 'Currency'),
+    originCountry: optionalText(100, 'Origin country'),
+    orderDate: optionalDateString('Order date'),
+    expectedArrivalDate: optionalDateString('Expected arrival date'),
     actualArrivalDate: optionalDateString('Actual arrival date'),
-    invoiceFilePath: requiredText(500, 'Invoice file path'),
+    invoiceFilePath: optionalText(500, 'Invoice file path'),
     status: projectStageStatusSchema,
-    notes: requiredText(5000, 'Notes'),
+    notes: optionalText(5000, 'Notes'),
   })
   .refine((value) => dateOrder(value.orderDate, value.expectedArrivalDate), {
     message: 'Expected arrival date must be on or after the order date',
@@ -155,15 +144,15 @@ export const upsertMaterialsBodySchema = z
 
 export const upsertMaintenanceBodySchema = z
   .object({
-    maintenanceType: requiredText(120, 'Maintenance type'),
-    description: requiredText(5000, 'Description'),
-    responsiblePerson: requiredText(120, 'Responsible person'),
-    scheduledDate: dateString('Scheduled date'),
+    maintenanceType: optionalText(120, 'Maintenance type'),
+    description: optionalText(5000, 'Description'),
+    responsiblePerson: optionalText(120, 'Responsible person'),
+    scheduledDate: optionalDateString('Scheduled date'),
     completionDate: optionalDateString('Completion date'),
-    cost: decimalText('Cost'),
+    cost: optionalDecimal('Cost'),
     status: projectStageStatusSchema,
-    reportFilePath: requiredText(500, 'Report file path'),
-    notes: requiredText(5000, 'Notes'),
+    reportFilePath: optionalText(500, 'Report file path'),
+    notes: optionalText(5000, 'Notes'),
   })
   .refine((value) => dateOrder(value.scheduledDate, value.completionDate), {
     message: 'Completion date must be on or after the scheduled date',

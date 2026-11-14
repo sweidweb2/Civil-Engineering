@@ -245,19 +245,19 @@ export function createProvidersService(
       const webpBuffer = await toWebpBuffer(file.buffer)
       const objectId = randomUUID().replace(/-/g, '')
       const key = `providers/${id}/logo/${objectId}.webp`
-      await storage.putObject({
-        key,
-        body: webpBuffer,
-        contentType: 'image/webp',
-      })
-
       const previous = provider.logoUrl
-      let updated
+
+      // DB first (like gallery): point at the new key, then put; compensate on R2 failure.
+      const updated = await repository.update(id, { logoUrl: key })
+
       try {
-        updated = await repository.update(id, { logoUrl: key })
+        await storage.putObject({
+          key,
+          body: webpBuffer,
+          contentType: 'image/webp',
+        })
       } catch (error) {
-        // Compensate: DB failed after R2 put — remove the orphan object.
-        await storage.deleteObject(key).catch(() => undefined)
+        await repository.update(id, { logoUrl: previous }).catch(() => undefined)
         throw error
       }
 

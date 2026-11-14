@@ -77,10 +77,7 @@ export function useGalleryImages<TImage extends GalleryImageBase>({
     }
   }
 
-  async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
-
+  async function uploadSelectedFile(file: File) {
     if (images.length >= GALLERY_MAX_IMAGES) {
       toast.error(messages.maxImages)
       return
@@ -112,6 +109,12 @@ export function useGalleryImages<TImage extends GalleryImageBase>({
       setUploadProgress(0)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await uploadSelectedFile(file)
   }
 
   function setMain(imageId: string) {
@@ -158,6 +161,7 @@ export function useGalleryImages<TImage extends GalleryImageBase>({
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     handleFileSelect,
+    uploadSelectedFile,
     setMain,
     requestDelete,
     confirmDelete,

@@ -21,7 +21,7 @@ export type UpdateProjectImageData = {
 }
 
 export type ProjectImageWithUrl = ProjectImage & {
-  url: string
+  url: string | null
 }
 
 export type CreateProjectImageAtomicInput = CreateProjectImageData & {
@@ -38,8 +38,12 @@ export type ProjectImagesRepository = {
   /** Lock project row, enforce max count, unset other mains, create — one transaction. */
   createAtomic: (data: CreateProjectImageAtomicInput) => Promise<ProjectImage>
   update: (id: string, data: UpdateProjectImageData) => Promise<ProjectImage>
-  /** Unset other mains and set this image as main in one transaction. */
-  setMainAtomic: (projectId: string, imageId: string) => Promise<ProjectImage>
+  /** Unset other mains and set this image as main (optional displayOrder) in one transaction. */
+  setMainAtomic: (
+    projectId: string,
+    imageId: string,
+    opts?: { displayOrder?: number },
+  ) => Promise<ProjectImage>
   reorderAtomic: (projectId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
   unsetMainImage: (projectId: string) => Promise<void>

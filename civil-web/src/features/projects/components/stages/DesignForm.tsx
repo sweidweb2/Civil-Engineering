@@ -2,17 +2,22 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { designChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
-import { type ProjectDesign, type UpsertDesignInput, upsertDesign } from '@/services/project-stages'
+import {
+  STAGE_KEYS,
+  type ProjectDesign,
+  type UpsertDesignInput,
+  upsertDesign,
+} from '@/services/project-stages'
 
-import { StageFileField } from './StageFileField'
-import { StageStatusField } from './StageStatusField'
+import { StageBodyShell } from './StageBodyShell'
+import { StageFieldLabel } from './StageFieldLabel'
+import { StageFileCard } from './StageFileCard'
+import { StageSection } from './StageSection'
 
 function emptyDraft(): UpsertDesignInput {
   return {
@@ -32,36 +37,61 @@ function emptyDraft(): UpsertDesignInput {
 function fromRecord(data: ProjectDesign | null): UpsertDesignInput {
   if (!data) return emptyDraft()
   return {
-    architecturalDesignPath: data.architecturalDesignPath,
-    structuralDesignPath: data.structuralDesignPath,
-    mepDesignPath: data.mepDesignPath,
-    architectName: data.architectName,
-    structuralEngineerName: data.structuralEngineerName,
-    mepEngineerName: data.mepEngineerName,
+    architecturalDesignPath: data.architecturalDesignPath ?? '',
+    structuralDesignPath: data.structuralDesignPath ?? '',
+    mepDesignPath: data.mepDesignPath ?? '',
+    architectName: data.architectName ?? '',
+    structuralEngineerName: data.structuralEngineerName ?? '',
+    mepEngineerName: data.mepEngineerName ?? '',
     status: data.status,
-    startDate: data.startDate,
-    completionDate: data.completionDate,
-    notes: data.notes,
+    startDate: data.startDate ?? '',
+    completionDate: data.completionDate ?? '',
+    notes: data.notes ?? '',
   }
 }
 
 type DesignFormProps = {
   projectId: string
   initial: ProjectDesign | null
+  stepIndex: number
   onSaved: () => void
+  onContinue: () => void
 }
 
-export function DesignForm({ projectId, initial, onSaved }: DesignFormProps) {
+export function DesignForm({
+  projectId,
+  initial,
+  stepIndex,
+  onSaved,
+  onContinue,
+}: DesignFormProps) {
   const { t } = useTranslation('projects')
-  const [form, setForm] = useState(() => fromRecord(initial))
+  const [baseline, setBaseline] = useState(() => fromRecord(initial))
+  const [form, setForm] = useState(baseline)
   const [isSaving, setIsSaving] = useState(false)
+  const checklist = designChecklist(form)
+  const missing = missingCount(checklist)
+  const isDirty = JSON.stringify(form) !== JSON.stringify(baseline)
 
-  const save = async () => {
+  const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertDesign(projectId, form)
+      await upsertDesign(projectId, {
+        ...form,
+        architecturalDesignPath: form.architecturalDesignPath || null,
+        structuralDesignPath: form.structuralDesignPath || null,
+        mepDesignPath: form.mepDesignPath || null,
+        architectName: form.architectName || null,
+        structuralEngineerName: form.structuralEngineerName || null,
+        mepEngineerName: form.mepEngineerName || null,
+        startDate: form.startDate || null,
+        completionDate: form.completionDate || null,
+        notes: form.notes || null,
+      } as UpsertDesignInput)
+      setBaseline(form)
       toast.success(t('stages.saved'))
-      onSaved()
+      if (continueNext) onContinue()
+      else onSaved()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('stages.couldNotSave'))
     } finally {
@@ -70,88 +100,120 @@ export function DesignForm({ projectId, initial, onSaved }: DesignFormProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field>
-          <Label htmlFor="architectName">{t('stages.fields.architectName')}</Label>
-          <Input
-            id="architectName"
-            value={form.architectName}
-            maxLength={120}
-            onChange={(e) => setForm({ ...form, architectName: e.target.value })}
+    <StageBodyShell
+      stageKey="design"
+      stepIndex={stepIndex}
+      totalSteps={STAGE_KEYS.length}
+      status={form.status}
+      onStatusChange={(status) => setForm({ ...form, status })}
+      missingCount={missing}
+      checklist={checklist}
+      nextStageLabel={t('stages.names.licensing')}
+      isSaving={isSaving}
+      isDirty={isDirty}
+      onDiscard={() => setForm(baseline)}
+      onSaveDraft={() => void persist(false)}
+      onSaveContinue={() => void persist(true)}
+      sidebarFiles={
+        <>
+          <StageFileCard
+            projectId={projectId}
+            title={t('stages.fields.architecturalDesignPath')}
+            hint={t('stages.placeholders.architecturalDesignPath')}
+            value={form.architecturalDesignPath}
+            onChange={(architecturalDesignPath) => setForm({ ...form, architecturalDesignPath })}
+            disabled={isSaving}
           />
-        </Field>
-        <Field>
-          <Label htmlFor="structuralEngineerName">
-            {t('stages.fields.structuralEngineerName')}
-          </Label>
-          <Input
-            id="structuralEngineerName"
-            value={form.structuralEngineerName}
-            maxLength={120}
-            onChange={(e) => setForm({ ...form, structuralEngineerName: e.target.value })}
+          <StageFileCard
+            projectId={projectId}
+            title={t('stages.fields.structuralDesignPath')}
+            hint={t('stages.placeholders.structuralDesignPath')}
+            value={form.structuralDesignPath}
+            onChange={(structuralDesignPath) => setForm({ ...form, structuralDesignPath })}
+            disabled={isSaving}
           />
-        </Field>
-        <Field>
-          <Label htmlFor="mepEngineerName">{t('stages.fields.mepEngineerName')}</Label>
-          <Input
-            id="mepEngineerName"
-            value={form.mepEngineerName}
-            maxLength={120}
-            onChange={(e) => setForm({ ...form, mepEngineerName: e.target.value })}
+          <StageFileCard
+            projectId={projectId}
+            title={t('stages.fields.mepDesignPath')}
+            hint={t('stages.placeholders.mepDesignPath')}
+            value={form.mepDesignPath}
+            onChange={(mepDesignPath) => setForm({ ...form, mepDesignPath })}
+            disabled={isSaving}
           />
-        </Field>
-        <StageStatusField value={form.status} onChange={(status) => setForm({ ...form, status })} />
-        <Field>
-          <Label>{t('stages.fields.startDate')}</Label>
-          <DatePicker
-            value={parseStageDate(form.startDate)}
-            onChange={(date) => setForm({ ...form, startDate: stageDateToIso(date) })}
-          />
-        </Field>
-        <Field>
-          <Label>{t('stages.fields.completionDate')}</Label>
-          <DatePicker
-            value={parseStageDate(form.completionDate)}
-            onChange={(date) => setForm({ ...form, completionDate: stageDateToIso(date) })}
-          />
-        </Field>
-      </div>
-      <StageFileField
-        projectId={projectId}
-        label={t('stages.fields.architecturalDesignPath')}
-        value={form.architecturalDesignPath}
-        onChange={(architecturalDesignPath) => setForm({ ...form, architecturalDesignPath })}
-        disabled={isSaving}
-      />
-      <StageFileField
-        projectId={projectId}
-        label={t('stages.fields.structuralDesignPath')}
-        value={form.structuralDesignPath}
-        onChange={(structuralDesignPath) => setForm({ ...form, structuralDesignPath })}
-        disabled={isSaving}
-      />
-      <StageFileField
-        projectId={projectId}
-        label={t('stages.fields.mepDesignPath')}
-        value={form.mepDesignPath}
-        onChange={(mepDesignPath) => setForm({ ...form, mepDesignPath })}
-        disabled={isSaving}
-      />
-      <Field>
-        <Label htmlFor="designNotes">{t('stages.fields.notes')}</Label>
-        <Textarea
-          id="designNotes"
-          value={form.notes}
-          maxLength={5000}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-        />
-      </Field>
-      <div className="flex justify-end">
-        <Button type="button" onClick={() => void save()} disabled={isSaving}>
-          {isSaving ? t('stages.saving') : t('stages.saveStep')}
-        </Button>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <StageSection title={t('stages.sections.designTeam')}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <StageFieldLabel htmlFor="architectName" required>
+              {t('stages.fields.architectName')}
+            </StageFieldLabel>
+            <Input
+              id="architectName"
+              value={form.architectName}
+              placeholder={t('stages.placeholders.architectName')}
+              onChange={(e) => setForm({ ...form, architectName: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <StageFieldLabel htmlFor="structuralEngineerName" required>
+              {t('stages.fields.structuralEngineerName')}
+            </StageFieldLabel>
+            <Input
+              id="structuralEngineerName"
+              value={form.structuralEngineerName}
+              placeholder={t('stages.placeholders.structuralEngineerName')}
+              onChange={(e) => setForm({ ...form, structuralEngineerName: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <StageFieldLabel htmlFor="mepEngineerName" required>
+              {t('stages.fields.mepEngineerName')}
+            </StageFieldLabel>
+            <Input
+              id="mepEngineerName"
+              value={form.mepEngineerName}
+              placeholder={t('stages.placeholders.mepEngineerName')}
+              onChange={(e) => setForm({ ...form, mepEngineerName: e.target.value })}
+            />
+          </Field>
+        </div>
+      </StageSection>
+
+      <StageSection title={t('stages.sections.designPeriod')}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field className="md:col-span-2">
+            <StageFieldLabel required>{t('stages.designPeriod')}</StageFieldLabel>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <DatePicker
+                value={parseStageDate(form.startDate)}
+                placeholder={t('stages.placeholders.startDate')}
+                onChange={(date) => setForm({ ...form, startDate: stageDateToIso(date) })}
+              />
+              <span className="hidden text-center text-muted-foreground sm:block">
+                {t('stages.dateRangeSeparator')}
+              </span>
+              <DatePicker
+                value={parseStageDate(form.completionDate)}
+                placeholder={t('stages.placeholders.completionDate')}
+                onChange={(date) => setForm({ ...form, completionDate: stageDateToIso(date) })}
+              />
+            </div>
+          </Field>
+          <Field className="md:col-span-2">
+            <StageFieldLabel htmlFor="designNotes" optional>
+              {t('stages.fields.notes')}
+            </StageFieldLabel>
+            <Input
+              id="designNotes"
+              value={form.notes}
+              placeholder={t('stages.placeholders.notes')}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
+          </Field>
+        </div>
+      </StageSection>
+    </StageBodyShell>
   )
 }

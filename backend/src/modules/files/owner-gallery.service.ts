@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import { notFound, validationError } from '../../errors/app-error.js'
+import { isUniqueConflictError, notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
@@ -19,7 +19,7 @@ export type OwnerGalleryImage = {
   updatedAt: Date
 }
 
-export type OwnerGalleryImageWithUrl = OwnerGalleryImage & { url: string }
+export type OwnerGalleryImageWithUrl = OwnerGalleryImage & { url: string | null }
 
 export type OwnerGalleryRepository = {
   findByOwnerId: (ownerId: string) => Promise<OwnerGalleryImage[]>
@@ -43,7 +43,11 @@ export type OwnerGalleryRepository = {
     id: string,
     data: { isMain?: boolean; displayOrder?: number },
   ) => Promise<OwnerGalleryImage>
-  setMainAtomic: (ownerId: string, imageId: string) => Promise<OwnerGalleryImage>
+  setMainAtomic: (
+    ownerId: string,
+    imageId: string,
+    opts?: { displayOrder?: number },
+  ) => Promise<OwnerGalleryImage>
   /** Apply displayOrder updates for one owner in a single transaction. */
   reorderAtomic: (ownerId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
@@ -95,6 +99,13 @@ export type OwnerGalleryServiceDeps = {
   config: AppConfig
 }
 
+function mapGalleryUniqueConflict(error: unknown): never {
+  if (isUniqueConflictError(error)) {
+    throw validationError('Only one main image is allowed')
+  }
+  throw error
+}
+
 /** Shared gallery use-cases for project/listing (and future) owner image modules. */
 export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerGalleryService {
   const { repository, policy, storage, config } = deps
@@ -109,7 +120,7 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
 
   async function withUrl(image: OwnerGalleryImage): Promise<OwnerGalleryImageWithUrl> {
     const url = await getImageUrl(image.storagePath)
-    return { ...image, url: url ?? '' }
+    return { ...image, url }
   }
 
   return {
@@ -136,14 +147,19 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
 
       // DB first (count + main under row lock) so concurrent uploads cannot overrun the cap
       // or create dual mains; R2 put is compensated if it fails after insert.
-      const image = await repository.createAtomic({
-        ownerId,
-        storagePath,
-        isMain: input.isMain,
-        displayOrder: input.displayOrder,
-        maxImages: MAX_GALLERY_IMAGES,
-        autoMainIfEmpty: policy.autoMain,
-      })
+      let image: OwnerGalleryImage
+      try {
+        image = await repository.createAtomic({
+          ownerId,
+          storagePath,
+          isMain: input.isMain,
+          displayOrder: input.displayOrder,
+          maxImages: MAX_GALLERY_IMAGES,
+          autoMainIfEmpty: policy.autoMain,
+        })
+      } catch (error) {
+        mapGalleryUniqueConflict(error)
+      }
 
       try {
         await storage.putObject({
@@ -165,11 +181,14 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       await policy.assertCanManage(actor, image.ownerId)
 
       if (input.isMain === true) {
-        const updated = await repository.setMainAtomic(image.ownerId, imageId)
-        if (input.displayOrder !== undefined) {
-          return withUrl(await repository.update(imageId, { displayOrder: input.displayOrder }))
+        try {
+          const updated = await repository.setMainAtomic(image.ownerId, imageId, {
+            displayOrder: input.displayOrder,
+          })
+          return withUrl(updated)
+        } catch (error) {
+          mapGalleryUniqueConflict(error)
         }
-        return withUrl(updated)
       }
 
       const updated = await repository.update(imageId, input)
@@ -187,7 +206,11 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
         const remaining = await repository.findByOwnerId(image.ownerId)
         const next = remaining[0]
         if (next) {
-          await repository.setMainAtomic(image.ownerId, next.id)
+          try {
+            await repository.setMainAtomic(image.ownerId, next.id)
+          } catch (error) {
+            mapGalleryUniqueConflict(error)
+          }
         }
       }
 
@@ -205,8 +228,17 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       await policy.assertCanManage(actor, ownerId)
 
       const images = await repository.findByOwnerId(ownerId)
-      const imageMap = new Map(images.map((img) => [img.id, img]))
-      const invalidIds = input.imageIds.filter((id) => !imageMap.has(id))
+      const existingIds = images.map((img) => img.id)
+      const uniqueIncoming = new Set(input.imageIds)
+
+      if (uniqueIncoming.size !== input.imageIds.length) {
+        throw validationError('Reorder imageIds must not contain duplicates')
+      }
+      if (input.imageIds.length !== existingIds.length) {
+        throw validationError('Reorder imageIds must include every image exactly once')
+      }
+      const existingSet = new Set(existingIds)
+      const invalidIds = input.imageIds.filter((id) => !existingSet.has(id))
       if (invalidIds.length > 0) {
         throw validationError(`Invalid image IDs: ${invalidIds.join(', ')}`)
       }
@@ -218,9 +250,9 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
     },
 
     async getMainImageUrl(ownerId) {
-      const mainImage = await repository.findMainImageByOwnerId(ownerId)
-      if (!mainImage) return null
-      return getImageUrl(mainImage.storagePath)
+      const main = await repository.findMainImageByOwnerId(ownerId)
+      if (!main) return null
+      return getImageUrl(main.storagePath)
     },
   }
 }

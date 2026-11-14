@@ -42,51 +42,30 @@ describe('project stage schemas', () => {
     expect(result.success).toBe(false)
   })
 
+  it('accepts a partial draft with only status', () => {
+    expect(upsertDesignBodySchema.safeParse({ status: 'IN_PROGRESS' }).success).toBe(true)
+  })
+
   it('rejects overlong strings', () => {
     const result = upsertDesignBodySchema.safeParse({
       architecturalDesignPath: 'a'.repeat(501),
-      structuralDesignPath: 'b',
-      mepDesignPath: 'c',
-      architectName: 'A',
-      structuralEngineerName: 'B',
-      mepEngineerName: 'C',
       status: 'NOT_STARTED',
-      startDate: '2026-01-01',
-      completionDate: '2026-02-01',
-      notes: 'n',
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects invalid status', () => {
     const result = upsertLicensingBodySchema.safeParse({
-      permitNumber: '1',
-      issuingAuthority: 'City',
-      applicationDate: '2026-01-01',
-      approvalDate: null,
-      permitFilePath: 'path',
       status: 'DRAFT',
-      expiryDate: null,
-      notes: 'n',
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects materials arrival before order', () => {
     const result = upsertMaterialsBodySchema.safeParse({
-      supplierName: 'S',
-      materialDescription: 'M',
-      quantity: '1',
-      unit: 'kg',
-      totalCost: '10',
-      currency: 'USD',
-      originCountry: 'JO',
       orderDate: '2026-02-01T00:00:00.000Z',
       expectedArrivalDate: '2026-01-01T00:00:00.000Z',
-      actualArrivalDate: null,
-      invoiceFilePath: 'inv',
       status: 'NOT_STARTED',
-      notes: 'n',
     })
     expect(result.success).toBe(false)
   })

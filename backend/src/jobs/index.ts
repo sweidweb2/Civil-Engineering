@@ -18,6 +18,7 @@ const FILE_CLEANUP_BATCH = 50
 
 let purgeDeniedRefreshTimer: ReturnType<typeof setInterval> | undefined
 let purgeDeletedFilesTimer: ReturnType<typeof setInterval> | undefined
+let lastDeletedFilesPurgeAt = 0
 
 /** Send a user push notification (best-effort, inline). */
 export function enqueueNotifyUser(userId: string, payload: NotifyUserPayload): Promise<void> {
@@ -27,6 +28,7 @@ export function enqueueNotifyUser(userId: string, payload: NotifyUserPayload): P
 /**
  * Hard-delete an R2 object after soft-delete in Postgres.
  * Idempotent if the object is already gone; failures are logged, never thrown.
+ * On success, removes the DELETED DB row so the hourly sweeper does not requeue it.
  */
 export async function enqueueDeleteStorageObject(payload: {
   fileId: string
@@ -39,6 +41,7 @@ export async function enqueueDeleteStorageObject(payload: {
     }
     const storage = getStorageService(config)
     await storage.deleteObject(payload.key)
+    await createFilesRepository().hardDeleteIfDeleted(payload.fileId)
   } catch (error) {
     getLogger().error(
       {
@@ -85,7 +88,8 @@ export function startDeniedRefreshTokenPurgeScheduler(): void {
 }
 
 /**
- * Retry R2 deletes for soft-deleted files and mark stale PENDING rows deleted.
+ * Retry R2 deletes for soft-deleted files and claim stale PENDING rows.
+ * Uses conditional PENDING→DELETED claims so complete() cannot race into a READY+missing-blob state.
  * Idempotent; failures are logged and retried next interval.
  */
 export async function enqueuePurgeDeletedFileObjects(): Promise<{
@@ -111,6 +115,7 @@ export async function enqueuePurgeDeletedFileObjects(): Promise<{
     for (const file of deleted) {
       try {
         await storage.deleteObject(file.key)
+        await repository.hardDeleteIfDeleted(file.id)
         deletedObjects += 1
       } catch (error) {
         getLogger().error(
@@ -128,8 +133,11 @@ export async function enqueuePurgeDeletedFileObjects(): Promise<{
     const pending = await repository.listStalePending(cutoff, FILE_CLEANUP_BATCH)
     for (const file of pending) {
       try {
-        await repository.markDeleted(file.id)
-        await storage.deleteObject(file.key).catch(() => undefined)
+        // Claim first so a concurrent complete() cannot mark READY after we decide to GC.
+        const claimed = await repository.claimStalePending(file.id)
+        if (!claimed) continue
+        await storage.deleteObject(claimed.key).catch(() => undefined)
+        await repository.hardDeleteIfDeleted(claimed.id)
         stalePending += 1
       } catch (error) {
         getLogger().error(
@@ -154,6 +162,17 @@ export async function enqueuePurgeDeletedFileObjects(): Promise<{
   }
 
   return { deletedObjects, stalePending }
+}
+
+/**
+ * Throttled GC for serverless (Vercel) where setInterval does not run.
+ * Safe to call from request paths (soft-delete / uploads); at most once per hour per instance.
+ */
+export function maybePurgeDeletedFileObjects(): void {
+  const now = Date.now()
+  if (now - lastDeletedFilesPurgeAt < PURGE_DELETED_FILES_INTERVAL_MS) return
+  lastDeletedFilesPurgeAt = now
+  void enqueuePurgeDeletedFileObjects()
 }
 
 export function startDeletedFileObjectsPurgeScheduler(): void {

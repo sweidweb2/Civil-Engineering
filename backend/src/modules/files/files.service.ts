@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
+import { maybePurgeDeletedFileObjects } from '../../jobs/index.js'
 import { buildObjectKey } from '../../storage/object-key.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsService } from '../projects/projects.service.js'
@@ -100,6 +101,7 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
           expiresInSec: uploadTtl,
         })
 
+        void maybePurgeDeletedFileObjects()
         return {
           fileId,
           key,
@@ -144,7 +146,12 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         throw validationError('Uploaded Content-Type does not match declared MIME')
       }
 
-      return repository.markReady(file.id, size)
+      const ready = await repository.markReady(file.id, size)
+      if (!ready) {
+        // Raced with soft-delete / stale PENDING GC.
+        throw forbidden('File cannot be completed')
+      }
+      return ready
     },
 
     async downloadUrl(actor, fileId) {
@@ -173,6 +180,7 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
 
       const deleted = await repository.markDeleted(file.id)
       await enqueueDelete({ fileId: deleted.id, key: deleted.key })
+      void maybePurgeDeletedFileObjects()
       return deleted
     },
 
@@ -235,7 +243,12 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
           body: input.body,
           contentType: input.mime,
         })
-        return await repository.markReady(fileId, size)
+        const ready = await repository.markReady(fileId, size)
+        if (!ready) {
+          await enqueueDelete({ fileId, key }).catch(() => undefined)
+          throw forbidden('File cannot be completed')
+        }
+        return ready
       } catch (error) {
         await repository.markDeleted(fileId).catch(() => undefined)
         await enqueueDelete({ fileId, key }).catch(() => undefined)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  geotechnicalMissing,
   isDesignComplete,
   isGeotechnicalComplete,
   isLicensingComplete,
@@ -17,26 +18,22 @@ describe('project stage completeness', () => {
         foundationRecommendation: 'Raft',
         reportFilePath: 'env/project/p1/report.pdf',
         consultantName: 'Dr. A',
-        status: 'IN_PROGRESS',
         startDate: '2026-01-01T00:00:00.000Z',
         completionDate: '2026-02-01T00:00:00.000Z',
-        notes: 'Ok',
       }),
     ).toBe(true)
 
     expect(
-      isGeotechnicalComplete({
+      geotechnicalMissing({
         soilType: '',
         soilBearingCapacity: '150.5',
         foundationRecommendation: 'Raft',
         reportFilePath: 'env/project/p1/report.pdf',
         consultantName: 'Dr. A',
-        status: 'IN_PROGRESS',
         startDate: '2026-01-01T00:00:00.000Z',
         completionDate: '2026-02-01T00:00:00.000Z',
-        notes: 'Ok',
       }),
-    ).toBe(false)
+    ).toContain('soilType')
   })
 
   it('marks licensing complete without optional approval/expiry dates', () => {
@@ -46,8 +43,6 @@ describe('project stage completeness', () => {
         issuingAuthority: 'Municipality',
         applicationDate: '2026-01-01T00:00:00.000Z',
         permitFilePath: 'env/project/p1/permit.pdf',
-        status: 'NOT_STARTED',
-        notes: 'Pending',
       }),
     ).toBe(true)
   })
@@ -61,10 +56,8 @@ describe('project stage completeness', () => {
         architectName: 'A',
         structuralEngineerName: 'B',
         mepEngineerName: 'C',
-        status: 'COMPLETED',
         startDate: '2026-01-01T00:00:00.000Z',
         completionDate: '2026-03-01T00:00:00.000Z',
-        notes: 'Done',
       }),
     ).toBe(true)
   })
@@ -82,8 +75,6 @@ describe('project stage completeness', () => {
         orderDate: '2026-01-01T00:00:00.000Z',
         expectedArrivalDate: '2026-02-01T00:00:00.000Z',
         invoiceFilePath: 'env/project/p1/invoice.pdf',
-        status: 'IN_PROGRESS',
-        notes: 'Ordered',
       }),
     ).toBe(true)
   })
@@ -96,9 +87,7 @@ describe('project stage completeness', () => {
         responsiblePerson: 'Ali',
         scheduledDate: '2026-06-01T00:00:00.000Z',
         cost: '250',
-        status: 'NOT_STARTED',
         reportFilePath: 'env/project/p1/maint.pdf',
-        notes: 'Planned',
       }),
     ).toBe(true)
   })

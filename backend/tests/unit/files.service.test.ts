@@ -54,6 +54,8 @@ describe('filesService', () => {
       markDeleted: vi.fn(async (id) => pendingFile({ id, status: 'DELETED' })),
       listDeleted: vi.fn(async () => []),
       listStalePending: vi.fn(async () => []),
+      claimStalePending: vi.fn(async (id) => ({ id, key: pendingFile().key })),
+      hardDeleteIfDeleted: vi.fn(async () => undefined),
     }
 
     const storage: StorageService = {
@@ -141,6 +143,18 @@ describe('filesService', () => {
     const ready = await service.complete(actor, 'file1')
     expect(ready.status).toBe('READY')
     expect(repository.markReady).toHaveBeenCalledWith('file1', 1000)
+  })
+
+  it('forbids complete when markReady loses the PENDING race', async () => {
+    const { service, repository } = setup()
+    vi.mocked(repository.markReady).mockResolvedValueOnce(null)
+
+    try {
+      await service.complete(actor, 'file1')
+      expect.unreachable()
+    } catch (error) {
+      expect((error as AppError).status).toBe(403)
+    }
   })
 
   it('rejects complete when object missing', async () => {

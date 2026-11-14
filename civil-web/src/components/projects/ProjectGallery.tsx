@@ -46,16 +46,16 @@ export function ProjectGallery({ projectId }: Props) {
   const labels: ImageGalleryLabels = {
     title: t('projects:galleryTitle'),
     description: t('projects:galleryStats', {
-      current: images.length,
+      count: images.length,
       max: GALLERY_MAX_IMAGES,
       maxSize: GALLERY_MAX_FILE_SIZE_MB,
     }),
     uploadImage: t('projects:uploadImage'),
     uploading: t('common:uploading'),
     uploadProgress: {
-      uploading: t('projects:uploadingImage'),
-      finishing: t('projects:uploadFinishing'),
-      aria: t('projects:uploadProgressAria'),
+      uploading: t('common:uploadingImage'),
+      finishing: t('common:uploadFinishing'),
+      aria: t('common:uploadProgressAria'),
     },
     emptyTitle: t('projects:noImages'),
     emptyHint: t('projects:noImagesHint'),
@@ -82,7 +82,7 @@ export function ProjectGallery({ projectId }: Props) {
       gallery={gallery}
       labels={labels}
       loadingFallback={<GallerySkeleton />}
-      cardClassName="md:col-span-2"
+      emptyVariant="dropzone"
       overlay={(loaded) =>
         selectedImageIndex !== null && loaded[selectedImageIndex] ? (
           <div
@@ -132,7 +132,7 @@ export function ProjectGallery({ projectId }: Props) {
               }}
             >
               <img
-                src={loaded[selectedImageIndex].url}
+                src={loaded[selectedImageIndex].url ?? undefined}
                 alt={t('projects:imageAlt', { index: selectedImageIndex + 1 })}
                 className="max-h-[90vh] max-w-[90vw] object-contain"
               />
@@ -163,11 +163,13 @@ export function ProjectGallery({ projectId }: Props) {
               className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border bg-muted"
               onClick={() => setSelectedImageIndex(index)}
             >
-              <img
-                src={image.url}
-                alt={t('projects:imageAlt', { index: index + 1 })}
-                className="size-full object-cover transition-transform group-hover:scale-105"
-              />
+              {image.url ? (
+                <img
+                  src={image.url}
+                  alt={t('projects:imageAlt', { index: index + 1 })}
+                  className="size-full object-cover transition-transform group-hover:scale-105"
+                />
+              ) : null}
               {image.isMain && (
                 <Badge className="absolute start-2 top-2">
                   <Star className="size-3" />

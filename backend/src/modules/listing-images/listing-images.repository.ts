@@ -1,7 +1,7 @@
-import { runInTransaction } from '../../database/transaction.js'
 import { prisma } from '../../database/prisma.js'
+import { runInTransaction } from '../../database/transaction.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { validationError } from '../../errors/app-error.js'
-import { Prisma } from '../../generated/prisma/client.js'
 import type { ListingImage, ListingImagesRepository } from './listing-images.types.js'
 
 function mapToListingImage(row: {
@@ -56,7 +56,7 @@ export function createListingImagesRepository(): ListingImagesRepository {
     },
 
     async createAtomic(data) {
-      try {
+      return translateUniqueConflict(async () => {
         return await runInTransaction(async (tx) => {
           await tx.$executeRaw`SELECT id FROM listings WHERE id = ${data.listingId} FOR UPDATE`
 
@@ -87,12 +87,7 @@ export function createListingImagesRepository(): ListingImagesRepository {
           })
           return mapToListingImage(image)
         })
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          throw validationError('Only one main image is allowed per listing')
-        }
-        throw error
-      }
+      })
     },
 
     async update(id, data) {
@@ -103,8 +98,8 @@ export function createListingImagesRepository(): ListingImagesRepository {
       return mapToListingImage(image)
     },
 
-    async setMainAtomic(listingId, imageId) {
-      try {
+    async setMainAtomic(listingId, imageId, opts) {
+      return translateUniqueConflict(async () => {
         return await runInTransaction(async (tx) => {
           await tx.$executeRaw`SELECT id FROM listings WHERE id = ${listingId} FOR UPDATE`
           const existing = await tx.listingImage.findFirst({
@@ -119,16 +114,14 @@ export function createListingImagesRepository(): ListingImagesRepository {
           })
           const image = await tx.listingImage.update({
             where: { id: imageId },
-            data: { isMain: true },
+            data: {
+              isMain: true,
+              ...(opts?.displayOrder !== undefined ? { displayOrder: opts.displayOrder } : {}),
+            },
           })
           return mapToListingImage(image)
         })
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          throw validationError('Only one main image is allowed per listing')
-        }
-        throw error
-      }
+      })
     },
 
     async reorderAtomic(listingId, orderedIds) {

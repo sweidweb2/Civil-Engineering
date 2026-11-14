@@ -1,5 +1,5 @@
 import { Image as ImageIcon, Loader2, Upload } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import {
@@ -19,6 +19,7 @@ import {
   GALLERY_MAX_IMAGES,
   type GalleryController,
 } from '@/hooks/useGalleryImages'
+import { cn } from '@/lib/utils'
 import type { GalleryImageBase } from '@/services/galleryImages'
 
 type UploadProgressProps = {
@@ -76,6 +77,8 @@ type ImageGalleryProps<TImage extends GalleryImageBase> = {
   /** Whether upload/delete controls are shown. */
   canManage?: boolean
   cardClassName?: string
+  /** Drop-zone empty layout with placeholder tiles (project site gallery). */
+  emptyVariant?: 'simple' | 'dropzone'
   /** Layout of the non-empty image collection (table, grid, …). */
   children: (images: TImage[]) => ReactNode
   /** Rendered after the card (e.g. lightbox); receives the loaded images. */
@@ -92,6 +95,7 @@ export function ImageGallery<TImage extends GalleryImageBase>({
   loadingFallback,
   canManage = true,
   cardClassName,
+  emptyVariant = 'simple',
   children,
   overlay,
 }: ImageGalleryProps<TImage>) {
@@ -105,8 +109,20 @@ export function ImageGallery<TImage extends GalleryImageBase>({
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     handleFileSelect,
+    uploadSelectedFile,
     confirmDelete,
   } = gallery
+  const [isDragging, setIsDragging] = useState(false)
+
+  const openPicker = () => fileInputRef.current?.click()
+
+  const onDrop = (event: React.DragEvent) => {
+    event.preventDefault()
+    setIsDragging(false)
+    if (!canManage || isUploading) return
+    const file = event.dataTransfer.files?.[0]
+    if (file) void uploadSelectedFile(file)
+  }
 
   return (
     <>
@@ -134,7 +150,7 @@ export function ImageGallery<TImage extends GalleryImageBase>({
                   />
                   <Button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={openPicker}
                     disabled={isUploading}
                     aria-busy={isUploading}
                   >
@@ -159,13 +175,52 @@ export function ImageGallery<TImage extends GalleryImageBase>({
               />
             ) : null}
             {images.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <ImageIcon className="size-12 text-muted-foreground/50" />
-                <p className="mt-4 text-sm font-medium text-muted-foreground">
-                  {labels.emptyTitle}
-                </p>
-                <p className="text-sm text-muted-foreground">{labels.emptyHint}</p>
-              </div>
+              emptyVariant === 'dropzone' ? (
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr]">
+                  <button
+                    type="button"
+                    disabled={!canManage || isUploading}
+                    onClick={openPicker}
+                    onDragEnter={(event) => {
+                      event.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={(event) => {
+                      event.preventDefault()
+                      setIsDragging(false)
+                    }}
+                    onDrop={onDrop}
+                    className={cn(
+                      'flex min-h-36 flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-8 text-center transition-colors',
+                      isDragging
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted-foreground/30 bg-muted/20',
+                      'hover:border-primary/50 hover:bg-muted/30',
+                      'disabled:pointer-events-none disabled:opacity-60',
+                    )}
+                  >
+                    <ImageIcon className="size-8 text-muted-foreground/70" aria-hidden />
+                    <p className="text-sm font-medium text-foreground">{labels.emptyTitle}</p>
+                    <p className="max-w-sm text-xs text-muted-foreground">{labels.emptyHint}</p>
+                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="min-h-36 rounded-xl bg-muted/50" aria-hidden />
+                    <div className="min-h-36 rounded-xl bg-muted/40" aria-hidden />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <ImageIcon className="size-12 text-muted-foreground/50" />
+                  <p className="mt-4 text-sm font-medium text-muted-foreground">
+                    {labels.emptyTitle}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{labels.emptyHint}</p>
+                </div>
+              )
             ) : (
               children(images)
             )}

@@ -25,9 +25,32 @@ export function useLocaleFormat() {
         const date = toValidDate(value)
         return date ? date.toLocaleDateString(intlLocale) : fallback
       },
+      /** Unambiguous calendar date, e.g. "Jun 1, 2025". */
+      formatMediumDate: (value: DateInput, fallback = '—') => {
+        const date = toValidDate(value)
+        return date
+          ? date.toLocaleDateString(intlLocale, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : fallback
+      },
       formatDateTime: (value: DateInput, fallback = '—') => {
         const date = toValidDate(value)
         return date ? date.toLocaleString(intlLocale) : fallback
+      },
+      formatMediumDateTime: (value: DateInput, fallback = '—') => {
+        const date = toValidDate(value)
+        return date
+          ? date.toLocaleString(intlLocale, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+          : fallback
       },
       formatShortDay: (date: Date) =>
         date.toLocaleDateString(intlLocale, { month: 'short', day: '2-digit' }),

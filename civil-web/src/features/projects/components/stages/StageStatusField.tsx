@@ -30,8 +30,8 @@ export function StageStatusField({ value, onChange, disabled }: StageStatusField
         }}
         disabled={disabled}
       >
-        <SelectTrigger>
-          <SelectValue placeholder={t('stages.selectStatus')} />
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={t('stages.placeholders.status')} />
         </SelectTrigger>
         <SelectContent>
           {PROJECT_STAGE_STATUS_OPTIONS.map((option) => (

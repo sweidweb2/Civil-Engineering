@@ -479,101 +479,101 @@ enum ProjectStageStatus {
 }
 
 model GeotechnicalStudy {
-  id                        String             @id @default(cuid())
-  projectId                 String             @unique
-  soilType                  String
-  soilBearingCapacity       Decimal            @db.Decimal(18, 4)
-  groundwaterLevel          Decimal?           @db.Decimal(18, 4)
-  foundationRecommendation  String
-  reportFilePath            String
-  consultantName            String
-  status                    ProjectStageStatus
-  startDate                 DateTime
-  completionDate            DateTime
-  notes                     String
-  createdAt                 DateTime           @default(now())
-  updatedAt                 DateTime           @updatedAt
-  project                   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id                       String              @id @default(cuid())
+  projectId                String              @unique
+  soilType                 String?
+  soilBearingCapacity      Decimal?            @db.Decimal(18, 4)
+  groundwaterLevel         Decimal?            @db.Decimal(18, 4)
+  foundationRecommendation String?
+  reportFilePath           String?
+  consultantName           String?
+  status                   ProjectStageStatus  @default(NOT_STARTED)
+  startDate                DateTime?
+  completionDate           DateTime?
+  notes                    String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  project                  Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("geotechnical_studies")
 }
 
 model ProjectDesign {
-  id                       String             @id @default(cuid())
-  projectId                String             @unique
-  architecturalDesignPath  String
-  structuralDesignPath     String
-  mepDesignPath            String
-  architectName            String
-  structuralEngineerName   String
-  mepEngineerName          String
-  status                   ProjectStageStatus
-  startDate                DateTime
-  completionDate           DateTime
-  notes                    String
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
-  project                  Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id                      String              @id @default(cuid())
+  projectId               String              @unique
+  architecturalDesignPath String?
+  structuralDesignPath    String?
+  mepDesignPath           String?
+  architectName           String?
+  structuralEngineerName  String?
+  mepEngineerName         String?
+  status                  ProjectStageStatus  @default(NOT_STARTED)
+  startDate               DateTime?
+  completionDate          DateTime?
+  notes                   String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  project                 Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_designs")
 }
 
 model ProjectLicensing {
-  id               String             @id @default(cuid())
-  projectId        String             @unique
-  permitNumber     String
-  issuingAuthority String
-  applicationDate  DateTime
+  id               String              @id @default(cuid())
+  projectId        String              @unique
+  permitNumber     String?
+  issuingAuthority String?
+  applicationDate  DateTime?
   approvalDate     DateTime?
-  permitFilePath   String
-  status           ProjectStageStatus
+  permitFilePath   String?
+  status           ProjectStageStatus  @default(NOT_STARTED)
   expiryDate       DateTime?
-  notes            String
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notes            String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  project          Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_licensings")
 }
 
 model MaterialProcurement {
-  id                  String             @id @default(cuid())
-  projectId           String             @unique
-  supplierName        String
-  materialDescription String
-  quantity            Decimal            @db.Decimal(18, 4)
-  unit                String
-  totalCost           Decimal            @db.Decimal(18, 4)
-  currency            String
-  originCountry       String
-  orderDate           DateTime
-  expectedArrivalDate DateTime
+  id                  String              @id @default(cuid())
+  projectId           String              @unique
+  supplierName        String?
+  materialDescription String?
+  quantity            Decimal?            @db.Decimal(18, 4)
+  unit                String?
+  totalCost           Decimal?            @db.Decimal(18, 4)
+  currency            String?
+  originCountry       String?
+  orderDate           DateTime?
+  expectedArrivalDate DateTime?
   actualArrivalDate   DateTime?
-  invoiceFilePath     String
-  status              ProjectStageStatus
-  notes               String
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  project             Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invoiceFilePath     String?
+  status              ProjectStageStatus  @default(NOT_STARTED)
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  project             Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("material_procurements")
 }
 
 model ProjectMaintenance {
-  id                 String             @id @default(cuid())
-  projectId          String             @unique
-  maintenanceType    String
-  description        String
-  responsiblePerson  String
-  scheduledDate      DateTime
-  completionDate     DateTime?
-  cost               Decimal            @db.Decimal(18, 4)
-  status             ProjectStageStatus
-  reportFilePath     String
-  notes              String
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id                String              @id @default(cuid())
+  projectId         String              @unique
+  maintenanceType   String?
+  description       String?
+  responsiblePerson String?
+  scheduledDate     DateTime?
+  completionDate    DateTime?
+  cost              Decimal?            @db.Decimal(18, 4)
+  status            ProjectStageStatus  @default(NOT_STARTED)
+  reportFilePath    String?
+  notes             String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_maintenances")
 }

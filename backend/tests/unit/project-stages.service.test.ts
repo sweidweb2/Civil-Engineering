@@ -100,7 +100,12 @@ describe('projectStagesService', () => {
       id: 'owner-1',
       roles: ['MANAGER'],
     })
-    expect(summary.geotechnical).toEqual({ exists: false, isComplete: false, data: null })
+    expect(summary.geotechnical).toEqual({
+      exists: false,
+      isComplete: false,
+      missingCount: 0,
+      data: null,
+    })
     expect(summary.design.exists).toBe(false)
     expect(summary.licensing.isComplete).toBe(false)
     expect(summary.materials.exists).toBe(false)
@@ -152,6 +157,7 @@ describe('projectStagesService', () => {
     expect(summary.geotechnical).toEqual({
       exists: true,
       isComplete: true,
+      missingCount: 0,
       data: geo,
     })
   })

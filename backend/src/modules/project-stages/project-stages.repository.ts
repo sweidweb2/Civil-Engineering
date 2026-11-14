@@ -1,5 +1,5 @@
-import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { prisma } from '../../database/prisma.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import type { ProjectStageStatus as PrismaStageStatus } from '../../generated/prisma/client.js'
 import type {
   UpsertDesignBody,
@@ -17,31 +17,37 @@ import type {
   ProjectStageStatus,
 } from './project-stages.types.js'
 
-function toIso(date: Date): string {
-  return date.toISOString()
+function toIso(date: Date | null | undefined): string | null {
+  return date ? date.toISOString() : null
 }
 
-function toDate(value: string): Date {
-  return new Date(value)
+function toDate(value: string | null | undefined): Date | null {
+  return value ? new Date(value) : null
 }
 
 function decimalToString(value: { toString(): string } | null | undefined): string | null {
   return value == null ? null : value.toString()
 }
 
+function textOrNull(value: string | null | undefined): string | null {
+  if (value == null) return null
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
+
 function mapGeotechnical(row: {
   id: string
   projectId: string
-  soilType: string
-  soilBearingCapacity: { toString(): string }
+  soilType: string | null
+  soilBearingCapacity: { toString(): string } | null
   groundwaterLevel: { toString(): string } | null
-  foundationRecommendation: string
-  reportFilePath: string
-  consultantName: string
+  foundationRecommendation: string | null
+  reportFilePath: string | null
+  consultantName: string | null
   status: PrismaStageStatus
-  startDate: Date
-  completionDate: Date
-  notes: string
+  startDate: Date | null
+  completionDate: Date | null
+  notes: string | null
   createdAt: Date
   updatedAt: Date
 }): GeotechnicalStudy {
@@ -49,7 +55,7 @@ function mapGeotechnical(row: {
     id: row.id,
     projectId: row.projectId,
     soilType: row.soilType,
-    soilBearingCapacity: row.soilBearingCapacity.toString(),
+    soilBearingCapacity: decimalToString(row.soilBearingCapacity),
     groundwaterLevel: decimalToString(row.groundwaterLevel),
     foundationRecommendation: row.foundationRecommendation,
     reportFilePath: row.reportFilePath,
@@ -58,24 +64,24 @@ function mapGeotechnical(row: {
     startDate: toIso(row.startDate),
     completionDate: toIso(row.completionDate),
     notes: row.notes,
-    createdAt: toIso(row.createdAt),
-    updatedAt: toIso(row.updatedAt),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }
 }
 
 function mapDesign(row: {
   id: string
   projectId: string
-  architecturalDesignPath: string
-  structuralDesignPath: string
-  mepDesignPath: string
-  architectName: string
-  structuralEngineerName: string
-  mepEngineerName: string
+  architecturalDesignPath: string | null
+  structuralDesignPath: string | null
+  mepDesignPath: string | null
+  architectName: string | null
+  structuralEngineerName: string | null
+  mepEngineerName: string | null
   status: PrismaStageStatus
-  startDate: Date
-  completionDate: Date
-  notes: string
+  startDate: Date | null
+  completionDate: Date | null
+  notes: string | null
   createdAt: Date
   updatedAt: Date
 }): ProjectDesign {
@@ -92,22 +98,22 @@ function mapDesign(row: {
     startDate: toIso(row.startDate),
     completionDate: toIso(row.completionDate),
     notes: row.notes,
-    createdAt: toIso(row.createdAt),
-    updatedAt: toIso(row.updatedAt),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }
 }
 
 function mapLicensing(row: {
   id: string
   projectId: string
-  permitNumber: string
-  issuingAuthority: string
-  applicationDate: Date
+  permitNumber: string | null
+  issuingAuthority: string | null
+  applicationDate: Date | null
   approvalDate: Date | null
-  permitFilePath: string
+  permitFilePath: string | null
   status: PrismaStageStatus
   expiryDate: Date | null
-  notes: string
+  notes: string | null
   createdAt: Date
   updatedAt: Date
 }): ProjectLicensing {
@@ -117,32 +123,32 @@ function mapLicensing(row: {
     permitNumber: row.permitNumber,
     issuingAuthority: row.issuingAuthority,
     applicationDate: toIso(row.applicationDate),
-    approvalDate: row.approvalDate ? toIso(row.approvalDate) : null,
+    approvalDate: toIso(row.approvalDate),
     permitFilePath: row.permitFilePath,
     status: row.status as ProjectStageStatus,
-    expiryDate: row.expiryDate ? toIso(row.expiryDate) : null,
+    expiryDate: toIso(row.expiryDate),
     notes: row.notes,
-    createdAt: toIso(row.createdAt),
-    updatedAt: toIso(row.updatedAt),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }
 }
 
 function mapMaterials(row: {
   id: string
   projectId: string
-  supplierName: string
-  materialDescription: string
-  quantity: { toString(): string }
-  unit: string
-  totalCost: { toString(): string }
-  currency: string
-  originCountry: string
-  orderDate: Date
-  expectedArrivalDate: Date
+  supplierName: string | null
+  materialDescription: string | null
+  quantity: { toString(): string } | null
+  unit: string | null
+  totalCost: { toString(): string } | null
+  currency: string | null
+  originCountry: string | null
+  orderDate: Date | null
+  expectedArrivalDate: Date | null
   actualArrivalDate: Date | null
-  invoiceFilePath: string
+  invoiceFilePath: string | null
   status: PrismaStageStatus
-  notes: string
+  notes: string | null
   createdAt: Date
   updatedAt: Date
 }): MaterialProcurement {
@@ -151,34 +157,34 @@ function mapMaterials(row: {
     projectId: row.projectId,
     supplierName: row.supplierName,
     materialDescription: row.materialDescription,
-    quantity: row.quantity.toString(),
+    quantity: decimalToString(row.quantity),
     unit: row.unit,
-    totalCost: row.totalCost.toString(),
+    totalCost: decimalToString(row.totalCost),
     currency: row.currency,
     originCountry: row.originCountry,
     orderDate: toIso(row.orderDate),
     expectedArrivalDate: toIso(row.expectedArrivalDate),
-    actualArrivalDate: row.actualArrivalDate ? toIso(row.actualArrivalDate) : null,
+    actualArrivalDate: toIso(row.actualArrivalDate),
     invoiceFilePath: row.invoiceFilePath,
     status: row.status as ProjectStageStatus,
     notes: row.notes,
-    createdAt: toIso(row.createdAt),
-    updatedAt: toIso(row.updatedAt),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }
 }
 
 function mapMaintenance(row: {
   id: string
   projectId: string
-  maintenanceType: string
-  description: string
-  responsiblePerson: string
-  scheduledDate: Date
+  maintenanceType: string | null
+  description: string | null
+  responsiblePerson: string | null
+  scheduledDate: Date | null
   completionDate: Date | null
-  cost: { toString(): string }
+  cost: { toString(): string } | null
   status: PrismaStageStatus
-  reportFilePath: string
-  notes: string
+  reportFilePath: string | null
+  notes: string | null
   createdAt: Date
   updatedAt: Date
 }): ProjectMaintenance {
@@ -189,13 +195,13 @@ function mapMaintenance(row: {
     description: row.description,
     responsiblePerson: row.responsiblePerson,
     scheduledDate: toIso(row.scheduledDate),
-    completionDate: row.completionDate ? toIso(row.completionDate) : null,
-    cost: row.cost.toString(),
+    completionDate: toIso(row.completionDate),
+    cost: decimalToString(row.cost),
     status: row.status as ProjectStageStatus,
     reportFilePath: row.reportFilePath,
     notes: row.notes,
-    createdAt: toIso(row.createdAt),
-    updatedAt: toIso(row.updatedAt),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }
 }
 
@@ -251,16 +257,16 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
 
     async upsertGeotechnical(projectId, input) {
       const data = {
-        soilType: input.soilType,
-        soilBearingCapacity: input.soilBearingCapacity,
+        soilType: textOrNull(input.soilType),
+        soilBearingCapacity: input.soilBearingCapacity ?? null,
         groundwaterLevel: input.groundwaterLevel ?? null,
-        foundationRecommendation: input.foundationRecommendation,
-        reportFilePath: input.reportFilePath,
-        consultantName: input.consultantName,
+        foundationRecommendation: textOrNull(input.foundationRecommendation),
+        reportFilePath: textOrNull(input.reportFilePath),
+        consultantName: textOrNull(input.consultantName),
         status: input.status,
         startDate: toDate(input.startDate),
         completionDate: toDate(input.completionDate),
-        notes: input.notes,
+        notes: textOrNull(input.notes),
       }
       return translateUniqueConflict(async () => {
         const row = await prisma.geotechnicalStudy.upsert({
@@ -279,16 +285,16 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
 
     async upsertDesign(projectId, input) {
       const data = {
-        architecturalDesignPath: input.architecturalDesignPath,
-        structuralDesignPath: input.structuralDesignPath,
-        mepDesignPath: input.mepDesignPath,
-        architectName: input.architectName,
-        structuralEngineerName: input.structuralEngineerName,
-        mepEngineerName: input.mepEngineerName,
+        architecturalDesignPath: textOrNull(input.architecturalDesignPath),
+        structuralDesignPath: textOrNull(input.structuralDesignPath),
+        mepDesignPath: textOrNull(input.mepDesignPath),
+        architectName: textOrNull(input.architectName),
+        structuralEngineerName: textOrNull(input.structuralEngineerName),
+        mepEngineerName: textOrNull(input.mepEngineerName),
         status: input.status,
         startDate: toDate(input.startDate),
         completionDate: toDate(input.completionDate),
-        notes: input.notes,
+        notes: textOrNull(input.notes),
       }
       return translateUniqueConflict(async () => {
         const row = await prisma.projectDesign.upsert({
@@ -307,14 +313,14 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
 
     async upsertLicensing(projectId, input) {
       const data = {
-        permitNumber: input.permitNumber,
-        issuingAuthority: input.issuingAuthority,
+        permitNumber: textOrNull(input.permitNumber),
+        issuingAuthority: textOrNull(input.issuingAuthority),
         applicationDate: toDate(input.applicationDate),
-        approvalDate: input.approvalDate ? toDate(input.approvalDate) : null,
-        permitFilePath: input.permitFilePath,
+        approvalDate: toDate(input.approvalDate),
+        permitFilePath: textOrNull(input.permitFilePath),
         status: input.status,
-        expiryDate: input.expiryDate ? toDate(input.expiryDate) : null, // null clears optional dates
-        notes: input.notes,
+        expiryDate: toDate(input.expiryDate),
+        notes: textOrNull(input.notes),
       }
       return translateUniqueConflict(async () => {
         const row = await prisma.projectLicensing.upsert({
@@ -333,19 +339,19 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
 
     async upsertMaterials(projectId, input) {
       const data = {
-        supplierName: input.supplierName,
-        materialDescription: input.materialDescription,
-        quantity: input.quantity,
-        unit: input.unit,
-        totalCost: input.totalCost,
-        currency: input.currency,
-        originCountry: input.originCountry,
+        supplierName: textOrNull(input.supplierName),
+        materialDescription: textOrNull(input.materialDescription),
+        quantity: input.quantity ?? null,
+        unit: textOrNull(input.unit),
+        totalCost: input.totalCost ?? null,
+        currency: textOrNull(input.currency),
+        originCountry: textOrNull(input.originCountry),
         orderDate: toDate(input.orderDate),
         expectedArrivalDate: toDate(input.expectedArrivalDate),
-        actualArrivalDate: input.actualArrivalDate ? toDate(input.actualArrivalDate) : null,
-        invoiceFilePath: input.invoiceFilePath,
+        actualArrivalDate: toDate(input.actualArrivalDate),
+        invoiceFilePath: textOrNull(input.invoiceFilePath),
         status: input.status,
-        notes: input.notes,
+        notes: textOrNull(input.notes),
       }
       return translateUniqueConflict(async () => {
         const row = await prisma.materialProcurement.upsert({
@@ -364,15 +370,15 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
 
     async upsertMaintenance(projectId, input) {
       const data = {
-        maintenanceType: input.maintenanceType,
-        description: input.description,
-        responsiblePerson: input.responsiblePerson,
+        maintenanceType: textOrNull(input.maintenanceType),
+        description: textOrNull(input.description),
+        responsiblePerson: textOrNull(input.responsiblePerson),
         scheduledDate: toDate(input.scheduledDate),
-        completionDate: input.completionDate ? toDate(input.completionDate) : null,
-        cost: input.cost,
+        completionDate: toDate(input.completionDate),
+        cost: input.cost ?? null,
         status: input.status,
-        reportFilePath: input.reportFilePath,
-        notes: input.notes,
+        reportFilePath: textOrNull(input.reportFilePath),
+        notes: textOrNull(input.notes),
       }
       return translateUniqueConflict(async () => {
         const row = await prisma.projectMaintenance.upsert({

@@ -123,12 +123,14 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                 <TableRow key={image.id}>
                   <TableCell>
                     <div className="size-14 overflow-hidden rounded-md border border-border bg-muted">
-                      <img
-                        src={image.url}
-                        alt=""
-                        className="size-full object-cover"
-                        loading="lazy"
-                      />
+                      {image.url ? (
+                        <img
+                          src={image.url}
+                          alt=""
+                          className="size-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>

@@ -2,25 +2,24 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { maintenanceChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
+import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
-  parseStageDate,
-  stageDateToIso,
-  stageDateToIsoOrNull,
-} from '@/features/projects/lib/stage-dates'
-import {
+  STAGE_KEYS,
   type ProjectMaintenance,
   type UpsertMaintenanceInput,
   upsertMaintenance,
 } from '@/services/project-stages'
 
-import { StageFileField } from './StageFileField'
-import { StageStatusField } from './StageStatusField'
+import { StageBodyShell } from './StageBodyShell'
+import { StageFieldLabel } from './StageFieldLabel'
+import { StageFileCard } from './StageFileCard'
+import { StageInputWithUnit } from './StageInputWithUnit'
+import { StageSection } from './StageSection'
 
 function emptyDraft(): UpsertMaintenanceInput {
   return {
@@ -28,7 +27,7 @@ function emptyDraft(): UpsertMaintenanceInput {
     description: '',
     responsiblePerson: '',
     scheduledDate: '',
-    completionDate: null,
+    completionDate: '',
     cost: '',
     status: 'NOT_STARTED',
     reportFilePath: '',
@@ -39,35 +38,59 @@ function emptyDraft(): UpsertMaintenanceInput {
 function fromRecord(data: ProjectMaintenance | null): UpsertMaintenanceInput {
   if (!data) return emptyDraft()
   return {
-    maintenanceType: data.maintenanceType,
-    description: data.description,
-    responsiblePerson: data.responsiblePerson,
-    scheduledDate: data.scheduledDate,
-    completionDate: data.completionDate,
-    cost: data.cost,
+    maintenanceType: data.maintenanceType ?? '',
+    description: data.description ?? '',
+    responsiblePerson: data.responsiblePerson ?? '',
+    scheduledDate: data.scheduledDate ?? '',
+    completionDate: data.completionDate ?? '',
+    cost: data.cost ?? '',
     status: data.status,
-    reportFilePath: data.reportFilePath,
-    notes: data.notes,
+    reportFilePath: data.reportFilePath ?? '',
+    notes: data.notes ?? '',
   }
 }
 
 type MaintenanceFormProps = {
   projectId: string
   initial: ProjectMaintenance | null
+  stepIndex: number
   onSaved: () => void
+  onContinue: () => void
 }
 
-export function MaintenanceForm({ projectId, initial, onSaved }: MaintenanceFormProps) {
+export function MaintenanceForm({
+  projectId,
+  initial,
+  stepIndex,
+  onSaved,
+  onContinue,
+}: MaintenanceFormProps) {
   const { t } = useTranslation('projects')
-  const [form, setForm] = useState(() => fromRecord(initial))
+  const [baseline, setBaseline] = useState(() => fromRecord(initial))
+  const [form, setForm] = useState(baseline)
   const [isSaving, setIsSaving] = useState(false)
+  const checklist = maintenanceChecklist(form)
+  const missing = missingCount(checklist)
+  const isDirty = JSON.stringify(form) !== JSON.stringify(baseline)
 
-  const save = async () => {
+  const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertMaintenance(projectId, form)
+      await upsertMaintenance(projectId, {
+        ...form,
+        maintenanceType: form.maintenanceType || null,
+        description: form.description || null,
+        responsiblePerson: form.responsiblePerson || null,
+        scheduledDate: form.scheduledDate || null,
+        completionDate: form.completionDate || null,
+        cost: form.cost || null,
+        reportFilePath: form.reportFilePath || null,
+        notes: form.notes || null,
+      } as UpsertMaintenanceInput)
+      setBaseline(form)
       toast.success(t('stages.saved'))
-      onSaved()
+      if (continueNext) onContinue()
+      else onSaved()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('stages.couldNotSave'))
     } finally {
@@ -76,80 +99,112 @@ export function MaintenanceForm({ projectId, initial, onSaved }: MaintenanceForm
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field>
-          <Label htmlFor="maintenanceType">{t('stages.fields.maintenanceType')}</Label>
-          <Input
-            id="maintenanceType"
-            value={form.maintenanceType}
-            maxLength={120}
-            onChange={(e) => setForm({ ...form, maintenanceType: e.target.value })}
-          />
-        </Field>
-        <Field>
-          <Label htmlFor="responsiblePerson">{t('stages.fields.responsiblePerson')}</Label>
-          <Input
-            id="responsiblePerson"
-            value={form.responsiblePerson}
-            maxLength={120}
-            onChange={(e) => setForm({ ...form, responsiblePerson: e.target.value })}
-          />
-        </Field>
-        <Field>
-          <Label htmlFor="cost">{t('stages.fields.cost')}</Label>
-          <Input
-            id="cost"
-            value={form.cost}
-            onChange={(e) => setForm({ ...form, cost: e.target.value })}
-          />
-        </Field>
-        <StageStatusField value={form.status} onChange={(status) => setForm({ ...form, status })} />
-        <Field>
-          <Label>{t('stages.fields.scheduledDate')}</Label>
-          <DatePicker
-            value={parseStageDate(form.scheduledDate)}
-            onChange={(date) => setForm({ ...form, scheduledDate: stageDateToIso(date) })}
-          />
-        </Field>
-        <Field>
-          <Label>{t('stages.fields.completionDate')}</Label>
-          <DatePicker
-            value={parseStageDate(form.completionDate)}
-            onChange={(date) => setForm({ ...form, completionDate: stageDateToIsoOrNull(date) })}
-          />
-        </Field>
-      </div>
-      <Field>
-        <Label htmlFor="maintenanceDescription">{t('stages.fields.description')}</Label>
-        <Textarea
-          id="maintenanceDescription"
-          value={form.description}
-          maxLength={5000}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+    <StageBodyShell
+      stageKey="maintenance"
+      stepIndex={stepIndex}
+      totalSteps={STAGE_KEYS.length}
+      status={form.status}
+      onStatusChange={(status) => setForm({ ...form, status })}
+      missingCount={missing}
+      checklist={checklist}
+      nextStageLabel=""
+      isSaving={isSaving}
+      isDirty={isDirty}
+      onDiscard={() => setForm(baseline)}
+      onSaveDraft={() => void persist(false)}
+      onSaveContinue={() => void persist(true)}
+      sidebarFiles={
+        <StageFileCard
+          projectId={projectId}
+          title={t('stages.fields.reportFilePath')}
+          hint={t('stages.placeholders.reportFilePath')}
+          value={form.reportFilePath}
+          onChange={(reportFilePath) => setForm({ ...form, reportFilePath })}
+          disabled={isSaving}
         />
-      </Field>
-      <StageFileField
-        projectId={projectId}
-        label={t('stages.fields.reportFilePath')}
-        value={form.reportFilePath}
-        onChange={(reportFilePath) => setForm({ ...form, reportFilePath })}
-        disabled={isSaving}
-      />
-      <Field>
-        <Label htmlFor="maintenanceNotes">{t('stages.fields.notes')}</Label>
-        <Textarea
-          id="maintenanceNotes"
-          value={form.notes}
-          maxLength={5000}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-        />
-      </Field>
-      <div className="flex justify-end">
-        <Button type="button" onClick={() => void save()} disabled={isSaving}>
-          {isSaving ? t('stages.saving') : t('stages.saveStep')}
-        </Button>
-      </div>
-    </div>
+      }
+    >
+      <StageSection title={t('stages.sections.maintenancePlan')}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <StageFieldLabel htmlFor="maintenanceType" required>
+              {t('stages.fields.maintenanceType')}
+            </StageFieldLabel>
+            <Input
+              id="maintenanceType"
+              value={form.maintenanceType}
+              placeholder={t('stages.placeholders.maintenanceType')}
+              onChange={(e) => setForm({ ...form, maintenanceType: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <StageFieldLabel htmlFor="responsiblePerson" required>
+              {t('stages.fields.responsiblePerson')}
+            </StageFieldLabel>
+            <Input
+              id="responsiblePerson"
+              value={form.responsiblePerson}
+              placeholder={t('stages.placeholders.responsiblePerson')}
+              onChange={(e) => setForm({ ...form, responsiblePerson: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <StageFieldLabel htmlFor="cost" required>
+              {t('stages.fields.cost')}
+            </StageFieldLabel>
+            <StageInputWithUnit
+              id="cost"
+              unit="USD"
+              value={form.cost}
+              placeholder={t('stages.placeholders.cost')}
+              onChange={(e) => setForm({ ...form, cost: e.target.value })}
+            />
+          </Field>
+          <Field className="md:col-span-2">
+            <StageFieldLabel required>{t('stages.fields.scheduledDate')}</StageFieldLabel>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <DatePicker
+                value={parseStageDate(form.scheduledDate)}
+                placeholder={t('stages.placeholders.scheduledDate')}
+                onChange={(date) => setForm({ ...form, scheduledDate: stageDateToIso(date) })}
+              />
+              <span className="hidden text-center text-muted-foreground sm:block">
+                {t('stages.dateRangeSeparator')}
+              </span>
+              <DatePicker
+                value={parseStageDate(form.completionDate)}
+                placeholder={t('stages.placeholders.completionDate')}
+                onChange={(date) => setForm({ ...form, completionDate: stageDateToIso(date) })}
+              />
+            </div>
+          </Field>
+        </div>
+      </StageSection>
+
+      <StageSection title={t('stages.sections.maintenanceDetails')}>
+        <Field>
+          <StageFieldLabel htmlFor="maintenanceDescription" required>
+            {t('stages.fields.description')}
+          </StageFieldLabel>
+          <Textarea
+            id="maintenanceDescription"
+            value={form.description}
+            placeholder={t('stages.placeholders.description')}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </Field>
+        <Field>
+          <StageFieldLabel htmlFor="maintenanceNotes" optional>
+            {t('stages.fields.notes')}
+          </StageFieldLabel>
+          <Input
+            id="maintenanceNotes"
+            value={form.notes}
+            placeholder={t('stages.placeholders.notes')}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
+        </Field>
+      </StageSection>
+    </StageBodyShell>
   )
 }

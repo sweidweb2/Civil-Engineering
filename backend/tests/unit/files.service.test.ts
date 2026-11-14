@@ -59,9 +59,7 @@ describe('filesService', () => {
       presignPut: vi.fn(async () => 'https://r2.example/put'),
       presignGet: vi.fn(async () => 'https://r2.example/get'),
       headObject: vi.fn(async () =>
-        opts?.head === undefined
-          ? { contentLength: 1000, contentType: 'image/jpeg' }
-          : opts.head,
+        opts?.head === undefined ? { contentLength: 1000, contentType: 'image/jpeg' } : opts.head,
       ),
       putObject: vi.fn(async () => undefined),
       deleteObject: vi.fn(async () => undefined),

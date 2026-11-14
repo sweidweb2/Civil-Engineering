@@ -1,10 +1,4 @@
-export type NotificationType =
-  | 'INFO'
-  | 'SUCCESS'
-  | 'WARNING'
-  | 'ERROR'
-  | 'ANNOUNCEMENT'
-  | 'SYSTEM'
+export type NotificationType = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'ANNOUNCEMENT' | 'SYSTEM'
 
 export type Notification = {
   id: string

@@ -12,7 +12,7 @@ import type { Notification, NotificationWithSender } from './notifications.types
 export type NotificationsService = {
   listNotifications: (
     actor: AuthActor,
-    query: ListNotificationsQuery
+    query: ListNotificationsQuery,
   ) => Promise<{
     notifications: NotificationWithSender[]
     total: number
@@ -22,8 +22,15 @@ export type NotificationsService = {
   countUnread: (actor: AuthActor) => Promise<number>
   markAllRead: (actor: AuthActor) => Promise<number>
   createNotification: (actor: AuthActor, input: CreateNotificationBody) => Promise<Notification>
-  broadcastNotification: (actor: AuthActor, input: BroadcastNotificationBody) => Promise<{ count: number }>
-  updateNotification: (actor: AuthActor, id: string, input: UpdateNotificationBody) => Promise<Notification>
+  broadcastNotification: (
+    actor: AuthActor,
+    input: BroadcastNotificationBody,
+  ) => Promise<{ count: number }>
+  updateNotification: (
+    actor: AuthActor,
+    id: string,
+    input: UpdateNotificationBody,
+  ) => Promise<Notification>
   markAsRead: (actor: AuthActor, id: string) => Promise<Notification>
   markAsUnread: (actor: AuthActor, id: string) => Promise<Notification>
   softDelete: (actor: AuthActor, id: string) => Promise<Notification>
@@ -66,19 +73,20 @@ export function createNotificationsService(deps: NotificationsServiceDeps): Noti
 
       // Super Admin can see all notifications with includeDeleted
       // Regular users can only see their own non-deleted notifications
-      const scoped = !query.mine && actor.roles.includes('SUPER')
-        ? {
-            page: query.page,
-            limit: query.limit,
-            includeDeleted: query.includeDeleted,
-            receiverId: undefined,
-          }
-        : {
-            page: query.page,
-            limit: query.limit,
-            receiverId: actor.id,
-            includeDeleted: false,
-          }
+      const scoped =
+        !query.mine && actor.roles.includes('SUPER')
+          ? {
+              page: query.page,
+              limit: query.limit,
+              includeDeleted: query.includeDeleted,
+              receiverId: undefined,
+            }
+          : {
+              page: query.page,
+              limit: query.limit,
+              receiverId: actor.id,
+              includeDeleted: false,
+            }
 
       const [pageResult, counts] = await Promise.all([
         repository.findMany(scoped),

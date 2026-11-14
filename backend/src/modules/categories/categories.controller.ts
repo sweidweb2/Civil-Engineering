@@ -34,7 +34,11 @@ export function createCategoriesController(service: CategoriesService): Categori
     }),
 
     update: wrap(async (req, res) => {
-      const category = await service.updateCategory(String(req.params.id), req.body, parseAuthActor(req))
+      const category = await service.updateCategory(
+        String(req.params.id),
+        req.body,
+        parseAuthActor(req),
+      )
       res.status(200).json({ data: category })
     }),
 

@@ -381,7 +381,7 @@ Admin
 
 Entity Owner
 → Full control over owned entity
-   (provider owns listings; PM owns project records; worker owns profile)
+(provider owns listings; PM owns project records; worker owns profile)
 
 Collaborator
 → Broad access granted by owner

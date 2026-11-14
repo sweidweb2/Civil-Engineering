@@ -22,6 +22,7 @@ Every object must mean one of those facts: a plan, a cost record, a document, a 
 Two families
 
 Product still life. Use this for a hero or a principle.
+
 - One clear idea per drawing. A hero may be one machine-like workspace. A principle is two or three objects and nothing else.
 - Objects are simple, solid, and slightly soft, as if modeled in clay or matte plastic. Rounded corners, thick forms, no thin line-art, no photoreal materials, no glossy chrome.
 - A hero is a wide isometric scene: one central teal mass, a horizontal belt or surface, and a few papers, a helmet, or a folder riding on it. The scene reads in one glance.
@@ -29,6 +30,7 @@ Product still life. Use this for a hero or a principle.
 - No words, letters, logos, or fake UI chrome inside the picture, except a few abstract plan lines on paper. Those lines stay simple: contours, a small grid, a room outline. They are not readable text.
 
 Progression diagram. Use this when the reference is a sequence of abstract fields, such as dots becoming a network.
+
 - Keep the reference’s rhythm: loose, then gathering, then one connected whole.
 - Draw it in the theme teal, as flat dots and thin lines. Do not copy the reference’s gold, black, or industry.
 - Stage one is many separate dots with uneven spacing and a few different sizes. Stage two is the same dots pulled into two or three soft clouds, still separate. Stage three is one round web: dots joined by thin lines, denser than a stick figure, not a solid filled ball.
@@ -48,16 +50,19 @@ Use only these colors. Do not introduce a new palette.
 If a reference uses gold, blue, or black, translate it into this teal and warm paper. Keep the reference’s layout.
 
 Light, shadow, and edges
+
 - One soft light from above. Shadows fall down and slightly to one side, short and blurred. They ground the object. They are not a dirty smear and not a hard drop shadow.
 - Edges are complete. A belt has a rounded cap on both ends. A card has four rounded corners. A phone is one solid handset. If a form is cut off by the frame, that is a defect.
 - Do not add grain, noise, halos, speckles, or a second outline around objects.
 
 Reference rules
+
 - Copy the reference’s structure: how many items, where the picture sits under the title, how much empty space, the order of a sequence.
 - Do not copy the reference’s product, medical or finance metaphors, headlines, or colors.
 - If the reference is a photograph of a layout, the new drawing still follows this prompt’s material and color. The reference does not replace them.
 
 Background
+
 - If the drawing sits on the public home and the field should disappear, deliver a PNG with a real transparent background. Keep the object and its soft shadow. Remove only the flat field.
 - The pale card is only a few levels lighter than the field. A loose flood fill will eat that card, the white paper, or the shop card, and leave speckles and a ragged halo. Do not do that.
 - Protect object pixels first, including pale paper and off-white cards. Then clear only the flat field that touches the outer edge. Stop at the object. A one-pixel fringe of the old field left on a card is a defect; a hole in the card is a worse one.
@@ -65,6 +70,7 @@ Background
 - Do not deliver a JPEG when the page color must show through. JPEG cannot hold transparency and will bring back a rectangle.
 
 Composition
+
 - Center the subject. Leave a calm margin on every side so the object is not cropped.
 - One focal object, then at most two companions. If a fourth object does not change the meaning, leave it out.
 - The hero is wide and short. A principle drawing is square and sparse. A progression diagram is a wide short field under its caption.
@@ -80,6 +86,7 @@ Look at the actual pixels, not only at a description of them.
 - Place the file where the page already loads images, and point the page at it. On the running home page, confirm the drawing sits in its section with no leftover box and no overlap of neighboring text or buttons.
 
 Output
+
 - The image file, named for its section and subject.
 - One sentence on what the drawing shows.
 - Do not restyle the page around the picture. The picture fits the section that is already there.

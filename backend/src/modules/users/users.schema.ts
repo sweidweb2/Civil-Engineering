@@ -46,10 +46,34 @@ export const createUserBodySchema = z.object({
   password: passwordSchema,
   role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).default('CLIENT'),
   isVerified: z.boolean().optional(),
-  firstName: z.string().trim().min(1).max(100, 'First name must be at most 100 characters').optional().or(z.literal('')),
-  lastName: z.string().trim().min(1).max(100, 'Last name must be at most 100 characters').optional().or(z.literal('')),
-  displayName: z.string().trim().min(1).max(120, 'Display name must be at most 120 characters').optional().or(z.literal('')),
-  phone: z.string().trim().min(1).max(20, 'Phone must be at most 20 characters').optional().or(z.literal('')),
+  firstName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100, 'First name must be at most 100 characters')
+    .optional()
+    .or(z.literal('')),
+  lastName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100, 'Last name must be at most 100 characters')
+    .optional()
+    .or(z.literal('')),
+  displayName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120, 'Display name must be at most 120 characters')
+    .optional()
+    .or(z.literal('')),
+  phone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20, 'Phone must be at most 20 characters')
+    .optional()
+    .or(z.literal('')),
 })
 
 export const updateUserBodySchema = z
@@ -57,20 +81,68 @@ export const updateUserBodySchema = z
     role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).optional(),
     isVerified: z.boolean().optional(),
-    firstName: z.string().trim().min(1).max(100, 'First name must be at most 100 characters').optional().or(z.literal('')),
-    lastName: z.string().trim().min(1).max(100, 'Last name must be at most 100 characters').optional().or(z.literal('')),
-    displayName: z.string().trim().min(1).max(120, 'Display name must be at most 120 characters').optional().or(z.literal('')),
-    phone: z.string().trim().min(1).max(20, 'Phone must be at most 20 characters').optional().or(z.literal('')),
+    firstName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100, 'First name must be at most 100 characters')
+      .optional()
+      .or(z.literal('')),
+    lastName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100, 'Last name must be at most 100 characters')
+      .optional()
+      .or(z.literal('')),
+    displayName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120, 'Display name must be at most 120 characters')
+      .optional()
+      .or(z.literal('')),
+    phone: z
+      .string()
+      .trim()
+      .min(1)
+      .max(20, 'Phone must be at most 20 characters')
+      .optional()
+      .or(z.literal('')),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field is required',
   })
 
 const profileFields = {
-  firstName: z.string().trim().min(1).max(100, 'First name must be at most 100 characters').optional().or(z.literal('')),
-  lastName: z.string().trim().min(1).max(100, 'Last name must be at most 100 characters').optional().or(z.literal('')),
-  displayName: z.string().trim().min(1).max(120, 'Display name must be at most 120 characters').optional().or(z.literal('')),
-  phone: z.string().trim().min(1).max(20, 'Phone must be at most 20 characters').optional().or(z.literal('')),
+  firstName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100, 'First name must be at most 100 characters')
+    .optional()
+    .or(z.literal('')),
+  lastName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100, 'Last name must be at most 100 characters')
+    .optional()
+    .or(z.literal('')),
+  displayName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120, 'Display name must be at most 120 characters')
+    .optional()
+    .or(z.literal('')),
+  phone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20, 'Phone must be at most 20 characters')
+    .optional()
+    .or(z.literal('')),
 }
 
 export const listVerificationsQuerySchema = paginationQuerySchema.extend({

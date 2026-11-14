@@ -233,14 +233,16 @@ export function createProjectsRepository(): ProjectsRepository {
       const updateData: Record<string, unknown> = {}
 
       if (input.name !== undefined) updateData.name = input.name
-      if (input.description !== undefined) updateData.description = input.description?.trim() || null
+      if (input.description !== undefined)
+        updateData.description = input.description?.trim() || null
       if (input.code !== undefined) updateData.code = input.code?.trim() || null
       if (input.address !== undefined) updateData.address = input.address?.trim() || null
       if (input.city !== undefined) updateData.city = input.city?.trim() || null
       if (input.country !== undefined) updateData.country = input.country?.trim() || null
       if (input.startDate !== undefined)
         updateData.startDate = input.startDate ? new Date(input.startDate) : null
-      if (input.endDate !== undefined) updateData.endDate = input.endDate ? new Date(input.endDate) : null
+      if (input.endDate !== undefined)
+        updateData.endDate = input.endDate ? new Date(input.endDate) : null
       if (input.actualStartDate !== undefined)
         updateData.actualStartDate = input.actualStartDate ? new Date(input.actualStartDate) : null
       if (input.actualEndDate !== undefined)

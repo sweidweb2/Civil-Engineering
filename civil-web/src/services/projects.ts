@@ -1,21 +1,10 @@
 import { apiRequest } from './api'
 
 export type ProjectStatus =
-  | 'DRAFT'
-  | 'PLANNING'
-  | 'APPROVED'
-  | 'IN_PROGRESS'
-  | 'ON_HOLD'
-  | 'COMPLETED'
-  | 'CANCELLED'
+  'DRAFT' | 'PLANNING' | 'APPROVED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'
 
 export type ProjectType =
-  | 'RESIDENTIAL'
-  | 'COMMERCIAL'
-  | 'INDUSTRIAL'
-  | 'INFRASTRUCTURE'
-  | 'RENOVATION'
-  | 'OTHER'
+  'RESIDENTIAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'INFRASTRUCTURE' | 'RENOVATION' | 'OTHER'
 
 export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> = [
   { value: 'RESIDENTIAL', label: 'Residential' },
@@ -41,7 +30,10 @@ export function projectTypeLabel(type: string | null | undefined): string {
 }
 
 export function projectStatusLabel(status: string): string {
-  return PROJECT_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status.replaceAll('_', ' ')
+  return (
+    PROJECT_STATUS_OPTIONS.find((option) => option.value === status)?.label ??
+    status.replaceAll('_', ' ')
+  )
 }
 
 export type Project = {
@@ -120,11 +112,13 @@ export type ListProjectsParams = {
   q?: string
 }
 
-export function listProjects(pageOrParams: number | ListProjectsParams = 1, limit = 20, status?: ProjectStatus) {
+export function listProjects(
+  pageOrParams: number | ListProjectsParams = 1,
+  limit = 20,
+  status?: ProjectStatus,
+) {
   const params =
-    typeof pageOrParams === 'object'
-      ? pageOrParams
-      : { page: pageOrParams, limit, status }
+    typeof pageOrParams === 'object' ? pageOrParams : { page: pageOrParams, limit, status }
 
   const search = new URLSearchParams({
     page: String(params.page ?? 1),

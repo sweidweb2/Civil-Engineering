@@ -34,7 +34,11 @@ export function createInputTypesController(service: InputTypesService): InputTyp
     }),
 
     update: wrap(async (req, res) => {
-      const item = await service.updateInputType(String(req.params.id), req.body, parseAuthActor(req))
+      const item = await service.updateInputType(
+        String(req.params.id),
+        req.body,
+        parseAuthActor(req),
+      )
       res.status(200).json({ data: item })
     }),
 

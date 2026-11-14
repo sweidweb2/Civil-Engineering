@@ -33,13 +33,16 @@ type NotificationWithSenderRow = Prisma.NotificationGetPayload<{
   }
 }>
 
-function personName(profile: {
-  displayName: string | null
-  firstName: string | null
-  lastName: string | null
-} | null): string {
+function personName(
+  profile: {
+    displayName: string | null
+    firstName: string | null
+    lastName: string | null
+  } | null,
+): string {
   const named =
-    profile?.displayName?.trim() || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
+    profile?.displayName?.trim() ||
+    [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
   return named || ''
 }
 

@@ -1,8 +1,5 @@
 import { prisma } from '../../database/prisma.js'
-import type {
-  ProjectImage,
-  ProjectImagesRepository,
-} from './project-images.types.js'
+import type { ProjectImage, ProjectImagesRepository } from './project-images.types.js'
 
 function mapToProjectImage(row: {
   id: string

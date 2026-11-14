@@ -58,7 +58,9 @@ describe.skipIf(!hasDb)('devices API (integration)', () => {
 
   it('requires auth to register a device', async () => {
     const app = createApp({ config })
-    const res = await request(app).post('/api/v1/devices').send({ token: 'expo-token-1', platform: 'ANDROID' })
+    const res = await request(app)
+      .post('/api/v1/devices')
+      .send({ token: 'expo-token-1', platform: 'ANDROID' })
     expect(res.status).toBe(401)
   })
 

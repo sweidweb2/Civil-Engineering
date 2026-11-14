@@ -32,11 +32,13 @@ function setup(notification: Notification | null = makeNotification()) {
     countStates: vi.fn(async () => ({ active: 1, unread: 1, deleted: 0 })),
     findMany: vi.fn(async () => ({
       notifications: notification
-        ? [{
-            ...notification,
-            sender: { id: 'super-1', email: 's@example.com', role: 'SUPER' },
-            receiver: { id: notification.receiverId, email: 'o@example.com', name: 'Owner' },
-          }]
+        ? [
+            {
+              ...notification,
+              sender: { id: 'super-1', email: 's@example.com', role: 'SUPER' },
+              receiver: { id: notification.receiverId, email: 'o@example.com', name: 'Owner' },
+            },
+          ]
         : [],
       total: notification ? 1 : 0,
     })),
@@ -60,7 +62,12 @@ function setup(notification: Notification | null = makeNotification()) {
 describe('notificationsService', () => {
   it('scopes list to the current user for non-super roles', async () => {
     const { service, repository } = setup()
-    await service.listNotifications(owner, { page: 1, limit: 20, includeDeleted: false, mine: false })
+    await service.listNotifications(owner, {
+      page: 1,
+      limit: 20,
+      includeDeleted: false,
+      mine: false,
+    })
     expect(repository.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ receiverId: owner.id, includeDeleted: false }),
     )
@@ -68,7 +75,12 @@ describe('notificationsService', () => {
 
   it('lets SUPER list without forcing receiver scope', async () => {
     const { service, repository } = setup()
-    await service.listNotifications(superAdmin, { page: 1, limit: 20, includeDeleted: true, mine: false })
+    await service.listNotifications(superAdmin, {
+      page: 1,
+      limit: 20,
+      includeDeleted: true,
+      mine: false,
+    })
     expect(repository.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ includeDeleted: true }),
     )
@@ -103,7 +115,12 @@ describe('notificationsService', () => {
 
   it('scopes a mine=true list to the caller, including SUPER', async () => {
     const { service, repository } = setup()
-    await service.listNotifications(superAdmin, { page: 1, limit: 8, includeDeleted: false, mine: true })
+    await service.listNotifications(superAdmin, {
+      page: 1,
+      limit: 8,
+      includeDeleted: false,
+      mine: true,
+    })
     expect(repository.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ receiverId: superAdmin.id, includeDeleted: false }),
     )
@@ -130,9 +147,7 @@ describe('notificationsService', () => {
   })
 
   it('blocks mark-as-read on soft-deleted notifications', async () => {
-    const { service } = setup(
-      makeNotification({ deletedAt: '2026-01-02T00:00:00.000Z' }),
-    )
+    const { service } = setup(makeNotification({ deletedAt: '2026-01-02T00:00:00.000Z' }))
     await expect(service.markAsRead(owner, 'n1')).rejects.toMatchObject({
       code: 'NOTIFICATION_DELETED',
       status: 403,

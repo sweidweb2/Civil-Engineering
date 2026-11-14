@@ -16,8 +16,8 @@ export function PublicFooter() {
         <div>
           <p className="text-sm font-semibold tracking-tight">Civil Engineering</p>
           <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-            A workspace for civil projects, costs, providers, and workers. The app does not take orders, payments, or
-            hires.
+            A workspace for civil projects, costs, providers, and workers. The app does not take
+            orders, payments, or hires.
           </p>
         </div>
         <nav aria-label="On this page">

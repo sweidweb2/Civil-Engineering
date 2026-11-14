@@ -52,7 +52,11 @@ describe('projectImagesService', () => {
     }
     projectsService = {
       assertAccessible: vi.fn(async (projectId, actor) => {
-        if (actor.id !== owner.id && !actor.roles.includes('ADMIN') && !actor.roles.includes('SUPER')) {
+        if (
+          actor.id !== owner.id &&
+          !actor.roles.includes('ADMIN') &&
+          !actor.roles.includes('SUPER')
+        ) {
           const { forbidden } = await import('../../src/errors/app-error.js')
           throw forbidden('Not your project')
         }

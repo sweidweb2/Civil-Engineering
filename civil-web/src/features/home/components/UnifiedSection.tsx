@@ -115,7 +115,14 @@ function UnifiedArt({ kind }: { kind: (typeof unifiedStages)[number]['art'] }) {
           />
         ))}
         {nodes.map((node, index) => (
-          <circle key={index} cx={node.x} cy={node.y} r={node.r} fill="currentColor" opacity={node.opacity} />
+          <circle
+            key={index}
+            cx={node.x}
+            cy={node.y}
+            r={node.r}
+            fill="currentColor"
+            opacity={node.opacity}
+          />
         ))}
       </svg>
     )
@@ -140,7 +147,11 @@ function UnifiedArt({ kind }: { kind: (typeof unifiedStages)[number]['art'] }) {
 
 export function UnifiedSection() {
   return (
-    <section id="unified" aria-labelledby="unified-title" className="scroll-mt-6 border-b border-border bg-background">
+    <section
+      id="unified"
+      aria-labelledby="unified-title"
+      className="scroll-mt-6 border-b border-border bg-background"
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 py-20 sm:px-6 lg:px-8">
         <SectionHeading
           id="unified-title"
@@ -153,12 +164,17 @@ export function UnifiedSection() {
               key={stage.number}
               className={cn(
                 'flex flex-col',
-                index > 0 && 'mt-10 border-t border-border pt-10 md:mt-0 md:border-t-0 md:border-l md:pt-0 md:pl-8',
+                index > 0 &&
+                  'mt-10 border-t border-border pt-10 md:mt-0 md:border-t-0 md:border-l md:pt-0 md:pl-8',
                 index < unifiedStages.length - 1 && 'md:pr-8',
               )}
             >
-              <p className="text-xs font-medium tracking-wide text-muted-foreground">{stage.number}</p>
-              <h3 className="mt-3 text-base font-semibold tracking-tight text-foreground">{stage.title}</h3>
+              <p className="text-xs font-medium tracking-wide text-muted-foreground">
+                {stage.number}
+              </p>
+              <h3 className="mt-3 text-base font-semibold tracking-tight text-foreground">
+                {stage.title}
+              </h3>
               <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">{stage.text}</p>
               <div className="mt-8">
                 <UnifiedArt kind={stage.art} />

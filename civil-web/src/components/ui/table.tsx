@@ -57,7 +57,8 @@ function TableRow({
       tabIndex={clickable ? 0 : undefined}
       className={cn(
         'border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
-        clickable && 'cursor-pointer hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
+        clickable &&
+          'cursor-pointer hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
         className,
       )}
       {...props}

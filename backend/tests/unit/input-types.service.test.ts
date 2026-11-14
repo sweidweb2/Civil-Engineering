@@ -55,7 +55,10 @@ describe('inputTypesService', () => {
   })
 
   it('includes usage counts for super when requested', async () => {
-    vi.mocked(repository.findMany).mockResolvedValue({ items: [record({ usageCount: 3 })], total: 1 })
+    vi.mocked(repository.findMany).mockResolvedValue({
+      items: [record({ usageCount: 3 })],
+      total: 1,
+    })
     vi.mocked(repository.countByStatus).mockResolvedValue({ activeCount: 1, inactiveCount: 2 })
     const service = createInputTypesService(repository)
 

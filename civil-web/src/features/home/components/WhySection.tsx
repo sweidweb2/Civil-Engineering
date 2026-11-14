@@ -32,14 +32,22 @@ const whySolutions = [
 
 export function WhySection() {
   return (
-    <section id="why" aria-labelledby="why-title" className="scroll-mt-6 border-b border-border bg-background">
+    <section
+      id="why"
+      aria-labelledby="why-title"
+      className="scroll-mt-6 border-b border-border bg-background"
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 id="why-title" className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2
+            id="why-title"
+            className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+          >
             Why our app
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
-            Civil project facts are easy to scatter. This workspace keeps the plan, the spend, and the people on one job.
+            Civil project facts are easy to scatter. This workspace keeps the plan, the spend, and
+            the people on one job.
           </p>
         </div>
 

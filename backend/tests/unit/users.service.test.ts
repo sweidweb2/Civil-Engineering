@@ -91,7 +91,10 @@ describe('usersService', () => {
           },
         }),
       ),
-      findApprovals: vi.fn(async () => ({ users: [makeUser({ role: 'MANAGER', status: 'PENDING' })], total: 1 })),
+      findApprovals: vi.fn(async () => ({
+        users: [makeUser({ role: 'MANAGER', status: 'PENDING' })],
+        total: 1,
+      })),
       countApprovals: vi.fn(async () => ({ pending: 1, approved: 0, providersPending: 0 })),
       findVerifications: vi.fn(async () => ({
         users: [makeUser({ role: 'WORKER', verificationStatus: 'REQUESTED' })],
@@ -197,9 +200,9 @@ describe('usersService', () => {
 
   it('forbids self from escalating role', async () => {
     const service = createUsersService(repository)
-    await expect(
-      service.updateUser('user-1', { role: 'SUPER' }, self),
-    ).rejects.toMatchObject({ status: 403 })
+    await expect(service.updateUser('user-1', { role: 'SUPER' }, self)).rejects.toMatchObject({
+      status: 403,
+    })
     expect(repository.update).not.toHaveBeenCalled()
   })
 
@@ -245,12 +248,16 @@ describe('usersService', () => {
   })
 
   it('approves a pending manager and rejects other roles', async () => {
-    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'MANAGER', status: 'PENDING' }))
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ role: 'MANAGER', status: 'PENDING' }),
+    )
     const service = createUsersService(repository)
     await expect(service.approveUser('user-1', admin)).resolves.toMatchObject({ status: 'ACTIVE' })
     expect(repository.updateStatus).toHaveBeenCalledWith('user-1', 'ACTIVE')
 
-    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'CLIENT', status: 'PENDING' }))
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ role: 'CLIENT', status: 'PENDING' }),
+    )
     await expect(service.approveUser('user-1', admin)).rejects.toMatchObject({
       status: 409,
       code: 'APPROVAL_ROLE_NOT_REQUIRED',
@@ -285,12 +292,16 @@ describe('usersService', () => {
   it('moves an approved worker back to pending', async () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER', status: 'ACTIVE' }))
     const service = createUsersService(repository)
-    await expect(service.unapproveUser('user-1', admin)).resolves.toMatchObject({ status: 'PENDING' })
+    await expect(service.unapproveUser('user-1', admin)).resolves.toMatchObject({
+      status: 'PENDING',
+    })
     expect(repository.updateStatus).toHaveBeenCalledWith('user-1', 'PENDING')
   })
 
   it('deletes only pending registrations', async () => {
-    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER', status: 'PENDING' }))
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ role: 'WORKER', status: 'PENDING' }),
+    )
     const service = createUsersService(repository)
     await expect(service.deleteApproval('user-1', admin)).resolves.toBeUndefined()
     expect(repository.delete).toHaveBeenCalledWith('user-1')

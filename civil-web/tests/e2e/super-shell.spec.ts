@@ -41,4 +41,3 @@ test.describe('super shell navigation', () => {
     await expect(page.getByRole('heading', { name: 'Settings' }).first()).toBeVisible()
   })
 })
-

@@ -1,12 +1,6 @@
 import { apiRequest } from './api'
 
-export type NotificationType =
-  | 'INFO'
-  | 'SUCCESS'
-  | 'WARNING'
-  | 'ERROR'
-  | 'ANNOUNCEMENT'
-  | 'SYSTEM'
+export type NotificationType = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'ANNOUNCEMENT' | 'SYSTEM'
 
 export type Notification = {
   id: string
@@ -75,7 +69,9 @@ export function listNotifications(page = 1, limit = 20, includeDeleted = false, 
     includeDeleted: String(includeDeleted),
   })
   if (mine) params.set('mine', 'true')
-  return apiRequest<PaginatedNotifications>(`/notifications?${params.toString()}`, { cache: 'no-store' })
+  return apiRequest<PaginatedNotifications>(`/notifications?${params.toString()}`, {
+    cache: 'no-store',
+  })
 }
 
 export function getNotification(id: string) {
@@ -83,7 +79,9 @@ export function getNotification(id: string) {
 }
 
 export function getUnreadCount() {
-  return apiRequest<{ data: { count: number } }>('/notifications/unread-count', { cache: 'no-store' })
+  return apiRequest<{ data: { count: number } }>('/notifications/unread-count', {
+    cache: 'no-store',
+  })
 }
 
 export function markAllAsRead() {

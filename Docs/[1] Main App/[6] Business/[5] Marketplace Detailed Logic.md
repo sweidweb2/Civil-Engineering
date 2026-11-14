@@ -372,7 +372,7 @@ PM/client discovers worker
 → contacts the worker externally
 → handles the real-world agreement outside the platform
 → PM may later assign/reference the worker inside a project for
-  planning and cost tracking
+planning and cost tracking
 
 That project assignment does not create a relationship or contract
 on the platform.

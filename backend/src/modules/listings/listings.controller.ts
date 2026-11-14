@@ -16,7 +16,10 @@ export type ListingsController = {
 export function createListingsController(service: ListingsService): ListingsController {
   return {
     list: wrap(async (req, res) => {
-      const result = await service.listListings(req.query as unknown as ListListingsQuery, parseAuthActor(req))
+      const result = await service.listListings(
+        req.query as unknown as ListListingsQuery,
+        parseAuthActor(req),
+      )
       res.status(200).json(result)
     }),
 
@@ -31,7 +34,11 @@ export function createListingsController(service: ListingsService): ListingsCont
     }),
 
     update: wrap(async (req, res) => {
-      const listing = await service.updateListing(String(req.params.id), req.body, parseAuthActor(req))
+      const listing = await service.updateListing(
+        String(req.params.id),
+        req.body,
+        parseAuthActor(req),
+      )
       res.status(200).json({ data: listing })
     }),
 

@@ -29,18 +29,26 @@ describe('readPageWindow', () => {
   const rows = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
 
   it('reads a window that starts mid-page', async () => {
-    const items = await readPageWindow(async (page, limit) => {
-      const start = (page - 1) * limit
-      return rows.slice(start, start + limit)
-    }, 6, 4)
+    const items = await readPageWindow(
+      async (page, limit) => {
+        const start = (page - 1) * limit
+        return rows.slice(start, start + limit)
+      },
+      6,
+      4,
+    )
     expect(items).toEqual(['g', 'h', 'i', 'j'])
   })
 
   it('spans two pages when the skip is not aligned', async () => {
-    const items = await readPageWindow(async (page, limit) => {
-      const start = (page - 1) * limit
-      return rows.slice(start, start + limit)
-    }, 2, 4)
+    const items = await readPageWindow(
+      async (page, limit) => {
+        const start = (page - 1) * limit
+        return rows.slice(start, start + limit)
+      },
+      2,
+      4,
+    )
     expect(items).toEqual(['c', 'd', 'e', 'f'])
   })
 })

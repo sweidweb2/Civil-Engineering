@@ -91,17 +91,18 @@ export function createUsersRoutes(controller: UsersController): Router {
     controller.deleteVerification,
   )
   router.get('/:id', validate({ params: userIdParamsSchema }), controller.getById)
-  router.post('/', authorize(...ADMIN_ROLES), validate({ body: createUserBodySchema }), controller.create)
+  router.post(
+    '/',
+    authorize(...ADMIN_ROLES),
+    validate({ body: createUserBodySchema }),
+    controller.create,
+  )
   router.patch(
     '/:id',
     validate({ params: userIdParamsSchema, body: updateUserBodySchema }),
     controller.update,
   )
-  router.get(
-    '/:id/avatar',
-    validate({ params: userIdParamsSchema }),
-    controller.getAvatarUrl,
-  )
+  router.get('/:id/avatar', validate({ params: userIdParamsSchema }), controller.getAvatarUrl)
   router.post(
     '/:id/avatar/upload',
     validate({ params: userIdParamsSchema }),
@@ -113,11 +114,7 @@ export function createUsersRoutes(controller: UsersController): Router {
     validate({ params: userIdParamsSchema, body: setAvatarBodySchema }),
     controller.setAvatar,
   )
-  router.delete(
-    '/:id/avatar',
-    validate({ params: userIdParamsSchema }),
-    controller.clearAvatar,
-  )
+  router.delete('/:id/avatar', validate({ params: userIdParamsSchema }), controller.clearAvatar)
   router.post(
     '/:id/deactivate',
     authorize(...ADMIN_ROLES),

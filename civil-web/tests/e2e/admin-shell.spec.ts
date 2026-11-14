@@ -55,4 +55,3 @@ test.describe('admin shell navigation', () => {
     await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   })
 })
-

@@ -1,19 +1,8 @@
 export type ProjectStatus =
-  | 'DRAFT'
-  | 'PLANNING'
-  | 'APPROVED'
-  | 'IN_PROGRESS'
-  | 'ON_HOLD'
-  | 'COMPLETED'
-  | 'CANCELLED'
+  'DRAFT' | 'PLANNING' | 'APPROVED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'
 
 export type ProjectType =
-  | 'RESIDENTIAL'
-  | 'COMMERCIAL'
-  | 'INDUSTRIAL'
-  | 'INFRASTRUCTURE'
-  | 'RENOVATION'
-  | 'OTHER'
+  'RESIDENTIAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'INFRASTRUCTURE' | 'RENOVATION' | 'OTHER'
 
 export type Project = {
   id: string

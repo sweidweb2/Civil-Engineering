@@ -59,7 +59,16 @@ function ProjectRecordArt() {
   return (
     <div className="rounded-xl bg-background px-4 py-5 ring-1 ring-foreground/10" aria-hidden>
       <p className="text-[11px] font-medium text-muted-foreground">Separate files</p>
-      <FlowRow nodes={apart} links={[[0, 1], [1, 2], [2, 3], [3, 4]]} height={32} />
+      <FlowRow
+        nodes={apart}
+        links={[
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 4],
+        ]}
+        height={32}
+      />
       <p className="mt-4 text-[11px] font-medium text-muted-foreground">One project record</p>
       <FlowRow
         nodes={together}
@@ -82,7 +91,10 @@ function ProjectRecordArt() {
 
 function PlanActualArt() {
   return (
-    <div className="relative flex flex-col gap-3 rounded-xl bg-background p-4 ring-1 ring-foreground/10 sm:block" aria-hidden>
+    <div
+      className="relative flex flex-col gap-3 rounded-xl bg-background p-4 ring-1 ring-foreground/10 sm:block"
+      aria-hidden
+    >
       <div className="rounded-lg bg-card p-4 ring-1 ring-foreground/10 sm:mr-24">
         <p className="text-xs font-semibold text-foreground">Cost record</p>
         <div className="mt-3 flex flex-col gap-2">
@@ -96,7 +108,9 @@ function PlanActualArt() {
           </div>
         </div>
         <div className="mt-3 flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
-          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">Add an expense</span>
+          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+            Add an expense
+          </span>
           <span className="size-5 shrink-0 rounded-full bg-primary" />
         </div>
       </div>
@@ -163,33 +177,45 @@ function DirectoryArt() {
 
 export function DeliversSection() {
   return (
-    <section id="delivers" aria-labelledby="delivers-title" className="scroll-mt-6 border-b border-border bg-background">
+    <section
+      id="delivers"
+      aria-labelledby="delivers-title"
+      className="scroll-mt-6 border-b border-border bg-background"
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="delivers-title" className="max-w-md text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2
+            id="delivers-title"
+            className="max-w-md text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+          >
             What this app delivers
           </h2>
           <p className="max-w-sm text-sm leading-6 text-muted-foreground sm:text-right">
-            One place for the project record, the estimate beside real spend, and the people a civil team looks up.
+            One place for the project record, the estimate beside real spend, and the people a civil
+            team looks up.
           </p>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <article className="flex flex-col rounded-2xl bg-card p-6 ring-1 ring-foreground/10 sm:p-8">
             <ProjectRecordArt />
-            <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">Project records</h3>
+            <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">
+              Project records
+            </h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Overview, tasks, progress, documents, and photos stay on the job, with materials and people referenced
-              inside it.
+              Overview, tasks, progress, documents, and photos stay on the job, with materials and
+              people referenced inside it.
             </p>
           </article>
 
           <article className="flex flex-col rounded-2xl bg-card p-6 ring-1 ring-foreground/10 sm:p-8">
             <PlanActualArt />
-            <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">Plan beside actual spend</h3>
+            <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">
+              Plan beside actual spend
+            </h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Listed prices can be copied into the estimate. Real expenses stay next to that plan, so the difference
-              stays visible.
+              Listed prices can be copied into the estimate. Real expenses stay next to that plan,
+              so the difference stays visible.
             </p>
           </article>
         </div>
@@ -197,17 +223,22 @@ export function DeliversSection() {
         <article className="grid gap-8 rounded-2xl bg-card p-6 ring-1 ring-foreground/10 sm:p-8 lg:grid-cols-2">
           <div>
             <DirectoryArt />
-            <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">Provider and worker directory</h3>
+            <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">
+              Provider and worker directory
+            </h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Companies publish materials, equipment, and services. Workers share skills and how to reach them.
+              Companies publish materials, equipment, and services. Workers share skills and how to
+              reach them.
             </p>
           </div>
           <div className="flex flex-col gap-8 lg:pt-1">
             <div>
-              <h3 className="text-base font-semibold tracking-tight text-foreground">A directory, then a direct call</h3>
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
+                A directory, then a direct call
+              </h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Find providers and workers on the project, then contact them yourself. The app does not take orders,
-                payments, or hires.
+                Find providers and workers on the project, then contact them yourself. The app does
+                not take orders, payments, or hires.
               </p>
             </div>
             <div className="flex w-full items-center justify-around gap-3">

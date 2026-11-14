@@ -29,7 +29,12 @@ export function createCategoriesRoutes(controller: CategoriesController): Router
     validate({ params: categoryIdParamsSchema }),
     controller.getById,
   )
-  router.post('/', authorize(...ADMIN_ROLES), validate({ body: createCategoryBodySchema }), controller.create)
+  router.post(
+    '/',
+    authorize(...ADMIN_ROLES),
+    validate({ body: createCategoryBodySchema }),
+    controller.create,
+  )
   router.patch(
     '/:id',
     authorize(...ADMIN_ROLES),

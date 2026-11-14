@@ -2,12 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import {
-  forbidden,
-  notFound,
-  unauthorized,
-  validationError,
-} from '../../errors/app-error.js'
+import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
 import { buildObjectKey } from '../../storage/object-key.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { ProjectsService } from '../projects/projects.service.js'

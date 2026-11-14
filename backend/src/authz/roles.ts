@@ -4,12 +4,7 @@ import type { RoleName } from '../modules/auth/auth.schema.js'
 export const ADMIN_ROLES: readonly RoleName[] = ['SUPER', 'ADMIN'] as const
 
 /** Ops / staff roles (UI + coarse route gates). Not a permission matrix. */
-export const STAFF_ROLES: readonly RoleName[] = [
-  'SUPER',
-  'ADMIN',
-  'MANAGER',
-  'PROVIDER',
-] as const
+export const STAFF_ROLES: readonly RoleName[] = ['SUPER', 'ADMIN', 'MANAGER', 'PROVIDER'] as const
 
 export function hasAnyRole(
   roles: readonly string[] | undefined,

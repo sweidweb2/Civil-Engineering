@@ -112,7 +112,11 @@ export function createStepInput(stepId: string, input: StepInputWriteInput) {
   })
 }
 
-export function updateStepInput(stepId: string, inputId: string, input: Partial<StepInputWriteInput>) {
+export function updateStepInput(
+  stepId: string,
+  inputId: string,
+  input: Partial<StepInputWriteInput>,
+) {
   return apiRequest<StepInputMutationResponse>(`/steps/${stepId}/inputs/${inputId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),

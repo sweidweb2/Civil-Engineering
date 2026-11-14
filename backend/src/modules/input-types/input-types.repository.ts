@@ -1,6 +1,10 @@
 import { prisma } from '../../database/prisma.js'
 import type { InputTypeStatus as PrismaInputTypeStatus } from '../../generated/prisma/client.js'
-import type { CreateInputTypeBody, ListInputTypesQuery, UpdateInputTypeBody } from './input-types.schema.js'
+import type {
+  CreateInputTypeBody,
+  ListInputTypesQuery,
+  UpdateInputTypeBody,
+} from './input-types.schema.js'
 
 const usageInclude = {
   _count: { select: { stepInputs: true, projectStepInputs: true } },
@@ -54,9 +58,7 @@ function toRecord(row: {
     label: row.label,
     status: row.status,
     sortOrder: row.sortOrder,
-    usageCount: row._count
-      ? row._count.stepInputs + row._count.projectStepInputs
-      : 0,
+    usageCount: row._count ? row._count.stepInputs + row._count.projectStepInputs : 0,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }

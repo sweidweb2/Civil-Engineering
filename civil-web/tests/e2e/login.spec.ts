@@ -46,4 +46,3 @@ test.describe('login form', () => {
     await context.close()
   })
 })
-

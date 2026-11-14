@@ -8,10 +8,10 @@
 
 ## Locked approach
 
-| Piece    | Choice                                                                 |
-| -------- | ---------------------------------------------------------------------- |
-| Spec     | OpenAPI 3.x (YAML/JSON) — contract for public `/api/v1`                |
-| Viewer   | TBD when wired (Swagger UI, Scalar, or Redoc)                          |
+| Piece    | Choice                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------- |
+| Spec     | OpenAPI 3.x (YAML/JSON) — contract for public `/api/v1`                                                 |
+| Viewer   | TBD when wired (Swagger UI, Scalar, or Redoc)                                                           |
 | Location | Spec files under `Docs/[3] Decisions/` or beside this decision; optional generate-from-Zod/routes later |
 
 Swagger is tooling that **renders** OpenAPI — not a competing standard.

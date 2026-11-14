@@ -1,7 +1,7 @@
 import { cn } from 'cn'
 import type { ReactNode } from 'react'
 
-import { type PageBreadcrumbItem,PageBreadcrumbs } from './page-breadcrumbs'
+import { type PageBreadcrumbItem, PageBreadcrumbs } from './page-breadcrumbs'
 
 type PageHeaderProps = {
   title?: ReactNode
@@ -22,7 +22,10 @@ function PageHeader({ title, description, breadcrumbs, actions, className }: Pag
         <div className="flex min-w-0 items-center justify-between gap-3">
           <PageBreadcrumbs items={breadcrumbs} />
           {actions && !showActionsWithTitle ? (
-            <div data-slot="page-header-actions" className="flex shrink-0 flex-wrap items-center gap-2">
+            <div
+              data-slot="page-header-actions"
+              className="flex shrink-0 flex-wrap items-center gap-2"
+            >
               {actions}
             </div>
           ) : null}
@@ -32,12 +35,17 @@ function PageHeader({ title, description, breadcrumbs, actions, className }: Pag
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
             {hasTitle ? (
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+              <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">
+                {title}
+              </h1>
             ) : null}
             {hasDescription ? <p className="text-sm text-muted-foreground">{description}</p> : null}
           </div>
           {showActionsWithTitle ? (
-            <div data-slot="page-header-actions" className="flex shrink-0 flex-wrap items-center gap-2">
+            <div
+              data-slot="page-header-actions"
+              className="flex shrink-0 flex-wrap items-center gap-2"
+            >
               {actions}
             </div>
           ) : null}

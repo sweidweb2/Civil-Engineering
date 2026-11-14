@@ -54,9 +54,7 @@ describe('authz ownership', () => {
   })
 
   it('assertOwnerOrAdmin still requires ownership for non-admins', () => {
-    expect(() =>
-      assertOwnerOrAdmin({ id: 'u1', roles: ['CLIENT'] }, 'u1'),
-    ).not.toThrow()
+    expect(() => assertOwnerOrAdmin({ id: 'u1', roles: ['CLIENT'] }, 'u1')).not.toThrow()
     try {
       assertOwnerOrAdmin({ id: 'u1', roles: ['CLIENT'] }, 'u2')
       expect.unreachable()
@@ -66,11 +64,7 @@ describe('authz ownership', () => {
   })
 
   it('assertSelfOrAdmin follows the same admin bypass', () => {
-    expect(() =>
-      assertSelfOrAdmin({ id: 'u1', roles: ['CLIENT'] }, 'u1'),
-    ).not.toThrow()
-    expect(() =>
-      assertSelfOrAdmin({ id: 'a1', roles: ['ADMIN'] }, 'u9'),
-    ).not.toThrow()
+    expect(() => assertSelfOrAdmin({ id: 'u1', roles: ['CLIENT'] }, 'u1')).not.toThrow()
+    expect(() => assertSelfOrAdmin({ id: 'a1', roles: ['ADMIN'] }, 'u9')).not.toThrow()
   })
 })

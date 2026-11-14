@@ -8,19 +8,19 @@
 
 ## Decision
 
-| Branch | Environment | Purpose |
-| --- | --- | --- |
-| **`play`** | Daily development | Long-lived playground — day-to-day coding happens here |
-| **`dev`** | Staging | Integration / staging deploys from here |
-| **`main`** | Production | Always deployable prod code |
-| **`feat/*`, `fix/*`, `chore/*`, …** | Local / PR | Optional short-lived topic branches (usually from `play`) |
+| Branch                              | Environment       | Purpose                                                   |
+| ----------------------------------- | ----------------- | --------------------------------------------------------- |
+| **`play`**                          | Daily development | Long-lived playground — day-to-day coding happens here    |
+| **`dev`**                           | Staging           | Integration / staging deploys from here                   |
+| **`main`**                          | Production        | Always deployable prod code                               |
+| **`feat/*`, `fix/*`, `chore/*`, …** | Local / PR        | Optional short-lived topic branches (usually from `play`) |
 
 ### Environments ↔ branches
 
-| Branch | App env files / Compose | Deploy target (later) |
-| --- | --- | --- |
-| `play` | Local `.env` + `docker-compose.yml` | None (local only) |
-| `dev` | `.env.staging` + `docker-compose.staging.yml` | Staging VPS (auto after CI — TBD) |
+| Branch | App env files / Compose                             | Deploy target (later)                |
+| ------ | --------------------------------------------------- | ------------------------------------ |
+| `play` | Local `.env` + `docker-compose.yml`                 | None (local only)                    |
+| `dev`  | `.env.staging` + `docker-compose.staging.yml`       | Staging VPS (auto after CI — TBD)    |
 | `main` | `.env.production` + `docker-compose.production.yml` | Production VPS (auto after CI — TBD) |
 
 ---
@@ -63,14 +63,14 @@ Hotfix (prod-only emergency): branch from `main` → PR into `main` → also mer
 
 Aligned with [Contributing](../[1]%20Main%20App/[3]%20Contributing.md):
 
-| Prefix | Use |
-| --- | --- |
-| `feat/` | Feature |
-| `fix/` | Bug fix |
-| `chore/` | Tooling, deps, cleanup |
-| `docs/` | Docs only |
-| `refactor/` | No behavior change |
-| `test/` | Tests only |
+| Prefix      | Use                    |
+| ----------- | ---------------------- |
+| `feat/`     | Feature                |
+| `fix/`      | Bug fix                |
+| `chore/`    | Tooling, deps, cleanup |
+| `docs/`     | Docs only              |
+| `refactor/` | No behavior change     |
+| `test/`     | Tests only             |
 
 Examples: `feat/backend-auth-login`, `fix/web-pagination`, `chore/docker`.
 
@@ -84,30 +84,30 @@ Configure on GitHub:
 
 ### `main` and `dev` (protected)
 
-| Rule | Setting |
-| --- | --- |
-| Direct pushes | **Disabled** for normal contributors |
-| Pull request required | **Yes** |
-| Required approvals | **Yes — repo owner reviews and merges** |
-| Required status checks (CI) | **Yes** — same CI suite on both branches |
-| Delete branch on merge | **Yes** for topic branches (not for `play`) |
+| Rule                        | Setting                                     |
+| --------------------------- | ------------------------------------------- |
+| Direct pushes               | **Disabled** for normal contributors        |
+| Pull request required       | **Yes**                                     |
+| Required approvals          | **Yes — repo owner reviews and merges**     |
+| Required status checks (CI) | **Yes** — same CI suite on both branches    |
+| Delete branch on merge      | **Yes** for topic branches (not for `play`) |
 
 ### `play` (daily)
 
-| Rule | Setting |
-| --- | --- |
-| Direct pushes | **Allowed** for owner (daily development) |
-| PR required | Optional — use for topic branches into `play` if desired |
-| CI on push | Optional / not required — **CI is mandatory when merging into `dev` or `main`** |
+| Rule          | Setting                                                                         |
+| ------------- | ------------------------------------------------------------------------------- |
+| Direct pushes | **Allowed** for owner (daily development)                                       |
+| PR required   | Optional — use for topic branches into `play` if desired                        |
+| CI on push    | Optional / not required — **CI is mandatory when merging into `dev` or `main`** |
 
 ### Merge strategy
 
-| Merge into | Strategy |
-| --- | --- |
-| `play` ← topic branches | Squash (optional) |
-| `dev` ← `play` | **Squash** or merge commit — prefer squash for a clean staging line |
-| `main` ← `dev` (release) | **Merge commit** (clear release boundary) |
-| Hotfix → `main` | Squash or merge; then sync `dev` + `play` |
+| Merge into               | Strategy                                                            |
+| ------------------------ | ------------------------------------------------------------------- |
+| `play` ← topic branches  | Squash (optional)                                                   |
+| `dev` ← `play`           | **Squash** or merge commit — prefer squash for a clean staging line |
+| `main` ← `dev` (release) | **Merge commit** (clear release boundary)                           |
+| Hotfix → `main`          | Squash or merge; then sync `dev` + `play`                           |
 
 ---
 
@@ -125,26 +125,26 @@ Same workflow for **`dev` and `main`**: push **or** pull request runs the identi
 
 Source: `.github/workflows/ci.yml`
 
-| Trigger | Branches |
-| --- | --- |
-| `push` | `dev`, `main` |
+| Trigger        | Branches                  |
+| -------------- | ------------------------- |
+| `push`         | `dev`, `main`             |
 | `pull_request` | targeting `dev` or `main` |
 
 Checks (affected / shared paths):
 
-- Format · Lint · Typecheck  
-- App unit tests (+ backend integration)  
-- App builds  
-- Dependency audit (critical gate)  
+- Format · Lint · Typecheck
+- App unit tests (+ backend integration)
+- App builds
+- Dependency audit (critical gate)
 
 E2E remains gated by `CI_RUN_E2E` (still off). When enabled, E2E policy in [CI & Testing](./[3]%20CI%20%26%20Testing.md) still applies.
 
 **Deploy (skip for now — document only):**
 
-| After CI green on | Future action |
-| --- | --- |
-| `dev` | Auto-deploy staging VPS |
-| `main` | Auto-deploy production VPS |
+| After CI green on | Future action              |
+| ----------------- | -------------------------- |
+| `dev`             | Auto-deploy staging VPS    |
+| `main`            | Auto-deploy production VPS |
 
 Do not add deploy jobs until Nginx / secrets / Hostinger wiring are ready.
 

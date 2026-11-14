@@ -41,17 +41,16 @@ export function sniffMime(buffer: Buffer): string | null {
   }
 
   // PDF
-  if (
-    buffer[0] === 0x25 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x44 &&
-    buffer[3] === 0x46
-  ) {
+  if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
     return 'application/pdf'
   }
 
   // ZIP-based Office (docx/xlsx) — PK
-  if (buffer[0] === 0x50 && buffer[1] === 0x4b && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07)) {
+  if (
+    buffer[0] === 0x50 &&
+    buffer[1] === 0x4b &&
+    (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07)
+  ) {
     return 'application/zip'
   }
 

@@ -22,16 +22,8 @@ export function createFilesRoutes(controller: FilesController): Router {
     validate({ body: uploadFileFieldsSchema }),
     controller.upload,
   )
-  router.post(
-    '/:id/complete',
-    validate({ params: fileIdParamsSchema }),
-    controller.complete,
-  )
-  router.get(
-    '/:id/download-url',
-    validate({ params: fileIdParamsSchema }),
-    controller.downloadUrl,
-  )
+  router.post('/:id/complete', validate({ params: fileIdParamsSchema }), controller.complete)
+  router.get('/:id/download-url', validate({ params: fileIdParamsSchema }), controller.downloadUrl)
   router.delete('/:id', validate({ params: fileIdParamsSchema }), controller.softDelete)
 
   return router

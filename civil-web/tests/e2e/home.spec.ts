@@ -14,7 +14,10 @@ test.describe('public home', () => {
 
   test('navigates to login from the header', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('link', { name: /sign in/i }).first().click()
+    await page
+      .getByRole('link', { name: /sign in/i })
+      .first()
+      .click()
     await expect(page).toHaveURL(/\/login/)
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
   })

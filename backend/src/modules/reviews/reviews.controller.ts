@@ -17,7 +17,10 @@ export type ReviewsController = {
 export function createReviewsController(service: ReviewsService): ReviewsController {
   return {
     list: wrap(async (req, res) => {
-      const result = await service.listReviews(req.query as unknown as ListReviewsQuery, parseAuthActor(req))
+      const result = await service.listReviews(
+        req.query as unknown as ListReviewsQuery,
+        parseAuthActor(req),
+      )
       res.status(200).json(result)
     }),
 
@@ -38,7 +41,11 @@ export function createReviewsController(service: ReviewsService): ReviewsControl
     }),
 
     update: wrap(async (req, res) => {
-      const review = await service.updateReview(String(req.params.id), req.body, parseAuthActor(req))
+      const review = await service.updateReview(
+        String(req.params.id),
+        req.body,
+        parseAuthActor(req),
+      )
       res.status(200).json({ data: review })
     }),
 

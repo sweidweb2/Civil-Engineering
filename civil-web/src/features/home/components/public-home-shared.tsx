@@ -9,10 +9,15 @@ import { useAuthStore } from '@/stores/authStore'
 export function SectionHeading({ id, title, text }: { id: string; title: string; text: string }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <h2 id={id} className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+      <h2
+        id={id}
+        className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+      >
         {title}
       </h2>
-      <p className="mt-4 text-pretty text-sm leading-6 text-muted-foreground sm:text-base">{text}</p>
+      <p className="mt-4 text-pretty text-sm leading-6 text-muted-foreground sm:text-base">
+        {text}
+      </p>
     </div>
   )
 }
@@ -86,7 +91,9 @@ export function StoreDownloadButton({ store }: { store: 'apple' | 'play' }) {
       >
         {isApple ? <AppleStoreIcon /> : <PlayStoreIcon />}
         <span className="flex flex-col leading-none">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground">Download from</span>
+          <span className="text-xs font-medium tracking-wide text-muted-foreground">
+            Download from
+          </span>
           <span className="mt-1 text-base font-semibold text-foreground">{storeName}</span>
         </span>
       </Button>

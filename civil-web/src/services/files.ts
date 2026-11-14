@@ -69,10 +69,7 @@ export async function uploadFile(input: {
 }): Promise<CompleteFileResponse> {
   const optimized = await optimizeIfImage(input.file)
   const body = new FormData()
-  body.append(
-    'file',
-    new File([optimized.blob], optimized.originalName, { type: optimized.mime }),
-  )
+  body.append('file', new File([optimized.blob], optimized.originalName, { type: optimized.mime }))
   body.append('entityType', input.entityType)
   body.append('entityId', input.entityId)
 

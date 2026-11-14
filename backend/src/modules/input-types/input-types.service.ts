@@ -52,9 +52,7 @@ export function createInputTypesService(repository: InputTypesRepository): Input
   return {
     async listInputTypes(query, actor) {
       const superUser = isSuper(actor.roles)
-      const scopedQuery: ListInputTypesQuery = superUser
-        ? query
-        : { ...query, status: 'ACTIVE' }
+      const scopedQuery: ListInputTypesQuery = superUser ? query : { ...query, status: 'ACTIVE' }
       // Usage + status tallies are for SUPER admin; pickers skip those joins/queries.
       const includeUsage = superUser && query.includeUsage === true
 

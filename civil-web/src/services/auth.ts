@@ -1,4 +1,4 @@
-import { apiRequest, type AuthTokens,refreshTokens } from './api'
+import { apiRequest, type AuthTokens, refreshTokens } from './api'
 
 export type AuthRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
 

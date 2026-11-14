@@ -39,10 +39,7 @@ function resolveRefreshToken(req: Request): string {
   throw validationError('Refresh token is required')
 }
 
-export function createAuthController(
-  service: AuthService,
-  config: AppConfig,
-): AuthController {
+export function createAuthController(service: AuthService, config: AppConfig): AuthController {
   return {
     async register(req, res, next) {
       try {

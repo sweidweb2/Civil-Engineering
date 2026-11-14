@@ -103,12 +103,16 @@ describe('projectsService', () => {
       stepsService: { assignActiveToProject },
       runInTransaction: async (fn) => fn({} as never),
     })
-    await expect(service.createProject({ name: 'Tower D' }, owner.id)).rejects.toThrow('clone failed')
+    await expect(service.createProject({ name: 'Tower D' }, owner.id)).rejects.toThrow(
+      'clone failed',
+    )
   })
 
   it('rejects duplicate project codes on create', async () => {
     const { service } = setup(makeProject({ code: 'SITE-A' }))
-    await expect(service.createProject({ name: 'Other', code: 'SITE-A' }, owner.id)).rejects.toMatchObject({
+    await expect(
+      service.createProject({ name: 'Other', code: 'SITE-A' }, owner.id),
+    ).rejects.toMatchObject({
       code: 'CODE_IN_USE',
       status: 409,
     })
@@ -146,7 +150,10 @@ describe('projectsService', () => {
         },
         owner,
       )
-      expect(repository.update).toHaveBeenCalledWith('p1', expect.objectContaining({ progress: 50 }))
+      expect(repository.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ progress: 50 }),
+      )
     } finally {
       vi.useRealTimers()
     }

@@ -2,7 +2,6 @@ import { PrismaPg } from '@prisma/adapter-pg'
 
 import { PrismaClient } from '../generated/prisma/client.js'
 import { logPerf } from '../logging/perf.js'
-
 import { getPool } from './pool.js'
 
 /**

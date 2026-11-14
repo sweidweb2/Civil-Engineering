@@ -49,6 +49,8 @@ function setup(opts?: {
     countByStatus: vi.fn(async () => ({ PENDING: existing ? 1 : 0, APPROVED: 0, SUSPENDED: 0 })),
     findById: vi.fn(async () => existing),
     findByOwnerUserId: vi.fn(async () => existing),
+    findIdByOwnerUserId: vi.fn(async () => existing?.id ?? null),
+    findOwnerUserIdById: vi.fn(async () => existing?.ownerUserId ?? null),
     findOwnerUser: vi.fn(
       async () => opts?.ownerUser ?? { id: owner.id, role: 'PROVIDER', status: 'ACTIVE' },
     ),

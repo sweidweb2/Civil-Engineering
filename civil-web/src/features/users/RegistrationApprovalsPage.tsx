@@ -36,6 +36,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { PAGE_SIZE } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
 import {
@@ -47,14 +48,13 @@ import {
   unapproveUser,
 } from '@/services/users'
 
-import type { ApprovalStatus, RegistrationRow } from './admin.types'
 import {
   RegistrationFormDialog,
   type RegistrationFormValues,
 } from './components/RegistrationFormDialog'
 import { USER_TABLE_HEADERS, UserAttributeCells } from './components/UserCells'
-import { PAGE_SIZE } from './lib/text'
 import { toAdminUserRow } from './users.rows'
+import type { ApprovalStatus, RegistrationRow } from './users.types'
 
 const EMPTY_COUNTS: ApprovalCounts = { pending: 0, approved: 0, providersPending: 0 }
 

@@ -1,5 +1,4 @@
-import { conflict, validationError } from '../../errors/app-error.js'
-import { Prisma } from '../../generated/prisma/client.js'
+import { conflict, isUniqueConflictError, validationError } from '../../errors/app-error.js'
 import type { ActiveInputTypeRef } from '../input-types/index.js'
 
 const MAX_ORDER = 10_000
@@ -16,7 +15,12 @@ export function resolveOrderNb(
   requested: number | undefined,
 ): { orderNb: number; orderAdjusted: boolean } {
   const taken = new Set(used)
-  if (requested !== undefined && Number.isInteger(requested) && requested >= 0 && !taken.has(requested)) {
+  if (
+    requested !== undefined &&
+    Number.isInteger(requested) &&
+    requested >= 0 &&
+    !taken.has(requested)
+  ) {
     return { orderNb: requested, orderAdjusted: false }
   }
 
@@ -28,10 +32,6 @@ export function resolveOrderNb(
     }
   }
   return { orderNb: next, orderAdjusted: true }
-}
-
-export function isUniqueOrderConflict(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
 }
 
 export function orderMeta(orderNb: number, orderAdjusted: boolean): OrderMeta | undefined {
@@ -56,7 +56,7 @@ export async function allocateOrdered<T>(options: {
       const data = await options.persist(orderNb)
       return { data, meta: orderMeta(orderNb, orderAdjusted || attempt > 0) }
     } catch (error) {
-      if (!isUniqueOrderConflict(error)) throw error
+      if (!isUniqueConflictError(error)) throw error
       requested = undefined
     }
   }

@@ -1,28 +1,8 @@
 import { Router } from 'express'
 import type { Pool } from 'pg'
 
+import { createCompositionRoot } from '../composition-root.js'
 import type { AppConfig } from '../config/index.js'
-import { loadConfig } from '../config/index.js'
-import { createAuthModule } from '../modules/auth/index.js'
-import { createCategoriesModule } from '../modules/categories/index.js'
-import { createDevicesModule } from '../modules/devices/index.js'
-import { createFilesModule } from '../modules/files/index.js'
-import { createHealthController } from '../modules/health/health.controller.js'
-import { createHealthRepository } from '../modules/health/health.repository.js'
-import { createHealthRoutes } from '../modules/health/health.routes.js'
-import { createHealthService } from '../modules/health/health.service.js'
-import { createInputTypesModule } from '../modules/input-types/index.js'
-import { createListingImagesModule } from '../modules/listing-images/index.js'
-import { createListingsModule } from '../modules/listings/index.js'
-import { createLoggingModule } from '../modules/logging/index.js'
-import { createManagerProfilesModule } from '../modules/manager-profiles/index.js'
-import { createNotificationsModule } from '../modules/notifications/index.js'
-import { createProjectImagesModule } from '../modules/project-images/index.js'
-import { createProjectsModule } from '../modules/projects/index.js'
-import { createProvidersModule } from '../modules/providers/index.js'
-import { createReviewsModule } from '../modules/reviews/index.js'
-import { createStepsModule, getStepsService } from '../modules/steps/index.js'
-import { createUsersModule } from '../modules/users/index.js'
 import type { StorageService } from '../storage/index.js'
 
 export type V1Deps = {
@@ -31,39 +11,28 @@ export type V1Deps = {
   storage?: StorageService
 }
 
+/** Mount table only — service wiring lives in `composition-root.ts`. */
 export function createV1Router(deps: V1Deps = {}): Router {
   const router = Router()
-  const config = deps.config ?? loadConfig()
+  const modules = createCompositionRoot(deps)
 
-  const healthRepository = createHealthRepository(deps.pool)
-  const healthService = createHealthService(healthRepository)
-  const healthController = createHealthController(healthService)
-
-  // Projects first so getProjectsService() singleton includes storage for list mainImageUrl
-  const projectsRouter = createProjectsModule({
-    config,
-    storage: deps.storage,
-    stepsService: getStepsService(),
-  })
-
-  router.use('/health', createHealthRoutes(healthController))
-  router.use('/auth', createAuthModule(config))
-  router.use('/devices', createDevicesModule())
-  router.use('/files', createFilesModule({ config, storage: deps.storage }))
-  router.use(createLoggingModule())
-  router.use('/users', createUsersModule())
-  router.use('/manager-profiles', createManagerProfilesModule())
-  router.use('/providers', createProvidersModule({ config, storage: deps.storage }))
-  router.use('/categories', createCategoriesModule())
-  router.use('/listings', createListingsModule({ config, storage: deps.storage }))
-  router.use('/listing-images', createListingImagesModule({ config, storage: deps.storage }))
-  router.use('/reviews', createReviewsModule())
-  router.use('/input-types', createInputTypesModule())
-  router.use('/steps', createStepsModule())
-  router.use('/projects', projectsRouter)
-  router.use('/project-images', createProjectImagesModule({ config, storage: deps.storage }))
-  router.use('/notifications', createNotificationsModule())
-  // workers / materials / expenses modules stay in tree but are unmounted until implemented
+  router.use('/health', modules.health)
+  router.use('/auth', modules.auth)
+  router.use('/devices', modules.devices)
+  router.use('/files', modules.files)
+  router.use(modules.logging)
+  router.use('/users', modules.users)
+  router.use('/manager-profiles', modules.managerProfiles)
+  router.use('/providers', modules.providers)
+  router.use('/categories', modules.categories)
+  router.use('/listings', modules.listings)
+  router.use('/listing-images', modules.listingImages)
+  router.use('/reviews', modules.reviews)
+  router.use('/input-types', modules.inputTypes)
+  router.use('/steps', modules.steps)
+  router.use('/projects', modules.projects)
+  router.use('/project-images', modules.projectImages)
+  router.use('/notifications', modules.notifications)
 
   return router
 }

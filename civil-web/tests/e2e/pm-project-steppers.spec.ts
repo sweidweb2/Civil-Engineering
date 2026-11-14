@@ -4,7 +4,7 @@ import { authStatePath, openSeedHome } from './helpers/auth'
 
 /**
  * PM steppers UI flow against seeded step templates (Site survey / Foundation / Structure).
- * Requires seeded API (`prisma:seed`) so creating a project clones active templates.
+ * Requires seeded API (`db:seed`) so creating a project clones active templates.
  */
 test.describe('PM project steppers flow', () => {
   test.use({ storageState: authStatePath('pm') })
@@ -24,9 +24,12 @@ test.describe('PM project steppers flow', () => {
         res.request().method() === 'POST' &&
         !res.url().includes('/steppers'),
     )
-    await page.locator('#create-name').locator('xpath=ancestor::form').evaluate((form) => {
-      ;(form as HTMLFormElement).requestSubmit()
-    })
+    await page
+      .locator('#create-name')
+      .locator('xpath=ancestor::form')
+      .evaluate((form) => {
+        ;(form as HTMLFormElement).requestSubmit()
+      })
     expect((await createResponse).ok()).toBeTruthy()
 
     await expect(page).toHaveURL(/\/pm\/projects\/[^/]+/, { timeout: 20_000 })
@@ -72,9 +75,7 @@ test.describe('PM project steppers flow', () => {
     await expect(page.getByText('Project', { exact: true }).first()).toBeVisible()
 
     const deleteResponse = page.waitForResponse(
-      (res) =>
-        res.url().includes('/inputs/') &&
-        res.request().method() === 'DELETE',
+      (res) => res.url().includes('/inputs/') && res.request().method() === 'DELETE',
     )
     await page.getByRole('button', { name: 'Remove E2E area note' }).click()
     expect((await deleteResponse).ok()).toBeTruthy()

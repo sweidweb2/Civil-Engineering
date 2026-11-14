@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import type { ListingStatus, Prisma, RentalUnit } from '../../generated/prisma/client.js'
-import type { ListListingsQuery, ListingType, UpdateListingBody } from './listings.schema.js'
-import type { ListingTypeCounts } from './listings.types.js'
+import type { ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
+import type { ListingSnapshot, ListingTypeCounts } from './listings.types.js'
 
 const listingInclude = {
   provider: { select: { name: true } },
@@ -61,6 +61,10 @@ export type ListingsRepository = {
   findMany: (query: ListListingsQuery) => Promise<{ items: ListingRecord[]; total: number }>
   countByType: (providerId?: string) => Promise<ListingTypeCounts>
   findById: (id: string) => Promise<ListingRecord | null>
+  findSnapshotById: (id: string) => Promise<ListingSnapshot | null>
+  findNamesByIds: (ids: string[]) => Promise<Array<{ id: string; name: string }>>
+  existsById: (id: string) => Promise<boolean>
+  listChoices: (take: number) => Promise<Array<{ id: string; name: string; subtitle: string }>>
   findProvider: (id: string) => Promise<{ id: string } | null>
   findCategory: (id: string) => Promise<{
     id: string
@@ -182,6 +186,73 @@ export function createListingsRepository(): ListingsRepository {
     async findById(id) {
       const row = await prisma.listing.findUnique({ where: { id }, include: listingInclude })
       return row ? toRecord(row) : null
+    },
+
+    async findSnapshotById(id) {
+      const row = await prisma.listing.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          categoryId: true,
+          brand: true,
+          unit: true,
+          currency: true,
+          price: true,
+          priceMin: true,
+          priceMax: true,
+          rentalPrice: true,
+          rentalUnit: true,
+          providerId: true,
+          status: true,
+          description: true,
+          category: { select: { kind: true } },
+        },
+      })
+      if (!row) return null
+      return {
+        id: row.id,
+        name: row.name,
+        type: row.category?.kind ?? null,
+        categoryId: row.categoryId,
+        brand: row.brand,
+        unit: row.unit,
+        currency: row.currency,
+        price: decimalToString(row.price),
+        priceMin: decimalToString(row.priceMin),
+        priceMax: decimalToString(row.priceMax),
+        rentalPrice: decimalToString(row.rentalPrice),
+        rentalUnit: row.rentalUnit,
+        providerId: row.providerId,
+        status: row.status,
+        description: row.description,
+      }
+    },
+
+    async findNamesByIds(ids) {
+      if (ids.length === 0) return []
+      return prisma.listing.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, name: true },
+      })
+    },
+
+    async existsById(id) {
+      const row = await prisma.listing.findUnique({ where: { id }, select: { id: true } })
+      return row != null
+    },
+
+    async listChoices(take) {
+      const rows = await prisma.listing.findMany({
+        orderBy: { name: 'asc' },
+        take,
+        select: { id: true, name: true, category: { select: { kind: true } } },
+      })
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        subtitle: row.category?.kind ?? 'Uncategorized',
+      }))
     },
 
     async findProvider(id) {

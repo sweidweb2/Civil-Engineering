@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import {
   listProviders,
   type Provider,
@@ -21,7 +22,6 @@ import {
 } from '@/services/providers'
 
 import { ProviderFormDialog } from './components/ProviderFormDialog'
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: ProviderStatusCounts = { PENDING: 0, APPROVED: 0, SUSPENDED: 0 }
 

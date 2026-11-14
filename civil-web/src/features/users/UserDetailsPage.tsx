@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next'
 import { useCallback, useMemo, useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -22,12 +22,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
+import { formatWhen } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
 import { deactivateUser, getUser, updateUser } from '@/services/users'
 
 import { UserFormDialog } from './components/UserFormDialog'
-import { formatWhen } from './lib/text'
 import { formFromUser, toAdminUserRow, type UserFormValues } from './users.rows'
 
 export function UserDetailsPage() {

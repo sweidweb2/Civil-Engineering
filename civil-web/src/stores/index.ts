@@ -1,7 +1,7 @@
 export { useAuthStore } from './authStore'
 export {
-  applyDocumentLocale,
   type AppLocale,
+  applyDocumentLocale,
   isAppLocale,
   useIsRtl,
   useLocaleStore,

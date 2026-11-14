@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ManageStepsPage } from '@/features/admin/ManageStepsPage'
+import { ManageStepsPage } from '@/features/steps/ManageStepsPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn } from '@/lib/utils'
 

@@ -47,7 +47,6 @@
   --color-background: var(--background);
   --color-illustration-canvas: var(--illustration-canvas);
   --color-listing-canvas: var(--listing-canvas);
-  --color-provider-home-canvas: var(--provider-home-canvas);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -91,7 +90,6 @@
   --chart-5: #d97706;
   --illustration-canvas: #fef8ef;
   --listing-canvas: #f4f1eb;
-  --provider-home-canvas: #f7fbf9;
   --radius: 0.625rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #1a2a27;
@@ -151,7 +149,6 @@
   --chart-5: #fbbf24;
   --illustration-canvas: #121916;
   --listing-canvas: #121916;
-  --provider-home-canvas: #121916;
   --sidebar: #1c2421;
   --sidebar-foreground: #e8eeec;
   --sidebar-primary: #287a74;

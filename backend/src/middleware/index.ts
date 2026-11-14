@@ -1,6 +1,7 @@
-export { authenticate } from './authenticate.js'
+export { authenticate, createAuthenticate } from './authenticate.js'
 export { authorize } from './authorize.js'
 export { createApiRateLimiter, createAuthRateLimiter } from './rate-limit.js'
 export { requestContext } from './request-context.js'
 export { createRequestLogger } from './request-logger.js'
+export { requireTrustedOrigin } from './trusted-origin.js'
 export { validate } from './validate.js'

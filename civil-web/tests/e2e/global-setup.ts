@@ -18,7 +18,7 @@ async function globalSetup() {
       [
         `E2E global setup: API health check failed (${healthUrl}): ${reason}`,
         'Start the API with seed data (Supabase via backend/.env):',
-        '  cd backend && npx prisma migrate deploy && npm run prisma:seed && npm run dev',
+        '  cd backend && npm run db:migrate && npm run db:seed && npm run dev',
       ].join('\n'),
       { cause: error },
     )

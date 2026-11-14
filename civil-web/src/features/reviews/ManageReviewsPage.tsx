@@ -49,6 +49,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import {
   deleteReview,
@@ -60,7 +61,6 @@ import {
 } from '@/services/reviews'
 
 import { ReviewFormDialog } from './components/ReviewFormDialog'
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const TAB_VALUES: Array<ReviewStatus | 'all'> = ['all', 'PENDING', 'ACCEPTED', 'REJECTED']
 

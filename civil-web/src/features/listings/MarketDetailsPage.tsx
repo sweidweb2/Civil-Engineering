@@ -9,13 +9,16 @@ import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  formFromProvider,
+  ProviderFormDialog,
+} from '@/features/providers/components/ProviderFormDialog'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
+import { formatWhen } from '@/lib/text'
 import { getProvider, type Provider } from '@/services/providers'
 
-import { formFromProvider, ProviderFormDialog } from './components/ProviderFormDialog'
-import { formatWhen } from './lib/text'
 import { ListingsBrowser } from './ListingsPage'
 
 function formatCoord(value: number | null) {

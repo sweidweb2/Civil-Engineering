@@ -9,31 +9,20 @@ test.describe('provider shell navigation', () => {
     await openSeedHome(page, 'provider')
   })
 
-  test('opens listings, analytics, profile, and notifications', async ({ page }) => {
-    await page.getByRole('navigation').getByRole('link', { name: 'Listings', exact: true }).click()
+  test('lands on listings without sidebar, opens profile', async ({ page }) => {
     await expect(page).toHaveURL(/\/provider\/listings/)
     await expect(page.getByRole('heading', { name: 'Listings' })).toBeVisible()
-
-    await page.getByRole('navigation').getByRole('link', { name: 'Analytics', exact: true }).click()
-    await expect(page).toHaveURL(/\/provider\/analytics/)
-    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
+    await expect(page.getByRole('navigation')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Civil Engineering' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Account menu' }).click()
     await page.getByRole('menuitem', { name: 'Profile' }).click()
     await expect(page).toHaveURL(/\/provider\/profile/)
     await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
-
-    await page.goto('/provider/notifications')
-    await expect(page).toHaveURL(/\/provider\/notifications/)
-    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   })
 
-  test('home CTAs reach listings and analytics', async ({ page }) => {
-    await page.getByRole('link', { name: 'Manage listings' }).click()
+  test('analytics redirects to listings', async ({ page }) => {
+    await page.goto('/provider/analytics')
     await expect(page).toHaveURL(/\/provider\/listings/)
-
-    await page.goto('/provider')
-    await page.getByRole('link', { name: 'View analytics' }).click()
-    await expect(page).toHaveURL(/\/provider\/analytics/)
   })
 })

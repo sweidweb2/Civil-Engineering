@@ -3,6 +3,11 @@ import { assertSelfOrAdmin, isAdmin, isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { hashPassword } from '../auth/auth.tokens.js'
 import type { FilesService } from '../files/index.js'
+import {
+  assertAllowedImageUpload,
+  isAllowedImageMime,
+  MAX_BRAND_IMAGE_BYTES,
+} from '../files/image-policy.js'
 import type { UserDirectoryCounts, UsersRepository } from './users.repository.js'
 import type {
   CreateApprovalBody,
@@ -25,17 +30,24 @@ import {
   type VerificationStatus,
 } from './users.types.js'
 
-const AVATAR_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
-
 export type UsersService = {
   listUsers: (
     query: ListUsersQuery,
     actor: AuthActor,
   ) => Promise<{
     data: User[]
-    meta: { total: number; page: number; limit: number; totalPages: number; counts: UserDirectoryCounts }
+    meta: {
+      total: number
+      page: number
+      limit: number
+      totalPages: number
+      counts: UserDirectoryCounts
+    }
   }>
-  listLookup: (query: ListLookupQuery, actor: AuthActor) => Promise<{
+  listLookup: (
+    query: ListLookupQuery,
+    actor: AuthActor,
+  ) => Promise<{
     data: UserLookup[]
     meta: { total: number; page: number; limit: number; totalPages: number }
   }>
@@ -114,7 +126,6 @@ export function createUsersService(
   repository: UsersRepository,
   filesService: UsersFilesGateway = unavailableFiles,
 ): UsersService {
-
   async function loadOrThrow(id: string): Promise<User> {
     const user = await repository.findById(id)
     if (!user) {
@@ -167,10 +178,7 @@ export function createUsersService(
       )
     }
     if (user.status === 'INACTIVE') {
-      throw conflict(
-        'Suspended accounts are changed from Users, not Approvals',
-        'USER_SUSPENDED',
-      )
+      throw conflict('Suspended accounts are changed from Users, not Approvals', 'USER_SUSPENDED')
     }
     return user
   }
@@ -211,7 +219,7 @@ export function createUsersService(
         },
       }
     },
-    
+
     async getUserById(id) {
       return loadOrThrow(id)
     },
@@ -222,7 +230,7 @@ export function createUsersService(
       const user = await assertAccessible(id, actor)
       return resolveAvatar(user, actor)
     },
-    
+
     async createUser(input, actor) {
       assertSuperBoundary(actor, undefined, input.role ?? 'CLIENT')
       const existing = await repository.findByEmail(input.email)
@@ -247,7 +255,7 @@ export function createUsersService(
         },
       })
     },
-    
+
     async updateUser(id, input, actor) {
       const user = await assertAccessible(id, actor)
       assertSuperBoundary(actor, user.role, input.role)
@@ -277,7 +285,7 @@ export function createUsersService(
     async setAvatar(id, input, actor) {
       const user = await assertAccessible(id, actor)
       const file = await filesService.requireReadyAttachment(input.fileId, 'USER', id)
-      if (!AVATAR_MIMES.has(file.mime)) {
+      if (!isAllowedImageMime(file.mime)) {
         throw validationError('Avatar must be a JPEG, PNG, or WebP image')
       }
 
@@ -297,12 +305,7 @@ export function createUsersService(
 
     async uploadAvatar(id, file, actor) {
       const user = await assertAccessible(id, actor)
-      if (!AVATAR_MIMES.has(file.mimetype)) {
-        throw validationError('Avatar must be a JPEG, PNG, or WebP image')
-      }
-      if (file.size <= 0 || file.size > 8 * 1024 * 1024) {
-        throw validationError('Avatar must be between 1 byte and 8 MB')
-      }
+      assertAllowedImageUpload(file, { maxBytes: MAX_BRAND_IMAGE_BYTES })
 
       const uploaded = await filesService.uploadBytes(actor, {
         entityType: 'USER',
@@ -344,7 +347,7 @@ export function createUsersService(
       const user = await assertAccessible(id, actor)
       return resolveAvatar(user, actor)
     },
-    
+
     async deactivateUser(id, actor) {
       if (!isAdmin(actor.roles)) {
         throw forbidden('Only admins can deactivate users')
@@ -483,7 +486,10 @@ export function createUsersService(
       assertAdmin(actor)
       const user = await loadOrThrow(id)
       if (user.role !== 'WORKER') {
-        throw conflict('Only workers can be removed from verification', 'VERIFICATION_ROLE_NOT_WORKER')
+        throw conflict(
+          'Only workers can be removed from verification',
+          'VERIFICATION_ROLE_NOT_WORKER',
+        )
       }
       const result = await repository.delete(id)
       if (result === 'in_use') {

@@ -10,7 +10,6 @@ test.describe('PM shell navigation', () => {
   })
 
   test('opens projects and directory', async ({ page }) => {
-    await page.getByRole('link', { name: 'Manage projects' }).click()
     await expect(page).toHaveURL(/\/pm\/projects/)
     await expect(page.getByRole('heading', { name: 'Manage projects' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create Project' })).toBeVisible()
@@ -18,6 +17,9 @@ test.describe('PM shell navigation', () => {
     await page.getByRole('link', { name: 'Directory' }).click()
     await expect(page).toHaveURL(/\/pm\/directory/)
     await expect(page.getByRole('heading', { name: 'Directory' })).toBeVisible()
+
+    await page.getByRole('link', { name: 'Manage projects' }).click()
+    await expect(page).toHaveURL(/\/pm\/projects/)
   })
 
   test('opens settings profile and steps tabs', async ({ page }) => {
@@ -34,7 +36,6 @@ test.describe('PM shell navigation', () => {
 
   test('creates a project from the PM projects page', async ({ page }) => {
     const name = `E2E Harbor ${Date.now()}`
-    await page.getByRole('link', { name: 'Manage projects' }).click()
     await page.getByRole('button', { name: 'Create Project' }).click()
     await expect(page.getByText('Create New Project')).toBeVisible()
 
@@ -45,9 +46,12 @@ test.describe('PM shell navigation', () => {
         res.request().method() === 'POST' &&
         !res.url().includes('/steppers'),
     )
-    await page.locator('#create-name').locator('xpath=ancestor::form').evaluate((form) => {
-      ;(form as HTMLFormElement).requestSubmit()
-    })
+    await page
+      .locator('#create-name')
+      .locator('xpath=ancestor::form')
+      .evaluate((form) => {
+        ;(form as HTMLFormElement).requestSubmit()
+      })
     const res = await createResponse
     expect(res.ok()).toBeTruthy()
 
@@ -61,4 +65,3 @@ test.describe('PM shell navigation', () => {
     await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   })
 })
-

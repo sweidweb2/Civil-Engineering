@@ -11,20 +11,28 @@ export type ProvidersModuleDeps = {
   storage?: StorageService
 }
 
-export function createProvidersModule(deps: ProvidersModuleDeps = {}) {
+let providersServiceSingleton: ProvidersService | null = null
+
+/** Builds a fresh service. The composition root calls this once per app. */
+export function buildProvidersService(deps: ProvidersModuleDeps = {}): ProvidersService {
   const config = deps.config ?? loadConfig()
-  const storage =
-    deps.storage ?? (config.storage ? getStorageService(config) : undefined)
-  const repository = createProvidersRepository()
-  const service = createProvidersService(repository, { config, storage })
+  const storage = deps.storage ?? (config.storage ? getStorageService(config) : undefined)
+  return createProvidersService(createProvidersRepository(), { config, storage })
+}
+
+/** Standalone/test singleton (first caller's deps win). The app uses `composition-root.ts`. */
+export function getProvidersService(deps: ProvidersModuleDeps = {}): ProvidersService {
+  providersServiceSingleton ??= buildProvidersService(deps)
+  return providersServiceSingleton
+}
+
+export function createProvidersModule(
+  deps: ProvidersModuleDeps & { service?: ProvidersService } = {},
+) {
+  const service = deps.service ?? getProvidersService(deps)
   const controller = createProvidersController(service)
   return createProvidersRoutes(controller)
 }
 
-export {
-  findProviderIdByOwnerUserId,
-  findProviderOwnerUserId,
-} from './providers.access.js'
-export { providersDomain } from './providers.domain.js'
 export { createProvidersService }
 export type { ProvidersService } from './providers.service.js'

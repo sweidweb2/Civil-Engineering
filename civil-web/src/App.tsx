@@ -6,27 +6,18 @@ import { InlineSpinner } from '@/components/feedback/async-state'
 import { NavigationLoader } from '@/components/feedback/navigation-loader'
 import { AdminAnalyticsPage } from '@/features/admin/AdminAnalyticsPage'
 import { DirectoryPage } from '@/features/admin/DirectoryPage'
-import { ListingDetailsPage } from '@/features/admin/ListingDetailsPage'
-import { ListingsPage } from '@/features/admin/ListingsPage'
-import { ManageCategoriesPage } from '@/features/admin/ManageCategoriesPage'
-import { ManageInputTypesPage } from '@/features/admin/ManageInputTypesPage'
-import { ManageNotificationsPage } from '@/features/admin/ManageNotificationsPage'
-import { ManageProvidersPage } from '@/features/admin/ManageProvidersPage'
-import { ManageReviewsPage } from '@/features/admin/ManageReviewsPage'
-import { ManageStepsPage } from '@/features/admin/ManageStepsPage'
-import { MarketDetailsPage } from '@/features/admin/MarketDetailsPage'
-import { ProjectDetailPage } from '@/features/admin/ProjectDetailPage'
-import { ProjectsListPage } from '@/features/admin/ProjectsListPage'
 import { SettingsPage } from '@/features/admin/SettingsPage'
-import { UserDetailsPage } from '@/features/admin/UserDetailsPage'
-import { UserQueuePage } from '@/features/admin/UserQueuePage'
-import { UsersPage } from '@/features/admin/UsersPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
+import { ManageCategoriesPage } from '@/features/categories/ManageCategoriesPage'
 import { NotFoundPage } from '@/features/errors/NotFoundPage'
 import { UnexpectedErrorPage } from '@/features/errors/UnexpectedErrorPage'
 import { HomePage } from '@/features/home/HomePage'
 import { PublicHomePage } from '@/features/home/PublicHomePage'
+import { ListingDetailsPage } from '@/features/listings/ListingDetailsPage'
+import { ListingsPage } from '@/features/listings/ListingsPage'
+import { MarketDetailsPage } from '@/features/listings/MarketDetailsPage'
+import { ManageNotificationsPage } from '@/features/notifications/ManageNotificationsPage'
 import { NotificationsInboxPage } from '@/features/notifications/NotificationsInboxPage'
 import { ActivityLogsPage } from '@/features/panels/ActivityLogsPage'
 import { ErrorLogsPage } from '@/features/panels/ErrorLogsPage'
@@ -37,11 +28,17 @@ import {
   ProviderPanelLayout,
   SuperPanelLayout,
 } from '@/features/panels/PanelLayouts'
-import { PmAnalyticsPage } from '@/features/pm/PmAnalyticsPage'
 import { PmSettingsPage } from '@/features/pm/PmSettingsPage'
-import { ProviderAnalyticsPage } from '@/features/provider/ProviderAnalyticsPage'
-import { ProviderHomePage } from '@/features/provider/ProviderHomePage'
+import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage'
+import { ProjectsListPage } from '@/features/projects/ProjectsListPage'
 import { ProviderProfilePage } from '@/features/provider/ProviderProfilePage'
+import { ManageProvidersPage } from '@/features/providers/ManageProvidersPage'
+import { ManageReviewsPage } from '@/features/reviews/ManageReviewsPage'
+import { ManageInputTypesPage } from '@/features/steps/ManageInputTypesPage'
+import { ManageStepsPage } from '@/features/steps/ManageStepsPage'
+import { UserDetailsPage } from '@/features/users/UserDetailsPage'
+import { UserQueuePage } from '@/features/users/UserQueuePage'
+import { UsersPage } from '@/features/users/UsersPage'
 import { homePathForRole } from '@/lib/homePath'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -139,8 +136,8 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<PmAnalyticsPage />} />
-            <Route path="analytics" element={<Navigate to="/pm" replace />} />
+            <Route index element={<Navigate to="/pm/projects" replace />} />
+            <Route path="analytics" element={<Navigate to="/pm/projects" replace />} />
             <Route path="settings" element={<PmSettingsPage />} />
             <Route path="profile" element={<Navigate to="/pm/settings" replace />} />
             <Route path="projects" element={<ProjectsListPage />} />
@@ -160,12 +157,12 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<ProviderHomePage />} />
-            <Route path="analytics" element={<ProviderAnalyticsPage />} />
+            <Route index element={<Navigate to="/provider/listings" replace />} />
+            <Route path="analytics" element={<Navigate to="/provider/listings" replace />} />
             <Route path="listings" element={<ListingsPage />} />
             <Route path="listings/:id" element={<ListingDetailsPage />} />
             <Route path="profile" element={<ProviderProfilePage />} />
-            <Route path="notifications" element={<NotificationsInboxPage />} />
+            <Route path="notifications" element={<Navigate to="/provider/listings" replace />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

@@ -2,14 +2,17 @@ import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
-import {
-  findProviderIdByOwnerUserId,
-  findProviderOwnerUserId,
-} from '../providers/providers.access.js'
+import type { ProvidersService } from '../providers/index.js'
 import type { ListingRecord, ListingsRepository } from './listings.repository.js'
 import type { CreateListingBody, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
-import type { Listing, ListingTypeCounts, PaginatedListings } from './listings.types.js'
+import type {
+  Listing,
+  ListingSnapshot,
+  ListingTypeCounts,
+  PaginatedListings,
+} from './listings.types.js'
 
 export type ListingsService = {
   listListings: (query: ListListingsQuery, actor: AuthActor) => Promise<PaginatedListings>
@@ -19,6 +22,13 @@ export type ListingsService = {
   deleteListing: (id: string, actor: AuthActor) => Promise<DeleteListingResult>
   assertAccessible: (id: string, actor: AuthActor) => Promise<Listing>
   assertManageable: (id: string, actor: AuthActor) => Promise<Listing>
+  /** Internal lookups for other modules (no actor / authorization). */
+  getListingSnapshot: (id: string) => Promise<ListingSnapshot | null>
+  getListingNames: (ids: string[]) => Promise<Array<{ id: string; name: string }>>
+  listingExists: (id: string) => Promise<boolean>
+  listListingChoices: (
+    take?: number,
+  ) => Promise<Array<{ id: string; name: string; subtitle: string }>>
 }
 
 export type DeleteListingResult = {
@@ -26,6 +36,7 @@ export type DeleteListingResult = {
 }
 
 export type ListingsServiceDeps = {
+  providers: Pick<ProvidersService, 'findProviderIdByOwnerUserId' | 'findOwnerUserId'>
   config?: AppConfig
   storage?: StorageService
 }
@@ -109,9 +120,9 @@ function normalizePricing(input: {
 
 export function createListingsService(
   repository: ListingsRepository,
-  deps: ListingsServiceDeps = {},
+  deps: ListingsServiceDeps,
 ): ListingsService {
-  const { config, storage } = deps
+  const { config, storage, providers } = deps
 
   async function loadOrThrow(id: string): Promise<ListingRecord> {
     const listing = await repository.findById(id)
@@ -141,7 +152,7 @@ export function createListingsService(
   }
 
   async function resolveOwnedProviderId(actor: AuthActor): Promise<string> {
-    const providerId = await findProviderIdByOwnerUserId(actor.id)
+    const providerId = await providers.findProviderIdByOwnerUserId(actor.id)
     if (!providerId) {
       throw notFound('Provider profile not found', 'PROVIDER_NOT_FOUND')
     }
@@ -156,7 +167,7 @@ export function createListingsService(
     if (!providerId) {
       throw forbidden('You can only manage listings for your own provider')
     }
-    const ownerUserId = await findProviderOwnerUserId(providerId)
+    const ownerUserId = await providers.findOwnerUserId(providerId)
     if (!ownerUserId || ownerUserId !== actor.id) {
       throw forbidden('You can only manage listings for your own provider')
     }
@@ -164,16 +175,8 @@ export function createListingsService(
 
   async function resolveMainImageUrl(storagePath: string | null): Promise<string | null> {
     if (!storagePath || !storage || !config) return null
-    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
-    if (publicBase) {
-      return `${publicBase}/${storagePath.replace(/^\//, '')}`
-    }
-    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
     try {
-      return await storage.presignGet({
-        key: storagePath,
-        expiresInSec,
-      })
+      return await resolvePublicOrPresignedUrl({ config, storage, storagePath })
     } catch {
       return null
     }
@@ -201,6 +204,11 @@ export function createListingsService(
   return {
     assertAccessible,
     assertManageable,
+
+    getListingSnapshot: (id) => repository.findSnapshotById(id),
+    getListingNames: (ids) => repository.findNamesByIds(ids),
+    listingExists: (id) => repository.existsById(id),
+    listListingChoices: (take = 100) => repository.listChoices(take),
 
     async listListings(query, actor) {
       assertCanView(actor)

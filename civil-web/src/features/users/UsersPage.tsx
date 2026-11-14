@@ -54,10 +54,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { RoleBarChart } from '@/features/admin/components/RoleBarChart'
+import {
+  monthOverMonth,
+  ProjectMetricCard,
+  ProjectMetricCardSkeleton,
+} from '@/features/projects/components/ProjectMetricCard'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
+import { PAGE_SIZE, pageCount } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
@@ -69,15 +76,8 @@ import {
   type UserDirectoryCounts,
 } from '@/services/users'
 
-import {
-  monthOverMonth,
-  ProjectMetricCard,
-  ProjectMetricCardSkeleton,
-} from './components/ProjectMetricCard'
-import { RoleBarChart } from './components/RoleBarChart'
 import { USER_TABLE_HEADERS, UserAttributeCells } from './components/UserCells'
 import { UserFormDialog } from './components/UserFormDialog'
-import { PAGE_SIZE, pageCount } from './lib/text'
 import { readUsersPageLayout, writeUsersPageLayout } from './lib/users-layout'
 import { toAdminUserRow, type UserFormValues } from './users.rows'
 

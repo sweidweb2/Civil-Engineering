@@ -28,7 +28,6 @@ import {
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
-import { useIsRtl, useLocaleStore } from '@/stores/localeStore'
 import {
   getUnreadCount,
   listNotifications,
@@ -37,6 +36,7 @@ import {
   type Notification,
   type NotificationType,
 } from '@/services/notifications'
+import { useIsRtl, useLocaleStore } from '@/stores/localeStore'
 
 import { formatNotificationTime, portalNotificationsPath } from './notification-utils'
 

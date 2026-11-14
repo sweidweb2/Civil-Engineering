@@ -40,6 +40,7 @@ import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import {
   deleteListing,
@@ -51,7 +52,6 @@ import {
 import { getMyProvider } from '@/services/providers'
 
 import { ListingFormDialog } from './components/ListingFormDialog'
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 type ListingView = 'cards' | 'table'
 
@@ -332,24 +332,23 @@ export function ListingsBrowser({
           <h2 className="text-sm font-medium">{t('admin:listings.title')}</h2>
           {addButton}
         </div>
-      ) : (
-        <PageHeader
-          className="mb-0"
-          title={t('admin:listings.title')}
-          description={t('admin:listings.description')}
-          actions={addButton}
-        />
+      ) : manageOwn ? null : (
+        <PageHeader className="mb-0" title={t('admin:listings.title')} />
       )}
 
       <div
         className={
           embedded
-            ? 'flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'
-            : 'flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'
+            ? 'flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center'
+            : 'grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_minmax(12rem,20rem)_1fr] sm:items-center'
         }
       >
         {embedded ? null : (
-          <div className="flex gap-1" role="group" aria-label={t('admin:listings.viewAria')}>
+          <div
+            className="flex shrink-0 gap-1 sm:justify-self-start"
+            role="group"
+            aria-label={t('admin:listings.viewAria')}
+          >
             <Button
               type="button"
               size="sm"
@@ -372,15 +371,20 @@ export function ListingsBrowser({
             </Button>
           </div>
         )}
-        <div className={embedded ? 'min-w-0 flex-1' : 'min-w-0 flex-1 sm:max-w-sm'}>
+        <div
+          className={
+            embedded ? 'min-w-0 flex-1 sm:max-w-sm' : 'min-w-0 w-full sm:justify-self-center'
+          }
+        >
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('admin:listings.filterPlaceholder')}
             aria-label={t('admin:listings.filterAria')}
-            className="w-full max-w-sm"
+            className="w-full"
           />
         </div>
+        {embedded ? null : <div className="flex shrink-0 sm:justify-self-end">{addButton}</div>}
       </div>
 
       <AsyncState

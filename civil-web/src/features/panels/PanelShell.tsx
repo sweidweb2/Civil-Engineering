@@ -1,8 +1,8 @@
+import { type ReactNode, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
   AlertTriangle,
-  ChartColumn,
   FolderKanban,
   FolderTree,
   FormInput,
@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Library,
   ListOrdered,
+  Loader2,
   LogOut,
   Moon,
   Package,
@@ -19,11 +20,9 @@ import {
   Store,
   Sun,
   UserCheck,
-  UserRound,
   Users,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
@@ -100,7 +99,15 @@ function userInitials(user: AuthUser | null): string {
   return user.email.slice(0, 2).toUpperCase()
 }
 
-function AccountMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () => void }) {
+function AccountMenu({
+  user,
+  onLogout,
+  isLoggingOut,
+}: {
+  user: AuthUser | null
+  onLogout: () => void
+  isLoggingOut: boolean
+}) {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, setTheme } = useTheme()
@@ -129,15 +136,6 @@ function AccountMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =
             <DropdownMenuItem onClick={() => navigate('/pm/settings')}>
               <Settings />
               {t('account:settings')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        ) : null}
-        {location.pathname.startsWith('/provider') ? (
-          <>
-            <DropdownMenuItem onClick={() => navigate('/provider/profile')}>
-              <UserRound />
-              {t('account:profile')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -180,21 +178,29 @@ function AccountMenu({ user, onLogout }: { user: AuthUser | null; onLogout: () =
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout}>
-          <LogOut />
-          {t('common:signOut')}
+        <DropdownMenuItem onClick={onLogout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
+          {isLoggingOut ? <Loader2 className="animate-spin" aria-hidden /> : <LogOut />}
+          {isLoggingOut ? t('common:signingOut') : t('common:signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
 }
 
-function HeaderActions({ user, onLogout }: { user: AuthUser | null; onLogout: () => void }) {
+function HeaderActions({
+  user,
+  onLogout,
+  isLoggingOut,
+}: {
+  user: AuthUser | null
+  onLogout: () => void
+  isLoggingOut: boolean
+}) {
   return (
     <div className="flex min-w-0 items-center justify-end gap-2">
       <LanguageToggle />
       <NotificationInboxSheet />
-      <AccountMenu user={user} onLogout={onLogout} />
+      <AccountMenu user={user} onLogout={onLogout} isLoggingOut={isLoggingOut} />
     </div>
   )
 }
@@ -207,10 +213,16 @@ export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
   const location = useLocation()
   const isRtl = useIsRtl()
   const title = t(titleKey)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   async function onLogout() {
-    await logout()
-    navigate('/login', { replace: true })
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      await logout()
+    } finally {
+      navigate('/login', { replace: true })
+    }
   }
 
   return (
@@ -276,11 +288,13 @@ export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label={t('common:signOut')}
+              aria-label={isLoggingOut ? t('common:signingOut') : t('common:signOut')}
+              aria-busy={isLoggingOut}
+              disabled={isLoggingOut}
               className="shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
               onClick={() => void onLogout()}
             >
-              <LogOut />
+              {isLoggingOut ? <Loader2 className="animate-spin" aria-hidden /> : <LogOut />}
             </Button>
           </div>
         </SidebarFooter>
@@ -295,7 +309,7 @@ export function PanelShell({ titleKey, nav, children }: PanelShellProps) {
             </span>
           </div>
           <PortalPageSearch nav={nav} />
-          <HeaderActions user={user} onLogout={() => void onLogout()} />
+          <HeaderActions user={user} onLogout={() => void onLogout()} isLoggingOut={isLoggingOut} />
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
           {children ?? <Outlet />}
@@ -329,13 +343,6 @@ export const ADMIN_NAV: PanelNavItem[] = [
 ]
 
 export const PM_NAV: PanelNavItem[] = [
-  { to: '/pm', labelKey: 'analytics', icon: ChartColumn, end: true },
   { to: '/pm/projects', labelKey: 'manageProjects', icon: FolderKanban },
   { to: '/pm/directory', labelKey: 'directory', icon: Library },
-]
-
-export const PROVIDER_NAV: PanelNavItem[] = [
-  { to: '/provider', labelKey: 'home', icon: Home, end: true },
-  { to: '/provider/listings', labelKey: 'listings', icon: Package },
-  { to: '/provider/analytics', labelKey: 'analytics', icon: ChartColumn },
 ]

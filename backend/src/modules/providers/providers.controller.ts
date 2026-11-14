@@ -1,14 +1,11 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
-import multer from 'multer'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
+import { createImageUpload, MAX_BRAND_IMAGE_BYTES } from '../files/image-policy.js'
 import type { ListProvidersQuery } from './providers.schema.js'
 import type { ProvidersService } from './providers.service.js'
 
-const logoUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 },
-})
+const logoUpload = createImageUpload(MAX_BRAND_IMAGE_BYTES)
 
 export type ProvidersController = {
   list: (req: Request, res: Response, next: NextFunction) => Promise<void>

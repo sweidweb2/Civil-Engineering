@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import {
   formatListingPrice,
   type Listing,
@@ -23,7 +24,6 @@ import { listVerifications, type User } from '@/services/users'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
 import { directoryWindows, readPageWindow } from './lib/directory-page'
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 type DirectorySource = 'materials' | 'equipment' | 'workers'
 type DirectoryFilter = DirectoryKind | 'all'

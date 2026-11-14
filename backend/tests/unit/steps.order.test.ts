@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { Prisma } from '../../src/generated/prisma/client.js'
+import { UniqueConflictError } from '../../src/errors/app-error.js'
 import {
   allocateOrdered,
   allocateOrderedWithActiveType,
@@ -41,12 +41,7 @@ describe('allocateOrdered', () => {
   it('retries after a unique-order race', async () => {
     const persist = vi
       .fn()
-      .mockRejectedValueOnce(
-        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
-          code: 'P2002',
-          clientVersion: 'test',
-        }),
-      )
+      .mockRejectedValueOnce(new UniqueConflictError())
       .mockResolvedValueOnce({ id: 'row-2', orderNb: 2 })
 
     const listUsed = vi.fn().mockResolvedValueOnce([0]).mockResolvedValueOnce([0, 1])
@@ -65,12 +60,7 @@ describe('allocateOrdered', () => {
   })
 
   it('throws a conflict after exhausting retries', async () => {
-    const persist = vi.fn().mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
-        code: 'P2002',
-        clientVersion: 'test',
-      }),
-    )
+    const persist = vi.fn().mockRejectedValue(new UniqueConflictError())
 
     await expect(
       allocateOrdered({

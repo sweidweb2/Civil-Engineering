@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
+import { ProviderShell } from '@/features/provider/ProviderShell'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
-import { ADMIN_NAV, PanelShell, PM_NAV, PROVIDER_NAV, SUPER_NAV } from './PanelShell'
+import { ADMIN_NAV, PanelShell, PM_NAV, SUPER_NAV } from './PanelShell'
 
 export function SuperPanelLayout() {
   const { t } = useTranslation('nav')
@@ -25,5 +26,5 @@ export function PmPanelLayout() {
 export function ProviderPanelLayout() {
   const { t } = useTranslation('nav')
   useDocumentTitle(t('providerPanel'))
-  return <PanelShell titleKey="providerPanel" nav={PROVIDER_NAV} />
+  return <ProviderShell />
 }

@@ -2,14 +2,6 @@ import { Router } from 'express'
 
 import { authenticate } from '../../middleware/authenticate.js'
 import { validate } from '../../middleware/validate.js'
-import type { ProjectSteppersController } from '../project-steppers/index.js'
-import {
-  createProjectStepInputBodySchema,
-  projectStepInputIdParamsSchema,
-  projectStepperIdParamsSchema,
-  projectStepperParamsSchema,
-  upsertStepperValuesBodySchema,
-} from '../project-steppers/project-steppers.schema.js'
 import type { ProjectsController } from './projects.controller.js'
 import {
   createProjectBodySchema,
@@ -17,6 +9,14 @@ import {
   projectIdParamsSchema,
   updateProjectBodySchema,
 } from './projects.schema.js'
+import type { ProjectSteppersController } from './projects.steppers.controller.js'
+import {
+  createProjectStepInputBodySchema,
+  projectStepInputIdParamsSchema,
+  projectStepperIdParamsSchema,
+  projectStepperParamsSchema,
+  upsertStepperValuesBodySchema,
+} from './projects.steppers.schema.js'
 
 export function createProjectsRoutes(
   controller: ProjectsController,

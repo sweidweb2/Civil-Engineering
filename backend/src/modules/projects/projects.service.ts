@@ -6,6 +6,7 @@ import {
   runInTransaction as defaultRunInTransaction,
 } from '../../database/transaction.js'
 import { conflict, notFound, validationError } from '../../errors/app-error.js'
+import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import type { StepsService } from '../steps/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
@@ -111,17 +112,8 @@ export function createProjectsService(
 
   async function resolveMainImageUrl(storagePath: string | null): Promise<string | null> {
     if (!storagePath || !storage || !config) return null
-    // Prefer public base URL (no per-row signing) when the bucket is publicly readable.
-    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
-    if (publicBase) {
-      return `${publicBase}/${storagePath.replace(/^\//, '')}`
-    }
-    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
     try {
-      return await storage.presignGet({
-        key: storagePath,
-        expiresInSec,
-      })
+      return await resolvePublicOrPresignedUrl({ config, storage, storagePath })
     } catch {
       return null
     }

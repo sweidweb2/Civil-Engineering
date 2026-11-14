@@ -934,53 +934,6 @@ async function main() {
       console.info(`[prisma seed] listing ${listing.status} ${listing.name}`)
     }
 
-    const cement = listings.get('Portland cement 42.5')
-    if (cement) {
-      const variations = [
-        {
-          name: '50 kg bag',
-          sku: 'CEM-425-50',
-          price: '7.5000',
-          unit: 'bag',
-          quantityAvailable: '8000.0000',
-          sortOrder: 1,
-        },
-        {
-          name: 'Bulk tanker',
-          sku: 'CEM-425-BULK',
-          price: '120.0000',
-          unit: 'ton',
-          quantityAvailable: '200.0000',
-          sortOrder: 2,
-        },
-      ]
-      for (const variation of variations) {
-        const existing = await prisma.listingVariation.findFirst({
-          where: { listingId: cement.id, name: variation.name },
-        })
-        if (existing) {
-          await prisma.listingVariation.update({ where: { id: existing.id }, data: variation })
-        } else {
-          await prisma.listingVariation.create({ data: { ...variation, listingId: cement.id } })
-        }
-      }
-      const offerTitle = 'March bulk rate'
-      const existingOffer = await prisma.listingOffer.findFirst({
-        where: { listingId: cement.id, title: offerTitle },
-      })
-      const offer = {
-        title: offerTitle,
-        description: 'Bulk tanker orders of 20 tons or more.',
-        price: '118.0000',
-        isActive: true,
-      }
-      if (existingOffer) {
-        await prisma.listingOffer.update({ where: { id: existingOffer.id }, data: offer })
-      } else {
-        await prisma.listingOffer.create({ data: { ...offer, listingId: cement.id } })
-      }
-    }
-
     for (const seed of SEED_PROJECTS) {
       const owner = users.get(seed.ownerEmail)
       if (!owner) throw new Error(`Missing project owner ${seed.ownerEmail}`)

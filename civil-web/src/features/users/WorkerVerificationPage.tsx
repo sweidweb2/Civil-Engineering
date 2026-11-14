@@ -45,6 +45,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { PAGE_SIZE } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
 import {
@@ -56,10 +57,9 @@ import {
   type VerificationCounts,
 } from '@/services/users'
 
-import type { VerificationStatus, WorkerVerificationRow } from './admin.types'
 import { UserAttributeCells, VerificationBadge, WORKER_TABLE_HEADERS } from './components/UserCells'
-import { PAGE_SIZE } from './lib/text'
 import { toAdminUserRow } from './users.rows'
+import type { VerificationStatus, WorkerVerificationRow } from './users.types'
 
 const NEXT_STATUS: Record<VerificationStatus, ApiVerificationStatus> = {
   unverified: 'REQUESTED',

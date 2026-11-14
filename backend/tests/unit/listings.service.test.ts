@@ -52,6 +52,10 @@ function setup(opts?: {
     findMany: vi.fn(async () => ({ items: listing ? [listing] : [], total: listing ? 1 : 0 })),
     countByType: vi.fn(async () => ({ MATERIAL: listing ? 1 : 0, EQUIPMENT: 0, SERVICE: 0 })),
     findById: vi.fn(async () => listing),
+    findSnapshotById: vi.fn(async () => null),
+    findNamesByIds: vi.fn(async () => []),
+    existsById: vi.fn(async () => listing != null),
+    listChoices: vi.fn(async () => []),
     findProvider: vi.fn(async () => ({ id: 'prv-1' })),
     findCategory: vi.fn(async () => ({
       id: 'cat-1',
@@ -75,7 +79,11 @@ function setup(opts?: {
     hide: vi.fn(async () => record({ status: 'INACTIVE' })),
     delete: vi.fn(async () => undefined),
   }
-  return { repository, service: createListingsService(repository) }
+  const providers = {
+    findProviderIdByOwnerUserId: vi.fn(async () => 'prv-1' as string | null),
+    findOwnerUserId: vi.fn(async () => 'owner-1' as string | null),
+  }
+  return { repository, providers, service: createListingsService(repository, { providers }) }
 }
 
 const createInput = {

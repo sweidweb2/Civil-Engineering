@@ -26,6 +26,25 @@ export type Listing = {
   mainImageUrl?: string | null
 }
 
+/** Fields snapshotted into project step input values for CATEGORY fields. */
+export type ListingSnapshot = {
+  id: string
+  name: string
+  type: string | null
+  categoryId: string | null
+  brand: string | null
+  unit: string | null
+  currency: string | null
+  price: string | null
+  priceMin: string | null
+  priceMax: string | null
+  rentalPrice: string | null
+  rentalUnit: string | null
+  providerId: string | null
+  status: string
+  description: string | null
+}
+
 export type ListingTypeCounts = {
   MATERIAL: number
   EQUIPMENT: number

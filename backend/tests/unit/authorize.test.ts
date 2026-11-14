@@ -1,10 +1,9 @@
 import express from 'express'
 import request from 'supertest'
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { errorHandler } from '../../src/errors/error.middleware.js'
-import { setAccessPrincipalResolver } from '../../src/middleware/access-principal.js'
-import { authenticate } from '../../src/middleware/authenticate.js'
+import { createAuthenticate } from '../../src/middleware/authenticate.js'
 import { authorize } from '../../src/middleware/authorize.js'
 import type { RoleName } from '../../src/modules/auth/auth.schema.js'
 import { signAccessToken } from '../../src/modules/auth/auth.tokens.js'
@@ -17,17 +16,13 @@ describe('authorize middleware', () => {
     ensureTestJwtEnv()
   })
 
-  beforeEach(() => {
-    setAccessPrincipalResolver(async (userId) => {
+  const authenticate = createAuthenticate({
+    resolvePrincipal: async (userId) => {
       if (userId === 'admin-1') {
         return { id: userId, role: 'ADMIN', status: 'ACTIVE' }
       }
       return { id: userId, role: 'CLIENT', status: 'ACTIVE' }
-    })
-  })
-
-  afterEach(() => {
-    setAccessPrincipalResolver(null)
+    },
   })
 
   function gatedApp(...roles: RoleName[]) {

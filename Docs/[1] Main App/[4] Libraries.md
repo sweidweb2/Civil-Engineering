@@ -187,10 +187,9 @@ cd backend && npm i @prisma/client @prisma/adapter-pg && npm i -D prisma
 
 ```bash
 npm run prisma:generate
-npm run prisma:migrate:dev
-npm run prisma:migrate:deploy
+npm run db:migrate
+npm run db:seed
 npm run prisma:studio
-npm run prisma:seed
 ```
 
 **Cloudflare R2 (S3 API)** — installed (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`)
@@ -228,7 +227,7 @@ npm run dev                 # tsx watch → src/server.ts
 npm run build               # prisma generate + tsc → dist/
 npm run start               # node dist/src/server.js
 npm run prisma:generate
-npm run prisma:migrate:dev
+npm run db:migrate
 npm run test:unit
 npm run test:integration
 npm run test:e2e            # embedded Postgres + /health/db

@@ -1,13 +1,17 @@
 import { randomUUID } from 'node:crypto'
-import sharp from 'sharp'
 
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
+import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
-import { assertMimeMatchesContent } from '../files/mime-sniff.js'
+import {
+  assertAllowedImageUpload,
+  MAX_BRAND_IMAGE_BYTES,
+  toWebpBuffer,
+} from '../files/image-policy.js'
 import type { ProviderRecord, ProvidersRepository } from './providers.repository.js'
 import type {
   CreateProviderBody,
@@ -15,9 +19,6 @@ import type {
   UpdateProviderBody,
 } from './providers.schema.js'
 import type { PaginatedProviders, Provider, ProviderOwnerCandidate } from './providers.types.js'
-
-const LOGO_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
-const LOGO_MAX_BYTES = 8 * 1024 * 1024
 
 export type ProviderWithLogo = {
   provider: Provider
@@ -37,6 +38,9 @@ export type ProvidersService = {
     actor: AuthActor,
   ) => Promise<ProviderWithLogo>
   clearLogo: (id: string, actor: AuthActor) => Promise<ProviderWithLogo>
+  /** Internal lookups for other modules (no actor / authorization). */
+  findProviderIdByOwnerUserId: (ownerUserId: string) => Promise<string | null>
+  findOwnerUserId: (providerId: string) => Promise<string | null>
 }
 
 export type ProvidersServiceDeps = {
@@ -131,17 +135,8 @@ export function createProvidersService(
     if (/^https?:\/\//i.test(logoRef)) return logoRef
     if (!storage || !config) return null
 
-    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
-    if (publicBase) {
-      return `${publicBase}/${logoRef.replace(/^\//, '')}`
-    }
-
-    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
     try {
-      return await storage.presignGet({
-        key: logoRef,
-        expiresInSec,
-      })
+      return await resolvePublicOrPresignedUrl({ config, storage, storagePath: logoRef })
     } catch {
       return null
     }
@@ -156,6 +151,9 @@ export function createProvidersService(
   }
 
   return {
+    findProviderIdByOwnerUserId: (ownerUserId) => repository.findIdByOwnerUserId(ownerUserId),
+    findOwnerUserId: (providerId) => repository.findOwnerUserIdById(providerId),
+
     async listProviders(query, actor) {
       if (!isAdmin(actor.roles)) {
         throw forbidden('Only admins can list providers')
@@ -242,19 +240,9 @@ export function createProvidersService(
       const provider = await loadOrThrow(id)
       assertProviderAccess(actor, provider.ownerUserId)
 
-      if (!LOGO_MIMES.has(file.mimetype)) {
-        throw validationError('Brand image must be a JPEG, PNG, or WebP')
-      }
-      try {
-        assertMimeMatchesContent(file.mimetype, file.buffer, { imagesOnly: true })
-      } catch {
-        throw validationError('File content does not match the declared image type')
-      }
-      if (file.size <= 0 || file.size > LOGO_MAX_BYTES) {
-        throw validationError('Brand image must be between 1 byte and 8 MB')
-      }
+      assertAllowedImageUpload(file, { maxBytes: MAX_BRAND_IMAGE_BYTES })
 
-      const webpBuffer = await sharp(file.buffer).webp({ quality: 85, effort: 4 }).toBuffer()
+      const webpBuffer = await toWebpBuffer(file.buffer)
       const objectId = randomUUID().replace(/-/g, '')
       const key = `providers/${id}/logo/${objectId}.webp`
       await storage.putObject({

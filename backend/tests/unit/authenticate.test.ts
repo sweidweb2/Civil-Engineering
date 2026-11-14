@@ -1,11 +1,11 @@
 import express from 'express'
 import request from 'supertest'
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { createApp } from '../../src/app.js'
 import { errorHandler } from '../../src/errors/error.middleware.js'
-import { setAccessPrincipalResolver } from '../../src/middleware/access-principal.js'
-import { authenticate } from '../../src/middleware/authenticate.js'
+import type { ResolveAccessPrincipal } from '../../src/middleware/access-principal.js'
+import { createAuthenticate } from '../../src/middleware/authenticate.js'
 import { signAccessToken, signRefreshToken } from '../../src/modules/auth/auth.tokens.js'
 import { ensureTestJwtEnv, loadTestConfig } from '../helpers/test-config.js'
 
@@ -16,21 +16,15 @@ describe('authenticate middleware', () => {
     ensureTestJwtEnv()
   })
 
-  beforeEach(() => {
-    setAccessPrincipalResolver(async (userId) => ({
-      id: userId,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-    }))
+  const activeAdmin: ResolveAccessPrincipal = async (userId) => ({
+    id: userId,
+    role: 'ADMIN',
+    status: 'ACTIVE',
   })
 
-  afterEach(() => {
-    setAccessPrincipalResolver(null)
-  })
-
-  function protectedApp() {
+  function protectedApp(resolvePrincipal: ResolveAccessPrincipal = activeAdmin) {
     const app = express()
-    app.get('/protected', authenticate, (req, res) => {
+    app.get('/protected', createAuthenticate({ resolvePrincipal }), (req, res) => {
       res.status(200).json({ user: req.user })
     })
     app.use(errorHandler)
@@ -72,14 +66,21 @@ describe('authenticate middleware', () => {
     })
   })
 
-  it('rejects when the principal is inactive', async () => {
-    setAccessPrincipalResolver(async (userId) => ({
-      id: userId,
-      role: 'ADMIN',
-      status: 'INACTIVE',
-    }))
-    const access = signAccessToken(config, 'user-1', 'ADMIN')
+  it('accepts a valid access token from the civil_access cookie', async () => {
+    const access = signAccessToken(config, 'user-1', 'CLIENT')
     const res = await request(protectedApp())
+      .get('/protected')
+      .set('Cookie', `civil_access=${encodeURIComponent(access)}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.user.id).toBe('user-1')
+  })
+
+  it('rejects when the principal is inactive', async () => {
+    const access = signAccessToken(config, 'user-1', 'ADMIN')
+    const res = await request(
+      protectedApp(async (userId) => ({ id: userId, role: 'ADMIN', status: 'INACTIVE' })),
+    )
       .get('/protected')
       .set('Authorization', `Bearer ${access}`)
     expect(res.status).toBe(401)

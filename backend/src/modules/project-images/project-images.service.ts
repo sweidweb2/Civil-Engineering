@@ -1,12 +1,16 @@
 import { randomUUID } from 'node:crypto'
-import sharp from 'sharp'
 
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
+import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
-import { assertMimeMatchesContent } from '../files/mime-sniff.js'
+import {
+  assertAllowedImageUpload,
+  MAX_GALLERY_IMAGES,
+  toWebpBuffer,
+} from '../files/image-policy.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import type {
   ReorderProjectImagesBody,
@@ -14,10 +18,6 @@ import type {
   UploadProjectImageBody,
 } from './project-images.schema.js'
 import type { ProjectImagesRepository, ProjectImageWithUrl } from './project-images.types.js'
-
-const MAX_IMAGES_PER_PROJECT = 15
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export type ProjectImagesService = {
   listProjectImages: (actor: AuthActor, projectId: string) => Promise<ProjectImageWithUrl[]>
@@ -56,16 +56,8 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
     await projectsService.assertAccessible(projectId, actor)
   }
 
-  async function getImageUrl(storagePath: string): Promise<string> {
-    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
-    if (publicBase) {
-      return `${publicBase}/${storagePath.replace(/^\//, '')}`
-    }
-    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
-    return storage.presignGet({
-      key: storagePath,
-      expiresInSec,
-    })
+  function getImageUrl(storagePath: string): Promise<string> {
+    return resolvePublicOrPresignedUrl({ config, storage, storagePath })
   }
 
   async function processAndUploadImage(
@@ -73,7 +65,7 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
     projectId: string,
     imageId: string,
   ): Promise<string> {
-    const webpBuffer = await sharp(buffer).webp({ quality: 85, effort: 4 }).toBuffer()
+    const webpBuffer = await toWebpBuffer(buffer)
 
     const key = `projects/${projectId}/images/${imageId}.webp`
 
@@ -118,23 +110,11 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
     async uploadProjectImage(actor, projectId, file, input) {
       await assertProjectAccess(actor, projectId)
 
-      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        throw validationError('Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP')
-      }
-
-      try {
-        assertMimeMatchesContent(file.mimetype, file.buffer, { imagesOnly: true })
-      } catch {
-        throw validationError('File content does not match the declared image type')
-      }
-
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw validationError(`File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`)
-      }
+      assertAllowedImageUpload(file)
 
       const currentCount = await repository.countByProjectId(projectId)
-      if (currentCount >= MAX_IMAGES_PER_PROJECT) {
-        throw validationError(`Maximum ${MAX_IMAGES_PER_PROJECT} images per project`)
+      if (currentCount >= MAX_GALLERY_IMAGES) {
+        throw validationError(`Maximum ${MAX_GALLERY_IMAGES} images per project`)
       }
 
       const imageId = randomUUID().replace(/-/g, '')

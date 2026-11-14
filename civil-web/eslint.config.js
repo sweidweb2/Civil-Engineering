@@ -40,7 +40,7 @@ export default defineConfig([
       'src/components/ui/**/*.{ts,tsx}',
       'src/components/feedback/**/*.{ts,tsx}',
       'src/features/panels/**/*.{ts,tsx}',
-      'src/features/admin/components/**/*.{ts,tsx}',
+      'src/features/*/components/**/*.{ts,tsx}',
     ],
     rules: {
       // shadcn/ui + shared feature helpers co-export constants with components

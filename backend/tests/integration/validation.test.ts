@@ -1,28 +1,30 @@
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createApp } from '../../src/app.js'
-import { setAccessPrincipalResolver } from '../../src/middleware/access-principal.js'
 import { signAccessToken } from '../../src/modules/auth/auth.tokens.js'
 import { ensureTestJwtEnv, loadTestConfig } from '../helpers/test-config.js'
+
+// Route modules import the production `authenticate`; swap it for one with a mock resolver.
+vi.mock('../../src/middleware/authenticate.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/middleware/authenticate.js')>()
+  return {
+    ...actual,
+    authenticate: actual.createAuthenticate({
+      resolvePrincipal: async (userId) => ({
+        id: userId,
+        role: 'MANAGER',
+        status: 'ACTIVE',
+      }),
+    }),
+  }
+})
 
 describe('Zod request validation', () => {
   ensureTestJwtEnv()
   const config = loadTestConfig()
   const app = createApp({ config })
   const accessToken = signAccessToken(config, 'user-validation-1', 'MANAGER')
-
-  beforeAll(() => {
-    setAccessPrincipalResolver(async (userId) => ({
-      id: userId,
-      role: 'MANAGER',
-      status: 'ACTIVE',
-    }))
-  })
-
-  afterAll(() => {
-    setAccessPrincipalResolver(null)
-  })
 
   it('rejects invalid body with 400 VALIDATION_ERROR', async () => {
     const res = await request(app)

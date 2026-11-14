@@ -7,8 +7,8 @@ export const SEED_PASSWORD = 'password'
 export const SEED_USERS = {
   super: { email: 'super@example.com', home: /\/super\/?$/ },
   admin: { email: 'admin@example.com', home: /\/admin\/?$/ },
-  pm: { email: 'pm@example.com', home: /\/pm\/?$/ },
-  provider: { email: 'provider@example.com', home: /\/provider\/?$/ },
+  pm: { email: 'pm@example.com', home: /\/pm\/projects\/?$/ },
+  provider: { email: 'provider@example.com', home: /\/provider\/listings\/?$/ },
 } as const
 
 export type SeedRole = keyof typeof SEED_USERS
@@ -51,7 +51,13 @@ export async function expectSignedInHome(page: Page, home: RegExp): Promise<void
 export async function openSeedHome(page: Page, role: SeedRole): Promise<void> {
   const { home } = SEED_USERS[role]
   const target =
-    role === 'admin' ? '/admin' : role === 'pm' ? '/pm' : role === 'super' ? '/super' : '/provider'
+    role === 'admin'
+      ? '/admin'
+      : role === 'pm'
+        ? '/pm/projects'
+        : role === 'super'
+          ? '/super'
+          : '/provider/listings'
   await page.goto(target)
   await expect(page).toHaveURL(home, { timeout: 20_000 })
 }

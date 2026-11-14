@@ -31,29 +31,30 @@ function unavailableStorage(): StorageService {
 
 let filesServiceSingleton: FilesService | null = null
 
+/** Builds a fresh service. The composition root calls this once per app. */
+export function buildFilesService(deps: FilesModuleDeps = {}): FilesService {
+  const config = deps.config ?? loadConfig()
+  const storage =
+    deps.storage ?? (config.storage ? getStorageService(config) : unavailableStorage())
+  return createFilesService({
+    repository: createFilesRepository(),
+    storage,
+    projectsService: deps.projectsService ?? getProjectsService(),
+    config,
+    enqueueDelete: deps.enqueueDelete ?? enqueueDeleteStorageObject,
+  })
+}
+
+/** Standalone/test singleton (first caller's deps win). The app uses `composition-root.ts`. */
 export function getFilesService(deps: FilesModuleDeps = {}): FilesService {
-  if (!filesServiceSingleton) {
-    const config = deps.config ?? loadConfig()
-    const repository = createFilesRepository()
-    const storage =
-      deps.storage ?? (config.storage ? getStorageService(config) : unavailableStorage())
-    const projectsService = deps.projectsService ?? getProjectsService()
-    filesServiceSingleton = createFilesService({
-      repository,
-      storage,
-      projectsService,
-      config,
-      enqueueDelete: deps.enqueueDelete ?? enqueueDeleteStorageObject,
-    })
-  }
+  filesServiceSingleton ??= buildFilesService(deps)
   return filesServiceSingleton
 }
 
-export function createFilesModule(deps: FilesModuleDeps = {}) {
-  const service = getFilesService(deps)
+export function createFilesModule(deps: FilesModuleDeps & { service?: FilesService } = {}) {
+  const service = deps.service ?? getFilesService(deps)
   const controller = createFilesController(service)
   return createFilesRoutes(controller)
 }
 
-export { filesDomain } from './files.domain.js'
 export type { FilesService }

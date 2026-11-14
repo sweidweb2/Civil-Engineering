@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppError } from '../../src/errors/app-error.js'
-import type { ReviewRecord, ReviewsRepository } from '../../src/modules/reviews/reviews.repository.js'
+import type {
+  ReviewRecord,
+  ReviewsRepository,
+} from '../../src/modules/reviews/reviews.repository.js'
 import { createReviewsService } from '../../src/modules/reviews/reviews.service.js'
 
 const admin = { id: 'admin-1', roles: ['ADMIN'] }
@@ -54,7 +57,16 @@ function setup(opts?: {
     update: vi.fn(async (_id, input) => record({ ...input, status: input.status ?? 'PENDING' })),
     delete: vi.fn(async () => undefined),
   }
-  return { repository, service: createReviewsService(repository) }
+  const listings = {
+    listingExists: vi.fn(async () => opts?.targetState !== 'missing'),
+    listListingChoices: vi.fn(async () => [
+      { id: 'lst-1', name: 'Portland cement', subtitle: 'MATERIAL' },
+    ]),
+    getListingNames: vi.fn(async (ids: string[]) =>
+      ids.map((id) => ({ id, name: 'Portland cement' })),
+    ),
+  }
+  return { repository, listings, service: createReviewsService(repository, listings) }
 }
 
 const createInput = {
@@ -67,7 +79,9 @@ const createInput = {
 describe('reviewsService', () => {
   it('forbids non-admins from listing reviews', async () => {
     const { service } = setup()
-    await expect(service.listReviews({ page: 1, limit: 20 }, author)).rejects.toMatchObject({ status: 403 })
+    await expect(service.listReviews({ page: 1, limit: 20 }, author)).rejects.toMatchObject({
+      status: 403,
+    })
   })
 
   it('creates a pending review for the signed-in author', async () => {
@@ -75,7 +89,9 @@ describe('reviewsService', () => {
     const created = await service.createReview(createInput, author)
     expect(created.status).toBe('PENDING')
     expect(created.authorId).toBe(author.id)
-    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({ authorId: author.id, status: 'PENDING' }))
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ authorId: author.id, status: 'PENDING' }),
+    )
   })
 
   it('rejects a review for a missing target', async () => {
@@ -97,7 +113,9 @@ describe('reviewsService', () => {
 
   it('lets an admin accept a review', async () => {
     const { service } = setup()
-    await expect(service.updateReview('rev-1', { status: 'ACCEPTED' }, admin)).resolves.toMatchObject({
+    await expect(
+      service.updateReview('rev-1', { status: 'ACCEPTED' }, admin),
+    ).resolves.toMatchObject({
       id: 'rev-1',
     })
   })
@@ -105,8 +123,13 @@ describe('reviewsService', () => {
   it('returns an author edit to pending and blocks status changes', async () => {
     const { service, repository } = setup({ existing: record({ status: 'ACCEPTED' }) })
     await service.updateReview('rev-1', { comment: 'Updated.' }, author)
-    expect(repository.update).toHaveBeenCalledWith('rev-1', expect.objectContaining({ status: 'PENDING' }))
-    await expect(service.updateReview('rev-1', { status: 'ACCEPTED' }, author)).rejects.toMatchObject({
+    expect(repository.update).toHaveBeenCalledWith(
+      'rev-1',
+      expect.objectContaining({ status: 'PENDING' }),
+    )
+    await expect(
+      service.updateReview('rev-1', { status: 'ACCEPTED' }, author),
+    ).rejects.toMatchObject({
       status: 403,
     })
   })
@@ -114,6 +137,32 @@ describe('reviewsService', () => {
   it('forbids another user from deleting the review', async () => {
     const { service } = setup()
     await expect(service.deleteReview('rev-1', other)).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('validates LISTING targets through the listings module', async () => {
+    const { service, repository, listings } = setup({ targetState: 'missing' })
+    await expect(
+      service.createReview({ ...createInput, targetType: 'LISTING', targetId: 'lst-1' }, author),
+    ).rejects.toMatchObject({ status: 404, code: 'REVIEW_TARGET_NOT_FOUND' })
+    expect(listings.listingExists).toHaveBeenCalledWith('lst-1')
+    expect(repository.findTargetState).not.toHaveBeenCalled()
+  })
+
+  it('resolves LISTING target names via the listings module', async () => {
+    const { service, listings } = setup({
+      existing: record({ targetType: 'LISTING', targetId: 'lst-1', targetName: null }),
+    })
+    const review = await service.getReviewById('rev-1', admin)
+    expect(review.targetName).toBe('Portland cement')
+    expect(listings.getListingNames).toHaveBeenCalledWith(['lst-1'])
+  })
+
+  it('lists LISTING review targets from the listings module', async () => {
+    const { service, repository, listings } = setup()
+    const targets = await service.listTargets('LISTING', admin)
+    expect(targets).toEqual([{ id: 'lst-1', name: 'Portland cement', subtitle: 'MATERIAL' }])
+    expect(listings.listListingChoices).toHaveBeenCalledWith(100)
+    expect(repository.listTargets).not.toHaveBeenCalled()
   })
 
   it('lets an admin delete a review', async () => {

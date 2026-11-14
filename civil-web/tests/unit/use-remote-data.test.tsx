@@ -29,7 +29,9 @@ describe('useRemoteData', () => {
       })
     }
 
-    const { result } = renderHook(() => useRemoteData(load), { wrapper: wrapperFor(client()) })
+    const { result } = renderHook(() => useRemoteData(load, { queryKey: ['test', 'refetch'] }), {
+      wrapper: wrapperFor(client()),
+    })
 
     await waitFor(() => expect(result.current.status).toBe('success'))
     if (result.current.status !== 'success') return
@@ -53,17 +55,17 @@ describe('useRemoteData', () => {
     })
   })
 
-  it('shows the loading state when the query itself changes', async () => {
-    const loadReady = () => Promise.resolve('ready')
-    const loadNext = () => new Promise<string>(() => {})
+  it('shows the loading state when the query key changes', async () => {
+    const load = (id: string) => () =>
+      id === 'ready' ? Promise.resolve('ready') : new Promise<string>(() => {})
     const { result, rerender } = renderHook(
-      ({ load }: { load: () => Promise<string> }) => useRemoteData(load),
-      { initialProps: { load: loadReady }, wrapper: wrapperFor(client()) },
+      ({ id }: { id: string }) => useRemoteData(load(id), { queryKey: ['test', 'item', id] }),
+      { initialProps: { id: 'ready' }, wrapper: wrapperFor(client()) },
     )
 
     await waitFor(() => expect(result.current.status).toBe('success'))
 
-    rerender({ load: loadNext })
+    rerender({ id: 'next' })
 
     await waitFor(() => expect(result.current.isLoading).toBe(true))
   })
@@ -76,16 +78,22 @@ describe('useRemoteData', () => {
     }
     const queryClient = client()
     const wrapper = wrapperFor(queryClient)
-    const first = renderHook(() => useRemoteData(load, { queryKey: ['shared', 'item'] }), { wrapper })
-
-    await waitFor(() => expect(first.result.current.status).toBe('success'))
-
-    const second = renderHook(() => useRemoteData(() => Promise.resolve('other'), { queryKey: ['shared', 'item'] }), {
+    const first = renderHook(() => useRemoteData(load, { queryKey: ['shared', 'item'] }), {
       wrapper,
     })
 
+    await waitFor(() => expect(first.result.current.status).toBe('success'))
+
+    const second = renderHook(
+      () => useRemoteData(() => Promise.resolve('other'), { queryKey: ['shared', 'item'] }),
+      {
+        wrapper,
+      },
+    )
+
     await waitFor(() => expect(second.result.current.status).toBe('success'))
-    if (second.result.current.status === 'success') expect(second.result.current.data).toBe('shared')
+    if (second.result.current.status === 'success')
+      expect(second.result.current.data).toBe('shared')
     expect(calls).toBe(1)
   })
 

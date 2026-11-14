@@ -1,15 +1,17 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
-import multer from 'multer'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { validationError } from '../../errors/app-error.js'
-import type { ListApprovalsQuery, ListLookupQuery, ListUsersQuery, ListVerificationsQuery } from './users.schema.js'
+import { createImageUpload, MAX_BRAND_IMAGE_BYTES } from '../files/image-policy.js'
+import type {
+  ListApprovalsQuery,
+  ListLookupQuery,
+  ListUsersQuery,
+  ListVerificationsQuery,
+} from './users.schema.js'
 import type { UsersService } from './users.service.js'
 
-const avatarUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 },
-})
+const avatarUpload = createImageUpload(MAX_BRAND_IMAGE_BYTES)
 
 export type UsersController = {
   list: (req: Request, res: Response, next: NextFunction) => Promise<void>

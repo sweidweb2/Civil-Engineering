@@ -1,82 +1,28 @@
-import { apiRequest } from './api'
+import {
+  createGalleryImagesApi,
+  type GalleryImageBase,
+  type ReorderGalleryImagesInput,
+  type UpdateGalleryImageInput,
+  type UploadGalleryImageInput,
+} from './galleryImages'
 
-export type ProjectImage = {
-  id: string
-  projectId: string
-  storagePath: string
-  url: string
-  isMain: boolean
-  displayOrder: number
-  createdAt: string
-  updatedAt: string
-}
+export type ProjectImage = GalleryImageBase & { projectId: string }
 
-export type UploadProjectImageInput = {
-  file: File
-  isMain?: boolean
-  displayOrder?: number
-  onProgress?: (percent: number) => void
-}
+export type UploadProjectImageInput = UploadGalleryImageInput
+export type UpdateProjectImageInput = UpdateGalleryImageInput
+export type ReorderProjectImagesInput = ReorderGalleryImagesInput
 
-export type UpdateProjectImageInput = {
-  isMain?: boolean
-  displayOrder?: number
-}
+export const projectImagesApi = createGalleryImagesApi<ProjectImage>({
+  basePath: '/project-images',
+  ownerSegment: 'projects',
+})
 
-export type ReorderProjectImagesInput = {
-  imageIds: string[]
-}
-
-export function listProjectImages(projectId: string) {
-  return apiRequest<{ data: ProjectImage[] }>(`/project-images/projects/${projectId}/images`)
-}
-
-export function getProjectImage(imageId: string) {
-  return apiRequest<{ data: ProjectImage }>(`/project-images/images/${imageId}`)
-}
-
-export async function uploadProjectImage(
-  projectId: string,
-  input: UploadProjectImageInput,
-): Promise<{ data: ProjectImage }> {
-  const formData = new FormData()
-  formData.append('image', input.file)
-  if (input.isMain !== undefined) {
-    formData.append('isMain', String(input.isMain))
-  }
-  if (input.displayOrder !== undefined) {
-    formData.append('displayOrder', String(input.displayOrder))
-  }
-
-  return apiRequest<{ data: ProjectImage }>(`/project-images/projects/${projectId}/images`, {
-    method: 'POST',
-    body: formData,
-    onUploadProgress: input.onProgress,
-  })
-}
-
-export function updateProjectImage(imageId: string, input: UpdateProjectImageInput) {
-  return apiRequest<{ data: ProjectImage }>(`/project-images/images/${imageId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(input),
-  })
-}
-
-export function deleteProjectImage(imageId: string) {
-  return apiRequest<void>(`/project-images/images/${imageId}`, {
-    method: 'DELETE',
-  })
-}
-
-export function reorderProjectImages(projectId: string, input: ReorderProjectImagesInput) {
-  return apiRequest<{ data: ProjectImage[] }>(
-    `/project-images/projects/${projectId}/images/reorder`,
-    {
-      method: 'POST',
-      body: JSON.stringify(input),
-    },
-  )
-}
+export const listProjectImages = projectImagesApi.list
+export const getProjectImage = projectImagesApi.get
+export const uploadProjectImage = projectImagesApi.upload
+export const updateProjectImage = projectImagesApi.update
+export const deleteProjectImage = projectImagesApi.remove
+export const reorderProjectImages = projectImagesApi.reorder
 
 export function getMainImageUrl(projectId: string): Promise<string | null> {
   return listProjectImages(projectId)

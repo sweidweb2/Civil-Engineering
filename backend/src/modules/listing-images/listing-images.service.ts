@@ -1,12 +1,16 @@
 import { randomUUID } from 'node:crypto'
-import sharp from 'sharp'
 
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
+import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
-import { assertMimeMatchesContent } from '../files/mime-sniff.js'
+import {
+  assertAllowedImageUpload,
+  MAX_GALLERY_IMAGES,
+  toWebpBuffer,
+} from '../files/image-policy.js'
 import type { ListingsService } from '../listings/listings.service.js'
 import type {
   ReorderListingImagesBody,
@@ -14,10 +18,6 @@ import type {
   UploadListingImageBody,
 } from './listing-images.schema.js'
 import type { ListingImagesRepository, ListingImageWithUrl } from './listing-images.types.js'
-
-const MAX_IMAGES_PER_LISTING = 15
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export type ListingImagesService = {
   listListingImages: (actor: AuthActor, listingId: string) => Promise<ListingImageWithUrl[]>
@@ -60,16 +60,8 @@ export function createListingImagesService(deps: ListingImagesServiceDeps): List
     await listingsService.assertManageable(listingId, actor)
   }
 
-  async function getImageUrl(storagePath: string): Promise<string> {
-    const publicBase = config.storage?.publicBaseUrl?.replace(/\/$/, '')
-    if (publicBase) {
-      return `${publicBase}/${storagePath.replace(/^\//, '')}`
-    }
-    const expiresInSec = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
-    return storage.presignGet({
-      key: storagePath,
-      expiresInSec,
-    })
+  function getImageUrl(storagePath: string): Promise<string> {
+    return resolvePublicOrPresignedUrl({ config, storage, storagePath })
   }
 
   async function processAndUploadImage(
@@ -77,7 +69,7 @@ export function createListingImagesService(deps: ListingImagesServiceDeps): List
     listingId: string,
     imageId: string,
   ): Promise<string> {
-    const webpBuffer = await sharp(buffer).webp({ quality: 85, effort: 4 }).toBuffer()
+    const webpBuffer = await toWebpBuffer(buffer)
     const key = `listings/${listingId}/images/${imageId}.webp`
     await storage.putObject({
       key,
@@ -119,23 +111,11 @@ export function createListingImagesService(deps: ListingImagesServiceDeps): List
     async uploadListingImage(actor, listingId, file, input) {
       await assertCanManage(actor, listingId)
 
-      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        throw validationError('Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP')
-      }
-
-      try {
-        assertMimeMatchesContent(file.mimetype, file.buffer, { imagesOnly: true })
-      } catch {
-        throw validationError('File content does not match the declared image type')
-      }
-
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw validationError(`File size exceeds maximum of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`)
-      }
+      assertAllowedImageUpload(file)
 
       const currentCount = await repository.countByListingId(listingId)
-      if (currentCount >= MAX_IMAGES_PER_LISTING) {
-        throw validationError(`Maximum ${MAX_IMAGES_PER_LISTING} images per listing`)
+      if (currentCount >= MAX_GALLERY_IMAGES) {
+        throw validationError(`Maximum ${MAX_GALLERY_IMAGES} images per listing`)
       }
 
       const imageId = randomUUID().replace(/-/g, '')

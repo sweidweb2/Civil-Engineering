@@ -1,13 +1,17 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import type { ListingsService } from '../listings/index.js'
 import type { ReviewRecord, ReviewsRepository } from './reviews.repository.js'
 import type { CreateReviewBody, ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type { PaginatedReviews, Review, ReviewTargetOption } from './reviews.types.js'
 
 export type ReviewsService = {
   listReviews: (query: ListReviewsQuery, actor: AuthActor) => Promise<PaginatedReviews>
-  listTargets: (targetType: CreateReviewBody['targetType'], actor: AuthActor) => Promise<ReviewTargetOption[]>
+  listTargets: (
+    targetType: CreateReviewBody['targetType'],
+    actor: AuthActor,
+  ) => Promise<ReviewTargetOption[]>
   getReviewById: (id: string, actor: AuthActor) => Promise<Review>
   createReview: (input: CreateReviewBody, actor: AuthActor) => Promise<Review>
   updateReview: (id: string, input: UpdateReviewBody, actor: AuthActor) => Promise<Review>
@@ -25,7 +29,7 @@ export function toReviewDto(record: ReviewRecord): Review {
     },
     targetType: record.targetType,
     targetId: record.targetId,
-    targetName: record.targetName,
+    targetName: record.targetName ?? REMOVED_TARGET_NAME,
     rating: record.rating,
     comment: record.comment,
     status: record.status,
@@ -40,7 +44,38 @@ function assertAdmin(actor: AuthActor, message: string) {
   }
 }
 
-export function createReviewsService(repository: ReviewsRepository): ReviewsService {
+export type ReviewsListingsGateway = Pick<
+  ListingsService,
+  'listingExists' | 'listListingChoices' | 'getListingNames'
+>
+
+const REMOVED_TARGET_NAME = 'Removed target'
+
+export function createReviewsService(
+  repository: ReviewsRepository,
+  listings: ReviewsListingsGateway,
+): ReviewsService {
+  /** Fills LISTING target names (the repository leaves them null) with one batched lookup. */
+  async function withListingNames(records: ReviewRecord[]): Promise<ReviewRecord[]> {
+    const ids = [
+      ...new Set(
+        records.filter((record) => record.targetType === 'LISTING').map((r) => r.targetId),
+      ),
+    ]
+    if (ids.length === 0) return records
+    const names = new Map((await listings.getListingNames(ids)).map((l) => [l.id, l.name]))
+    return records.map((record) =>
+      record.targetType === 'LISTING'
+        ? { ...record, targetName: names.get(record.targetId) ?? REMOVED_TARGET_NAME }
+        : record,
+    )
+  }
+
+  async function withListingName(record: ReviewRecord): Promise<ReviewRecord> {
+    const [resolved] = await withListingNames([record])
+    return resolved ?? record
+  }
+
   async function loadOrThrow(id: string): Promise<ReviewRecord> {
     const review = await repository.findById(id)
     if (!review) {
@@ -49,8 +84,18 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
     return review
   }
 
+  async function findTargetState(
+    targetType: CreateReviewBody['targetType'],
+    targetId: string,
+  ): Promise<'ok' | 'missing' | 'not_worker'> {
+    if (targetType === 'LISTING') {
+      return (await listings.listingExists(targetId)) ? 'ok' : 'missing'
+    }
+    return repository.findTargetState(targetType, targetId)
+  }
+
   async function assertTarget(targetType: CreateReviewBody['targetType'], targetId: string) {
-    const state = await repository.findTargetState(targetType, targetId)
+    const state = await findTargetState(targetType, targetId)
     if (state === 'missing') {
       throw notFound('Review target not found', 'REVIEW_TARGET_NOT_FOUND')
     }
@@ -59,7 +104,12 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
     }
   }
 
-  async function assertUnique(authorId: string, targetType: CreateReviewBody['targetType'], targetId: string, exceptId?: string) {
+  async function assertUnique(
+    authorId: string,
+    targetType: CreateReviewBody['targetType'],
+    targetId: string,
+    exceptId?: string,
+  ) {
     const existing = await repository.findDuplicate(authorId, targetType, targetId)
     if (existing && existing.id !== exceptId) {
       throw conflict('This author already reviewed that target', 'REVIEW_ALREADY_EXISTS')
@@ -74,7 +124,7 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
         repository.countByStatus(),
       ])
       return {
-        data: items.map(toReviewDto),
+        data: (await withListingNames(items)).map(toReviewDto),
         meta: {
           page: query.page,
           limit: query.limit,
@@ -86,6 +136,9 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
 
     async listTargets(targetType, actor) {
       assertAdmin(actor, 'Only admins can list review targets')
+      if (targetType === 'LISTING') {
+        return listings.listListingChoices(100)
+      }
       return repository.listTargets(targetType)
     },
 
@@ -94,7 +147,7 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
       if (!isAdmin(actor.roles) && review.authorId !== actor.id) {
         throw forbidden('You can only read your own reviews')
       }
-      return toReviewDto(review)
+      return toReviewDto(await withListingName(review))
     },
 
     async createReview(input, actor) {
@@ -126,7 +179,7 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
         comment: input.comment,
         status: admin ? (input.status ?? 'PENDING') : 'PENDING',
       })
-      return toReviewDto(created)
+      return toReviewDto(await withListingName(created))
     },
 
     async updateReview(id, input, actor) {
@@ -150,7 +203,7 @@ export function createReviewsService(repository: ReviewsRepository): ReviewsServ
         ...input,
         status: admin ? input.status : 'PENDING',
       })
-      return toReviewDto(updated)
+      return toReviewDto(await withListingName(updated))
     },
 
     async deleteReview(id, actor) {

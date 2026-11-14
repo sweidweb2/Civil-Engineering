@@ -12,5 +12,3 @@ export function createAuthModule(config: AppConfig = loadConfig()) {
   const controller = createAuthController(service, config)
   return createAuthRoutes(controller, config)
 }
-
-export { authDomain } from './auth.domain.js'

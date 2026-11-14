@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import type { DbClient } from '../../database/transaction.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import type { StepStatus as PrismaStepStatus } from '../../generated/prisma/client.js'
 import { Prisma } from '../../generated/prisma/client.js'
 import type {
@@ -53,17 +54,10 @@ export type StepsRepository = {
   ) => Promise<{ activeCount: number; inactiveCount: number; archivedCount: number }>
   findById: (id: string) => Promise<StepRecord | null>
   listUsedStepOrders: (userId: string, exceptId?: string) => Promise<number[]>
-  create: (
-    userId: string,
-    input: CreateStepBody & { orderNb: number },
-  ) => Promise<StepRecord>
+  create: (userId: string, input: CreateStepBody & { orderNb: number }) => Promise<StepRecord>
   update: (id: string, input: UpdateStepBody & { orderNb?: number }) => Promise<StepRecord>
   delete: (id: string) => Promise<void>
-  assignActiveToProject: (
-    projectId: string,
-    userId: string,
-    db?: DbClient,
-  ) => Promise<number>
+  assignActiveToProject: (projectId: string, userId: string, db?: DbClient) => Promise<number>
   listInputs: (
     stepId: string,
     query: { page: number; limit: number },
@@ -159,9 +153,7 @@ export function createStepsRepository(): StepsRepository {
       const where = {
         userId,
         ...(query.status ? { status: query.status } : {}),
-        ...(query.q
-          ? { name: { contains: query.q, mode: 'insensitive' as const } }
-          : {}),
+        ...(query.q ? { name: { contains: query.q, mode: 'insensitive' as const } } : {}),
       }
       const skip = (query.page - 1) * query.limit
       const [rows, total] = await Promise.all([
@@ -211,28 +203,32 @@ export function createStepsRepository(): StepsRepository {
     },
 
     async create(userId, input) {
-      const row = await prisma.step.create({
-        data: {
-          name: input.name,
-          orderNb: input.orderNb,
-          status: input.status ?? 'ACTIVE',
-          userId,
-        },
-        include: stepInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.step.create({
+          data: {
+            name: input.name,
+            orderNb: input.orderNb,
+            status: input.status ?? 'ACTIVE',
+            userId,
+          },
+          include: stepInclude,
+        }),
+      )
       return toStepRecord(row)
     },
 
     async update(id, input) {
-      const row = await prisma.step.update({
-        where: { id },
-        data: {
-          name: input.name,
-          orderNb: input.orderNb,
-          status: input.status,
-        },
-        include: stepInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.step.update({
+          where: { id },
+          data: {
+            name: input.name,
+            orderNb: input.orderNb,
+            status: input.status,
+          },
+          include: stepInclude,
+        }),
+      )
       return toStepRecord(row)
     },
 
@@ -328,30 +324,34 @@ export function createStepsRepository(): StepsRepository {
     },
 
     async createInput(stepId, input) {
-      const row = await prisma.stepInput.create({
-        data: {
-          stepId,
-          inputTypeId: input.inputTypeId,
-          label: input.label,
-          orderNb: input.orderNb,
-          categoryId: input.categoryId ?? null,
-        },
-        include: stepInputInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.stepInput.create({
+          data: {
+            stepId,
+            inputTypeId: input.inputTypeId,
+            label: input.label,
+            orderNb: input.orderNb,
+            categoryId: input.categoryId ?? null,
+          },
+          include: stepInputInclude,
+        }),
+      )
       return toStepInputRecord(row)
     },
 
     async updateInput(id, input) {
-      const row = await prisma.stepInput.update({
-        where: { id },
-        data: {
-          inputTypeId: input.inputTypeId,
-          label: input.label,
-          orderNb: input.orderNb,
-          ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
-        },
-        include: stepInputInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.stepInput.update({
+          where: { id },
+          data: {
+            inputTypeId: input.inputTypeId,
+            label: input.label,
+            orderNb: input.orderNb,
+            ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
+          },
+          include: stepInputInclude,
+        }),
+      )
       return toStepInputRecord(row)
     },
 

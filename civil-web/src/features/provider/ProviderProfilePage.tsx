@@ -3,7 +3,6 @@ import { UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
-import { PageHeader } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -49,12 +48,6 @@ export function ProviderProfilePage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <PageHeader
-        className="mb-0"
-        title={t('profile.title')}
-        description={t('profile.description')}
-      />
-
       <div className="grid min-w-0 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
         <Card size="sm" className="h-fit lg:sticky lg:top-20">
           <CardHeader>

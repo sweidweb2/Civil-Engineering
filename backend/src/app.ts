@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from './errors/error.middleware.js'
 import { createApiRateLimiter } from './middleware/rate-limit.js'
 import { requestContext } from './middleware/request-context.js'
 import { createRequestLogger } from './middleware/request-logger.js'
+import { requireTrustedOrigin } from './middleware/trusted-origin.js'
 import { createV1Router } from './routes/v1.js'
 import type { StorageService } from './storage/index.js'
 
@@ -37,6 +38,7 @@ export function createApp(deps: AppDeps = {}) {
   app.use(express.json({ limit: config.jsonBodyLimit }))
   app.use(createApiRateLimiter(config))
 
+  app.use('/api/v1', requireTrustedOrigin(config.corsOrigins))
   app.use('/api/v1', createV1Router({ pool: deps.pool, config, storage: deps.storage }))
 
   app.use(notFoundHandler)

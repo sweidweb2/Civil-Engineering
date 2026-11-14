@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { AsyncState } from '@/components/feedback/async-state'
 import { TableSkeleton } from '@/components/feedback/skeletons'
@@ -41,6 +41,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import { type Category, listCategories } from '@/services/categories'
 import {
@@ -57,8 +58,6 @@ import {
   type StepInput,
   updateStepInput,
 } from '@/services/steps'
-
-import { ellipsis } from '../lib/text'
 
 type StepInputsPanelProps = {
   step: Step | null

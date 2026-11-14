@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -113,7 +113,13 @@ export function LoginPage() {
                 </Field>
               </FieldGroup>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" aria-hidden /> : null}
                 {isSubmitting ? t('auth:signingIn') : t('auth:signIn')}
               </Button>
 

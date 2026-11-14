@@ -1,12 +1,12 @@
 import type { AuthActor } from '../../authz/index.js'
 import { hasAnyRole } from '../../authz/index.js'
 import type { DbClient } from '../../database/transaction.js'
-import { forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { forbidden, notFound } from '../../errors/app-error.js'
 import type { RoleName } from '../auth/auth.schema.js'
-import { findPlatformCategory } from '../categories/categories.access.js'
+import { assertCategoryBinding, type CategoriesService } from '../categories/index.js'
 import type { InputTypesService } from '../input-types/index.js'
 import { allocateOrdered, allocateOrderedWithActiveType } from './steps.order.js'
-import { type StepsRepository,toStepDto, toStepInputDto } from './steps.repository.js'
+import { type StepsRepository, toStepDto, toStepInputDto } from './steps.repository.js'
 import type {
   CreateStepBody,
   CreateStepInputBody,
@@ -33,11 +33,7 @@ export type StepsService = {
   updateStep: (id: string, input: UpdateStepBody, actor: AuthActor) => Promise<StepMutationResult>
   deleteStep: (id: string, actor: AuthActor) => Promise<void>
   /** Assign the owner's ACTIVE step templates onto a newly created project. */
-  assignActiveToProject: (
-    projectId: string,
-    ownerId: string,
-    db?: DbClient,
-  ) => Promise<void>
+  assignActiveToProject: (projectId: string, ownerId: string, db?: DbClient) => Promise<void>
   listStepInputs: (
     stepId: string,
     query: ListStepInputsQuery,
@@ -63,27 +59,10 @@ function assertCanManageSteps(actor: AuthActor) {
   }
 }
 
-async function assertCategoryBinding(inputTypeCode: string, categoryId: string | null | undefined) {
-  const isCategory = inputTypeCode.toUpperCase() === 'CATEGORY'
-  if (isCategory) {
-    if (!categoryId) {
-      throw validationError('Category is required for CATEGORY inputs')
-    }
-    const category = await findPlatformCategory(categoryId)
-    if (!category || category.scope !== 'PLATFORM') {
-      throw notFound('Category not found', 'CATEGORY_NOT_FOUND')
-    }
-    return categoryId
-  }
-  if (categoryId) {
-    throw validationError('categoryId is only allowed for CATEGORY inputs')
-  }
-  return null
-}
-
 export function createStepsService(
   repository: StepsRepository,
   inputTypes: Pick<InputTypesService, 'requireActiveInputType'>,
+  categories: Pick<CategoriesService, 'requirePlatformCategory'>,
 ): StepsService {
   async function loadOwnOrThrow(id: string, actor: AuthActor) {
     const step = await repository.findById(id)
@@ -190,7 +169,11 @@ export function createStepsService(
         listUsed: () => repository.listUsedInputOrders(stepId),
         requested: input.orderNb,
         persist: async (orderNb, inputType) => {
-          const categoryId = await assertCategoryBinding(inputType.code, input.categoryId)
+          const categoryId = await assertCategoryBinding(
+            categories,
+            inputType.code,
+            input.categoryId,
+          )
           return repository.createInput(stepId, { ...input, orderNb, categoryId })
         },
         conflictMessage: 'Could not allocate a free input order. Retry.',
@@ -207,9 +190,8 @@ export function createStepsService(
         const nextType = await inputTypes.requireActiveInputType(input.inputTypeId)
         nextCode = nextType.code
       }
-      const nextCategoryId =
-        input.categoryId !== undefined ? input.categoryId : current.categoryId
-      const categoryId = await assertCategoryBinding(nextCode, nextCategoryId)
+      const nextCategoryId = input.categoryId !== undefined ? input.categoryId : current.categoryId
+      const categoryId = await assertCategoryBinding(categories, nextCode, nextCategoryId)
       const payload = { ...input, categoryId }
 
       if (input.orderNb === undefined) {

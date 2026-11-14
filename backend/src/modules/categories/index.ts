@@ -1,16 +1,24 @@
 import { createCategoriesController } from './categories.controller.js'
 import { createCategoriesRepository } from './categories.repository.js'
 import { createCategoriesRoutes } from './categories.routes.js'
-import { createCategoriesService } from './categories.service.js'
+import { type CategoriesService, createCategoriesService } from './categories.service.js'
+
+let categoriesServiceSingleton: CategoriesService | null = null
+
+/** Shared instance for HTTP module wiring and cross-module lookups. */
+export function getCategoriesService(): CategoriesService {
+  if (!categoriesServiceSingleton) {
+    categoriesServiceSingleton = createCategoriesService(createCategoriesRepository())
+  }
+  return categoriesServiceSingleton
+}
 
 export function createCategoriesModule() {
-  const repository = createCategoriesRepository()
-  const service = createCategoriesService(repository)
+  const service = getCategoriesService()
   const controller = createCategoriesController(service)
   return createCategoriesRoutes(controller)
 }
 
-export { findPlatformCategory } from './categories.access.js'
-export { categoriesDomain } from './categories.domain.js'
+export { assertCategoryBinding } from './categories.binding.js'
 export { createCategoriesService }
-export type { CategoriesService } from './categories.service.js'
+export type { CategoriesService }

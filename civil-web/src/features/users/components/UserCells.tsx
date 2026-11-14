@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { TableCell } from '@/components/ui/table'
+import { ellipsis } from '@/lib/text'
 import { cn } from '@/lib/utils'
 
-import type { AdminUserRow, UserStatus, VerificationStatus } from '../admin.types'
-import { ellipsis } from '../lib/text'
+import type { AdminUserRow, UserStatus, VerificationStatus } from '../users.types'
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const { t } = useTranslation('common')

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * Web E2E — starts Vite via webServer; API must already be up (seeded).
  * Run: npm run test:e2e
- * Prereq: Supabase DATABASE_URL in backend/.env + `cd backend && npm run prisma:seed && npm run dev`
+ * Prereq: Supabase DATABASE_URL in backend/.env + `cd backend && npm run db:seed && npm run dev`
  */
 export default defineConfig({
   testDir: './tests/e2e',

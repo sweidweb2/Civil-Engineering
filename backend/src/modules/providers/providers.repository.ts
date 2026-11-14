@@ -53,6 +53,9 @@ export type ProvidersRepository = {
   countByStatus: () => Promise<ProviderStatusCounts>
   findById: (id: string) => Promise<ProviderRecord | null>
   findByOwnerUserId: (ownerUserId: string) => Promise<ProviderRecord | null>
+  /** Lean lookups for cross-module callers. */
+  findIdByOwnerUserId: (ownerUserId: string) => Promise<string | null>
+  findOwnerUserIdById: (id: string) => Promise<string | null>
   findOwnerUser: (id: string) => Promise<ProviderOwnerUser | null>
   findEligibleOwners: (includeUserId?: string | null) => Promise<ProviderOwnerCandidate[]>
   create: (input: CreateProviderBody) => Promise<ProviderRecord>
@@ -125,6 +128,22 @@ export function createProvidersRepository(): ProvidersRepository {
         where: { ownerUserId },
         include: { owner: { select: ownerSelect } },
       })
+    },
+
+    async findIdByOwnerUserId(ownerUserId) {
+      const row = await prisma.provider.findUnique({
+        where: { ownerUserId },
+        select: { id: true },
+      })
+      return row?.id ?? null
+    },
+
+    async findOwnerUserIdById(id) {
+      const row = await prisma.provider.findUnique({
+        where: { id },
+        select: { ownerUserId: true },
+      })
+      return row?.ownerUserId ?? null
     },
 
     async findOwnerUser(id) {

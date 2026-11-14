@@ -14,6 +14,22 @@ export class AppError extends Error {
   }
 }
 
+/**
+ * A unique constraint was violated at persistence time. Repositories translate the
+ * driver-specific error into this type so services can react without knowing Prisma.
+ * If nothing handles it, the error middleware reports a plain 409.
+ */
+export class UniqueConflictError extends AppError {
+  constructor(message = 'Resource already exists') {
+    super(ErrorCodes.CONFLICT, message, 409)
+    this.name = 'UniqueConflictError'
+  }
+}
+
+export function isUniqueConflictError(error: unknown): error is UniqueConflictError {
+  return error instanceof UniqueConflictError
+}
+
 export function validationError(message: string, details?: unknown): AppError {
   return new AppError(ErrorCodes.VALIDATION_ERROR, message, 400, details)
 }

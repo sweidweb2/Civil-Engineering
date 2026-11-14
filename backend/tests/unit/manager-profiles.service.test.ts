@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Prisma } from '../../src/generated/prisma/client.js'
-import type { ManagerProfilesRepository } from '../../src/modules/manager-profiles/manager-profiles.repository.js'
-import type { UpsertManagerProfileBody } from '../../src/modules/manager-profiles/manager-profiles.schema.js'
-import { createManagerProfilesService } from '../../src/modules/manager-profiles/manager-profiles.service.js'
-import type { ManagerProfile } from '../../src/modules/manager-profiles/manager-profiles.types.js'
+import { UniqueConflictError } from '../../src/errors/app-error.js'
+import type { ManagerProfilesRepository } from '../../src/modules/users/users.manager-profile.repository.js'
+import type { UpsertManagerProfileBody } from '../../src/modules/users/users.manager-profile.schema.js'
+import { createManagerProfilesService } from '../../src/modules/users/users.manager-profile.service.js'
+import type { ManagerProfile } from '../../src/modules/users/users.manager-profile.types.js'
 
 function makeProfile(overrides: Partial<ManagerProfile> = {}): ManagerProfile {
   return {
@@ -87,12 +87,7 @@ describe('managerProfilesService', () => {
   it('retries as update when create hits a unique race', async () => {
     const service = createManagerProfilesService(repository)
     vi.mocked(repository.findByUserId).mockResolvedValue(null)
-    vi.mocked(repository.create).mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
-        code: 'P2002',
-        clientVersion: 'test',
-      }),
-    )
+    vi.mocked(repository.create).mockRejectedValue(new UniqueConflictError())
     vi.mocked(repository.update).mockResolvedValue(makeProfile({ city: 'Beirut' }))
 
     await expect(service.upsertMine('user-1', fullPut({ city: 'Beirut' }))).resolves.toMatchObject({

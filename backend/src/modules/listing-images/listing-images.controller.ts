@@ -1,14 +1,11 @@
 import type { RequestHandler } from 'express'
-import multer from 'multer'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
+import { createImageUpload } from '../files/image-policy.js'
 import type { ListingImagesService } from './listing-images.service.js'
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
-})
+const upload = createImageUpload()
 
 export type ListingImagesController = {
   listListingImages: RequestHandler

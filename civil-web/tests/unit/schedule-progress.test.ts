@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { scheduleProgress } from '@/features/admin/lib/schedule-progress'
+import { scheduleProgress } from '@/features/projects/lib/schedule-progress'
 
 describe('scheduleProgress', () => {
   const start = '2026-01-01T00:00:00.000Z'

@@ -1,223 +1,42 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ExternalLink, Loader2, Plus, Save, Trash2, Upload } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus, Save } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { cn } from '@/lib/utils'
-
 import { AsyncState } from '@/components/feedback/async-state'
 import { ContentSkeleton } from '@/components/feedback/skeletons'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DatePicker } from '@/components/ui/date-picker'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
-import { type Category, listCategories } from '@/services/categories'
 import { deleteFile, getDownloadUrl, uploadFile } from '@/services/files'
-import {
-  INPUT_TYPES_PICKER_QUERY_KEY,
-  type InputType,
-  listInputTypesForPicker,
-} from '@/services/input-types'
-import { type Listing, listListings } from '@/services/listings'
 import {
   addProjectStepInput,
   deleteProjectStepInput,
   fileIdFromStepperValue,
   getProjectStepper,
-  isFileSnapshot,
   listingIdFromStepperValue,
   listProjectSteppers,
   type ProjectStepDetail,
-  type ProjectStepInputField,
   type ProjectStepNode,
   saveProjectStepperValues,
-  type StepperValue,
 } from '@/services/project-steppers'
 
-const STEPPER_FILE_ACCEPT =
-  'image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+import { useStepperDraft } from '../hooks/useStepperDraft'
+import { draftValueForInput, patchNode } from '../lib/stepper-values'
+import { AddStepperInputDialog, type AddStepperInputValues } from './AddStepperInputDialog'
+import { StepperInputCard } from './StepperInputCard'
+import { StepperNodeList } from './StepperNodeList'
 
 type ProjectSteppersSectionProps = {
   projectId: string
 }
 
-type NodePhase = 'done' | 'current' | 'upcoming'
-
-function resolveNodePhase(nodes: ProjectStepNode[], nodeId: string): NodePhase {
-  const firstOpenIndex = nodes.findIndex((node) => !node.isComplete)
-  const nodeIndex = nodes.findIndex((node) => node.id === nodeId)
-  if (nodeIndex < 0) return 'upcoming'
-  if (nodes[nodeIndex]?.isComplete) return 'done'
-  if (firstOpenIndex < 0 || nodeIndex === firstOpenIndex) return 'current'
-  if (nodeIndex < firstOpenIndex) return 'done'
-  return 'upcoming'
-}
-
-/** Parse YYYY-MM-DD as a local calendar date (avoid UTC off-by-one). */
-function toDate(value: StepperValue): Date | undefined {
-  if (typeof value !== 'string' || !value) return undefined
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) return undefined
-  const year = Number(match[1])
-  const month = Number(match[2]) - 1
-  const day = Number(match[3])
-  const date = new Date(year, month, day)
-  return Number.isNaN(date.getTime()) ? undefined : date
-}
-
-function formatDateValue(date: Date | undefined): string | null {
-  if (!date) return null
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function isFilledValue(value: StepperValue): boolean {
-  if (value === null || value === undefined) return false
-  if (typeof value === 'string') return value.trim() !== ''
-  if (typeof value === 'object') return Boolean(value.id)
-  return true
-}
-
-function draftValueForInput(input: ProjectStepInputField): StepperValue {
-  const code = input.inputTypeCode.toUpperCase()
-  if (code === 'CATEGORY') {
-    return listingIdFromStepperValue(input.value)
-  }
-  if (code === 'FILE') {
-    return input.value
-  }
-  return input.value
-}
-
-function fileDisplayName(value: StepperValue): string | null {
-  if (isFileSnapshot(value)) return value.originalName
-  return null
-}
-
-function fileMime(value: StepperValue): string | null {
-  if (isFileSnapshot(value)) return value.mime
-  return null
-}
-
-function isImageMime(mime: string | null | undefined): boolean {
-  return Boolean(mime?.toLowerCase().startsWith('image/'))
-}
-
-/** Small cover thumb for FILE inputs (images only). */
-function StepperFileThumb({
-  fileId,
-  mime,
-  name,
-  isBusy,
-}: {
-  fileId: string
-  mime: string | null
-  name: string | null
-  isBusy?: boolean
-}) {
-  const { t } = useTranslation('projects')
-  const [url, setUrl] = useState<string | null>(null)
-  const showImage = isImageMime(mime)
-
-  useEffect(() => {
-    if (!showImage || !fileId) {
-      setUrl(null)
-      return
-    }
-    let cancelled = false
-    void getDownloadUrl(fileId)
-      .then((result) => {
-        if (!cancelled) setUrl(result.downloadUrl)
-      })
-      .catch(() => {
-        if (!cancelled) setUrl(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [fileId, showImage])
-
-  if (!showImage) return null
-
-  return (
-    <div className="size-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted shadow-sm">
-      {url ? (
-        <img
-          src={url}
-          alt={name ?? t('uploadedImageAlt')}
-          className="size-full object-cover object-center"
-        />
-      ) : (
-        <div className="flex size-full items-center justify-center" aria-hidden>
-          {isBusy ? (
-            <Loader2 className="size-4 animate-spin text-muted-foreground" />
-          ) : (
-            <div className="size-full animate-pulse bg-muted" />
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function nodeStatsFromInputs(inputs: ProjectStepInputField[]) {
-  const inputCount = inputs.length
-  const filledCount = inputs.filter((input) => isFilledValue(input.value)).length
-  return {
-    inputCount,
-    filledCount,
-    isComplete: filledCount === inputCount,
-  }
-}
-
-function patchNode(
-  nodes: ProjectStepNode[],
-  projectStepId: string,
-  inputs: ProjectStepInputField[],
-): ProjectStepNode[] {
-  const stats = nodeStatsFromInputs(inputs)
-  return nodes.map((node) => (node.id === projectStepId ? { ...node, ...stats } : node))
-}
-
-/** Wider columns when few steps; tighten as count grows (track still scrolls when too dense). */
-function stepperColumnWidthRem(count: number): number {
-  if (count <= 3) return 12
-  if (count <= 5) return 10.5
-  if (count <= 7) return 9
-  if (count <= 10) return 7.5
-  return 6.25
-}
-
 export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProps) {
   const { t } = useTranslation(['projects', 'common'])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<Record<string, StepperValue>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
-  const [addLabel, setAddLabel] = useState('')
-  const [addTypeId, setAddTypeId] = useState('')
-  const [addCategoryId, setAddCategoryId] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [busyInputId, setBusyInputId] = useState<string | null>(null)
 
@@ -250,45 +69,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
   })
   const detail = detailRemote.status === 'success' ? detailRemote.data.data : null
 
-  /** Re-hydrate draft only when switching steps — file auto-save must not wipe other edits. */
-  const hydratedStepIdRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (!detail) {
-      hydratedStepIdRef.current = null
-      setDraft({})
-      return
-    }
-    if (hydratedStepIdRef.current === detail.id) return
-    hydratedStepIdRef.current = detail.id
-    const next: Record<string, StepperValue> = {}
-    for (const input of detail.inputs) {
-      next[input.id] = draftValueForInput(input)
-    }
-    setDraft(next)
-  }, [detail])
-
-  const loadPickerTypes = useCallback(() => listInputTypesForPicker(), [])
-  const typesRemote = useRemoteData(loadPickerTypes, {
-    queryKey: [...INPUT_TYPES_PICKER_QUERY_KEY],
-    enabled: addOpen,
-  })
-  const typesData = typesRemote.status === 'success' ? typesRemote.data.data : null
-  const types = useMemo<InputType[]>(() => typesData ?? [], [typesData])
-
-  const loadCategories = useCallback(() => listCategories(1, 100), [])
-  const categoriesRemote = useRemoteData(loadCategories, {
-    queryKey: ['categories', 'project-step-input-picker'],
-    enabled: addOpen,
-  })
-  const categories: Category[] =
-    categoriesRemote.status === 'success' ? categoriesRemote.data.data : []
-
-  const addTypeCode = types.find((type) => type.id === addTypeId)?.code.toUpperCase() ?? ''
-
-  useEffect(() => {
-    if (!addOpen || types.length === 0) return
-    setAddTypeId((current) => current || types[0]?.id || '')
-  }, [addOpen, types])
+  const { draft, setValue, removeValue, syncFromDetail } = useStepperDraft(detail)
 
   function applyDetail(next: ProjectStepDetail) {
     detailRemote.mutate(() => ({ data: next }))
@@ -296,14 +77,6 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       ...current,
       data: patchNode(current.data, next.id, next.inputs),
     }))
-  }
-
-  function syncDraftFromDetail(next: ProjectStepDetail) {
-    const mapped: Record<string, StepperValue> = {}
-    for (const input of next.inputs) {
-      mapped[input.id] = draftValueForInput(input)
-    }
-    setDraft(mapped)
   }
 
   async function save() {
@@ -327,7 +100,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       )
       toast.success(t('projects:valuesSaved'))
       applyDetail(result.data)
-      syncDraftFromDetail(result.data)
+      syncFromDetail(result.data)
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : t('projects:couldNotSaveValues'))
     } finally {
@@ -335,45 +108,25 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
     }
   }
 
-  async function addInput() {
-    if (!selectedId || !detail) return
-    const label = addLabel.trim()
-    if (!label) {
-      toast.error(t('projects:labelRequired'))
-      return
-    }
-    if (!addTypeId) {
-      toast.error(t('projects:inputTypeRequired'))
-      return
-    }
-    if (addTypeCode === 'CATEGORY' && !addCategoryId) {
-      toast.error(t('projects:categoryRequired'))
-      return
-    }
+  async function addInput(values: AddStepperInputValues): Promise<boolean> {
+    if (!selectedId || !detail) return false
     setIsAdding(true)
     try {
-      const result = await addProjectStepInput(projectId, selectedId, {
-        label,
-        inputTypeId: addTypeId,
-        categoryId: addTypeCode === 'CATEGORY' ? addCategoryId : null,
-      })
+      const result = await addProjectStepInput(projectId, selectedId, values)
       if (result.meta?.orderAdjusted) {
         toast.message(t('projects:orderAdjusted', { order: result.meta.orderNb }))
       }
       toast.message(t('projects:inputAdded'))
       setAddOpen(false)
-      setAddLabel('')
-      setAddCategoryId('')
       const nextInputs = [...detail.inputs, result.data].sort(
         (a, b) => a.orderNb - b.orderNb || a.label.localeCompare(b.label),
       )
       applyDetail({ ...detail, inputs: nextInputs })
-      setDraft((current) => ({
-        ...current,
-        [result.data.id]: draftValueForInput(result.data),
-      }))
+      setValue(result.data.id, draftValueForInput(result.data))
+      return true
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : t('projects:couldNotAddInput'))
+      return false
     } finally {
       setIsAdding(false)
     }
@@ -395,10 +148,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       ])
       applyDetail(result.data)
       const saved = result.data.inputs.find((input) => input.id === inputId)
-      setDraft((current) => ({
-        ...current,
-        [inputId]: saved ? draftValueForInput(saved) : null,
-      }))
+      setValue(inputId, saved ? draftValueForInput(saved) : null)
       toast.success(t('projects:fileSaved'))
     } catch (error) {
       if (uploadedId) {
@@ -418,7 +168,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         { id: inputId, value: null },
       ])
       applyDetail(result.data)
-      setDraft((current) => ({ ...current, [inputId]: null }))
+      setValue(inputId, null)
       toast.message(t('projects:fileCleared'))
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : t('projects:couldNotClearFile'))
@@ -444,11 +194,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
       toast.message(t('projects:inputRemoved'))
       const nextInputs = detail.inputs.filter((input) => input.id !== inputId)
       applyDetail({ ...detail, inputs: nextInputs })
-      setDraft((current) => {
-        const next = { ...current }
-        delete next[inputId]
-        return next
-      })
+      removeValue(inputId)
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : t('projects:couldNotRemoveInput'))
     } finally {
@@ -483,111 +229,7 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                 <span>{t('projects:clickNode')}</span>
               </div>
 
-              <div className="overflow-x-auto pb-2 pt-2">
-                <ol
-                  className="mx-auto flex w-max"
-                  style={{
-                    ['--stepper-col' as string]: `${stepperColumnWidthRem(nodes.length)}rem`,
-                  }}
-                >
-                  {nodes.map((node, index) => {
-                    const phase = resolveNodePhase(nodes, node.id)
-                    const isSelected = node.id === selectedId
-                    const selectedIndex = selectedId
-                      ? nodes.findIndex((item) => item.id === selectedId)
-                      : -1
-                    // Line after this node fills when step is done or user moved past it.
-                    const lineFilled =
-                      index < nodes.length - 1 &&
-                      (node.isComplete || (selectedIndex >= 0 && selectedIndex > index))
-
-                    return (
-                      <li
-                        key={node.id}
-                        className="relative flex w-(--stepper-col) shrink-0 flex-col items-center"
-                      >
-                        {index < nodes.length - 1 ? (
-                          <div
-                            aria-hidden
-                            className="pointer-events-none absolute top-7 left-1/2 z-0 h-0.5 w-full overflow-hidden rounded-full bg-border"
-                          >
-                            <div
-                              className={cn(
-                                'h-full origin-left rounded-full bg-primary transition-transform duration-500 ease-out',
-                                lineFilled ? 'scale-x-100' : 'scale-x-0',
-                              )}
-                            />
-                          </div>
-                        ) : null}
-
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(node.id)}
-                          aria-current={isSelected ? 'step' : undefined}
-                          className={cn(
-                            'group relative z-10 flex w-full flex-col items-center gap-2.5 rounded-xl px-1.5 py-1 text-center outline-none',
-                            'focus-visible:ring-2 focus-visible:ring-ring',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'relative flex size-12 items-center justify-center rounded-full border-2 text-base font-semibold transition-all duration-300 ease-out',
-                              phase === 'done' &&
-                                'border-primary bg-primary text-primary-foreground shadow-sm',
-                              phase === 'current' &&
-                                'scale-110 border-primary bg-background text-primary shadow-[0_0_0_4px] shadow-primary/20',
-                              phase === 'upcoming' &&
-                                'border-muted-foreground/30 bg-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-foreground',
-                              isSelected &&
-                                'ring-2 ring-primary/50 ring-offset-2 ring-offset-background',
-                            )}
-                          >
-                            {phase === 'done' ? (
-                              <Check
-                                className="size-5 transition-transform duration-300"
-                                strokeWidth={2.5}
-                              />
-                            ) : (
-                              index + 1
-                            )}
-                          </span>
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            <span
-                              className={cn(
-                                'truncate text-sm font-semibold leading-tight transition-colors duration-300',
-                                phase === 'upcoming' && !isSelected
-                                  ? 'text-muted-foreground'
-                                  : 'text-foreground',
-                              )}
-                              title={node.name}
-                            >
-                              {node.name}
-                            </span>
-                            <span className="text-[11px] tabular-nums text-muted-foreground">
-                              {node.inputCount === 0
-                                ? t('projects:noInputs')
-                                : `${node.filledCount}/${node.inputCount} filled`}
-                            </span>
-                            {phase === 'done' ? (
-                              <Badge variant="secondary" className="mx-auto h-5 px-1.5 text-[10px]">
-                                Done
-                              </Badge>
-                            ) : phase === 'current' ? (
-                              <Badge className="mx-auto h-5 px-1.5 text-[10px]">
-                                {t('common:current')}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="mx-auto h-5 px-1.5 text-[10px]">
-                                Next
-                              </Badge>
-                            )}
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ol>
-              </div>
+              <StepperNodeList nodes={nodes} selectedId={selectedId} onSelect={setSelectedId} />
 
               <div className="rounded-xl border border-border bg-muted/20 p-4">
                 <AsyncState
@@ -633,277 +275,20 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
                         </p>
                       ) : (
                         <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                          {detail.inputs.map((input) => {
-                            const code = input.inputTypeCode.toUpperCase()
-                            const value = draft[input.id] ?? null
-
-                            const header = (
-                              <div className="flex min-h-7 items-center justify-between gap-2">
-                                <Label
-                                  htmlFor={
-                                    code === 'FILE'
-                                      ? `stepper-file-${input.id}`
-                                      : `stepper-${input.id}`
-                                  }
-                                  className="min-w-0 truncate"
-                                  title={input.label}
-                                >
-                                  {input.label}
-                                </Label>
-                                <div className="flex shrink-0 items-center gap-1">
-                                  {input.isProjectOnly ? (
-                                    <Badge variant="outline" className="text-[10px]">
-                                      Project
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="secondary" className="text-[10px]">
-                                      Template
-                                    </Badge>
-                                  )}
-                                  <Button
-                                    type="button"
-                                    size="icon-sm"
-                                    variant="ghost"
-                                    aria-label={`Remove ${input.label}`}
-                                    disabled={busyInputId === input.id}
-                                    onClick={() => void removeInput(input.id)}
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )
-
-                            if (code === 'YES_NO') {
-                              const yesNoValue =
-                                value === true ? 'yes' : value === false ? 'no' : 'unset'
-                              return (
-                                <StepperInputShell key={input.id} header={header}>
-                                  <Select
-                                    value={yesNoValue}
-                                    onValueChange={(next) =>
-                                      setDraft((current) => ({
-                                        ...current,
-                                        [input.id]:
-                                          next === 'yes' ? true : next === 'no' ? false : null,
-                                      }))
-                                    }
-                                  >
-                                    <SelectTrigger id={`stepper-${input.id}`} className="w-full">
-                                      <SelectValue placeholder={t('projects:unset')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unset">{t('projects:unset')}</SelectItem>
-                                      <SelectItem value="yes">{t('common:yes')}</SelectItem>
-                                      <SelectItem value="no">{t('common:no')}</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </StepperInputShell>
-                              )
-                            }
-
-                            if (code === 'DATE') {
-                              return (
-                                <StepperInputShell key={input.id} header={header}>
-                                  <DatePicker
-                                    id={`stepper-${input.id}`}
-                                    className="w-full"
-                                    placeholder={input.label}
-                                    value={toDate(value)}
-                                    onChange={(date) =>
-                                      setDraft((current) => ({
-                                        ...current,
-                                        [input.id]: formatDateValue(date),
-                                      }))
-                                    }
-                                  />
-                                </StepperInputShell>
-                              )
-                            }
-
-                            if (code === 'NUMBER') {
-                              return (
-                                <StepperInputShell key={input.id} header={header}>
-                                  <Input
-                                    id={`stepper-${input.id}`}
-                                    type="number"
-                                    className="w-full"
-                                    placeholder={input.label}
-                                    value={
-                                      typeof value === 'number'
-                                        ? String(value)
-                                        : typeof value === 'string'
-                                          ? value
-                                          : ''
-                                    }
-                                    onChange={(event) => {
-                                      const raw = event.target.value
-                                      const parsed = Number.parseFloat(raw)
-                                      setDraft((current) => ({
-                                        ...current,
-                                        [input.id]:
-                                          raw.trim() === '' || !Number.isFinite(parsed)
-                                            ? null
-                                            : parsed,
-                                      }))
-                                    }}
-                                  />
-                                </StepperInputShell>
-                              )
-                            }
-
-                            if (code === 'CATEGORY') {
-                              const selectedListingId = listingIdFromStepperValue(value)
-                              const snapshotName =
-                                typeof input.value === 'object' &&
-                                input.value !== null &&
-                                'name' in input.value &&
-                                input.value.id === selectedListingId
-                                  ? input.value.name
-                                  : null
-                              return (
-                                <StepperInputShell key={input.id} header={header}>
-                                  <CategoryListingSelect
-                                    id={`stepper-${input.id}`}
-                                    categoryId={input.categoryId}
-                                    value={selectedListingId}
-                                    snapshotLabel={snapshotName}
-                                    onChange={(listingId) =>
-                                      setDraft((current) => ({
-                                        ...current,
-                                        [input.id]: listingId,
-                                      }))
-                                    }
-                                  />
-                                </StepperInputShell>
-                              )
-                            }
-
-                            if (code === 'FILE') {
-                              const selectedFileId = fileIdFromStepperValue(value)
-                              const name =
-                                fileDisplayName(value) ??
-                                (isFileSnapshot(input.value) && input.value.id === selectedFileId
-                                  ? input.value.originalName
-                                  : null)
-                              const mime =
-                                fileMime(value) ??
-                                (isFileSnapshot(input.value) && input.value.id === selectedFileId
-                                  ? input.value.mime
-                                  : null)
-                              const isBusy = busyInputId === input.id
-                              return (
-                                <StepperInputShell key={input.id} header={header}>
-                                  <input
-                                    id={`stepper-file-${input.id}`}
-                                    type="file"
-                                    accept={STEPPER_FILE_ACCEPT}
-                                    className="sr-only"
-                                    disabled={isBusy}
-                                    onChange={(event) => {
-                                      const next = event.target.files?.[0]
-                                      event.target.value = ''
-                                      void onStepperFileSelected(input.id, next)
-                                    }}
-                                  />
-                                  <div className="flex min-h-9 items-center gap-2">
-                                    {selectedFileId ? (
-                                      <StepperFileThumb
-                                        fileId={selectedFileId}
-                                        mime={mime}
-                                        name={name}
-                                        isBusy={isBusy}
-                                      />
-                                    ) : null}
-                                    <div className="min-w-0 flex-1">
-                                      <p
-                                        className={cn(
-                                          'truncate text-sm',
-                                          selectedFileId
-                                            ? 'text-foreground'
-                                            : 'text-muted-foreground',
-                                        )}
-                                      >
-                                        {selectedFileId
-                                          ? (name ?? selectedFileId)
-                                          : t('projects:noFileSelected')}
-                                      </p>
-                                    </div>
-                                    <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={isBusy}
-                                        onClick={() =>
-                                          document
-                                            .getElementById(`stepper-file-${input.id}`)
-                                            ?.click()
-                                        }
-                                      >
-                                        {isBusy ? (
-                                          <Loader2 className="size-3.5 animate-spin" />
-                                        ) : (
-                                          <Upload className="size-3.5" />
-                                        )}
-                                        {selectedFileId
-                                          ? t('projects:replaceFile')
-                                          : t('common:upload')}
-                                      </Button>
-                                      {selectedFileId ? (
-                                        <>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            disabled={isBusy}
-                                            aria-label={t('projects:openFile')}
-                                            onClick={() => void openStepperFile(selectedFileId)}
-                                          >
-                                            <ExternalLink className="size-3.5" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            disabled={isBusy}
-                                            aria-label={t('projects:clearFile')}
-                                            onClick={() => void clearStepperFile(input.id)}
-                                          >
-                                            <Trash2 className="size-3.5" />
-                                          </Button>
-                                        </>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                </StepperInputShell>
-                              )
-                            }
-
-                            return (
-                              <StepperInputShell key={input.id} header={header}>
-                                <Input
-                                  id={`stepper-${input.id}`}
-                                  className="w-full"
-                                  placeholder={input.label}
-                                  maxLength={2000}
-                                  value={
-                                    typeof value === 'string'
-                                      ? value
-                                      : value == null
-                                        ? ''
-                                        : String(value)
-                                  }
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      [input.id]: event.target.value,
-                                    }))
-                                  }
-                                />
-                              </StepperInputShell>
-                            )
-                          })}
+                          {detail.inputs.map((input) => (
+                            <StepperInputCard
+                              key={input.id}
+                              input={input}
+                              value={draft[input.id] ?? null}
+                              isBusy={busyInputId === input.id}
+                              isRemoving={busyInputId === input.id}
+                              onChange={(next) => setValue(input.id, next)}
+                              onFileSelected={(file) => void onStepperFileSelected(input.id, file)}
+                              onClearFile={() => void clearStepperFile(input.id)}
+                              onOpenFile={(fileId) => void openStepperFile(fileId)}
+                              onRemove={() => void removeInput(input.id)}
+                            />
+                          ))}
                         </div>
                       )}
                     </div>
@@ -915,182 +300,12 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
         </AsyncState>
       </CardContent>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('projects:addProjectInput')}</DialogTitle>
-            <DialogDescription>
-              This field is only for the selected stepper on this project.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="project-input-label">{t('projects:inputLabel')}</Label>
-              <Input
-                id="project-input-label"
-                value={addLabel}
-                maxLength={120}
-                placeholder={t('projects:inputLabelPlaceholder')}
-                onChange={(event) => setAddLabel(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="project-input-type">{t('projects:inputType')}</Label>
-              <Select
-                items={types.map((type) => ({
-                  value: type.id,
-                  label: `${type.label} (${type.code})`,
-                }))}
-                value={addTypeId || undefined}
-                onValueChange={(value) => {
-                  if (!value) return
-                  const nextCode = types.find((type) => type.id === value)?.code.toUpperCase() ?? ''
-                  setAddTypeId(value)
-                  if (nextCode !== 'CATEGORY') setAddCategoryId('')
-                }}
-              >
-                <SelectTrigger id="project-input-type" className="w-full">
-                  <SelectValue placeholder={t('projects:selectInputType')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {types.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.label} ({type.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {addTypeCode === 'CATEGORY' ? (
-              <div className="grid gap-1.5">
-                <Label htmlFor="project-input-category">{t('common:category')}</Label>
-                <Select
-                  items={categories.map((category) => ({
-                    value: category.id,
-                    label: category.parentName
-                      ? `${category.parentName} / ${category.name}`
-                      : category.name,
-                  }))}
-                  value={addCategoryId || undefined}
-                  onValueChange={(value) => {
-                    if (value) setAddCategoryId(value)
-                  }}
-                >
-                  <SelectTrigger id="project-input-category" className="w-full">
-                    <SelectValue placeholder={t('projects:selectCategory')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.parentName
-                          ? `${category.parentName} / ${category.name}`
-                          : category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setAddOpen(false)}
-              disabled={isAdding}
-            >
-              {t('common:cancel')}
-            </Button>
-            <Button type="button" onClick={() => void addInput()} disabled={isAdding}>
-              {isAdding ? t('projects:adding') : t('common:add')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddStepperInputDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        isAdding={isAdding}
+        onSubmit={addInput}
+      />
     </Card>
-  )
-}
-
-function StepperInputShell({
-  header,
-  children,
-}: {
-  header: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex h-full min-h-[5.75rem] flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2.5">
-      {header}
-      <div className="mt-auto min-w-0">{children}</div>
-    </div>
-  )
-}
-
-function CategoryListingSelect({
-  id,
-  categoryId,
-  value,
-  snapshotLabel,
-  onChange,
-}: {
-  id: string
-  categoryId: string | null
-  value: string | null
-  snapshotLabel: string | null
-  onChange: (listingId: string | null) => void
-}) {
-  const { t } = useTranslation(['projects', 'common'])
-  const loadListings = useCallback(async () => {
-    if (!categoryId) {
-      return {
-        data: [] as Listing[],
-        meta: {
-          page: 1,
-          limit: 100,
-          total: 0,
-          typeCounts: { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 },
-        },
-      }
-    }
-    return listListings(1, 100, { categoryId, status: 'ACTIVE', counts: false })
-  }, [categoryId])
-
-  const remote = useRemoteData(loadListings, {
-    queryKey: ['listings', 'stepper-category', categoryId ?? 'none'],
-    enabled: Boolean(categoryId),
-  })
-  const listings = remote.status === 'success' ? remote.data.data : []
-  const options =
-    value && !listings.some((listing) => listing.id === value) && snapshotLabel
-      ? [{ id: value, name: t('projects:savedListing', { name: snapshotLabel }) }, ...listings]
-      : listings
-
-  if (!categoryId) {
-    return <p className="text-sm text-muted-foreground">{t('projects:noCategoryBinding')}</p>
-  }
-
-  return (
-    <Select
-      items={[
-        { value: 'unset', label: t('projects:unset') },
-        ...options.map((listing) => ({ value: listing.id, label: listing.name })),
-      ]}
-      value={value ?? 'unset'}
-      onValueChange={(next) => onChange(!next || next === 'unset' ? null : next)}
-    >
-      <SelectTrigger id={id} className="w-full">
-        <SelectValue
-          placeholder={remote.isLoading ? t('common:loading') : t('projects:selectListing')}
-        />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="unset">{t('projects:unset')}</SelectItem>
-        {options.map((listing) => (
-          <SelectItem key={listing.id} value={listing.id}>
-            {listing.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }

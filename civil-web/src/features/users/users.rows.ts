@@ -1,7 +1,7 @@
 import type { AuthRole } from '@/services/auth'
 import type { User } from '@/services/users'
 
-import type { AdminUserRow, UserStatus } from './admin.types'
+import type { AdminUserRow, UserStatus } from './users.types'
 
 export type UserFormValues = {
   email: string

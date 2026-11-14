@@ -55,6 +55,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import { ApiError } from '@/services/api'
 import {
   type Category,
@@ -67,8 +68,6 @@ import {
   listCategories,
   updateCategory,
 } from '@/services/categories'
-
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 const EMPTY_COUNTS: CategoryKindCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0, WORKER: 0 }
 

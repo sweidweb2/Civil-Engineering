@@ -2,7 +2,12 @@ import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import type { CategoriesRepository, CategoryRecord } from './categories.repository.js'
-import type { CategoryKind, CreateCategoryBody, ListCategoriesQuery, UpdateCategoryBody } from './categories.schema.js'
+import type {
+  CategoryKind,
+  CreateCategoryBody,
+  ListCategoriesQuery,
+  UpdateCategoryBody,
+} from './categories.schema.js'
 import type { Category, PaginatedCategories } from './categories.types.js'
 
 export type CategoriesService = {
@@ -11,6 +16,8 @@ export type CategoriesService = {
   createCategory: (input: CreateCategoryBody, actor: AuthActor) => Promise<Category>
   updateCategory: (id: string, input: UpdateCategoryBody, actor: AuthActor) => Promise<Category>
   deleteCategory: (id: string, actor: AuthActor) => Promise<void>
+  /** Internal lookup for other modules (no actor); throws CATEGORY_NOT_FOUND. */
+  requirePlatformCategory: (id: string) => Promise<{ id: string; isActive: boolean }>
 }
 
 export function categorySlug(name: string): string {
@@ -79,7 +86,13 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
     }
   }
 
-  async function assertUnique(kind: CategoryKind, parentId: string | null, slug: string, name: string, exceptId?: string) {
+  async function assertUnique(
+    kind: CategoryKind,
+    parentId: string | null,
+    slug: string,
+    name: string,
+    exceptId?: string,
+  ) {
     const existing = await repository.findDuplicate({ kind, parentId, slug, name, exceptId })
     if (existing) {
       throw conflict('A category with this name already exists here', 'CATEGORY_NAME_TAKEN')
@@ -87,6 +100,14 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
   }
 
   return {
+    async requirePlatformCategory(id) {
+      const category = await repository.findPlatformById(id)
+      if (!category) {
+        throw notFound('Category not found', 'CATEGORY_NOT_FOUND')
+      }
+      return category
+    },
+
     async listCategories(query, actor) {
       assertCanView(actor)
       const [{ items, total }, kindCounts] = await Promise.all([
@@ -134,7 +155,11 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
       const nextName = input.name ?? category.name
       const nextSlug = input.name ? categorySlug(input.name) : category.slug
 
-      if (input.kind && input.kind !== category.kind && (category.childCount > 0 || category.listingCount > 0)) {
+      if (
+        input.kind &&
+        input.kind !== category.kind &&
+        (category.childCount > 0 || category.listingCount > 0)
+      ) {
         throw conflict(
           'Change kind only when this category has no subcategories or listings',
           'CATEGORY_IN_USE',

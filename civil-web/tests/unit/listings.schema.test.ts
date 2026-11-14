@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { EMPTY_LISTING_FORM } from '@/features/admin/listings.form'
-import { listingWriteFromForm } from '@/features/admin/listings.schema'
+import { EMPTY_LISTING_FORM } from '@/features/listings/listings.form'
+import { listingWriteFromForm } from '@/features/listings/listings.schema'
 
 const valid = {
   ...EMPTY_LISTING_FORM,
@@ -88,11 +88,11 @@ describe('listingWriteFromForm', () => {
 
   it('rejects rental without a unit when for-rent has a price', () => {
     const result = listingWriteFromForm({ ...valid, isForRent: true, rentalPrice: '10' })
-    expect(result).toEqual({ error: 'Rental unit is required when a rental price is set' })
+    expect(result).toEqual({ error: 'rentalUnitRequired' })
   })
 
   it('rejects a price that is not a decimal', () => {
     const result = listingWriteFromForm({ ...valid, price: '12.34567' })
-    expect(result).toEqual({ error: 'Price must be a decimal with up to 4 places' })
+    expect(result).toEqual({ error: 'priceDecimal' })
   })
 })

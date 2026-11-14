@@ -1,3 +1,4 @@
+import { getCategoriesService } from '../categories/index.js'
 import { getInputTypesService } from '../input-types/index.js'
 import { createStepsController } from './steps.controller.js'
 import { createStepsRepository } from './steps.repository.js'
@@ -9,7 +10,11 @@ let stepsServiceSingleton: StepsService | null = null
 export function getStepsService(): StepsService {
   if (!stepsServiceSingleton) {
     const repository = createStepsRepository()
-    stepsServiceSingleton = createStepsService(repository, getInputTypesService())
+    stepsServiceSingleton = createStepsService(
+      repository,
+      getInputTypesService(),
+      getCategoriesService(),
+    )
   }
   return stepsServiceSingleton
 }

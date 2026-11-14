@@ -41,9 +41,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { AdminConfirmDeleteDialog } from '@/features/admin/components/AdminConfirmDeleteDialog'
+import { useAdminCrudPage } from '@/features/admin/hooks/useAdminCrudPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import {
   createInputType,
   deleteInputType,
@@ -54,10 +57,6 @@ import {
   listInputTypes,
   updateInputType,
 } from '@/services/input-types'
-
-import { AdminConfirmDeleteDialog } from './components/AdminConfirmDeleteDialog'
-import { useAdminCrudPage } from './hooks/useAdminCrudPage'
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 type FormState = {
   code: InputTypeCode | ''

@@ -40,6 +40,8 @@ export type CategoriesRepository = {
   findMany: (query: ListCategoriesQuery) => Promise<{ items: CategoryRecord[]; total: number }>
   countByKind: () => Promise<CategoryKindCounts>
   findById: (id: string) => Promise<CategoryRecord | null>
+  /** Lean lookup for cross-module callers; null when missing or not PLATFORM scope. */
+  findPlatformById: (id: string) => Promise<{ id: string; isActive: boolean } | null>
   findDuplicate: (input: {
     kind: CategoryKind
     parentId: string | null
@@ -123,6 +125,13 @@ export function createCategoriesRepository(): CategoriesRepository {
       return row ? toRecord(row) : null
     },
 
+    async findPlatformById(id) {
+      return prisma.category.findFirst({
+        where: { id, scope: 'PLATFORM' },
+        select: { id: true, isActive: true },
+      })
+    },
+
     async findDuplicate(input) {
       return prisma.category.findFirst({
         where: {
@@ -130,10 +139,7 @@ export function createCategoriesRepository(): CategoriesRepository {
           kind: input.kind,
           parentId: input.parentId,
           id: input.exceptId ? { not: input.exceptId } : undefined,
-          OR: [
-            { slug: input.slug },
-            { name: { equals: input.name, mode: 'insensitive' } },
-          ],
+          OR: [{ slug: input.slug }, { name: { equals: input.name, mode: 'insensitive' } }],
         },
         select: { id: true },
       })

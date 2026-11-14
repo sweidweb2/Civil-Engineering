@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { type TFunction } from 'i18next'
 import {
   AlertCircle,
   AlertTriangle,
@@ -12,7 +13,6 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { type TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 

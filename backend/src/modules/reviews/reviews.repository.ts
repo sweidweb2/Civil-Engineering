@@ -1,6 +1,5 @@
 import { prisma } from '../../database/prisma.js'
 import { Prisma, type ReviewStatus, type ReviewTargetType } from '../../generated/prisma/client.js'
-import { findListingNames, listingExists, listListingChoices } from '../listings/index.js'
 import type { ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type { ReviewStatusCounts, ReviewTargetOption } from './reviews.types.js'
 
@@ -27,7 +26,8 @@ export type ReviewRecord = {
   authorName: string
   targetType: ReviewTargetType
   targetId: string
-  targetName: string
+  /** null for LISTING targets: names are resolved by the service via the listings module. */
+  targetName: string | null
   rating: number
   comment: string
   status: ReviewStatus
@@ -44,6 +44,8 @@ export type CreateReviewRecordInput = {
   status: ReviewStatus
 }
 
+export type NonListingTargetType = Exclude<ReviewTargetType, 'LISTING'>
+
 export type ReviewsRepository = {
   findMany: (query: ListReviewsQuery) => Promise<{ items: ReviewRecord[]; total: number }>
   countByStatus: () => Promise<ReviewStatusCounts>
@@ -54,11 +56,12 @@ export type ReviewsRepository = {
     targetId: string,
   ) => Promise<{ id: string } | null>
   findAuthor: (id: string) => Promise<{ id: string; status: string } | null>
+  /** LISTING targets are validated by the service through the listings module. */
   findTargetState: (
-    targetType: ReviewTargetType,
+    targetType: NonListingTargetType,
     targetId: string,
   ) => Promise<'ok' | 'missing' | 'not_worker'>
-  listTargets: (targetType: ReviewTargetType) => Promise<ReviewTargetOption[]>
+  listTargets: (targetType: NonListingTargetType) => Promise<ReviewTargetOption[]>
   create: (input: CreateReviewRecordInput) => Promise<ReviewRecord>
   update: (id: string, input: UpdateReviewBody) => Promise<ReviewRecord>
   delete: (id: string) => Promise<void>
@@ -71,7 +74,7 @@ function personName(profile: ProfileName, email: string): string {
   )
 }
 
-function toRecord(row: ReviewRow, targetName: string): ReviewRecord {
+function toRecord(row: ReviewRow, targetName: string | null): ReviewRecord {
   return {
     id: row.id,
     authorId: row.authorId,
@@ -91,10 +94,9 @@ function toRecord(row: ReviewRow, targetName: string): ReviewRecord {
 async function targetNameMap(rows: ReviewRow[]): Promise<Map<string, string>> {
   const providerIds = uniqueIds(rows, 'PROVIDER')
   const workerIds = uniqueIds(rows, 'WORKER')
-  const listingIds = uniqueIds(rows, 'LISTING')
   const names = new Map<string, string>()
 
-  const [providers, workers, listings] = await Promise.all([
+  const [providers, workers] = await Promise.all([
     providerIds.length
       ? prisma.provider.findMany({
           where: { id: { in: providerIds } },
@@ -111,13 +113,11 @@ async function targetNameMap(rows: ReviewRow[]): Promise<Map<string, string>> {
           },
         })
       : [],
-    findListingNames(listingIds),
   ])
 
   for (const provider of providers) names.set(key('PROVIDER', provider.id), provider.name)
   for (const worker of workers)
     names.set(key('WORKER', worker.id), personName(worker.profile, worker.email))
-  for (const listing of listings) names.set(key('LISTING', listing.id), listing.name)
   return names
 }
 
@@ -133,15 +133,19 @@ function key(targetType: ReviewTargetType, targetId: string): string {
 
 async function withNames(rows: ReviewRow[]): Promise<ReviewRecord[]> {
   const names = await targetNameMap(rows)
-  return rows.map((row) =>
-    toRecord(row, names.get(key(row.targetType, row.targetId)) ?? 'Removed target'),
-  )
+  return rows.map((row) => {
+    // LISTING names are resolved by the service through the listings module.
+    if (row.targetType === 'LISTING') return toRecord(row, null)
+    return toRecord(row, names.get(key(row.targetType, row.targetId)) ?? 'Removed target')
+  })
 }
 
 function ilikePattern(value: string): string {
   return `%${value.replace(/[\\%_]/g, (char) => `\\${char}`)}%`
 }
 
+// Documented exception: free-text search joins `listings` in SQL so a name match can filter
+// reviews in one query. Replacing it with a listings-module lookup would cap matches; revisit later.
 function reviewSearchFilter(query: ListReviewsQuery): Prisma.Sql {
   const pattern = ilikePattern(query.q ?? '')
   const status = query.status ?? null
@@ -288,9 +292,6 @@ export function createReviewsRepository(): ReviewsRepository {
         })
         return provider ? 'ok' : 'missing'
       }
-      if (targetType === 'LISTING') {
-        return (await listingExists(targetId)) ? 'ok' : 'missing'
-      }
       const worker = await prisma.user.findUnique({
         where: { id: targetId },
         select: { id: true, role: true },
@@ -307,9 +308,6 @@ export function createReviewsRepository(): ReviewsRepository {
           select: { id: true, name: true, city: true },
         })
         return rows.map((row) => ({ id: row.id, name: row.name, subtitle: row.city }))
-      }
-      if (targetType === 'LISTING') {
-        return listListingChoices(100)
       }
       const rows = await prisma.user.findMany({
         where: { role: 'WORKER' },

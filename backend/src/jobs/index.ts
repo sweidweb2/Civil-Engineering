@@ -1,6 +1,6 @@
 /**
- * Background job seams (sync today).
- * Notify + storage delete run inline until a real queue is justified later.
+ * Background work wrappers. No queue: everything runs inline and must stay idempotent
+ * (safe to retry) — add a durable runner only when a real need appears.
  */
 
 import { loadConfig } from '../config/index.js'
@@ -9,32 +9,19 @@ import type { NotifyUserPayload } from '../modules/devices/devices.types.js'
 import { notifyUser } from '../modules/devices/index.js'
 import { getStorageService } from '../storage/index.js'
 
-export type JobName = 'notify-user' | 'delete-storage-object'
-
-export type JobEnvelope<TPayload> = {
-  name: JobName
-  payload: TPayload
-  /** Caller-supplied key so retries are safe to replay */
-  idempotencyKey?: string
-}
-
-/** Run a user push notification (sync). */
-export async function enqueueNotifyUser(
-  userId: string,
-  payload: NotifyUserPayload,
-  _options?: { idempotencyKey?: string },
-): Promise<void> {
-  await notifyUser(userId, payload)
+/** Send a user push notification (best-effort, inline). */
+export function enqueueNotifyUser(userId: string, payload: NotifyUserPayload): Promise<void> {
+  return notifyUser(userId, payload)
 }
 
 /**
  * Hard-delete an R2 object after soft-delete in Postgres.
- * Sync — idempotent if the object is already gone.
+ * Idempotent if the object is already gone; failures are logged, never thrown.
  */
-export async function enqueueDeleteStorageObject(
-  payload: { fileId: string; key: string },
-  _options?: { idempotencyKey?: string },
-): Promise<void> {
+export async function enqueueDeleteStorageObject(payload: {
+  fileId: string
+  key: string
+}): Promise<void> {
   try {
     const config = loadConfig()
     if (!config.storage) {

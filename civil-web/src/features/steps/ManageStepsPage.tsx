@@ -41,9 +41,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { AdminConfirmDeleteDialog } from '@/features/admin/components/AdminConfirmDeleteDialog'
+import { useAdminCrudPage } from '@/features/admin/hooks/useAdminCrudPage'
+import { StepInputsPanel } from '@/features/projects/components/StepInputsPanel'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import {
   createStep,
   deleteStep,
@@ -53,11 +57,6 @@ import {
   type StepStatus,
   updateStep,
 } from '@/services/steps'
-
-import { AdminConfirmDeleteDialog } from './components/AdminConfirmDeleteDialog'
-import { StepInputsPanel } from './components/StepInputsPanel'
-import { useAdminCrudPage } from './hooks/useAdminCrudPage'
-import { ellipsis, PAGE_SIZE, pageCount } from './lib/text'
 
 type StepForm = {
   name: string

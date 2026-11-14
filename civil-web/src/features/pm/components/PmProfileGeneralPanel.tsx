@@ -147,7 +147,7 @@ export function PmProfileGeneralPanel() {
   const loadProfile = useCallback(() => {
     if (!userId) return Promise.reject(new Error(t('signInToViewProfile')))
     return getUser(userId)
-  }, [userId])
+  }, [t, userId])
   const remote = useRemoteData(loadProfile, { queryKey: ['users', 'profile', userId ?? ''] })
   const account = remote.status === 'success' ? remote.data.data : null
   const avatarFromMeta = remote.status === 'success' ? remote.data.meta.avatarDownloadUrl : null
@@ -169,7 +169,7 @@ export function PmProfileGeneralPanel() {
     if (!(remote.error instanceof ApiError) || remote.error.status !== 404) return
     toast.error(t('sessionOutOfDate'))
     void logout()
-  }, [logout, remote.error, remote.status])
+  }, [logout, remote.error, remote.status, t])
 
   function setField(key: keyof ProfileForm, value: string) {
     setForm((current) => ({ ...current, [key]: value }))

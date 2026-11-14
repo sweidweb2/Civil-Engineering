@@ -191,7 +191,7 @@ export function ProviderMainInfoPanel() {
     if (!(userRemote.error instanceof ApiError) || userRemote.error.status !== 404) return
     toast.error(t('pm:sessionOutOfDate'))
     void logout()
-  }, [logout, userRemote.error, userRemote.status])
+  }, [logout, t, userRemote.error, userRemote.status])
 
   function setField(key: keyof ProfileForm, value: string) {
     setForm((current) => ({ ...current, [key]: value }))

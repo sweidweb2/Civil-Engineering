@@ -1,13 +1,12 @@
-import type { AuthActor } from '../../authz/index.js'
-import { assertSelfOrAdmin, isAdmin, isSuper } from '../../authz/index.js'
+import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { hashPassword } from '../auth/auth.tokens.js'
-import type { FilesService } from '../files/index.js'
 import {
   assertAllowedImageUpload,
   isAllowedImageMime,
   MAX_BRAND_IMAGE_BYTES,
 } from '../files/image-policy.js'
+import type { FilesService } from '../files/index.js'
 import type { UserDirectoryCounts, UsersRepository } from './users.repository.js'
 import type {
   CreateApprovalBody,

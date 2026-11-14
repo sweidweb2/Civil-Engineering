@@ -4,8 +4,8 @@ import { assertCategoryBinding, type CategoriesService } from '../categories/ind
 import type { FilesService } from '../files/files.service.js'
 import type { InputTypesService } from '../input-types/index.js'
 import type { ListingsService } from '../listings/index.js'
-import type { ProjectsService } from './projects.service.js'
 import { allocateOrderedWithActiveType } from '../steps/steps.order.js'
+import type { ProjectsService } from './projects.service.js'
 import {
   MAX_PROJECT_STEP_INPUTS,
   MAX_PROJECT_STEPS,

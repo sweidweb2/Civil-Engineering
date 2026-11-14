@@ -1,3 +1,4 @@
+import { logPerf } from '../logging/perf.js'
 import { createAuthRepository } from '../modules/auth/auth.repository.js'
 import type { RoleName } from '../modules/auth/auth.schema.js'
 
@@ -32,10 +33,13 @@ export function createDbAccessPrincipalResolver(
     const now = Date.now()
     const hit = cache.get(userId)
     if (hit && hit.expiresAt > now) {
+      logPerf('auth', 'principal cache hit', { userId, cache: 'hit', ms: 0 })
       return hit.principal
     }
 
+    const started = performance.now()
     const user = await repository.findPrincipalById(userId)
+    const ms = Math.round(performance.now() - started)
     const principal: AccessPrincipal | null = user
       ? {
           id: user.id,
@@ -45,6 +49,7 @@ export function createDbAccessPrincipalResolver(
       : null
 
     cache.set(userId, { principal, expiresAt: now + cacheTtlMs })
+    logPerf('auth', `principal cache miss ${ms}ms`, { userId, cache: 'miss', ms })
     return principal
   }
 }

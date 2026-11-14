@@ -193,7 +193,6 @@ export function ProjectDetailPage() {
                               id="name"
                               value={formData.name || ''}
                               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                              placeholder={t('projects:projectNameShort')}
                               maxLength={200}
                             />
                           </Field>
@@ -203,7 +202,6 @@ export function ProjectDetailPage() {
                               id="code"
                               value={formData.code || ''}
                               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                              placeholder={t('projects:projectCodePlaceholder')}
                               maxLength={50}
                             />
                           </Field>
@@ -215,7 +213,6 @@ export function ProjectDetailPage() {
                               onChange={(e) =>
                                 setFormData({ ...formData, description: e.target.value })
                               }
-                              placeholder={t('projects:projectDescriptionPlaceholder')}
                               maxLength={2000}
                               rows={4}
                             />
@@ -230,7 +227,7 @@ export function ProjectDetailPage() {
                               }
                             >
                               <SelectTrigger id="type">
-                                <SelectValue placeholder={t('projects:selectType')} />
+                                <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {typeOptions.map((type) => (
@@ -262,7 +259,7 @@ export function ProjectDetailPage() {
                               }
                             >
                               <SelectTrigger id="status">
-                                <SelectValue placeholder={t('projects:selectStatus')} />
+                                <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {statusOptions.map((status) => (
@@ -322,7 +319,6 @@ export function ProjectDetailPage() {
                               onChange={(e) =>
                                 setFormData({ ...formData, address: e.target.value })
                               }
-                              placeholder={t('projects:streetAddressPlaceholder')}
                               maxLength={500}
                             />
                           </Field>
@@ -332,7 +328,6 @@ export function ProjectDetailPage() {
                               id="city"
                               value={formData.city || ''}
                               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                              placeholder={t('projects:city')}
                               maxLength={100}
                             />
                           </Field>
@@ -344,7 +339,6 @@ export function ProjectDetailPage() {
                               onChange={(e) =>
                                 setFormData({ ...formData, country: e.target.value })
                               }
-                              placeholder={t('projects:country')}
                               maxLength={100}
                             />
                           </Field>
@@ -363,7 +357,6 @@ export function ProjectDetailPage() {
                               id="notes"
                               value={formData.notes || ''}
                               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                              placeholder={t('projects:notesPlaceholder')}
                               rows={6}
                             />
                           </Field>

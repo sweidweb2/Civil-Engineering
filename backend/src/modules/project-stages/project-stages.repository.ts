@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import type { ProjectStageStatus as PrismaStageStatus } from '../../generated/prisma/client.js'
+import { logPerf } from '../../logging/perf.js'
 import type {
   UpsertDesignBody,
   UpsertGeotechnicalBody,
@@ -234,6 +235,7 @@ export type ProjectStagesRepository = {
 export function createProjectStagesRepository(): ProjectStagesRepository {
   return {
     async findAllByProjectId(projectId) {
+      const started = performance.now()
       const [geotechnical, design, licensing, materials, maintenance] = await Promise.all([
         prisma.geotechnicalStudy.findUnique({ where: { projectId } }),
         prisma.projectDesign.findUnique({ where: { projectId } }),
@@ -241,6 +243,8 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
         prisma.materialProcurement.findUnique({ where: { projectId } }),
         prisma.projectMaintenance.findUnique({ where: { projectId } }),
       ])
+      const ms = Math.round(performance.now() - started)
+      logPerf('stages', `findAllByProjectId ${ms}ms`, { projectId, ms, queries: 5 })
       return {
         geotechnical: geotechnical ? mapGeotechnical(geotechnical) : null,
         design: design ? mapDesign(design) : null,

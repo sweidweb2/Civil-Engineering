@@ -9,10 +9,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { geotechnicalChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
-  STAGE_KEYS,
   type GeotechnicalStudy,
-  type UpsertGeotechnicalInput,
+  STAGE_KEYS,
   upsertGeotechnical,
+  type UpsertGeotechnicalInput,
 } from '@/services/project-stages'
 
 import { StageBodyShell } from './StageBodyShell'
@@ -136,7 +136,6 @@ export function GeotechnicalForm({
             <Input
               id="soilType"
               value={form.soilType}
-              placeholder={t('stages.placeholders.soilType')}
               onChange={(e) => setForm({ ...form, soilType: e.target.value })}
             />
           </Field>
@@ -148,7 +147,6 @@ export function GeotechnicalForm({
               id="soilBearingCapacity"
               unit="kPa"
               value={form.soilBearingCapacity}
-              placeholder={t('stages.placeholders.soilBearingCapacity')}
               onChange={(e) => setForm({ ...form, soilBearingCapacity: e.target.value })}
             />
           </Field>
@@ -160,7 +158,6 @@ export function GeotechnicalForm({
               id="groundwaterLevel"
               unit="m"
               value={form.groundwaterLevel ?? ''}
-              placeholder={t('stages.placeholders.groundwaterLevel')}
               onChange={(e) => setForm({ ...form, groundwaterLevel: e.target.value || null })}
             />
           </Field>
@@ -176,7 +173,6 @@ export function GeotechnicalForm({
             <Input
               id="consultantName"
               value={form.consultantName}
-              placeholder={t('stages.placeholders.consultantName')}
               onChange={(e) => setForm({ ...form, consultantName: e.target.value })}
             />
           </Field>
@@ -209,7 +205,6 @@ export function GeotechnicalForm({
           <Textarea
             id="foundationRecommendation"
             value={form.foundationRecommendation}
-            placeholder={t('stages.placeholders.foundationRecommendation')}
             onChange={(e) => setForm({ ...form, foundationRecommendation: e.target.value })}
           />
         </Field>
@@ -220,7 +215,6 @@ export function GeotechnicalForm({
           <Input
             id="geoNotes"
             value={form.notes}
-            placeholder={t('stages.placeholders.notes')}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </Field>

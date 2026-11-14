@@ -1,3 +1,5 @@
+import { perfLog } from '@/lib/perf'
+
 /** Same-origin `/api/v1` on Vercel; localhost for local Vite → Express. */
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
@@ -187,6 +189,14 @@ function uploadWithProgress(
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { accessToken, skipAuthRefresh, headers, onUploadProgress, ...rest } = options
+  const method = (rest.method ?? 'GET').toUpperCase()
+  const requestId =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `req-${Date.now()}`
+  const totalStarted = performance.now()
+
+  perfLog('api', `→ ${method} ${path}`, { requestId, method, path, phase: 'start' })
 
   const resolveToken = (override?: string | null) => {
     if (override !== undefined) return override
@@ -198,24 +208,37 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     const requestHeaders = {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'x-request-id': requestId,
       ...toHeaderRecord(headers),
     }
 
-    if (onUploadProgress && rest.body instanceof FormData) {
-      return uploadWithProgress(`${API_BASE_URL}${path}`, {
-        method: (rest.method ?? 'POST').toUpperCase(),
-        headers: requestHeaders,
-        body: rest.body,
-        onUploadProgress,
-        signal: rest.signal,
-      })
-    }
-
-    return fetch(`${API_BASE_URL}${path}`, {
-      ...rest,
-      credentials: 'include',
-      headers: requestHeaders,
+    const networkStarted = performance.now()
+    const response =
+      onUploadProgress && rest.body instanceof FormData
+        ? await uploadWithProgress(`${API_BASE_URL}${path}`, {
+            method: (rest.method ?? 'POST').toUpperCase(),
+            headers: requestHeaders,
+            body: rest.body,
+            onUploadProgress,
+            signal: rest.signal,
+          })
+        : await fetch(`${API_BASE_URL}${path}`, {
+            ...rest,
+            credentials: 'include',
+            headers: requestHeaders,
+          })
+    const networkMs = Math.round(performance.now() - networkStarted)
+    perfLog('api', `network ${method} ${path} ${networkMs}ms status=${response.status}`, {
+      requestId,
+      method,
+      path,
+      phase: 'network',
+      ms: networkMs,
+      status: response.status,
+      serverTiming: response.headers.get('server-timing'),
+      serverMs: response.headers.get('x-response-time-ms'),
     })
+    return response
   }
 
   let token = resolveToken(accessToken)
@@ -225,7 +248,14 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     response.status === 401 && !skipAuthRefresh && !shouldSkipRefresh(path) && Boolean(authSession)
 
   if (canRefresh) {
+    const refreshStarted = performance.now()
     const refreshed = await tryRefreshSession()
+    perfLog('api', `refresh ${Math.round(performance.now() - refreshStarted)}ms ok=${refreshed}`, {
+      requestId,
+      phase: 'refresh',
+      ms: Math.round(performance.now() - refreshStarted),
+      refreshed,
+    })
     if (refreshed) {
       token = authSession?.getAccessToken() ?? null
       response = await execute(token)
@@ -233,15 +263,54 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   }
 
   if (response.status === 204) {
+    const totalMs = Math.round(performance.now() - totalStarted)
+    perfLog('api', `← ${method} ${path} 204 ${totalMs}ms`, {
+      requestId,
+      method,
+      path,
+      phase: 'end',
+      ms: totalMs,
+      status: 204,
+    })
     return undefined as T
   }
 
+  const parseStarted = performance.now()
   const data = (await response.json().catch(() => ({}))) as ApiErrorBody & T
+  const parseMs = Math.round(performance.now() - parseStarted)
+  perfLog('api', `parse ${method} ${path} ${parseMs}ms`, {
+    requestId,
+    method,
+    path,
+    phase: 'parse',
+    ms: parseMs,
+  })
+
+  const totalMs = Math.round(performance.now() - totalStarted)
 
   if (!response.ok) {
     const message = data.error?.message || data.message || `Request failed (${response.status})`
+    perfLog('api', `← ${method} ${path} ERROR ${response.status} ${totalMs}ms`, {
+      requestId,
+      method,
+      path,
+      phase: 'end',
+      ms: totalMs,
+      status: response.status,
+      code: data.error?.code,
+    })
     throw new ApiError(response.status, message, data.error?.code)
   }
+
+  perfLog('api', `← ${method} ${path} ${response.status} ${totalMs}ms`, {
+    requestId,
+    method,
+    path,
+    phase: 'end',
+    ms: totalMs,
+    status: response.status,
+    serverMs: response.headers.get('x-response-time-ms'),
+  })
 
   return data as T
 }

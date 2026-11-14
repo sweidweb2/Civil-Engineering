@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input'
 import { licensingChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
-  STAGE_KEYS,
   type ProjectLicensing,
-  type UpsertLicensingInput,
+  STAGE_KEYS,
   upsertLicensing,
+  type UpsertLicensingInput,
 } from '@/services/project-stages'
 
 import { StageBodyShell } from './StageBodyShell'
@@ -128,7 +128,6 @@ export function LicensingForm({
             <Input
               id="permitNumber"
               value={form.permitNumber}
-              placeholder={t('stages.placeholders.permitNumber')}
               onChange={(e) => setForm({ ...form, permitNumber: e.target.value })}
             />
           </Field>
@@ -139,7 +138,6 @@ export function LicensingForm({
             <Input
               id="issuingAuthority"
               value={form.issuingAuthority}
-              placeholder={t('stages.placeholders.issuingAuthority')}
               onChange={(e) => setForm({ ...form, issuingAuthority: e.target.value })}
             />
           </Field>
@@ -181,7 +179,6 @@ export function LicensingForm({
             <Input
               id="licensingNotes"
               value={form.notes}
-              placeholder={t('stages.placeholders.notes')}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </Field>

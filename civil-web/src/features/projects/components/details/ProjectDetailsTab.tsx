@@ -20,9 +20,9 @@ import { useLocaleFormat } from '@/hooks/useLocaleFormat'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cn } from '@/lib/utils'
 import type { AuthUser } from '@/services/auth'
+import { projectImagesApi } from '@/services/projectImages'
 import type { Project } from '@/services/projects'
 import { updateProject } from '@/services/projects'
-import { projectImagesApi } from '@/services/projectImages'
 import { useAuthStore } from '@/stores/authStore'
 
 type ProjectDetailsTabProps = {

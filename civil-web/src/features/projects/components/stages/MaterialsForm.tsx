@@ -9,10 +9,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { materialsChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
-  STAGE_KEYS,
   type MaterialProcurement,
-  type UpsertMaterialsInput,
+  STAGE_KEYS,
   upsertMaterials,
+  type UpsertMaterialsInput,
 } from '@/services/project-stages'
 
 import { StageBodyShell } from './StageBodyShell'
@@ -145,7 +145,6 @@ export function MaterialsForm({
             <Input
               id="supplierName"
               value={form.supplierName}
-              placeholder={t('stages.placeholders.supplierName')}
               onChange={(e) => setForm({ ...form, supplierName: e.target.value })}
             />
           </Field>
@@ -156,7 +155,6 @@ export function MaterialsForm({
             <Input
               id="originCountry"
               value={form.originCountry}
-              placeholder={t('stages.placeholders.originCountry')}
               onChange={(e) => setForm({ ...form, originCountry: e.target.value })}
             />
           </Field>
@@ -167,7 +165,6 @@ export function MaterialsForm({
             <Input
               id="quantity"
               value={form.quantity}
-              placeholder={t('stages.placeholders.quantity')}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
             />
           </Field>
@@ -178,7 +175,6 @@ export function MaterialsForm({
             <Input
               id="unit"
               value={form.unit}
-              placeholder={t('stages.placeholders.unit')}
               onChange={(e) => setForm({ ...form, unit: e.target.value })}
             />
           </Field>
@@ -190,7 +186,6 @@ export function MaterialsForm({
               id="totalCost"
               unit={form.currency || 'USD'}
               value={form.totalCost}
-              placeholder={t('stages.placeholders.totalCost')}
               onChange={(e) => setForm({ ...form, totalCost: e.target.value })}
             />
           </Field>
@@ -201,7 +196,6 @@ export function MaterialsForm({
             <Input
               id="currency"
               value={form.currency}
-              placeholder={t('stages.placeholders.currency')}
               onChange={(e) => setForm({ ...form, currency: e.target.value })}
             />
           </Field>
@@ -212,7 +206,6 @@ export function MaterialsForm({
             <Textarea
               id="materialDescription"
               value={form.materialDescription}
-              placeholder={t('stages.placeholders.materialDescription')}
               onChange={(e) => setForm({ ...form, materialDescription: e.target.value })}
             />
           </Field>
@@ -254,7 +247,6 @@ export function MaterialsForm({
             <Input
               id="materialsNotes"
               value={form.notes}
-              placeholder={t('stages.placeholders.notes')}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </Field>

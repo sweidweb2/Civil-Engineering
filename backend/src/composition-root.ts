@@ -1,4 +1,4 @@
-import { Router, type Router as ExpressRouter } from 'express'
+import { type Router as ExpressRouter, Router } from 'express'
 import type { Pool } from 'pg'
 
 import { type AppConfig, loadConfig } from './config/index.js'

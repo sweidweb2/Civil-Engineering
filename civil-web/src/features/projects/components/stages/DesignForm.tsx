@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input'
 import { designChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
-  STAGE_KEYS,
   type ProjectDesign,
-  type UpsertDesignInput,
+  STAGE_KEYS,
   upsertDesign,
+  type UpsertDesignInput,
 } from '@/services/project-stages'
 
 import { StageBodyShell } from './StageBodyShell'
@@ -152,7 +152,6 @@ export function DesignForm({
             <Input
               id="architectName"
               value={form.architectName}
-              placeholder={t('stages.placeholders.architectName')}
               onChange={(e) => setForm({ ...form, architectName: e.target.value })}
             />
           </Field>
@@ -163,7 +162,6 @@ export function DesignForm({
             <Input
               id="structuralEngineerName"
               value={form.structuralEngineerName}
-              placeholder={t('stages.placeholders.structuralEngineerName')}
               onChange={(e) => setForm({ ...form, structuralEngineerName: e.target.value })}
             />
           </Field>
@@ -174,7 +172,6 @@ export function DesignForm({
             <Input
               id="mepEngineerName"
               value={form.mepEngineerName}
-              placeholder={t('stages.placeholders.mepEngineerName')}
               onChange={(e) => setForm({ ...form, mepEngineerName: e.target.value })}
             />
           </Field>
@@ -208,7 +205,6 @@ export function DesignForm({
             <Input
               id="designNotes"
               value={form.notes}
-              placeholder={t('stages.placeholders.notes')}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </Field>

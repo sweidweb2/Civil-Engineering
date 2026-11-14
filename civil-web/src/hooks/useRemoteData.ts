@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { type QueryKey, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { perfLog } from '@/lib/perf'
+
 export type RemoteIdle = { status: 'idle' }
 export type RemoteLoading = { status: 'loading' }
 export type RemoteSuccess<T> = { status: 'success'; data: T }
@@ -47,7 +49,30 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
-    queryFn: () => load(),
+    queryFn: async () => {
+      const started = performance.now()
+      const keyLabel = JSON.stringify(key)
+      perfLog('remote', `query start ${keyLabel}`, { phase: 'start', queryKey: key })
+      try {
+        const data = await load()
+        const ms = Math.round(performance.now() - started)
+        perfLog('remote', `query done ${keyLabel} ${ms}ms`, {
+          phase: 'end',
+          queryKey: key,
+          ms,
+        })
+        return data
+      } catch (error) {
+        const ms = Math.round(performance.now() - started)
+        perfLog('remote', `query FAIL ${keyLabel} ${ms}ms`, {
+          phase: 'error',
+          queryKey: key,
+          ms,
+          error: error instanceof Error ? error.message : String(error),
+        })
+        throw error
+      }
+    },
   })
 
   const refetch = useCallback(

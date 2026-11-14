@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 
 import { PrismaClient } from '../generated/prisma/client.js'
+import { logPerf } from '../logging/perf.js'
 
 /**
  * Shared Prisma Client — import only from repositories (and rare infra), never controllers/services.
@@ -17,7 +18,31 @@ function createPrismaClient(): PrismaClient {
   }
 
   const adapter = new PrismaPg({ connectionString })
-  return new PrismaClient({ adapter })
+  const base = new PrismaClient({ adapter })
+
+  const extended = base.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          const started = performance.now()
+          try {
+            return await query(args)
+          } finally {
+            const ms = Math.round(performance.now() - started)
+            logPerf('prisma', `db ${String(model)}.${operation} ${ms}ms`, {
+              model,
+              operation,
+              ms,
+              // avoid dumping full args (PII); only count keys
+              argKeys: args && typeof args === 'object' ? Object.keys(args as object) : [],
+            })
+          }
+        },
+      },
+    },
+  })
+
+  return extended as unknown as PrismaClient
 }
 
 export function getPrisma(): PrismaClient {

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { fileIdFromStorageKey, isImageMime } from '@/features/projects/lib/stage-file-key'
-import { getDownloadUrl, uploadFile } from '@/services/files'
 import { cn } from '@/lib/utils'
+import { getDownloadUrl, uploadFile } from '@/services/files'
 
 type StageFileFieldProps = {
   projectId: string

@@ -9,10 +9,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { maintenanceChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
-  STAGE_KEYS,
   type ProjectMaintenance,
-  type UpsertMaintenanceInput,
+  STAGE_KEYS,
   upsertMaintenance,
+  type UpsertMaintenanceInput,
 } from '@/services/project-stages'
 
 import { StageBodyShell } from './StageBodyShell'
@@ -133,7 +133,6 @@ export function MaintenanceForm({
             <Input
               id="maintenanceType"
               value={form.maintenanceType}
-              placeholder={t('stages.placeholders.maintenanceType')}
               onChange={(e) => setForm({ ...form, maintenanceType: e.target.value })}
             />
           </Field>
@@ -144,7 +143,6 @@ export function MaintenanceForm({
             <Input
               id="responsiblePerson"
               value={form.responsiblePerson}
-              placeholder={t('stages.placeholders.responsiblePerson')}
               onChange={(e) => setForm({ ...form, responsiblePerson: e.target.value })}
             />
           </Field>
@@ -156,7 +154,6 @@ export function MaintenanceForm({
               id="cost"
               unit="USD"
               value={form.cost}
-              placeholder={t('stages.placeholders.cost')}
               onChange={(e) => setForm({ ...form, cost: e.target.value })}
             />
           </Field>
@@ -189,7 +186,6 @@ export function MaintenanceForm({
           <Textarea
             id="maintenanceDescription"
             value={form.description}
-            placeholder={t('stages.placeholders.description')}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </Field>
@@ -200,7 +196,6 @@ export function MaintenanceForm({
           <Input
             id="maintenanceNotes"
             value={form.notes}
-            placeholder={t('stages.placeholders.notes')}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </Field>

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
-import { STAGE_KEYS, type ProjectStagesSummary, type StageKey } from '@/services/project-stages'
+import { type ProjectStagesSummary, STAGE_KEYS, type StageKey } from '@/services/project-stages'
 
 type ProjectStagesHeaderProps = {
   summary: ProjectStagesSummary

@@ -5,6 +5,7 @@ import type { Pool } from 'pg'
 
 import { type AppConfig, loadConfig } from './config/index.js'
 import { errorHandler, notFoundHandler } from './errors/error.middleware.js'
+import { perfTiming } from './middleware/perf-timing.js'
 import { createApiRateLimiter } from './middleware/rate-limit.js'
 import { requestContext } from './middleware/request-context.js'
 import { createRequestLogger } from './middleware/request-logger.js'
@@ -27,12 +28,14 @@ export function createApp(deps: AppDeps = {}) {
   }
 
   app.use(requestContext)
+  app.use(perfTiming)
   app.use(createRequestLogger())
   app.use(helmet())
   app.use(
     cors({
       origin: config.corsOrigins,
       credentials: true,
+      exposedHeaders: ['x-request-id', 'x-response-time-ms', 'server-timing'],
     }),
   )
   app.use(express.json({ limit: config.jsonBodyLimit }))

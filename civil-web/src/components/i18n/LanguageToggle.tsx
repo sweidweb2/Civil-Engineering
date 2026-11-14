@@ -2,20 +2,14 @@ import { Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import i18n from '@/i18n'
+import { setAppLocale } from '@/i18n/setAppLocale'
 import { cn } from '@/lib/utils'
-import { type AppLocale, applyDocumentLocale, useLocaleStore } from '@/stores/localeStore'
+import { useLocaleStore } from '@/stores/localeStore'
 
 type LanguageToggleProps = {
   className?: string
   /** Compact header control vs full-width menu style. */
   variant?: 'header' | 'menu'
-}
-
-export function setAppLocale(locale: AppLocale) {
-  applyDocumentLocale(locale)
-  void i18n.changeLanguage(locale)
-  useLocaleStore.getState().setLocale(locale)
 }
 
 export function LanguageToggle({ className, variant = 'header' }: LanguageToggleProps) {

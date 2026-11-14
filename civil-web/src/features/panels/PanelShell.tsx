@@ -27,7 +27,7 @@ import { useTheme } from 'next-themes'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-import { LanguageToggle, setAppLocale } from '@/components/i18n/LanguageToggle'
+import { LanguageToggle } from '@/components/i18n/LanguageToggle'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -58,6 +58,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { NotificationInboxSheet } from '@/features/notifications/NotificationInboxSheet'
+import { setAppLocale } from '@/i18n/setAppLocale'
 import type { AuthUser } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
 import { type AppLocale, useIsRtl, useLocaleStore } from '@/stores/localeStore'

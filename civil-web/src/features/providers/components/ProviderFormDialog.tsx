@@ -129,10 +129,7 @@ function isCoord(value: string, min: number, max: number): boolean {
   return Number.isFinite(parsed) && parsed >= min && parsed <= max
 }
 
-function formIssue(
-  form: ProviderFormValues,
-  _mode: 'create' | 'edit',
-): { step: number; messageKey: string } | null {
+function formIssue(form: ProviderFormValues): { step: number; messageKey: string } | null {
   const name = form.name.trim()
   if (!name) return { step: 0, messageKey: 'nameRequired' }
   if (name.length > 120) return { step: 0, messageKey: 'nameMax' }
@@ -248,7 +245,7 @@ export function ProviderFormDialog({
       : candidates
 
   async function submit() {
-    const issue = formIssue(form, mode)
+    const issue = formIssue(form)
     if (issue) {
       setStep(issue.step)
       toast.error(t(`admin:providers.form.${issue.messageKey}`))

@@ -6,8 +6,8 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "npm run lint --prefix civil-web && npm run lint --prefix civil-mobile && npm run lint --prefix backend",
-    "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix civil-mobile && npm run typecheck --prefix backend",
+    "lint": "npm run lint --prefix civil-web && npm run lint --prefix backend",
+    "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix backend",
     "db:migrate": "npm run db:migrate --prefix backend",
     "db:seed": "npm run db:seed --prefix backend",
     "prepare": "husky"

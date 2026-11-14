@@ -12,26 +12,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
 import { type Category, listCategories } from '@/services/categories'
 import { uploadListingImage } from '@/services/listingImages'
-import { createListing, type Listing, RENTAL_UNITS, updateListing } from '@/services/listings'
+import { createListing, type Listing, updateListing } from '@/services/listings'
 import { listProviders, type Provider } from '@/services/providers'
 
 import { EMPTY_LISTING_FORM, formFromListing, type ListingForm } from '../listings.form'
 import { listingWriteFromForm } from '../listings.schema'
+import { ListingFields } from './ListingFields'
 
 const MAX_MAIN_IMAGE_BYTES = 10 * 1024 * 1024
 const ALLOWED_MAIN_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
@@ -217,6 +208,88 @@ export function ListingFormDialog({
     }
   }
 
+  const mainImageSlot = (
+    <div className="grid gap-1.5">
+      <Label id="listing-main-image-label">{t('admin:listings.form.mainImage')}</Label>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        className="sr-only"
+        disabled={isSaving}
+        onChange={(event) => {
+          onMainImageSelected(event.target.files?.[0])
+          event.target.value = ''
+        }}
+      />
+      <div
+        role="button"
+        tabIndex={isSaving ? -1 : 0}
+        aria-labelledby="listing-main-image-label"
+        aria-disabled={isSaving}
+        className={cn(
+          'group relative flex aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 outline-none transition-colors',
+          'hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring',
+          mainImagePreview && 'border-solid border-border bg-muted',
+          isSaving && 'pointer-events-none cursor-not-allowed opacity-60',
+        )}
+        onClick={() => {
+          if (!isSaving) fileInputRef.current?.click()
+        }}
+        onKeyDown={(event) => {
+          if (isSaving) return
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            fileInputRef.current?.click()
+          }
+        }}
+      >
+        {mainImagePreview ? (
+          <>
+            <img
+              src={mainImagePreview}
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 p-3">
+              <span className="text-sm font-medium text-white">
+                {t('admin:listings.form.changeImage')}
+              </span>
+              {mainImageFile ? (
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="secondary"
+                  className="shrink-0 shadow-sm"
+                  aria-label={t('admin:listings.form.removeImage')}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    clearMainImageSelection()
+                  }}
+                >
+                  <X className="size-4" />
+                </Button>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <div className="m-auto flex flex-col items-center gap-2 px-4 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-border bg-background text-muted-foreground">
+              <ImagePlus className="size-5" />
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              {t('admin:listings.form.chooseImage')}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t('admin:listings.form.mainImageHint')}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(90vh,44rem)] overflow-y-auto sm:max-w-2xl">
@@ -226,364 +299,14 @@ export function ListingFormDialog({
           </DialogTitle>
           <DialogDescription>{t('admin:listings.form.description')}</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-name">{t('admin:listings.form.name')}</Label>
-              <Input
-                id="listing-name"
-                value={form.name}
-                maxLength={160}
-                placeholder={t('admin:listings.form.namePlaceholder')}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, name: event.target.value }))
-                }
-              />
-            </div>
-            {lockedProviderId ? null : (
-              <div className="grid gap-1.5">
-                <Label htmlFor="listing-provider">{t('admin:listings.form.provider')}</Label>
-                <Select
-                  items={providerOptions.map((provider) => ({
-                    value: provider.id,
-                    label: provider.name,
-                  }))}
-                  value={form.providerId}
-                  onValueChange={(value) => {
-                    if (!value) return
-                    setForm((current) => ({ ...current, providerId: value }))
-                  }}
-                >
-                  <SelectTrigger id="listing-provider" className="w-full">
-                    <SelectValue placeholder={t('admin:listings.form.selectProvider')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providerOptions.map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-category">{t('admin:listings.form.category')}</Label>
-              <Select
-                items={categoryOptions.map((category) => ({
-                  value: category.id,
-                  label: category.name,
-                }))}
-                value={form.categoryId}
-                onValueChange={(value) => {
-                  if (!value) return
-                  setForm((current) => ({ ...current, categoryId: value }))
-                }}
-              >
-                <SelectTrigger id="listing-category" className="w-full">
-                  <SelectValue placeholder={t('admin:listings.form.selectCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryOptions.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-status">{t('admin:listings.form.status')}</Label>
-              <Select
-                items={[
-                  { value: 'ACTIVE', label: t('common:active') },
-                  { value: 'INACTIVE', label: t('common:inactive') },
-                ]}
-                value={form.status}
-                onValueChange={(value) => {
-                  if (value === 'ACTIVE' || value === 'INACTIVE') {
-                    setForm((current) => ({ ...current, status: value }))
-                  }
-                }}
-              >
-                <SelectTrigger id="listing-status" className="w-full">
-                  <SelectValue placeholder={t('admin:listings.form.selectStatus')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">{t('common:active')}</SelectItem>
-                  <SelectItem value="INACTIVE">{t('common:inactive')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label id="listing-main-image-label">{t('admin:listings.form.mainImage')}</Label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              className="sr-only"
-              disabled={isSaving}
-              onChange={(event) => {
-                onMainImageSelected(event.target.files?.[0])
-                event.target.value = ''
-              }}
-            />
-            <div
-              role="button"
-              tabIndex={isSaving ? -1 : 0}
-              aria-labelledby="listing-main-image-label"
-              aria-disabled={isSaving}
-              className={cn(
-                'group relative flex aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 outline-none transition-colors',
-                'hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring',
-                mainImagePreview && 'border-solid border-border bg-muted',
-                isSaving && 'pointer-events-none cursor-not-allowed opacity-60',
-              )}
-              onClick={() => {
-                if (!isSaving) fileInputRef.current?.click()
-              }}
-              onKeyDown={(event) => {
-                if (isSaving) return
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  fileInputRef.current?.click()
-                }
-              }}
-            >
-              {mainImagePreview ? (
-                <>
-                  <img
-                    src={mainImagePreview}
-                    alt=""
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 p-3">
-                    <span className="text-sm font-medium text-white">
-                      {t('admin:listings.form.changeImage')}
-                    </span>
-                    {mainImageFile ? (
-                      <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="secondary"
-                        className="shrink-0 shadow-sm"
-                        aria-label={t('admin:listings.form.removeImage')}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          clearMainImageSelection()
-                        }}
-                      >
-                        <X className="size-4" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </>
-              ) : (
-                <div className="m-auto flex flex-col items-center gap-2 px-4 text-center">
-                  <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-border bg-background text-muted-foreground">
-                    <ImagePlus className="size-5" />
-                  </span>
-                  <span className="text-sm font-medium text-foreground">
-                    {t('admin:listings.form.chooseImage')}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {t('admin:listings.form.mainImageHint')}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-currency">{t('admin:listings.form.currency')}</Label>
-              <Input
-                id="listing-currency"
-                value={form.currency}
-                maxLength={3}
-                placeholder={t('admin:listings.form.currencyPlaceholder')}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, currency: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-unit">{t('admin:listings.form.unit')}</Label>
-              <Input
-                id="listing-unit"
-                value={form.unit}
-                maxLength={40}
-                placeholder={t('admin:listings.form.unitPlaceholder')}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, unit: event.target.value }))
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
-            <Label htmlFor="listing-price-range">{t('admin:listings.form.priceRange')}</Label>
-            <Switch
-              id="listing-price-range"
-              checked={form.hasPriceRange}
-              onCheckedChange={(checked) =>
-                setForm((current) => ({
-                  ...current,
-                  hasPriceRange: checked,
-                  price: checked ? '' : current.price,
-                  priceMin: checked ? current.priceMin : '',
-                  priceMax: checked ? current.priceMax : '',
-                }))
-              }
-            />
-          </div>
-          {form.hasPriceRange ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="listing-price-min">{t('admin:listings.form.minPrice')}</Label>
-                <Input
-                  id="listing-price-min"
-                  inputMode="decimal"
-                  maxLength={18}
-                  placeholder={t('admin:listings.form.minPricePlaceholder')}
-                  value={form.priceMin}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, priceMin: event.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="listing-price-max">{t('admin:listings.form.maxPrice')}</Label>
-                <Input
-                  id="listing-price-max"
-                  inputMode="decimal"
-                  maxLength={18}
-                  placeholder={t('admin:listings.form.maxPricePlaceholder')}
-                  value={form.priceMax}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, priceMax: event.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-price">{t('admin:listings.form.price')}</Label>
-              <Input
-                id="listing-price"
-                inputMode="decimal"
-                maxLength={18}
-                placeholder={t('admin:listings.form.pricePlaceholder')}
-                value={form.price}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, price: event.target.value }))
-                }
-              />
-            </div>
-          )}
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-brand">{t('admin:listings.form.brand')}</Label>
-              <Input
-                id="listing-brand"
-                value={form.brand}
-                maxLength={120}
-                placeholder={t('admin:listings.form.brandPlaceholder')}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, brand: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="listing-quantity">{t('admin:listings.form.quantity')}</Label>
-              <Input
-                id="listing-quantity"
-                inputMode="decimal"
-                maxLength={18}
-                placeholder={t('admin:listings.form.quantityPlaceholder')}
-                value={form.quantityAvailable}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, quantityAvailable: event.target.value }))
-                }
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="listing-description">{t('admin:listings.form.descriptionLabel')}</Label>
-            <Textarea
-              id="listing-description"
-              value={form.description}
-              maxLength={4000}
-              placeholder={t('admin:listings.form.descriptionPlaceholder')}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, description: event.target.value }))
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
-            <Label htmlFor="listing-for-rent">{t('admin:listings.form.availableForRent')}</Label>
-            <Switch
-              id="listing-for-rent"
-              checked={form.isForRent}
-              onCheckedChange={(checked) =>
-                setForm((current) => ({
-                  ...current,
-                  isForRent: checked,
-                  rentalPrice: checked ? current.rentalPrice : '',
-                  rentalUnit: checked ? current.rentalUnit : '',
-                }))
-              }
-            />
-          </div>
-          {form.isForRent ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="listing-rental-price">{t('admin:listings.form.rentalPrice')}</Label>
-                <Input
-                  id="listing-rental-price"
-                  inputMode="decimal"
-                  maxLength={18}
-                  placeholder={t('admin:listings.form.rentalPricePlaceholder')}
-                  value={form.rentalPrice}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, rentalPrice: event.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="listing-rental-unit">{t('admin:listings.form.rentalUnit')}</Label>
-                <Select
-                  items={RENTAL_UNITS.map((unit) => ({
-                    value: unit,
-                    label: t(`admin:listings.form.rentalUnits.${unit}`),
-                  }))}
-                  value={form.rentalUnit || undefined}
-                  onValueChange={(value) => {
-                    if (!value) return
-                    setForm((current) => ({ ...current, rentalUnit: value }))
-                  }}
-                >
-                  <SelectTrigger id="listing-rental-unit" className="w-full">
-                    <SelectValue placeholder={t('admin:listings.form.selectRentalUnit')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RENTAL_UNITS.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {t(`admin:listings.form.rentalUnits.${unit}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : null}
-        </div>
+        <ListingFields
+          form={form}
+          onChange={setForm}
+          categories={categoryOptions}
+          idPrefix="listing"
+          providers={lockedProviderId ? undefined : providerOptions}
+          afterIdentity={mainImageSlot}
+        />
         <DialogFooter>
           <Button
             type="button"

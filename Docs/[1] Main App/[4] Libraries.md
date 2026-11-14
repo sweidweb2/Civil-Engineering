@@ -1,6 +1,6 @@
 # Libraries
 
-Locked testing + quality + UI libs. Paths: `civil-web/` · `civil-mobile/` · `backend/`  
+Locked testing + quality + UI libs. Paths: `civil-web/` · `backend/` (`civil-mobile/` parked — Decisions `[11]`)  
 Decision: [CI & Testing](../[3]%20Decisions/[3]%20CI%20%26%20Testing.md)
 
 ---
@@ -63,11 +63,13 @@ npm run test:e2e:ui
 
 ---
 
-## 2. Mobile (`civil-mobile/`)
+## 2. Mobile (`civil-mobile/`) — PARKED
+
+Archived reference only. App folder is not in the tree (`Docs/[3] Decisions/[11] Mobile Client Parked.md`). Re-validate installs when unparked.
 
 ### UI
 
-**[gluestack-ui](https://gluestack.io/ui/docs/home/overview/introduction)** v5 — installed (UniWind + Tailwind v4)
+**[gluestack-ui](https://gluestack.io/ui/docs/home/overview/introduction)** v5 — was installed (UniWind + Tailwind v4)
 
 Docs: [Installation](https://gluestack.io/ui/docs/home/getting-started/installation) · [CLI](https://gluestack.io/ui/docs/home/getting-started/cli)
 

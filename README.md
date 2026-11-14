@@ -1,18 +1,19 @@
 # Civil Engineering
 
-Monorepo for a civil-engineering operations platform: **web**, **mobile**, and a shared **backend API**.
+Monorepo for a civil-engineering operations platform: **web** and a shared **backend API**. Mobile is parked.
 
 ## What this project is
 
-A modular monolith that serves multiple client interfaces (admin/distributor on web; project manager/worker/guest on mobile) through one versioned REST API. Business logic, auth, and data access live only in the backend.
+A modular monolith that serves browser clients through one versioned REST API. Business logic, auth, and data access live only in the backend. A React Native client may return later under the same API contract.
 
 ## Architecture
 
 ```
-React Web  ──┐
-             ├── REST /api/v1 ──► Express (monolith) ──► PostgreSQL (Supabase) + Prisma
-React Native─┘                        │
+React Web ── REST /api/v1 ──► Express (monolith) ──► PostgreSQL (Supabase) + Prisma
+                                      │
                                       └── Storage (Cloudflare R2)
+
+(Mobile / Expo parked — see Docs/[3] Decisions/[11] Mobile Client Parked.md)
 ```
 
 - **Overall:** modular monolith (not microservices)
@@ -38,15 +39,15 @@ Details: `Docs/[3] Decisions/[2] Git Branch Strategy.md`
 | App     | Path            | Role                                       |
 | ------- | --------------- | ------------------------------------------ |
 | Web     | `civil-web/`    | React + TypeScript (Vite) browser clients  |
-| Mobile  | `civil-mobile/` | React Native + TypeScript (Expo)           |
 | Backend | `backend/`      | Express + TypeScript API, auth, jobs, data |
+| Mobile  | `civil-mobile/` | **Parked** (not in tree) — Expo RN later   |
 
 ## Tech stack
 
 | Area          | Choice                                  |
 | ------------- | --------------------------------------- |
 | Web           | React + TypeScript + Vite               |
-| Mobile        | React Native + TypeScript + Expo        |
+| Mobile        | Parked (RN + Expo when restored)        |
 | Backend       | Express + TypeScript                    |
 | Database      | Supabase Postgres + Prisma              |
 | Cache / queue | None (in-process rate limit; sync jobs) |
@@ -68,14 +69,6 @@ Civil-Engineering-v1/
 │       ├── theme/
 │       ├── hooks/
 │       └── services/
-├── civil-mobile/       # React Native (Expo)
-│   └── src/
-│       ├── features/
-│       ├── components/
-│       ├── navigation/
-│       ├── theme/
-│       ├── hooks/
-│       └── services/
 ├── backend/            # Express API
 │   └── src/
 │       ├── modules/    # DDD domains (auth, users, projects, …)
@@ -90,6 +83,8 @@ Civil-Engineering-v1/
 └── README.md
 ```
 
+> `civil-mobile/` is parked and not present. Decision: `Docs/[3] Decisions/[11] Mobile Client Parked.md`.
+
 Optional later: `infrastructure/` only when real deploy/proxy config exists (do not create empty).
 
 ## Environment setup
@@ -100,13 +95,12 @@ Each app has its own env files (do **not** commit real secrets):
 | ------- | ------------------------------------------------- |
 | Backend | `backend/.env`, `.env.staging`, `.env.production` |
 | Web     | `civil-web/.env` (`VITE_*`)                       |
-| Mobile  | `civil-mobile/.env` (`EXPO_PUBLIC_*`)             |
 
 1. Copy or edit the local `.env` in each app.
 2. Replace placeholders (`CHANGE_ME`, `example.com`, DB passwords).
 3. Prefer `.env.example` (when added) as the committed template.
 
-Public client vars only: `VITE_*` (web), `EXPO_PUBLIC_*` (mobile). All secrets stay on the backend / host.
+Public client vars only: `VITE_*` (web). All secrets stay on the backend / host. (Mobile `EXPO_PUBLIC_*` when unparked.)
 
 ## How to run (local)
 
@@ -133,13 +127,7 @@ Vite defaults to [http://localhost:5173](http://localhost:5173). Point `VITE_API
 
 ### Mobile
 
-```bash
-cd civil-mobile
-npm install
-npm start
-```
-
-Then open in Expo Go / simulator. Set `EXPO_PUBLIC_API_BASE_URL` to your machine API URL (use LAN IP for a physical device).
+Parked — no `civil-mobile/` folder. See `Docs/[3] Decisions/[11] Mobile Client Parked.md`.
 
 ## Docker / Redis
 
@@ -155,7 +143,7 @@ Backend tests use embedded-postgres (no Docker). Decisions: `Docs/[3] Decisions/
 ## Deployment
 
 - **Host / runtime / edge proxy:** TBD (earlier Hostinger VPS + Docker + Nginx plan superseded)
-- **Clients:** mobile via store / EAS builds
+- **Clients:** web deploy TBD; mobile via store / EAS when unparked
 - **Migrations:** run as an explicit release step (not silently on every API boot unless that pattern is locked later)
 
 ## Documentation

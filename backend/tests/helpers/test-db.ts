@@ -19,12 +19,17 @@ export function ensureTestDatabaseUrl(): string {
 let migratePromise: Promise<void> | null = null
 
 export async function migrateTestDatabase(): Promise<void> {
-  ensureTestDatabaseUrl()
+  const databaseUrl = ensureTestDatabaseUrl()
   if (!migratePromise) {
     migratePromise = Promise.resolve().then(() => {
+      // prisma.config prefers DIRECT_URL from .env — pin both to the test DB.
       execSync('npx prisma migrate deploy', {
         cwd: backendRoot,
-        env: process.env,
+        env: {
+          ...process.env,
+          DATABASE_URL: databaseUrl,
+          DIRECT_URL: databaseUrl,
+        },
         stdio: 'pipe',
       })
     })

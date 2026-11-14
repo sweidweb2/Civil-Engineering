@@ -28,6 +28,7 @@ function userInitials(user: AuthUser | null): string {
 function providerHeaderTitle(pathname: string, t: (key: string) => string): string | null {
   if (pathname.startsWith('/provider/profile')) return t('account:profile')
   if (pathname.startsWith('/provider/listings')) return t('nav:listings')
+  if (pathname.startsWith('/provider/analytics')) return t('nav:analytics')
   return null
 }
 

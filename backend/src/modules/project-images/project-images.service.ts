@@ -1,23 +1,23 @@
-import { randomUUID } from 'node:crypto'
-
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import { notFound, validationError } from '../../errors/app-error.js'
-import { getLogger } from '../../logging/index.js'
-import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
 import {
-  assertAllowedImageUpload,
-  MAX_GALLERY_IMAGES,
-  toWebpBuffer,
-} from '../files/image-policy.js'
+  createOwnerGalleryService,
+  type OwnerGalleryImage,
+  type OwnerGalleryImageWithUrl,
+  type OwnerGalleryRepository,
+} from '../files/owner-gallery.service.js'
 import type { ProjectsService } from '../projects/projects.service.js'
 import type {
   ReorderProjectImagesBody,
   UpdateProjectImageBody,
   UploadProjectImageBody,
 } from './project-images.schema.js'
-import type { ProjectImagesRepository, ProjectImageWithUrl } from './project-images.types.js'
+import type {
+  ProjectImage,
+  ProjectImagesRepository,
+  ProjectImageWithUrl,
+} from './project-images.types.js'
 
 export type ProjectImagesService = {
   listProjectImages: (actor: AuthActor, projectId: string) => Promise<ProjectImageWithUrl[]>
@@ -49,168 +49,87 @@ export type ProjectImagesServiceDeps = {
   config: AppConfig
 }
 
+function toProjectImage(image: OwnerGalleryImage): ProjectImage {
+  return {
+    id: image.id,
+    projectId: image.ownerId,
+    storagePath: image.storagePath,
+    isMain: image.isMain,
+    displayOrder: image.displayOrder,
+    createdAt: image.createdAt,
+    updatedAt: image.updatedAt,
+  }
+}
+
+function toProjectImageWithUrl(image: OwnerGalleryImageWithUrl): ProjectImageWithUrl {
+  return { ...toProjectImage(image), url: image.url }
+}
+
+function adaptRepository(repository: ProjectImagesRepository): OwnerGalleryRepository {
+  return {
+    findByOwnerId: async (ownerId) =>
+      (await repository.findByProjectId(ownerId)).map((image) => ({
+        ...image,
+        ownerId: image.projectId,
+      })),
+    findById: async (id) => {
+      const image = await repository.findById(id)
+      return image ? { ...image, ownerId: image.projectId } : null
+    },
+    countByOwnerId: (ownerId) => repository.countByProjectId(ownerId),
+    create: async (data) => {
+      const image = await repository.create({
+        projectId: data.ownerId,
+        storagePath: data.storagePath,
+        isMain: data.isMain,
+        displayOrder: data.displayOrder,
+      })
+      return { ...image, ownerId: image.projectId }
+    },
+    update: async (id, data) => {
+      const image = await repository.update(id, data)
+      return { ...image, ownerId: image.projectId }
+    },
+    delete: (id) => repository.delete(id),
+    unsetMainImage: (ownerId) => repository.unsetMainImage(ownerId),
+    findMainImageByOwnerId: async (ownerId) => {
+      const image = await repository.findMainImageByProjectId(ownerId)
+      return image ? { ...image, ownerId: image.projectId } : null
+    },
+  }
+}
+
 export function createProjectImagesService(deps: ProjectImagesServiceDeps): ProjectImagesService {
-  const { repository, projectsService, storage, config } = deps
-
-  async function assertProjectAccess(actor: AuthActor, projectId: string): Promise<void> {
-    await projectsService.assertAccessible(projectId, actor)
-  }
-
-  function getImageUrl(storagePath: string): Promise<string> {
-    return resolvePublicOrPresignedUrl({ config, storage, storagePath })
-  }
-
-  async function processAndUploadImage(
-    buffer: Buffer,
-    projectId: string,
-    imageId: string,
-  ): Promise<string> {
-    const webpBuffer = await toWebpBuffer(buffer)
-
-    const key = `projects/${projectId}/images/${imageId}.webp`
-
-    await storage.putObject({
-      key,
-      body: webpBuffer,
-      contentType: 'image/webp',
-    })
-
-    return key
-  }
+  const gallery = createOwnerGalleryService({
+    repository: adaptRepository(deps.repository),
+    storage: deps.storage,
+    config: deps.config,
+    policy: {
+      keyPrefix: 'projects',
+      notFoundCode: 'IMAGE_NOT_FOUND',
+      logLabel: 'project image',
+      autoMain: false,
+      assertCanView: async (actor, ownerId) => {
+        await deps.projectsService.assertAccessible(ownerId, actor)
+      },
+      assertCanManage: async (actor, ownerId) => {
+        await deps.projectsService.assertAccessible(ownerId, actor)
+      },
+    },
+  })
 
   return {
-    async listProjectImages(actor, projectId) {
-      await assertProjectAccess(actor, projectId)
-      const images = await repository.findByProjectId(projectId)
-
-      const imagesWithUrls = await Promise.all(
-        images.map(async (image) => ({
-          ...image,
-          url: await getImageUrl(image.storagePath),
-        })),
-      )
-
-      return imagesWithUrls
-    },
-
-    async getProjectImage(actor, imageId) {
-      const image = await repository.findById(imageId)
-      if (!image) {
-        throw notFound('Image not found', 'IMAGE_NOT_FOUND')
-      }
-
-      await assertProjectAccess(actor, image.projectId)
-
-      return {
-        ...image,
-        url: await getImageUrl(image.storagePath),
-      }
-    },
-
-    async uploadProjectImage(actor, projectId, file, input) {
-      await assertProjectAccess(actor, projectId)
-
-      assertAllowedImageUpload(file)
-
-      const currentCount = await repository.countByProjectId(projectId)
-      if (currentCount >= MAX_GALLERY_IMAGES) {
-        throw validationError(`Maximum ${MAX_GALLERY_IMAGES} images per project`)
-      }
-
-      const imageId = randomUUID().replace(/-/g, '')
-
-      const storagePath = await processAndUploadImage(file.buffer, projectId, imageId)
-
-      if (input.isMain) {
-        await repository.unsetMainImage(projectId)
-      }
-
-      const displayOrder = input.displayOrder ?? currentCount
-
-      const image = await repository.create({
-        projectId,
-        storagePath,
-        isMain: input.isMain ?? false,
-        displayOrder,
-      })
-
-      return {
-        ...image,
-        url: await getImageUrl(image.storagePath),
-      }
-    },
-
-    async updateProjectImage(actor, imageId, input) {
-      const image = await repository.findById(imageId)
-      if (!image) {
-        throw notFound('Image not found', 'IMAGE_NOT_FOUND')
-      }
-
-      await assertProjectAccess(actor, image.projectId)
-
-      if (input.isMain) {
-        await repository.unsetMainImage(image.projectId)
-      }
-
-      const updated = await repository.update(imageId, input)
-
-      return {
-        ...updated,
-        url: await getImageUrl(updated.storagePath),
-      }
-    },
-
-    async deleteProjectImage(actor, imageId) {
-      const image = await repository.findById(imageId)
-      if (!image) {
-        throw notFound('Image not found', 'IMAGE_NOT_FOUND')
-      }
-
-      await assertProjectAccess(actor, image.projectId)
-
-      await repository.delete(imageId)
-
-      try {
-        await storage.deleteObject(image.storagePath)
-      } catch (error) {
-        getLogger().error(
-          { err: error, imageId, storagePath: image.storagePath },
-          'failed to delete project image from storage',
-        )
-      }
-    },
-
-    async reorderProjectImages(actor, projectId, input) {
-      await assertProjectAccess(actor, projectId)
-
-      const images = await repository.findByProjectId(projectId)
-      const imageMap = new Map(images.map((img) => [img.id, img]))
-
-      const invalidIds = input.imageIds.filter((id) => !imageMap.has(id))
-      if (invalidIds.length > 0) {
-        throw validationError(`Invalid image IDs: ${invalidIds.join(', ')}`)
-      }
-
-      await Promise.all(
-        input.imageIds.map((id, index) => repository.update(id, { displayOrder: index })),
-      )
-
-      const updatedImages = await repository.findByProjectId(projectId)
-
-      return Promise.all(
-        updatedImages.map(async (image) => ({
-          ...image,
-          url: await getImageUrl(image.storagePath),
-        })),
-      )
-    },
-
-    async getMainImageUrl(projectId) {
-      const mainImage = await repository.findMainImageByProjectId(projectId)
-      if (!mainImage) {
-        return null
-      }
-      return getImageUrl(mainImage.storagePath)
-    },
+    listProjectImages: async (actor, projectId) =>
+      (await gallery.list(actor, projectId)).map(toProjectImageWithUrl),
+    getProjectImage: async (actor, imageId) =>
+      toProjectImageWithUrl(await gallery.get(actor, imageId)),
+    uploadProjectImage: async (actor, projectId, file, input) =>
+      toProjectImageWithUrl(await gallery.upload(actor, projectId, file, input)),
+    updateProjectImage: async (actor, imageId, input) =>
+      toProjectImageWithUrl(await gallery.update(actor, imageId, input)),
+    deleteProjectImage: (actor, imageId) => gallery.remove(actor, imageId),
+    reorderProjectImages: async (actor, projectId, input) =>
+      (await gallery.reorder(actor, projectId, input)).map(toProjectImageWithUrl),
+    getMainImageUrl: (projectId) => gallery.getMainImageUrl(projectId),
   }
 }

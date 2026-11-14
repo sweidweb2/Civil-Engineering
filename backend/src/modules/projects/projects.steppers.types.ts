@@ -15,9 +15,6 @@ export type ProjectStepNode = {
   isComplete: boolean
 }
 
-/** @deprecated Prefer `ProjectStepNode`. */
-export type ProjectStepperNode = ProjectStepNode
-
 export type ProjectStepInputField = {
   id: string
   label: string
@@ -30,9 +27,6 @@ export type ProjectStepInputField = {
   isProjectOnly: boolean
 }
 
-/** @deprecated Prefer `ProjectStepInputField`. */
-export type ProjectStepperInputField = ProjectStepInputField
-
 export type ProjectStepDetail = {
   id: string
   projectId: string
@@ -40,6 +34,3 @@ export type ProjectStepDetail = {
   orderNb: number
   inputs: ProjectStepInputField[]
 }
-
-/** @deprecated Prefer `ProjectStepDetail`. */
-export type ProjectStepperDetail = ProjectStepDetail

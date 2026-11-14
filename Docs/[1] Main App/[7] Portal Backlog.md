@@ -10,16 +10,16 @@ Use this list to finish the four portals: pages, operations, and APIs. Prefer **
 
 ## Already in good shape (do not rebuild)
 
-| Area | Status |
-| --- | --- |
-| Auth login / register + JWT | Done |
-| Panel shells + nav (4 portals) | Done |
-| Super: activity / error logs | Done (API) |
-| Admin / Super: users pages | Partial (users API exists; some UI still mock-ish) |
-| Admin: providers create / edit | Done (API) |
-| Admin: projects list / detail + gallery | Done (API) |
-| Notifications inbox + Super manage | Done (API) |
-| DB: users, providers, categories, listings, projects, images, notifications | Tables exist |
+| Area                                                                        | Status                                             |
+| --------------------------------------------------------------------------- | -------------------------------------------------- |
+| Auth login / register + JWT                                                 | Done                                               |
+| Panel shells + nav (4 portals)                                              | Done                                               |
+| Super: activity / error logs                                                | Done (API)                                         |
+| Admin / Super: users pages                                                  | Partial (users API exists; some UI still mock-ish) |
+| Admin: providers create / edit                                              | Done (API)                                         |
+| Admin: projects list / detail + gallery                                     | Done (API)                                         |
+| Notifications inbox + Super manage                                          | Done (API)                                         |
+| DB: users, providers, categories, listings, projects, images, notifications | Tables exist                                       |
 
 ---
 
@@ -146,7 +146,7 @@ Best track to get familiar with the project step by step.
 
 ### Expenses / materials modules
 
-- Replace `notImplemented` stubs with real Prisma + services
+- Reintroduce expenses / materials / workers modules with real Prisma + services when those domains ship (stubs removed)
 
 ### Files
 

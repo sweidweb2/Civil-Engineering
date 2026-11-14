@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Project Core — LOCKED
 
-Source of truth: `Docs/[01] Main App/Tech Stack.md`. Do not invent alternate stacks or architectures.
+Source of truth: `Docs/[1] Main App/[1] Tech Stack.md`. Do not invent alternate stacks or architectures.
 
 ## Monorepo
 
@@ -13,14 +13,14 @@ Source of truth: `Docs/[01] Main App/Tech Stack.md`. Do not invent alternate sta
 | --- | --- | --- |
 | Backend | `backend/` | Single API + business logic + data access |
 | Web | `civil-web/` | React + TypeScript browser client |
-| Mobile | `civil-mobile/` | React Native + TypeScript client |
+| Mobile | `civil-mobile/` | **Parked** — React Native + TypeScript client (deferred; see `Docs/[3] Decisions/[11] Mobile Client Parked.md`) |
 
-Both clients talk to the same versioned REST API only. Never let web/mobile touch PostgreSQL or Prisma directly.
+Active delivery is **backend + civil-web** only. Do not restore or scaffold `civil-mobile/` without a new decision. Clients talk to the same versioned REST API only. Never let web (or a future mobile client) touch PostgreSQL or Prisma directly.
 
 ## Locked stack
 
 - Web: React + TypeScript
-- Mobile: React Native + TypeScript
+- Mobile: React Native + TypeScript (**parked** — not in active tree)
 - Backend: Express + TypeScript (monolith, layered, DDD modules)
 - DB: Supabase Postgres + Prisma
 - No Redis / BullMQ: jobs stay synchronous; rate limiting is in-process memory (`express-rate-limit`)
@@ -44,7 +44,7 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 
 ## Responsibility split (clean / simple / fast / secure)
 
-**Clients (`civil-web`, `civil-mobile`)**
+**Clients (`civil-web`; future `civil-mobile` when unparked)**
 - UI, navigation, feature screens, local UX validation
 - Call REST only; hold tokens securely; keep Zustand for client/UI state — not every API response
 - No business rules that authorize data or enforce server invariants
@@ -302,27 +302,17 @@ civil-web/src/
 - **Shared components**: truly reusable UI in `components/`; do not dump feature-specific widgets there
 - **Responsibility boundaries**: web never touches Postgres/Prisma; talk to `/api/v1` only
 
-## Mobile architecture (`civil-mobile`)
+## Mobile architecture (`civil-mobile`) — PARKED
 
-Feature-based React Native + TypeScript. Same API contract as web. Folder structure:
+Mobile is **deferred** (`Docs/[3] Decisions/[11] Mobile Client Parked.md`). Do not add `civil-mobile/` or treat it as required until unparked.
+
+When restored, it should be feature-based React Native + TypeScript with the same `/api/v1` contract as web:
 
 ```
 civil-mobile/src/
-  features/
-    <feature>/          # auth, projects, expenses, workers, ...
-      components/       # feature-only UI
-      screens/          # feature screens
-      hooks/
-  components/           # shared UI
-  navigation/           # navigators and route config
-  services/             # centralized REST API client + resource calls
-  stores/               # Zustand (client/UI state only) when needed
+  features/<feature>/{components,screens,hooks}/
+  components/  navigation/  services/  stores/
 ```
 
-- **Feature-based structure**: mirror web feature domains where practical
-- **Screens**: route-level UI under `features/<feature>/screens/`
-- **Components**: shared in `components/`; feature-local beside screens
-- **API services**: same centralized `services/` pattern as web
-- **Navigation**: all navigators/routes owned by `navigation/`
-- **Local state**: component state first; Zustand only for real cross-screen client state
-- **Business logic boundaries**: no DB access; no bypassing API authz; secure token storage on device
+- Mirror web feature domains where practical; API only via `services/`
+- Secure token storage on device; no DB access; no bypassing API authz

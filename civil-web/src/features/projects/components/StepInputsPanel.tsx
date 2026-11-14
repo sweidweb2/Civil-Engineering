@@ -9,23 +9,6 @@ import { RowActions } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -59,6 +42,13 @@ import {
   updateStepInput,
 } from '@/services/steps'
 
+import {
+  EMPTY_STEP_INPUT_FORM,
+  resolveStepInputTypeCode,
+  StepInputFormDialog,
+  type StepInputFormValues,
+} from './StepInputFormDialog'
+
 type StepInputsPanelProps = {
   step: Step | null
   open: boolean
@@ -66,20 +56,11 @@ type StepInputsPanelProps = {
   onChanged: () => void
 }
 
-type InputForm = {
-  label: string
-  inputTypeId: string
-  orderNb: string
-  categoryId: string
-}
-
-const EMPTY_FORM: InputForm = { label: '', inputTypeId: '', orderNb: '', categoryId: '' }
-
 export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInputsPanelProps) {
   const { t } = useTranslation(['admin', 'common'])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<StepInput | null>(null)
-  const [form, setForm] = useState<InputForm>(EMPTY_FORM)
+  const [form, setForm] = useState<StepInputFormValues>(EMPTY_STEP_INPUT_FORM)
   const [isSaving, setIsSaving] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const load = useCallback(async () => {
@@ -124,7 +105,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
   function openCreate() {
     setEditing(null)
     setForm({
-      ...EMPTY_FORM,
+      ...EMPTY_STEP_INPUT_FORM,
       inputTypeId: types[0]?.id ?? '',
     })
     setDialogOpen(true)
@@ -156,7 +137,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
       toast.error(t('admin:stepInputs.typeRequired'))
       return
     }
-    const typeCode = resolveTypeCode(types, editing, form.inputTypeId)
+    const typeCode = resolveStepInputTypeCode(types, editing, form.inputTypeId)
     if (typeCode === 'CATEGORY' && !form.categoryId) {
       toast.error(t('admin:stepInputs.categoryRequired'))
       return
@@ -232,7 +213,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
         ]
       : types
 
-  const selectedTypeCode = resolveTypeCode(typeOptions, editing, form.inputTypeId)
+  const selectedTypeCode = resolveStepInputTypeCode(typeOptions, editing, form.inputTypeId)
   const categoryOptions =
     editing?.categoryId && !categories.some((category) => category.id === editing.categoryId)
       ? [
@@ -344,128 +325,18 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
         </SheetContent>
       </Sheet>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? t('admin:stepInputs.editTitle') : t('admin:stepInputs.createTitle')}
-            </DialogTitle>
-            <DialogDescription>{t('admin:stepInputs.dialogDescription')}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="step-input-label">{t('common:label')}</Label>
-              <Input
-                id="step-input-label"
-                value={form.label}
-                maxLength={120}
-                placeholder={t('admin:stepInputs.labelPlaceholder')}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, label: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="step-input-type">{t('admin:stepInputs.inputType')}</Label>
-              <Select
-                items={typeOptions.map((type) => ({
-                  value: type.id,
-                  label: `${type.label} (${type.code})`,
-                }))}
-                value={form.inputTypeId || undefined}
-                onValueChange={(value) => {
-                  if (!value) return
-                  const nextCode = resolveTypeCode(typeOptions, editing, value)
-                  setForm((current) => ({
-                    ...current,
-                    inputTypeId: value,
-                    categoryId: nextCode === 'CATEGORY' ? current.categoryId : '',
-                  }))
-                }}
-              >
-                <SelectTrigger id="step-input-type" className="w-full">
-                  <SelectValue placeholder={t('admin:stepInputs.selectType')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {typeOptions.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.label} ({type.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedTypeCode === 'CATEGORY' ? (
-              <div className="grid gap-1.5">
-                <Label htmlFor="step-input-category">{t('common:category')}</Label>
-                <Select
-                  items={categoryOptions.map((category) => ({
-                    value: category.id,
-                    label: category.parentName
-                      ? `${category.parentName} / ${category.name}`
-                      : category.name,
-                  }))}
-                  value={form.categoryId || undefined}
-                  onValueChange={(value) => {
-                    if (value) setForm((current) => ({ ...current, categoryId: value }))
-                  }}
-                >
-                  <SelectTrigger id="step-input-category" className="w-full">
-                    <SelectValue placeholder={t('admin:stepInputs.selectCategory')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.parentName
-                          ? `${category.parentName} / ${category.name}`
-                          : category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-            <div className="grid gap-1.5">
-              <Label htmlFor="step-input-order">{t('admin:stepInputs.orderOptional')}</Label>
-              <Input
-                id="step-input-order"
-                type="number"
-                min={0}
-                max={10000}
-                value={form.orderNb}
-                placeholder={t('common:auto')}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, orderNb: event.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={isSaving}
-            >
-              {t('common:cancel')}
-            </Button>
-            <Button type="button" onClick={() => void save()} disabled={isSaving}>
-              {isSaving ? t('common:saving') : t('common:save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StepInputFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        editing={editing}
+        form={form}
+        onFormChange={setForm}
+        typeOptions={typeOptions}
+        categoryOptions={categoryOptions}
+        selectedTypeCode={selectedTypeCode}
+        isSaving={isSaving}
+        onSave={() => void save()}
+      />
     </>
   )
-}
-
-function resolveTypeCode(
-  types: InputType[],
-  editing: StepInput | null,
-  inputTypeId: string,
-): string {
-  const fromList = types.find((type) => type.id === inputTypeId)?.code
-  if (fromList) return fromList.toUpperCase()
-  if (editing && editing.inputTypeId === inputTypeId) return editing.inputTypeCode.toUpperCase()
-  return ''
 }

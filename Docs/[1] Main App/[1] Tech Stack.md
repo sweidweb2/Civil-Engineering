@@ -5,7 +5,7 @@
 | Area              | Decision                                                                   |
 | ----------------- | -------------------------------------------------------------------------- |
 | **Web**           | React + TypeScript                                                         |
-| **Mobile**        | React Native + TypeScript                                                  |
+| **Mobile**        | React Native + TypeScript (**parked** — see Decisions `[11]`)              |
 | **Backend**       | Express + TypeScript                                                       |
 | **Database**      | Supabase Postgres + Prisma                                                 |
 | **Cache / Queue** | None (no Redis; jobs sync; rate limit in-process via `express-rate-limit`) |
@@ -55,15 +55,7 @@
          PostgreSQL          Storage
        (Supabase) + Prisma     (R2)
 
-                    ▲
-                    │ REST API
-                    │
-          ┌─────────┴─────────┐
-          │                   │
-          │   React Native    │
-          │   + TypeScript    │
-          │                   │
-          └───────────────────┘
+  (React Native client parked — same REST contract when restored)
 ```
 
 ---
@@ -174,22 +166,9 @@ web/
     └── ...
 ```
 
-### Mobile
+### Mobile (parked)
 
-```
-mobile/
-└── src/
-    ├── features/
-    │   ├── auth/
-    │   ├── projects/
-    │   ├── expenses/
-    │   └── workers/
-    │
-    ├── components/
-    ├── navigation/
-    ├── services/
-    └── ...
-```
+`civil-mobile/` is **parked** — not in the active tree. See `Docs/[3] Decisions/[11] Mobile Client Parked.md`. When restored, use the same feature-based layout as web (`features/`, `services/`, `navigation/`) against `/api/v1`.
 
 ---
 
@@ -284,9 +263,8 @@ Business logic
 Frontend applications **never access the database directly**.
 
 ```
-React ────────┐
-              ├──→ REST API → Express → Database
-React Native ─┘
+React (web) ──→ REST API → Express → Database
+(future mobile client uses the same REST path when unparked)
 ```
 
 **Not allowed:**
@@ -309,5 +287,6 @@ The following points are **not yet locked**:
 - Production hosting / deploy topology (Docker plan superseded)
 - Reverse proxy / TLS / domain wiring (if/when needed)
 - Some infrastructure/security / monitoring choices (to be decided during implementation)
+- Mobile client unpark / restore timing (`civil-mobile/` parked per Decisions `[11]`)
 
 All other listed items above are the **locked technical baseline** for the project.

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FileText, ListOrdered, UserRound } from 'lucide-react'
+import { ListOrdered, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
 import { PageHeader } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ManageStepsPage } from '@/features/steps/ManageStepsPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn } from '@/lib/utils'
@@ -99,24 +98,10 @@ export function PmSettingsPage() {
 
         <div className="min-w-0">
           {section === 'profile' ? (
-            <Tabs defaultValue="general" className="min-w-0 gap-4">
-              <TabsList>
-                <TabsTrigger value="general">
-                  <UserRound className="size-3.5" />
-                  {t('general')}
-                </TabsTrigger>
-                <TabsTrigger value="additional">
-                  <FileText className="size-3.5" />
-                  {t('additionalInfo')}
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="general" className="min-w-0">
-                <PmProfileGeneralPanel />
-              </TabsContent>
-              <TabsContent value="additional" className="min-w-0">
-                <PmProfileAdditionalPanel />
-              </TabsContent>
-            </Tabs>
+            <div className="flex min-w-0 flex-col gap-6">
+              <PmProfileGeneralPanel />
+              <PmProfileAdditionalPanel />
+            </div>
           ) : null}
           {section === 'steps' ? <ManageStepsPage embedded /> : null}
         </div>

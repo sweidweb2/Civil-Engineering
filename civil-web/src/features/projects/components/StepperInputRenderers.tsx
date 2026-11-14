@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils'
 import { getDownloadUrl } from '@/services/files'
 import { type Listing, listListings } from '@/services/listings'
 import {
-  fileIdFromStepperValue,
+  fileIdFromValue,
   isFileSnapshot,
-  listingIdFromStepperValue,
+  listingIdFromValue,
   type ProjectStepInputField,
   type StepperValue,
 } from '@/services/project-steppers'
@@ -219,7 +219,7 @@ function NumberInput({ input, value, onChange }: StepperInputRendererProps) {
 }
 
 function CategoryInput({ input, value, onChange }: StepperInputRendererProps) {
-  const selectedListingId = listingIdFromStepperValue(value)
+  const selectedListingId = listingIdFromValue(value)
   const snapshotName =
     typeof input.value === 'object' &&
     input.value !== null &&
@@ -247,7 +247,7 @@ function FileInput({
   onOpenFile,
 }: StepperInputRendererProps) {
   const { t } = useTranslation(['projects', 'common'])
-  const selectedFileId = fileIdFromStepperValue(value)
+  const selectedFileId = fileIdFromValue(value)
   const name =
     fileDisplayName(value) ??
     (isFileSnapshot(input.value) && input.value.id === selectedFileId

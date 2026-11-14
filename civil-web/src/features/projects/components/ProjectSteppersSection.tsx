@@ -13,9 +13,9 @@ import { deleteFile, getDownloadUrl, uploadFile } from '@/services/files'
 import {
   addProjectStepInput,
   deleteProjectStepInput,
-  fileIdFromStepperValue,
+  fileIdFromValue,
   getProjectStepper,
-  listingIdFromStepperValue,
+  listingIdFromValue,
   listProjectSteppers,
   type ProjectStepDetail,
   type ProjectStepNode,
@@ -90,10 +90,10 @@ export function ProjectSteppersSection({ projectId }: ProjectSteppersSectionProp
           const raw = draft[input.id] ?? null
           const code = input.inputTypeCode.toUpperCase()
           if (code === 'CATEGORY') {
-            return { id: input.id, value: listingIdFromStepperValue(raw) }
+            return { id: input.id, value: listingIdFromValue(raw) }
           }
           if (code === 'FILE') {
-            return { id: input.id, value: fileIdFromStepperValue(raw) }
+            return { id: input.id, value: fileIdFromValue(raw) }
           }
           return { id: input.id, value: raw }
         }),

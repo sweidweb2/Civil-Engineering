@@ -14,16 +14,6 @@ import {
   TablePager,
   ToolbarCard,
 } from '@/components/layout'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,11 +36,12 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { AdminConfirmDeleteDialog } from '@/features/admin/components/AdminConfirmDeleteDialog'
+import { useAdminCrudPage } from '@/features/admin/hooks/useAdminCrudPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
-import { ApiError } from '@/services/api'
 import {
   deleteReview,
   listReviews,
@@ -102,8 +93,13 @@ export function ManageReviewsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Review | null>(null)
   const [viewing, setViewing] = useState<Review | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<Review | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
+  const { pendingDelete, setPendingDelete, busyId, withBusy } = useAdminCrudPage<
+    Review,
+    Record<string, never>
+  >({
+    emptyForm: {},
+    formFromRow: () => ({}),
+  })
 
   const statusLabel = (status: ReviewStatus) => t(`admin:reviewStatus.${status}`)
 
@@ -123,34 +119,34 @@ export function ManageReviewsPage() {
   const reviewTotal = counts.PENDING + counts.ACCEPTED + counts.REJECTED
 
   async function setStatus(id: string, status: ReviewStatus) {
-    setBusyId(id)
-    try {
-      await updateReview(id, { status })
-      toast.message(
-        status === 'ACCEPTED' ? t('admin:reviews.acceptedToast') : t('admin:reviews.rejectedToast'),
-      )
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : t('admin:reviews.couldNotUpdate'))
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      id,
+      async () => {
+        await updateReview(id, { status })
+        toast.message(
+          status === 'ACCEPTED'
+            ? t('admin:reviews.acceptedToast')
+            : t('admin:reviews.rejectedToast'),
+        )
+        await remote.refetch()
+      },
+      t('admin:reviews.couldNotUpdate'),
+    )
   }
 
   async function confirmDelete() {
     if (!pendingDelete) return
     const id = pendingDelete.id
-    setBusyId(id)
-    try {
-      await deleteReview(id)
-      toast.message(t('admin:reviews.removedToast'))
-      setPendingDelete(null)
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : t('admin:reviews.couldNotRemove'))
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      id,
+      async () => {
+        await deleteReview(id)
+        toast.message(t('admin:reviews.removedToast'))
+        setPendingDelete(null)
+        await remote.refetch()
+      },
+      t('admin:reviews.couldNotRemove'),
+    )
   }
 
   return (
@@ -442,28 +438,15 @@ export function ManageReviewsPage() {
         onSaved={() => void remote.refetch()}
       />
 
-      <AlertDialog
+      <AdminConfirmDeleteDialog
         open={pendingDelete !== null}
+        title={t('admin:reviews.deleteTitle')}
+        description={t('admin:reviews.deleteDescription', {
+          name: pendingDelete?.author.displayName ?? t('admin:reviews.deleteDescriptionFallback'),
+        })}
         onOpenChange={(open) => !open && setPendingDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('admin:reviews.deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('admin:reviews.deleteDescription', {
-                name:
-                  pendingDelete?.author.displayName ?? t('admin:reviews.deleteDescriptionFallback'),
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void confirmDelete()}>
-              {t('common:remove')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   )
 }

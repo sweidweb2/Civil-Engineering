@@ -2,13 +2,13 @@
 
 Track foundation work only. Check items when done. Do not expand into essays here.
 
-**Last reviewed:** 2026-09-20 — hygiene pass (client refresh, theme wiring, checklist/DBML, mobile env).
+**Last reviewed:** 2026-11-14 — mobile client parked; active apps `civil-web/` + `backend/`.
 
 ---
 
 ## 1. Project / Repository Foundation
 
-- [x] Monorepo folders exist: `civil-web/`, `civil-mobile/`, `backend/`
+- [x] Monorepo folders exist: `civil-web/`, `backend/` (`civil-mobile/` parked — Decisions `[11]`)
 - [x] Root `README.md`
 - [x] Root `.gitignore`
 - [x] Root `.editorconfig`
@@ -195,28 +195,13 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ---
 
-## 10. Mobile Foundation (React Native)
+## 10. Mobile Foundation (React Native) — PARKED
 
-- [x] React Native + TypeScript + Expo ready
-- [x] Navigation setup
-- [x] Feature-based `src/features/` structure
-- [x] Screens / components / hooks layout
-- [x] `services/` API layer
-- [x] Secure token storage (`expo-secure-store`)
-- [x] Client state approach (Zustand)
-- [x] Forms + validation approach — feature `*.schema.ts` + `parseForm` + `FormField` (frontend Zod = UX only)
-- [x] Loading / error handling
-  - [x] Inline loading / error + retry on screens (failed fetches) — `AsyncState` + `useRemoteData`
-  - [x] Toast for quick / non-blocking API failures — `useToastApiError`
-  - [x] Alert for blocking failures when confirmation is required — `showBlockingAlert` / `showApiAlert`
-  - [x] Navigate back / to login for missing resource or auth failures — `handleAuthFailure` (401/403 → logout + `/login`)
-  - [x] Optional single global crash fallback screen (not a set of error routes) — `ErrorBoundary`
-  - [x] Rule locked: no dedicated 404/500-style error pages on mobile — toast / inline / navigate instead
-- [x] Deep linking (if in scope) — Expo Router + `scheme: civilmobile` in `app.json`; custom link map TBD with features
-- [x] Notifications (if in scope) — Expo Push bedrock: `DeviceToken` + `POST/DELETE /api/v1/devices`, sync `notifyUser` / `enqueueNotifyUser`, mobile `expo-notifications` register + tap→`data.path`/`data.url`; inbox / domain events deferred (no Redis queue)
-- [x] Dev / preview / prod env config
+- [x] Decision recorded: `Docs/[3] Decisions/[11] Mobile Client Parked.md`
+- [ ] Restore `civil-mobile/` only after an explicit unpark decision
+- [ ] Re-check Expo / navigation / SecureStore / notifications bedrock when restored
 
-> Note: Routes under `src/app/` stay thin; screens live in `src/features/<feature>/`. No mobile error-page catalog (web-only).
+> Historical mobile bedrock (Expo, SecureStore, gluestack layout, env files) applied while the app existed. Treat as archived until unparked — do not require `civil-mobile/` paths in CI or local run.
 
 ---
 
@@ -576,7 +561,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 - [x] `Docs/` numbered tree (`[1] Main App`, `[2] Prompts`, `[3] Decisions`, `[4] Database`)
 - [x] `civil-web/src/` feature + theme + services layout
-- [x] `civil-mobile/src/` feature + theme + services + navigation layout
+- [ ] `civil-mobile/src/` — parked (Decisions `[11]`); restore when unparked
 - [x] `backend/src/modules/` + middleware / config / database / jobs
 - [x] `backend/prisma/` schema + migrations
 - [x] Docker/Compose/Dockerfiles removed (no Docker required)

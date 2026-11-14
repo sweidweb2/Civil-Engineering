@@ -38,9 +38,6 @@ export type ProjectStepNode = {
   isComplete: boolean
 }
 
-/** @deprecated Prefer `ProjectStepNode`. */
-export type ProjectStepperNode = ProjectStepNode
-
 export type ProjectStepInputField = {
   id: string
   label: string
@@ -53,9 +50,6 @@ export type ProjectStepInputField = {
   isProjectOnly: boolean
 }
 
-/** @deprecated Prefer `ProjectStepInputField`. */
-export type ProjectStepperInputField = ProjectStepInputField
-
 export type ProjectStepDetail = {
   id: string
   projectId: string
@@ -64,15 +58,13 @@ export type ProjectStepDetail = {
   inputs: ProjectStepInputField[]
 }
 
-/** @deprecated Prefer `ProjectStepDetail`. */
-export type ProjectStepperDetail = ProjectStepDetail
-
 export type OrderAdjustMeta = {
   orderAdjusted: boolean
   orderNb: number
 }
 
-export function listingIdFromStepperValue(value: StepperValue): string | null {
+/** Aligns with backend `listingIdFromValue`. */
+export function listingIdFromValue(value: StepperValue): string | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'string') {
     const trimmed = value.trim()
@@ -84,7 +76,8 @@ export function listingIdFromStepperValue(value: StepperValue): string | null {
   return null
 }
 
-export function fileIdFromStepperValue(value: StepperValue): string | null {
+/** Aligns with backend `fileIdFromValue`. */
+export function fileIdFromValue(value: StepperValue): string | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'string') {
     const trimmed = value.trim()

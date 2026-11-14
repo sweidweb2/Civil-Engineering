@@ -13,16 +13,6 @@ import {
   StatCard,
   TablePager,
 } from '@/components/layout'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -51,6 +41,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { AdminConfirmDeleteDialog } from '@/features/admin/components/AdminConfirmDeleteDialog'
+import { useAdminCrudPage } from '@/features/admin/hooks/useAdminCrudPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -94,13 +86,25 @@ export function ManageCategoriesPage() {
   useDocumentTitle(t('admin:categories.documentTitle'))
   const { isAdmin } = usePermissions()
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<Category | null>(null)
-  const [form, setForm] = useState<CategoryForm>(EMPTY_FORM)
+  const {
+    dialogOpen,
+    setDialogOpen,
+    editing,
+    form,
+    setForm,
+    isSaving,
+    pendingDelete,
+    setPendingDelete,
+    busyId,
+    openCreate,
+    openEdit,
+    withSaving,
+    withBusy,
+  } = useAdminCrudPage<Category, CategoryForm>({
+    emptyForm: EMPTY_FORM,
+    formFromRow: formFromCategory,
+  })
   const [parents, setParents] = useState<Category[]>([])
-  const [isSaving, setIsSaving] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<Category | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
 
   const kindLabel = (kind: CategoryKind) => t(`admin:categoryKind.${kind}`)
 
@@ -153,18 +157,6 @@ export function ManageCategoriesPage() {
     ? pendingDelete.childCount > 0 || pendingDelete.listingCount > 0
     : false
 
-  function openCreate() {
-    setEditing(null)
-    setForm(EMPTY_FORM)
-    setDialogOpen(true)
-  }
-
-  function openEdit(row: Category) {
-    setEditing(row)
-    setForm(formFromCategory(row))
-    setDialogOpen(true)
-  }
-
   async function save() {
     const name = form.name.trim()
     if (!name) {
@@ -177,35 +169,29 @@ export function ManageCategoriesPage() {
       parentId: form.parentId || null,
       isActive: form.isActive,
     }
-    setIsSaving(true)
-    try {
+    await withSaving(async () => {
       if (editing) await updateCategory(editing.id, payload)
       else await createCategory(payload)
       setDialogOpen(false)
       toast.message(editing ? t('admin:categories.updated') : t('admin:categories.created'))
       if (!editing) setPage(1)
       await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : t('admin:categories.couldNotSave'))
-    } finally {
-      setIsSaving(false)
-    }
+    }, t('admin:categories.couldNotSave'))
   }
 
   async function confirmDelete() {
     if (!pendingDelete || deleteBlocked) return
     const id = pendingDelete.id
-    setBusyId(id)
-    try {
-      await deleteCategory(id)
-      toast.message(t('admin:categories.removedToast'))
-      setPendingDelete(null)
-      await remote.refetch()
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : t('admin:categories.couldNotDelete'))
-    } finally {
-      setBusyId(null)
-    }
+    await withBusy(
+      id,
+      async () => {
+        await deleteCategory(id)
+        toast.message(t('admin:categories.removedToast'))
+        setPendingDelete(null)
+        await remote.refetch()
+      },
+      t('admin:categories.couldNotDelete'),
+    )
   }
 
   return (
@@ -439,29 +425,20 @@ export function ManageCategoriesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
+      <AdminConfirmDeleteDialog
         open={pendingDelete !== null}
+        title={t('admin:categories.deleteTitle')}
+        description={
+          deleteBlocked
+            ? t('admin:categories.deleteBlocked')
+            : t('admin:categories.deleteDescription', {
+                name: pendingDelete?.name ?? t('admin:categories.theCategory'),
+              })
+        }
+        confirmDisabled={deleteBlocked}
         onOpenChange={(open) => !open && setPendingDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('admin:categories.deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteBlocked
-                ? t('admin:categories.deleteBlocked')
-                : t('admin:categories.deleteDescription', {
-                    name: pendingDelete?.name ?? t('admin:categories.theCategory'),
-                  })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-            <AlertDialogAction disabled={deleteBlocked} onClick={() => void confirmDelete()}>
-              {t('common:remove')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   )
 }

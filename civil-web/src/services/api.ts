@@ -1,5 +1,7 @@
+/** Same-origin `/api/v1` on Vercel; localhost for local Vite → Express. */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:3000/api/v1'
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
+  (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1')
 
 export type ApiErrorBody = {
   error?: {
@@ -151,7 +153,10 @@ function uploadWithProgress(
 
     xhr.onload = () => {
       const responseHeaders = new Headers()
-      for (const line of xhr.getAllResponseHeaders().trim().split(/[\r\n]+/)) {
+      for (const line of xhr
+        .getAllResponseHeaders()
+        .trim()
+        .split(/[\r\n]+/)) {
         if (!line) continue
         const index = line.indexOf(':')
         if (index === -1) continue

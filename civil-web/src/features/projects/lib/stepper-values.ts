@@ -1,6 +1,6 @@
 import {
   isFileSnapshot,
-  listingIdFromStepperValue,
+  listingIdFromValue,
   type ProjectStepInputField,
   type ProjectStepNode,
   type StepperValue,
@@ -51,7 +51,7 @@ export function isFilledValue(value: StepperValue): boolean {
 export function draftValueForInput(input: ProjectStepInputField): StepperValue {
   const code = input.inputTypeCode.toUpperCase()
   if (code === 'CATEGORY') {
-    return listingIdFromStepperValue(input.value)
+    return listingIdFromValue(input.value)
   }
   if (code === 'FILE') {
     return input.value

@@ -19,6 +19,7 @@ import {
   Star,
   Store,
   Sun,
+  TrendingUp,
   UserCheck,
   Users,
 } from 'lucide-react'
@@ -343,6 +344,7 @@ export const ADMIN_NAV: PanelNavItem[] = [
 ]
 
 export const PM_NAV: PanelNavItem[] = [
+  { to: '/pm/analytics', labelKey: 'analytics', icon: TrendingUp },
   { to: '/pm/projects', labelKey: 'manageProjects', icon: FolderKanban },
   { to: '/pm/directory', labelKey: 'directory', icon: Library },
 ]

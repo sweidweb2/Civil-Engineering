@@ -58,3 +58,11 @@ export function createFilesModule(deps: FilesModuleDeps & { service?: FilesServi
 }
 
 export type { FilesService }
+export {
+  createOwnerGalleryService,
+  type OwnerGalleryImage,
+  type OwnerGalleryImageWithUrl,
+  type OwnerGalleryPolicy,
+  type OwnerGalleryRepository,
+  type OwnerGalleryService,
+} from './owner-gallery.service.js'

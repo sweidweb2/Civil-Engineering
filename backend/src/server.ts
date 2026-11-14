@@ -8,16 +8,21 @@ const config = loadConfig()
 const logger = getLogger()
 const app = createApp({ config })
 
-const server = app.listen(config.port, () => {
-  logger.info({ port: config.port }, 'API listening')
-})
+/** Vercel imports this as the Express function entry; do not listen there. */
+export default app
 
-function shutdown(signal: string) {
-  logger.info({ signal }, 'shutting down')
-  server.close(() => {
-    process.exit(0)
+if (!process.env.VERCEL) {
+  const server = app.listen(config.port, () => {
+    logger.info({ port: config.port }, 'API listening')
   })
-}
 
-process.on('SIGINT', () => shutdown('SIGINT'))
-process.on('SIGTERM', () => shutdown('SIGTERM'))
+  function shutdown(signal: string) {
+    logger.info({ signal }, 'shutting down')
+    server.close(() => {
+      process.exit(0)
+    })
+  }
+
+  process.on('SIGINT', () => shutdown('SIGINT'))
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+}

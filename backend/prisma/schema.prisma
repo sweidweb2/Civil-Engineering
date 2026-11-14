@@ -120,7 +120,7 @@ model ManagerProfile {
 // auth — JWT refresh denylist (rotation + logout); no full session table yet
 // =============================================================================
 
-/// Denied refresh jti values until natural JWT expiry (survives Redis outages).
+/// Denied refresh jti values until natural JWT expiry (logout / rotation denylist).
 model DeniedRefreshToken {
   jti       String   @id
   expiresAt DateTime

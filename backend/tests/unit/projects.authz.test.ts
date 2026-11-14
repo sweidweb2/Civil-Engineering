@@ -37,12 +37,24 @@ describe('projectsService.assertAccessible', () => {
   function serviceWith(project: Project | null) {
     const repository: ProjectsRepository = {
       findMany: vi.fn(async () => ({ projects: [], total: 0 })),
+      summarize: vi.fn(async () => ({
+        total: 0,
+        averageProgress: 0,
+        counts: {
+          DRAFT: 0,
+          PLANNING: 0,
+          APPROVED: 0,
+          IN_PROGRESS: 0,
+          ON_HOLD: 0,
+          COMPLETED: 0,
+          CANCELLED: 0,
+        },
+      })),
       findById: vi.fn(async () => project),
       findByCode: vi.fn(async () => null),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      findScheduleRows: vi.fn(async () => []),
       findTimeline: vi.fn(async () => []),
     }
     return createProjectsService(repository, {})

@@ -71,7 +71,7 @@ export function ListingDetailsPage() {
   useEffect(() => {
     if (!isEditing) return
     let cancelled = false
-    void listCategories(1, 100)
+    void listCategories(1, 100, { includeCounts: false })
       .then((result) => {
         if (!cancelled) setCategories(result.data.filter(isListingCategory))
       })

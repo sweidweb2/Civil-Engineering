@@ -38,6 +38,8 @@ function extractAccessToken(req: {
  */
 export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler {
   let resolvePrincipal = deps.resolvePrincipal
+  // Load once per factory — avoid re-parsing Zod env on every request.
+  const config = loadConfig()
 
   return async (req, _res, next) => {
     try {
@@ -46,7 +48,6 @@ export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler 
         throw unauthorized()
       }
 
-      const config = loadConfig()
       const payload = verifyAccessToken(config, token)
       resolvePrincipal ??= createDbAccessPrincipalResolver()
       const principal = await resolvePrincipal(payload.sub)

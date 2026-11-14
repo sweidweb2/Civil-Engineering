@@ -137,7 +137,7 @@ export function createReviewsService(
     async listTargets(targetType, actor) {
       assertAdmin(actor, 'Only admins can list review targets')
       if (targetType === 'LISTING') {
-        return listings.listListingChoices(100)
+        return listings.listListingChoices({ take: 100 })
       }
       return repository.listTargets(targetType)
     },

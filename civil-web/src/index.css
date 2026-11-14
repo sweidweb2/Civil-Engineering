@@ -217,12 +217,12 @@
   [data-slot='table-body'] tr::before {
     content: '';
     display: table-cell;
-    width: 3rem;
-    min-width: 3rem;
-    padding: 0.5rem 0.375rem;
+    width: 3.5rem;
+    min-width: 3.5rem;
+    padding: 0.75rem 0.5rem;
     vertical-align: middle;
     text-align: center;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--muted-foreground);
@@ -246,18 +246,18 @@
     content: counter(table-row);
     position: absolute;
     top: 50%;
-    left: 0.6875rem;
+    left: 0.75rem;
     z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.625rem;
-    height: 1.625rem;
+    width: 1.875rem;
+    height: 1.875rem;
     transform: translateY(-50%);
     border-radius: 9999px;
     background-color: var(--primary);
     color: var(--primary-foreground);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -270,12 +270,12 @@
 
   [data-slot='table'][data-index='plain'] [data-slot='table-body'] tr:not(:has([colspan]))::after {
     left: 0;
-    width: 3rem;
+    width: 3.5rem;
     height: auto;
     border-radius: 0;
     background: transparent;
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
   }
 }

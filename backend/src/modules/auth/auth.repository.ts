@@ -23,14 +23,24 @@ export type CreateAuthUserInput = {
   lastName?: string
 }
 
+export type AuthPrincipalRecord = {
+  id: string
+  role: Role
+  status: UserStatus
+}
+
 export type AuthRepository = {
   findByEmail: (email: string) => Promise<AuthUserRecord | null>
   findById: (id: string) => Promise<AuthUserRecord | null>
+  /** Lean row for request auth — never select password or profile. */
+  findPrincipalById: (id: string) => Promise<AuthPrincipalRecord | null>
   createUserWithProfile: (input: CreateAuthUserInput) => Promise<AuthUserRecord>
   updatePasswordHash: (userId: string, passwordHash: string) => Promise<void>
   /** Persist a denied refresh jti until expiresAt (idempotent). */
   denyRefreshJti: (jti: string, expiresAt: Date) => Promise<void>
   isRefreshJtiDenied: (jti: string) => Promise<boolean>
+  /** Delete expired denylist rows. Returns number removed. */
+  purgeExpiredDeniedRefreshTokens: (now?: Date) => Promise<number>
 }
 
 export function createAuthRepository(): AuthRepository {
@@ -54,6 +64,13 @@ export function createAuthRepository(): AuthRepository {
             select: { firstName: true, lastName: true, displayName: true },
           },
         },
+      })
+    },
+
+    async findPrincipalById(id) {
+      return prisma.user.findUnique({
+        where: { id },
+        select: { id: true, role: true, status: true },
       })
     },
 
@@ -108,6 +125,13 @@ export function createAuthRepository(): AuthRepository {
         return false
       }
       return true
+    },
+
+    async purgeExpiredDeniedRefreshTokens(now = new Date()) {
+      const result = await prisma.deniedRefreshToken.deleteMany({
+        where: { expiresAt: { lte: now } },
+      })
+      return result.count
     },
   }
 }

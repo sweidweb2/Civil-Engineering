@@ -36,9 +36,11 @@ export function toCategoryDto(record: CategoryRecord): Category {
     id: record.id,
     kind: record.kind,
     name: record.name,
+    nameAr: record.nameAr,
     slug: record.slug,
     parentId: record.parentId,
     parentName: record.parentName,
+    parentNameAr: record.parentNameAr,
     isActive: record.isActive,
     sortOrder: record.sortOrder,
     childCount: record.childCount,
@@ -138,6 +140,7 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
       await assertUnique(input.kind, parentId, slug, input.name)
       const created = await repository.create({
         name: input.name,
+        nameAr: input.nameAr ?? null,
         slug,
         kind: input.kind,
         parentId,

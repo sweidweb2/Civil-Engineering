@@ -24,11 +24,15 @@ export type ListingsService = {
   assertManageable: (id: string, actor: AuthActor) => Promise<Listing>
   /** Internal lookups for other modules (no actor / authorization). */
   getListingSnapshot: (id: string) => Promise<ListingSnapshot | null>
+  getListingSnapshots: (ids: string[]) => Promise<ListingSnapshot[]>
   getListingNames: (ids: string[]) => Promise<Array<{ id: string; name: string }>>
   listingExists: (id: string) => Promise<boolean>
-  listListingChoices: (
-    take?: number,
-  ) => Promise<Array<{ id: string; name: string; subtitle: string }>>
+  listListingChoices: (filters?: {
+    take?: number
+    categoryId?: string
+    status?: 'ACTIVE' | 'INACTIVE'
+    q?: string
+  }) => Promise<Array<{ id: string; name: string; subtitle: string }>>
 }
 
 export type DeleteListingResult = {
@@ -48,6 +52,7 @@ export function toListingDto(record: ListingRecord, mainImageUrl: string | null 
     providerName: record.providerName,
     categoryId: record.categoryId,
     categoryName: record.categoryName,
+    categoryNameAr: record.categoryNameAr,
     type: record.type,
     name: record.name,
     description: record.description,
@@ -206,9 +211,16 @@ export function createListingsService(
     assertManageable,
 
     getListingSnapshot: (id) => repository.findSnapshotById(id),
+    getListingSnapshots: (ids) => repository.findSnapshotsByIds(ids),
     getListingNames: (ids) => repository.findNamesByIds(ids),
     listingExists: (id) => repository.existsById(id),
-    listListingChoices: (take = 100) => repository.listChoices(take),
+    listListingChoices: (filters = {}) =>
+      repository.listChoices({
+        take: filters.take ?? 100,
+        categoryId: filters.categoryId,
+        status: filters.status,
+        q: filters.q,
+      }),
 
     async listListings(query, actor) {
       assertCanView(actor)

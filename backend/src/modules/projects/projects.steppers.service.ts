@@ -110,7 +110,7 @@ export function createProjectSteppersService(
   inputTypes: Pick<InputTypesService, 'requireActiveInputType'>,
   files: ProjectSteppersFilesGateway,
   categories: Pick<CategoriesService, 'requirePlatformCategory'>,
-  listings: Pick<ListingsService, 'getListingSnapshot'>,
+  listings: Pick<ListingsService, 'getListingSnapshot' | 'getListingSnapshots'>,
 ): ProjectSteppersService {
   async function resolveStoredValue(
     projectId: string,
@@ -118,6 +118,13 @@ export function createProjectSteppersService(
     label: string,
     categoryId: string | null,
     value: StepperInputValuePayload,
+    prefetched: {
+      filesById: Map<string, Awaited<ReturnType<FilesService['requireReadyAttachment']>>>
+      listingsById: Map<
+        string,
+        NonNullable<Awaited<ReturnType<ListingsService['getListingSnapshot']>>>
+      >
+    },
   ): Promise<StepperInputValuePayload> {
     assertValidStepperValue(inputTypeCode, label, value)
     if (value === null) return null
@@ -129,7 +136,9 @@ export function createProjectSteppersService(
       if (!fileId) {
         throw validationError(`"${label}" must be a file selection`)
       }
-      const file = await files.requireReadyAttachment(fileId, 'PROJECT', projectId)
+      const file =
+        prefetched.filesById.get(fileId) ??
+        (await files.requireReadyAttachment(fileId, 'PROJECT', projectId))
       return toFileSnapshot(file)
     }
 
@@ -141,7 +150,8 @@ export function createProjectSteppersService(
     if (!listingId) {
       throw validationError(`"${label}" must be a listing selection`)
     }
-    const snapshot = await listings.getListingSnapshot(listingId)
+    const snapshot =
+      prefetched.listingsById.get(listingId) ?? (await listings.getListingSnapshot(listingId))
     if (!snapshot) {
       throw notFound('Listing not found', 'LISTING_NOT_FOUND')
     }
@@ -184,19 +194,58 @@ export function createProjectSteppersService(
       assertNotTruncated(truncated, 'inputs')
       const byId = new Map(meta.map((input) => [input.id, input]))
 
+      for (const entry of body.values) {
+        if (!byId.has(entry.id)) {
+          throw validationError('One or more inputs do not belong to this project step')
+        }
+      }
+
+      const listingIds = [
+        ...new Set(
+          body.values.flatMap((entry) => {
+            const field = byId.get(entry.id)
+            if (!field || normalizeInputTypeCode(field.inputTypeCode) !== 'CATEGORY') return []
+            const listingId = listingIdFromValue(entry.value)
+            return listingId ? [listingId] : []
+          }),
+        ),
+      ]
+      const fileIds = [
+        ...new Set(
+          body.values.flatMap((entry) => {
+            const field = byId.get(entry.id)
+            if (!field || !isFileInputType(field.inputTypeCode)) return []
+            const fileId = fileIdFromValue(entry.value)
+            return fileId ? [fileId] : []
+          }),
+        ),
+      ]
+
+      const [listingSnapshots, readyFiles] = await Promise.all([
+        listings.getListingSnapshots(listingIds),
+        Promise.all(
+          fileIds.map(async (fileId) => {
+            const file = await files.requireReadyAttachment(fileId, 'PROJECT', projectId)
+            return [fileId, file] as const
+          }),
+        ),
+      ])
+      const prefetched = {
+        listingsById: new Map(listingSnapshots.map((snapshot) => [snapshot.id, snapshot])),
+        filesById: new Map(readyFiles),
+      }
+
       const resolved: Array<{ id: string; value: StepperInputValuePayload }> = []
       const obsoleteFileIds: string[] = []
       for (const entry of body.values) {
-        const field = byId.get(entry.id)
-        if (!field) {
-          throw validationError('One or more inputs do not belong to this project step')
-        }
+        const field = byId.get(entry.id)!
         const value = await resolveStoredValue(
           projectId,
           field.inputTypeCode,
           field.label,
           field.categoryId,
           entry.value,
+          prefetched,
         )
         if (isFileInputType(field.inputTypeCode)) {
           const previousFileId = fileIdFromValue(field.value)
@@ -209,9 +258,9 @@ export function createProjectSteppersService(
       }
 
       await repository.upsertValues(link.id, resolved)
-      for (const fileId of obsoleteFileIds) {
-        await softDeleteFileBestEffort(files, actor, fileId)
-      }
+      await Promise.all(
+        obsoleteFileIds.map((fileId) => softDeleteFileBestEffort(files, actor, fileId)),
+      )
       return loadDetailOrThrow(projectStepId)
     },
 
@@ -241,6 +290,7 @@ export function createProjectSteppersService(
               body.label,
               categoryId,
               value ?? null,
+              { filesById: new Map(), listingsById: new Map() },
             )
           }
           return repository.createInput(projectStepId, {

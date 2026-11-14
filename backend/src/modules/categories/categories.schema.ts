@@ -14,6 +14,15 @@ const parentIdField = z.preprocess(
   z.string().trim().min(1).nullable().optional(),
 )
 
+/** Empty string clears the Arabic name; whitespace-only becomes null. */
+function blankToNull(value: unknown) {
+  if (value === undefined) return undefined
+  if (value === null || value === '') return null
+  return typeof value === 'string' ? value.trim() : value
+}
+
+const nameArField = z.preprocess(blankToNull, z.string().max(80).nullable().optional())
+
 export const categoryIdParamsSchema = z.object({
   id: z.string().trim().min(1),
 })
@@ -21,10 +30,17 @@ export const categoryIdParamsSchema = z.object({
 export const listCategoriesQuerySchema = paginationQuerySchema.extend({
   q: optionalQueryText,
   kind: categoryKindSchema.optional(),
+  /** When false, skip per-row children/listings counts (pickers). Default true. */
+  includeCounts: z.preprocess((value) => {
+    if (value === 'false' || value === '0' || value === false) return false
+    if (value === 'true' || value === '1' || value === true) return true
+    return value
+  }, z.boolean().optional()),
 })
 
 export const createCategoryBodySchema = z.object({
   name: z.string().trim().min(1).max(80),
+  nameAr: nameArField,
   kind: categoryKindSchema,
   parentId: parentIdField,
   isActive: z.boolean().optional(),
@@ -34,6 +50,7 @@ export const createCategoryBodySchema = z.object({
 export const updateCategoryBodySchema = z
   .object({
     name: z.string().trim().min(1).max(80).optional(),
+    nameAr: nameArField,
     kind: categoryKindSchema.optional(),
     parentId: parentIdField,
     isActive: z.boolean().optional(),
@@ -50,10 +67,12 @@ export type ListCategoriesQuery = {
   limit: number
   q?: string
   kind?: CategoryKind
+  includeCounts?: boolean
 }
 
 export type CreateCategoryBody = {
   name: string
+  nameAr?: string | null
   kind: CategoryKind
   parentId?: string | null
   isActive?: boolean
@@ -62,6 +81,7 @@ export type CreateCategoryBody = {
 
 export type UpdateCategoryBody = {
   name?: string
+  nameAr?: string | null
   kind?: CategoryKind
   parentId?: string | null
   isActive?: boolean

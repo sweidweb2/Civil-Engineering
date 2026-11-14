@@ -8,7 +8,7 @@
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit --pretty false",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",

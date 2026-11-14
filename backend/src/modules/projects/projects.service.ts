@@ -12,7 +12,7 @@ import type { StepsService } from '../steps/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
 import { scheduleProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
-import type { Project, ProjectStatus } from './projects.types.js'
+import type { Project, ProjectListItem, ProjectStatus } from './projects.types.js'
 
 export type ProjectsServiceDeps = {
   config?: AppConfig
@@ -27,7 +27,7 @@ export type ProjectsService = {
     query: ListProjectsQuery,
     actor: AuthActor,
   ) => Promise<{
-    data: Project[]
+    data: ProjectListItem[]
     meta: { total: number; page: number; limit: number; totalPages: number }
   }>
   getProjectById: (id: string) => Promise<Project>
@@ -58,18 +58,6 @@ export type ProjectTimelineItem = {
   actualStartDate: string | null
   actualEndDate: string | null
   createdAt: string
-}
-
-function emptyStatusCounts(): Record<ProjectStatus, number> {
-  return {
-    DRAFT: 0,
-    PLANNING: 0,
-    APPROVED: 0,
-    IN_PROGRESS: 0,
-    ON_HOLD: 0,
-    COMPLETED: 0,
-    CANCELLED: 0,
-  }
 }
 
 export function createProjectsService(
@@ -141,8 +129,9 @@ export function createProjectsService(
         }),
       )
 
-      const data = projects.map(({ mainImageStoragePath, ...project }) => ({
-        ...presentProject(project),
+      const data: ProjectListItem[] = projects.map(({ mainImageStoragePath, ...project }) => ({
+        ...project,
+        progress: scheduleProgress(project.startDate, project.endDate),
         mainImageUrl: mainImageStoragePath ? (urlByPath.get(mainImageStoragePath) ?? null) : null,
       }))
 
@@ -159,21 +148,7 @@ export function createProjectsService(
 
     async getSummary(actor) {
       const ownerScope = isAdmin(actor.roles) ? undefined : actor.id
-      const rows = await repository.findScheduleRows(ownerScope)
-      const counts = emptyStatusCounts()
-      let progressSum = 0
-      for (const row of rows) {
-        counts[row.status] += 1
-        progressSum += scheduleProgress(row.startDate, row.endDate)
-      }
-      const total = rows.length
-      return {
-        data: {
-          total,
-          averageProgress: total === 0 ? 0 : Math.round(progressSum / total),
-          counts,
-        },
-      }
+      return { data: await repository.summarize(ownerScope) }
     },
 
     async listTimeline(actor) {

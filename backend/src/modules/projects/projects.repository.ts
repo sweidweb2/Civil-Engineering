@@ -13,12 +13,6 @@ type UpdateProjectInput = UpdateProjectBody & {
   progress: number
 }
 
-export type ProjectScheduleRow = {
-  status: ProjectStatus
-  startDate: string | null
-  endDate: string | null
-}
-
 export type ProjectTimelineRow = {
   id: string
   name: string
@@ -30,12 +24,19 @@ export type ProjectTimelineRow = {
   createdAt: string
 }
 
+export type ProjectSummaryAggregate = {
+  total: number
+  averageProgress: number
+  counts: Record<ProjectStatus, number>
+}
+
 export type ProjectsRepository = {
   findMany: (
     query: ListProjectsQuery,
     ownerId?: string,
   ) => Promise<{ projects: ProjectListRow[]; total: number }>
-  findScheduleRows: (ownerId?: string) => Promise<ProjectScheduleRow[]>
+  /** SQL aggregates for dashboard summary — no row dump. */
+  summarize: (ownerId?: string) => Promise<ProjectSummaryAggregate>
   findTimeline: (ownerId?: string) => Promise<ProjectTimelineRow[]>
   findById: (id: string) => Promise<Project | null>
   findByCode: (code: string) => Promise<Project | null>
@@ -129,7 +130,21 @@ export function createProjectsRepository(): ProjectsRepository {
           take: limit,
           where,
           orderBy: { createdAt: 'desc' },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            code: true,
+            ownerId: true,
+            city: true,
+            country: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+            progress: true,
+            type: true,
+            createdAt: true,
+            updatedAt: true,
             images: {
               where: { isMain: true },
               take: 1,
@@ -142,27 +157,59 @@ export function createProjectsRepository(): ProjectsRepository {
 
       return {
         projects: projects.map((project) => ({
-          ...mapToProject(project),
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          code: project.code,
+          ownerId: project.ownerId,
+          city: project.city,
+          country: project.country,
+          startDate: project.startDate?.toISOString() ?? null,
+          endDate: project.endDate?.toISOString() ?? null,
+          status: project.status,
+          progress: project.progress,
+          type: project.type,
+          createdAt: project.createdAt.toISOString(),
+          updatedAt: project.updatedAt.toISOString(),
           mainImageStoragePath: project.images[0]?.storagePath ?? null,
         })),
         total,
       }
     },
 
-    async findScheduleRows(ownerId) {
-      // Hard cap — summary aggregates must not load unbounded project sets.
-      const MAX_SUMMARY_ROWS = 2_000
-      const rows = await prisma.project.findMany({
-        where: { archivedAt: null, ...(ownerId ? { ownerId } : {}) },
-        select: { status: true, startDate: true, endDate: true },
-        take: MAX_SUMMARY_ROWS,
-        orderBy: { createdAt: 'desc' },
-      })
-      return rows.map((row) => ({
-        status: row.status,
-        startDate: row.startDate?.toISOString() ?? null,
-        endDate: row.endDate?.toISOString() ?? null,
-      }))
+    async summarize(ownerId) {
+      const where = { archivedAt: null, ...(ownerId ? { ownerId } : {}) }
+      const [groups, aggregate] = await Promise.all([
+        prisma.project.groupBy({
+          by: ['status'],
+          where,
+          _count: { _all: true },
+        }),
+        prisma.project.aggregate({
+          where,
+          _count: { _all: true },
+          _avg: { progress: true },
+        }),
+      ])
+
+      const counts: Record<ProjectStatus, number> = {
+        DRAFT: 0,
+        PLANNING: 0,
+        APPROVED: 0,
+        IN_PROGRESS: 0,
+        ON_HOLD: 0,
+        COMPLETED: 0,
+        CANCELLED: 0,
+      }
+      for (const group of groups) {
+        counts[group.status] = group._count._all
+      }
+
+      return {
+        total: aggregate._count._all,
+        averageProgress: Math.round(aggregate._avg.progress ?? 0),
+        counts,
+      }
     },
 
     async findTimeline(ownerId) {

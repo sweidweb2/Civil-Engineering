@@ -2,6 +2,7 @@ import 'dotenv/config'
 
 import { createApp } from './app.js'
 import { loadConfig } from './config/index.js'
+import { startDeniedRefreshTokenPurgeScheduler } from './jobs/index.js'
 import { getLogger } from './logging/index.js'
 
 const config = loadConfig()
@@ -12,6 +13,7 @@ const app = createApp({ config })
 export default app
 
 if (!process.env.VERCEL) {
+  startDeniedRefreshTokenPurgeScheduler()
   const server = app.listen(config.port, () => {
     logger.info({ port: config.port }, 'API listening')
   })

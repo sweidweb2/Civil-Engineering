@@ -141,10 +141,23 @@ function omitEmptyEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return next
 }
 
+let cachedProcessConfig: AppConfig | undefined
+
+/** Clear memoized process.env config (tests that mutate env). */
+export function resetConfigCache(): void {
+  cachedProcessConfig = undefined
+}
+
 /**
  * Load and validate env once. Call from server entry / createApp — not from domain code.
+ * When called with the default `process.env`, the result is memoized for the process lifetime.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  const useProcessCache = env === process.env
+  if (useProcessCache && cachedProcessConfig) {
+    return cachedProcessConfig
+  }
+
   const parsed = baseEnvSchema.safeParse(omitEmptyEnv(env))
 
   if (!parsed.success) {
@@ -172,7 +185,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         ? false
         : data.NODE_ENV === 'staging' || data.NODE_ENV === 'production'
 
-  return {
+  const config: AppConfig = {
     env: data.NODE_ENV,
     port: data.PORT,
     corsOrigins: parseCorsOrigins(env.CORS_ORIGINS, data.NODE_ENV),
@@ -194,6 +207,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     storageUploadUrlTtlSec: data.STORAGE_UPLOAD_URL_TTL_SEC,
     storageDownloadUrlTtlSec: data.STORAGE_DOWNLOAD_URL_TTL_SEC,
   }
+
+  if (useProcessCache) {
+    cachedProcessConfig = config
+  }
+  return config
 }
 
 export function requireJwtSecrets(config: AppConfig): {

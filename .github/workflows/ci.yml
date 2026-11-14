@@ -119,6 +119,12 @@ jobs:
             exit 0
           fi
 
+      - name: Prisma generate (backend client for typecheck)
+        run: |
+          if [ -f backend/package.json ]; then
+            (cd backend && npx prisma generate)
+          fi
+
       - name: TypeScript typecheck
         run: |
           if npm run | grep -q 'typecheck'; then

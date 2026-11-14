@@ -34,7 +34,26 @@ export type Project = {
   mainImageUrl?: string | null
 }
 
+/** Lean list card fields — detail-only columns stay on GET /projects/:id. */
+export type ProjectListItem = {
+  id: string
+  name: string
+  description: string | null
+  code: string | null
+  ownerId: string
+  city: string | null
+  country: string | null
+  startDate: string | null
+  endDate: string | null
+  status: ProjectStatus
+  progress: number
+  type: ProjectType | null
+  createdAt: string
+  updatedAt: string
+  mainImageUrl?: string | null
+}
+
 /** Repository list row before service attaches a presigned URL. */
-export type ProjectListRow = Project & {
+export type ProjectListRow = ProjectListItem & {
   mainImageStoragePath: string | null
 }

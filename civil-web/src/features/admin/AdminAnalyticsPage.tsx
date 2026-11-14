@@ -39,7 +39,7 @@ async function loadDashboard(): Promise<DashboardStats> {
     listUsers(1, 1),
     listProviders(1, 1),
     listProjects(1, 1),
-    listListings(1, 1),
+    listListings(1, 1, { counts: false }),
     listReviews(1, 1),
     listVerifications({ page: 1, limit: 1 }),
   ])

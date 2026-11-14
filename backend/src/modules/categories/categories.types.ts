@@ -4,9 +4,11 @@ export type Category = {
   id: string
   kind: CategoryKind
   name: string
+  nameAr: string | null
   slug: string
   parentId: string | null
   parentName: string | null
+  parentNameAr: string | null
   isActive: boolean
   sortOrder: number
   childCount: number

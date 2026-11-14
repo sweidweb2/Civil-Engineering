@@ -10,7 +10,7 @@ test.describe('admin shell navigation', () => {
   })
 
   test('opens queue, users, projects, directory, steps', async ({ page }) => {
-    await page.getByRole('link', { name: 'Queue' }).click()
+    await page.getByRole('link', { name: 'Workers requests' }).click()
     await expect(page).toHaveURL(/\/admin\/queue/)
     await expect(page.getByRole('heading', { name: 'User queue' })).toBeVisible()
 

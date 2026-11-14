@@ -35,7 +35,7 @@ import {
   type ReviewTargetType,
   updateReview,
 } from '@/services/reviews'
-import { listUsers, type User } from '@/services/users'
+import { listUserLookups, type UserLookup } from '@/services/users'
 
 type ReviewFormValues = {
   authorId: string
@@ -66,11 +66,8 @@ function formFromReview(review: Review): ReviewFormValues {
   }
 }
 
-function authorLabel(user: User): string {
-  const profile = user.profile
-  const name =
-    profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
-  return name ? `${name} · ${user.email}` : user.email
+function authorLabel(user: UserLookup): string {
+  return user.name ? `${user.name} · ${user.email}` : user.email
 }
 
 function targetLabel(option: ReviewTargetOption): string {
@@ -94,7 +91,7 @@ export function ReviewFormDialog({
 }: ReviewFormDialogProps) {
   const { t } = useTranslation(['admin', 'common'])
   const [form, setForm] = useState<ReviewFormValues>(EMPTY_FORM)
-  const [authors, setAuthors] = useState<User[]>([])
+  const [authors, setAuthors] = useState<UserLookup[]>([])
   const [targets, setTargets] = useState<ReviewTargetOption[]>([])
   const [isLoadingAuthors, setIsLoadingAuthors] = useState(false)
   const [isLoadingTargets, setIsLoadingTargets] = useState(false)
@@ -109,9 +106,9 @@ export function ReviewFormDialog({
     if (!open || mode !== 'create') return
     let cancelled = false
     setIsLoadingAuthors(true)
-    void listUsers(1, 100)
+    void listUserLookups(1, 100)
       .then((result) => {
-        if (!cancelled) setAuthors(result.data.filter((user) => user.status === 'ACTIVE'))
+        if (!cancelled) setAuthors(result.data)
       })
       .catch((error) => {
         if (!cancelled) {

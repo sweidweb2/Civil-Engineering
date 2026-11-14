@@ -5,7 +5,7 @@ import type { ListingSnapshot, ListingTypeCounts } from './listings.types.js'
 
 const listingInclude = {
   provider: { select: { name: true } },
-  category: { select: { name: true, kind: true } },
+  category: { select: { name: true, nameAr: true, kind: true } },
   images: {
     where: { isMain: true },
     take: 1,
@@ -21,6 +21,7 @@ export type ListingRecord = {
   providerName: string | null
   categoryId: string | null
   categoryName: string | null
+  categoryNameAr: string | null
   categoryKind: 'MATERIAL' | 'EQUIPMENT' | 'SERVICE' | 'WORKER' | null
   type: ListingType | null
   name: string
@@ -57,14 +58,24 @@ export type CreateListingRecordInput = {
   status: ListingStatus
 }
 
+export type ListingChoiceFilters = {
+  take: number
+  categoryId?: string
+  status?: ListingStatus
+  q?: string
+}
+
 export type ListingsRepository = {
   findMany: (query: ListListingsQuery) => Promise<{ items: ListingRecord[]; total: number }>
   countByType: (providerId?: string) => Promise<ListingTypeCounts>
   findById: (id: string) => Promise<ListingRecord | null>
   findSnapshotById: (id: string) => Promise<ListingSnapshot | null>
+  findSnapshotsByIds: (ids: string[]) => Promise<ListingSnapshot[]>
   findNamesByIds: (ids: string[]) => Promise<Array<{ id: string; name: string }>>
   existsById: (id: string) => Promise<boolean>
-  listChoices: (take: number) => Promise<Array<{ id: string; name: string; subtitle: string }>>
+  listChoices: (
+    filters: ListingChoiceFilters,
+  ) => Promise<Array<{ id: string; name: string; subtitle: string }>>
   findProvider: (id: string) => Promise<{ id: string } | null>
   findCategory: (id: string) => Promise<{
     id: string
@@ -97,6 +108,7 @@ function toRecord(row: ListingRow): ListingRecord {
     providerName: row.provider?.name ?? null,
     categoryId: row.categoryId,
     categoryName: row.category?.name ?? null,
+    categoryNameAr: row.category?.nameAr ?? null,
     categoryKind: row.category?.kind ?? null,
     type: listingTypeFromKind(row.category?.kind),
     name: row.name,
@@ -123,17 +135,57 @@ function listWhere(query: ListListingsQuery): Prisma.ListingWhereInput {
     categoryId: query.categoryId,
     status: query.status,
     ...(query.type ? { category: { kind: query.type } } : {}),
+    // Keep search on trigram-indexed columns (name, brand) — avoid join ILIKE.
     ...(query.q
       ? {
           OR: [
             { name: { contains: query.q, mode: 'insensitive' } },
             { brand: { contains: query.q, mode: 'insensitive' } },
-            { provider: { name: { contains: query.q, mode: 'insensitive' } } },
-            { category: { name: { contains: query.q, mode: 'insensitive' } } },
           ],
         }
       : {}),
   }
+}
+
+async function loadSnapshotsByIds(ids: string[]): Promise<ListingSnapshot[]> {
+  if (ids.length === 0) return []
+  const rows = await prisma.listing.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      name: true,
+      categoryId: true,
+      brand: true,
+      unit: true,
+      currency: true,
+      price: true,
+      priceMin: true,
+      priceMax: true,
+      rentalPrice: true,
+      rentalUnit: true,
+      providerId: true,
+      status: true,
+      description: true,
+      category: { select: { kind: true } },
+    },
+  })
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.category?.kind ?? null,
+    categoryId: row.categoryId,
+    brand: row.brand,
+    unit: row.unit,
+    currency: row.currency,
+    price: decimalToString(row.price),
+    priceMin: decimalToString(row.priceMin),
+    priceMax: decimalToString(row.priceMax),
+    rentalPrice: decimalToString(row.rentalPrice),
+    rentalUnit: row.rentalUnit,
+    providerId: row.providerId,
+    status: row.status,
+    description: row.description,
+  }))
 }
 
 export function createListingsRepository(): ListingsRepository {
@@ -147,11 +199,45 @@ export function createListingsRepository(): ListingsRepository {
           orderBy: [{ updatedAt: 'desc' }, { name: 'asc' }],
           skip,
           take: query.limit,
-          include: listingInclude,
+          select: {
+            id: true,
+            providerId: true,
+            categoryId: true,
+            name: true,
+            brand: true,
+            unit: true,
+            currency: true,
+            price: true,
+            priceMin: true,
+            priceMax: true,
+            rentalPrice: true,
+            rentalUnit: true,
+            quantityAvailable: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            provider: { select: { name: true } },
+            category: { select: { name: true, nameAr: true, kind: true } },
+            images: {
+              where: { isMain: true },
+              take: 1,
+              select: { storagePath: true },
+            },
+          },
         }),
         prisma.listing.count({ where }),
       ])
-      return { items: rows.map(toRecord), total }
+      // List omits description (detail-only) to keep card payloads lean.
+      return {
+        items: rows.map((row) =>
+          toRecord({
+            ...row,
+            description: null,
+            specs: null,
+          } as ListingRow),
+        ),
+        total,
+      }
     },
 
     async countByType(providerId) {
@@ -189,45 +275,11 @@ export function createListingsRepository(): ListingsRepository {
     },
 
     async findSnapshotById(id) {
-      const row = await prisma.listing.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          name: true,
-          categoryId: true,
-          brand: true,
-          unit: true,
-          currency: true,
-          price: true,
-          priceMin: true,
-          priceMax: true,
-          rentalPrice: true,
-          rentalUnit: true,
-          providerId: true,
-          status: true,
-          description: true,
-          category: { select: { kind: true } },
-        },
-      })
-      if (!row) return null
-      return {
-        id: row.id,
-        name: row.name,
-        type: row.category?.kind ?? null,
-        categoryId: row.categoryId,
-        brand: row.brand,
-        unit: row.unit,
-        currency: row.currency,
-        price: decimalToString(row.price),
-        priceMin: decimalToString(row.priceMin),
-        priceMax: decimalToString(row.priceMax),
-        rentalPrice: decimalToString(row.rentalPrice),
-        rentalUnit: row.rentalUnit,
-        providerId: row.providerId,
-        status: row.status,
-        description: row.description,
-      }
+      const rows = await loadSnapshotsByIds([id])
+      return rows[0] ?? null
     },
+
+    findSnapshotsByIds: loadSnapshotsByIds,
 
     async findNamesByIds(ids) {
       if (ids.length === 0) return []
@@ -242,10 +294,22 @@ export function createListingsRepository(): ListingsRepository {
       return row != null
     },
 
-    async listChoices(take) {
+    async listChoices(filters) {
       const rows = await prisma.listing.findMany({
+        where: {
+          ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+          ...(filters.status ? { status: filters.status } : {}),
+          ...(filters.q
+            ? {
+                OR: [
+                  { name: { contains: filters.q, mode: 'insensitive' } },
+                  { brand: { contains: filters.q, mode: 'insensitive' } },
+                ],
+              }
+            : {}),
+        },
         orderBy: { name: 'asc' },
-        take,
+        take: filters.take,
         select: { id: true, name: true, category: { select: { kind: true } } },
       })
       return rows.map((row) => ({

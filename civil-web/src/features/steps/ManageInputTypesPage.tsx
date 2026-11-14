@@ -247,7 +247,7 @@ export function ManageInputTypesPage() {
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="font-mono text-xs">{row.code}</TableCell>
+                    <TableCell className="font-mono text-sm">{row.code}</TableCell>
                     <TableCell title={row.label}>{ellipsis(row.label, 36)}</TableCell>
                     <TableCell>
                       <Badge variant={row.status === 'ACTIVE' ? 'default' : 'outline'}>

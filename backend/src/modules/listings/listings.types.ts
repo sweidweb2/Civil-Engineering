@@ -6,6 +6,7 @@ export type Listing = {
   providerName: string | null
   categoryId: string | null
   categoryName: string | null
+  categoryNameAr: string | null
   /** Derived from the linked category kind when a category is set. */
   type: ListingType | null
   name: string

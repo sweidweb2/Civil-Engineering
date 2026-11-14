@@ -43,10 +43,12 @@ describe('auth.service', () => {
     repository = {
       findByEmail: vi.fn(),
       findById: vi.fn(),
+      findPrincipalById: vi.fn(),
       createUserWithProfile: vi.fn(),
       updatePasswordHash: vi.fn(),
       denyRefreshJti: vi.fn(async () => undefined),
       isRefreshJtiDenied: vi.fn(async () => false),
+      purgeExpiredDeniedRefreshTokens: vi.fn(async () => 0),
     }
   })
 

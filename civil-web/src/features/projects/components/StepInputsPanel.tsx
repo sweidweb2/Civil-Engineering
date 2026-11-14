@@ -84,7 +84,7 @@ export function StepInputsPanel({ step, open, onOpenChange, onChanged }: StepInp
   })
   const types: InputType[] = typesRemote.status === 'success' ? typesRemote.data.data : []
 
-  const loadCategories = useCallback(() => listCategories(1, 100), [])
+  const loadCategories = useCallback(() => listCategories(1, 100, { includeCounts: false }), [])
   const categoriesRemote = useRemoteData(loadCategories, {
     queryKey: ['categories', 'step-input-picker'],
     enabled: open,

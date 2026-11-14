@@ -292,6 +292,8 @@ model Category {
   providerId String?
   kind       CategoryKind
   name       String
+  /// Optional Arabic display name; clients fall back to `name` when null/empty.
+  nameAr     String?
   slug       String
   parentId   String?
   isActive   Boolean       @default(true)
@@ -358,7 +360,11 @@ model Listing {
   @@index([providerId])
   @@index([categoryId])
   @@index([status])
+  @@index([updatedAt])
+  @@index([status, updatedAt])
+  @@index([providerId, status, updatedAt])
   @@index([name(ops: raw("gin_trgm_ops"))], map: "listings_name_trgm_idx", type: Gin)
+  @@index([brand(ops: raw("gin_trgm_ops"))], map: "listings_brand_trgm_idx", type: Gin)
   @@map("listings")
 }
 
@@ -436,6 +442,12 @@ model Project {
   @@index([startDate])
   @@index([city, country])
   @@index([createdAt])
+  @@index([archivedAt])
+  @@index([ownerId, archivedAt, createdAt])
+  @@index([archivedAt, createdAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "projects_name_trgm_idx", type: Gin)
+  @@index([code(ops: raw("gin_trgm_ops"))], map: "projects_code_trgm_idx", type: Gin)
+  @@index([city(ops: raw("gin_trgm_ops"))], map: "projects_city_trgm_idx", type: Gin)
   @@map("projects")
 }
 

@@ -32,7 +32,7 @@ export type ProjectsModuleDeps = {
 export type ProjectsRouterDeps = {
   service: ProjectsService
   files: ProjectSteppersFilesGateway
-  listings: Pick<ListingsService, 'getListingSnapshot'>
+  listings: Pick<ListingsService, 'getListingSnapshot' | 'getListingSnapshots'>
 }
 
 /** Builds a fresh service. The composition root calls this once per app. */

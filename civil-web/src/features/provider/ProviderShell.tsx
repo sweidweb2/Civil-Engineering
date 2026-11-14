@@ -90,6 +90,7 @@ export function ProviderShell() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                closeOnClick={false}
                 onClick={() => void onLogout()}
                 disabled={isLoggingOut}
                 aria-busy={isLoggingOut}

@@ -82,7 +82,7 @@ export function ListingFormDialog({
     const providersRequest = lockedProviderId
       ? Promise.resolve({ data: [] as Provider[] })
       : listProviders(1, 100)
-    void Promise.all([providersRequest, listCategories(1, 100)])
+    void Promise.all([providersRequest, listCategories(1, 100, { includeCounts: false })])
       .then(([providerResult, categoryResult]) => {
         if (cancelled) return
         setProviders(providerResult.data)

@@ -1,5 +1,6 @@
 import type { AppConfig } from '../../config/index.js'
 import { conflict, unauthorized } from '../../errors/app-error.js'
+import { enqueuePurgeExpiredDeniedRefreshTokens } from '../../jobs/index.js'
 import { getLogger } from '../../logging/index.js'
 import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
@@ -37,6 +38,16 @@ function toUserDto(user: AuthUserRecord): AuthUserDto {
         }
       : null,
   }
+}
+
+const DENIED_REFRESH_PURGE_MIN_INTERVAL_MS = 60 * 60 * 1000
+let lastDeniedRefreshPurgeAt = 0
+
+function maybePurgeDeniedRefreshTokens(): void {
+  const now = Date.now()
+  if (now - lastDeniedRefreshPurgeAt < DENIED_REFRESH_PURGE_MIN_INTERVAL_MS) return
+  lastDeniedRefreshPurgeAt = now
+  void enqueuePurgeExpiredDeniedRefreshTokens()
 }
 
 function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {
@@ -159,6 +170,9 @@ export function createAuthService(
 
       // Rotate: denylist the presented refresh before issuing a new pair.
       await denyRefreshToken(repository, config, payload.jti, refreshTtlSeconds(payload))
+
+      // Best-effort denylist GC (covers serverless where the hourly scheduler does not run).
+      void maybePurgeDeniedRefreshTokens()
 
       return issueTokens(config, user)
     },

@@ -85,7 +85,7 @@ export function ErrorLogsPage() {
                   <TableRow key={row.id}>
                     <TableCell className="whitespace-nowrap">{formatWhen(row.createdAt)}</TableCell>
                     <TableCell>{row.status ?? '—'}</TableCell>
-                    <TableCell className="font-mono text-xs">{row.code ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-sm">{row.code ?? '—'}</TableCell>
                     <TableCell className="max-w-md truncate" title={row.message}>
                       {row.message}
                     </TableCell>

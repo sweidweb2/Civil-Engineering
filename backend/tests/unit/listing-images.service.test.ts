@@ -17,6 +17,7 @@ function stubListing(): Listing {
     providerName: 'Yard',
     categoryId: 'cat-1',
     categoryName: 'Cement',
+    categoryNameAr: null,
     type: 'MATERIAL',
     name: 'Cement',
     description: null,

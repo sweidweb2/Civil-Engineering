@@ -61,7 +61,7 @@ export function AddStepperInputDialog({
   const typesData = typesRemote.status === 'success' ? typesRemote.data.data : null
   const types = useMemo<InputType[]>(() => typesData ?? [], [typesData])
 
-  const loadCategories = useCallback(() => listCategories(1, 100), [])
+  const loadCategories = useCallback(() => listCategories(1, 100, { includeCounts: false }), [])
   const categoriesRemote = useRemoteData(loadCategories, {
     queryKey: ['categories', 'project-step-input-picker'],
     enabled: open,

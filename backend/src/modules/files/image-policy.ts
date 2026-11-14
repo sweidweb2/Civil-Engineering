@@ -49,7 +49,8 @@ export function assertAllowedImageUpload(
 }
 
 export function toWebpBuffer(buffer: Buffer): Promise<Buffer> {
-  return sharp(buffer).webp({ quality: 85, effort: 4 }).toBuffer()
+  // effort 2 keeps encode CPU off the worst hot path while still producing solid WebP.
+  return sharp(buffer).webp({ quality: 85, effort: 2 }).toBuffer()
 }
 
 /** In-memory multer instance for single-image uploads. */

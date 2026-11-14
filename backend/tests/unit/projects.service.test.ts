@@ -45,12 +45,24 @@ function setup(existing: Project | null = makeProject()) {
       projects: existing ? [{ ...existing, mainImageStoragePath: null }] : [],
       total: existing ? 1 : 0,
     })),
+    summarize: vi.fn(async () => ({
+      total: existing ? 1 : 0,
+      averageProgress: existing ? 40 : 0,
+      counts: {
+        DRAFT: 0,
+        PLANNING: 0,
+        APPROVED: 0,
+        IN_PROGRESS: existing ? 1 : 0,
+        ON_HOLD: 0,
+        COMPLETED: 0,
+        CANCELLED: 0,
+      },
+    })),
     findById: vi.fn(async () => existing),
     findByCode: vi.fn(async (code) => (existing?.code === code ? existing : null)),
     create: vi.fn(async (input) => makeProject({ ...input, id: 'p-new' })),
     update: vi.fn(async (id, input) => makeProject({ id, ...input })),
     delete: vi.fn(async () => undefined),
-    findScheduleRows: vi.fn(async () => []),
     findTimeline: vi.fn(async () => []),
   }
   return { repository, service: createProjectsService(repository) }

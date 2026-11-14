@@ -4,11 +4,16 @@ import type { ListCategoriesQuery, UpdateCategoryBody } from './categories.schem
 import type { CategoryKindCounts } from './categories.types.js'
 
 const categoryInclude = {
-  parent: { select: { name: true } },
+  parent: { select: { name: true, nameAr: true } },
   _count: { select: { children: true, listings: true } },
 } as const
 
+const categoryLeanInclude = {
+  parent: { select: { name: true, nameAr: true } },
+} as const
+
 type CategoryRow = Prisma.CategoryGetPayload<{ include: typeof categoryInclude }>
+type CategoryLeanRow = Prisma.CategoryGetPayload<{ include: typeof categoryLeanInclude }>
 
 export type CategoryRecord = {
   id: string
@@ -16,9 +21,11 @@ export type CategoryRecord = {
   providerId: string | null
   kind: CategoryKind
   name: string
+  nameAr: string | null
   slug: string
   parentId: string | null
   parentName: string | null
+  parentNameAr: string | null
   isActive: boolean
   sortOrder: number
   childCount: number
@@ -29,6 +36,7 @@ export type CategoryRecord = {
 
 export type CreateCategoryRecordInput = {
   name: string
+  nameAr: string | null
   slug: string
   kind: CategoryKind
   parentId: string | null
@@ -61,13 +69,36 @@ function toRecord(row: CategoryRow): CategoryRecord {
     providerId: row.providerId,
     kind: row.kind,
     name: row.name,
+    nameAr: row.nameAr,
     slug: row.slug,
     parentId: row.parentId,
     parentName: row.parent?.name ?? null,
+    parentNameAr: row.parent?.nameAr ?? null,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     childCount: row._count.children,
     listingCount: row._count.listings,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
+}
+
+function toLeanRecord(row: CategoryLeanRow): CategoryRecord {
+  return {
+    id: row.id,
+    scope: row.scope,
+    providerId: row.providerId,
+    kind: row.kind,
+    name: row.name,
+    nameAr: row.nameAr,
+    slug: row.slug,
+    parentId: row.parentId,
+    parentName: row.parent?.name ?? null,
+    parentNameAr: row.parent?.nameAr ?? null,
+    isActive: row.isActive,
+    sortOrder: row.sortOrder,
+    childCount: 0,
+    listingCount: 0,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -81,8 +112,10 @@ function listWhere(query: ListCategoriesQuery): Prisma.CategoryWhereInput {
       ? {
           OR: [
             { name: { contains: query.q, mode: 'insensitive' } },
+            { nameAr: { contains: query.q, mode: 'insensitive' } },
             { slug: { contains: query.q, mode: 'insensitive' } },
             { parent: { name: { contains: query.q, mode: 'insensitive' } } },
+            { parent: { nameAr: { contains: query.q, mode: 'insensitive' } } },
           ],
         }
       : {}),
@@ -94,6 +127,20 @@ export function createCategoriesRepository(): CategoriesRepository {
     async findMany(query) {
       const where = listWhere(query)
       const skip = (query.page - 1) * query.limit
+      const includeCounts = query.includeCounts !== false
+      if (!includeCounts) {
+        const [rows, total] = await Promise.all([
+          prisma.category.findMany({
+            where,
+            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+            skip,
+            take: query.limit,
+            include: categoryLeanInclude,
+          }),
+          prisma.category.count({ where }),
+        ])
+        return { items: rows.map(toLeanRecord), total }
+      }
       const [rows, total] = await Promise.all([
         prisma.category.findMany({
           where,
@@ -152,6 +199,7 @@ export function createCategoriesRepository(): CategoriesRepository {
           providerId: null,
           kind: input.kind,
           name: input.name,
+          nameAr: input.nameAr,
           slug: input.slug,
           parentId: input.parentId,
           isActive: input.isActive,
@@ -167,6 +215,7 @@ export function createCategoriesRepository(): CategoriesRepository {
         where: { id },
         data: {
           name: input.name,
+          nameAr: input.nameAr,
           slug: input.slug,
           kind: input.kind,
           parentId: input.parentId,

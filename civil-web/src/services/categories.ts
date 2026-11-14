@@ -55,9 +55,14 @@ export function categoryKindLabel(kind: CategoryKind): string {
   return 'Worker'
 }
 
-export function listCategories(page = 1, limit = 8, filters?: { q?: string; kind?: CategoryKind }) {
+export function listCategories(
+  page = 1,
+  limit = 8,
+  filters?: { q?: string; kind?: CategoryKind; includeCounts?: boolean },
+) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters?.q) params.set('q', filters.q)
+  if (filters?.includeCounts === false) params.set('includeCounts', 'false')
   if (filters?.kind) params.set('kind', filters.kind)
   return apiRequest<PaginatedCategories>(`/categories?${params.toString()}`)
 }

@@ -161,7 +161,7 @@ describe('reviewsService', () => {
     const { service, repository, listings } = setup()
     const targets = await service.listTargets('LISTING', admin)
     expect(targets).toEqual([{ id: 'lst-1', name: 'Portland cement', subtitle: 'MATERIAL' }])
-    expect(listings.listListingChoices).toHaveBeenCalledWith(100)
+    expect(listings.listListingChoices).toHaveBeenCalledWith({ take: 100 })
     expect(repository.listTargets).not.toHaveBeenCalled()
   })
 

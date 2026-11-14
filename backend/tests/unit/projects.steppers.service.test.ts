@@ -29,6 +29,7 @@ describe('projectSteppersService', () => {
   }
   const listings = {
     getListingSnapshot: vi.fn(),
+    getListingSnapshots: vi.fn(async () => []),
   }
 
   beforeEach(() => {

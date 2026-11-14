@@ -180,7 +180,12 @@ function AccountMenu({
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout} disabled={isLoggingOut} aria-busy={isLoggingOut}>
+        <DropdownMenuItem
+          closeOnClick={false}
+          onClick={onLogout}
+          disabled={isLoggingOut}
+          aria-busy={isLoggingOut}
+        >
           {isLoggingOut ? <Loader2 className="animate-spin" aria-hidden /> : <LogOut />}
           {isLoggingOut ? t('common:signingOut') : t('common:signOut')}
         </DropdownMenuItem>

@@ -5,12 +5,12 @@
 | Area              | Decision                                                                   |
 | ----------------- | -------------------------------------------------------------------------- |
 | **Web**           | React + TypeScript                                                         |
-| **Mobile**        | React Native + TypeScript (**parked** — see Decisions `[11]`)              |
+| **Mobile**        | React Native + TypeScript (Expo — Decisions `[13]`)                        |
 | **Backend**       | Express + TypeScript                                                       |
 | **Database**      | Supabase Postgres + Prisma                                                 |
 | **Cache / Queue** | None (no Redis; jobs sync; rate limit in-process via `express-rate-limit`) |
 | **Storage**       | Cloudflare R2 (S3 API)                                                     |
-| **Local run**     | `npm` in `backend/` + `civil-web/` (no Docker required)                    |
+| **Local run**     | `npm` in `backend/` + `civil-web/` + `civil-mobile/` (no Docker required)  |
 | **Deployment**    | TBD (Docker/Hostinger/Nginx plan superseded)                               |
 
 ---
@@ -55,7 +55,7 @@
          PostgreSQL          Storage
        (Supabase) + Prisma     (R2)
 
-  (React Native client parked — same REST contract when restored)
+  (React Native / Expo client — same REST contract)
 ```
 
 ---
@@ -166,9 +166,25 @@ web/
     └── ...
 ```
 
-### Mobile (parked)
+### Mobile
 
-`civil-mobile/` is **parked** — not in the active tree. See `Docs/[3] Decisions/[11] Mobile Client Parked.md`. When restored, use the same feature-based layout as web (`features/`, `services/`, `navigation/`) against `/api/v1`.
+```
+civil-mobile/
+  └── src/
+      ├── features/
+      │   ├── auth/
+      │   ├── projects/
+      │   ├── expenses/
+      │   └── workers/
+      │
+      ├── components/
+      ├── navigation/
+      ├── hooks/
+      ├── services/
+      └── stores/
+```
+
+Same feature-based layout as web against `/api/v1`. See `Docs/[3] Decisions/[13] Mobile Client Unparked.md`.
 
 ---
 
@@ -264,7 +280,7 @@ Frontend applications **never access the database directly**.
 
 ```
 React (web) ──→ REST API → Express → Database
-(future mobile client uses the same REST path when unparked)
+React Native (mobile) ──→ same REST path
 ```
 
 **Not allowed:**
@@ -287,6 +303,6 @@ The following points are **not yet locked**:
 - Production hosting / deploy topology (Docker plan superseded)
 - Reverse proxy / TLS / domain wiring (if/when needed)
 - Some infrastructure/security / monitoring choices (to be decided during implementation)
-- Mobile client unpark / restore timing (`civil-mobile/` parked per Decisions `[11]`)
+- Mobile store / EAS release workflow (PR CI is in `ci.yml`; shipping is separate — Decisions `[12]`)
 
 All other listed items above are the **locked technical baseline** for the project.

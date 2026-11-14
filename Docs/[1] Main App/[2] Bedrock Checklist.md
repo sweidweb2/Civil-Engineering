@@ -2,13 +2,13 @@
 
 Track foundation work only. Check items when done. Do not expand into essays here.
 
-**Last reviewed:** 2026-11-14 — mobile client parked; active apps `civil-web/` + `backend/`.
+**Last reviewed:** 2026-11-14 — mobile client unparked; active apps `civil-web/` + `civil-mobile/` + `backend/`.
 
 ---
 
 ## 1. Project / Repository Foundation
 
-- [x] Monorepo folders exist: `civil-web/`, `backend/` (`civil-mobile/` parked — Decisions `[11]`)
+- [x] Monorepo folders exist: `civil-web/`, `civil-mobile/`, `backend/` (Decisions `[13]`)
 - [x] Root `README.md`
 - [x] Root `.gitignore`
 - [x] Root `.editorconfig`
@@ -195,13 +195,13 @@ Track foundation work only. Check items when done. Do not expand into essays her
 
 ---
 
-## 10. Mobile Foundation (React Native) — PARKED
+## 10. Mobile Foundation (React Native)
 
-- [x] Decision recorded: `Docs/[3] Decisions/[11] Mobile Client Parked.md`
-- [ ] Restore `civil-mobile/` only after an explicit unpark decision
-- [ ] Re-check Expo / navigation / SecureStore / notifications bedrock when restored
+- [x] Unpark decision: `Docs/[3] Decisions/[13] Mobile Client Unparked.md` (supersedes `[11]`)
+- [x] `civil-mobile/` restored in monorepo
+- [ ] Re-check Expo / navigation / SecureStore / notifications bedrock after restore (smoke + CI green)
 
-> Historical mobile bedrock (Expo, SecureStore, gluestack layout, env files) applied while the app existed. Treat as archived until unparked — do not require `civil-mobile/` paths in CI or local run.
+> Mobile bedrock (Expo, SecureStore, gluestack layout, env files) is active again. Require `civil-mobile/` in local run and PR CI path filters.
 
 ---
 
@@ -561,7 +561,7 @@ Decision: [`Docs/[3] Decisions/[4] Docker & Infrastructure.md`](../[3]%20Decisio
 
 - [x] `Docs/` numbered tree (`[1] Main App`, `[2] Prompts`, `[3] Decisions`, `[4] Database`)
 - [x] `civil-web/src/` feature + theme + services layout
-- [ ] `civil-mobile/src/` — parked (Decisions `[11]`); restore when unparked
+- [x] `civil-mobile/src/` feature + theme + services layout (Decisions `[13]`)
 - [x] `backend/src/modules/` + middleware / config / database / jobs
 - [x] `backend/prisma/` schema + migrations
 - [x] Docker/Compose/Dockerfiles removed (no Docker required)

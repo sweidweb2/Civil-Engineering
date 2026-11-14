@@ -13,14 +13,14 @@ If a change would alter stack, layers, API shape, or module boundaries — **ask
 
 ## Repository layout
 
-| Path              | Own                                                     |
-| ----------------- | ------------------------------------------------------- |
-| `civil-web/`      | React web client                                        |
-| `civil-mobile/`   | Parked — do not restore without Decisions `[11]` update |
-| `backend/`        | Express API + Prisma + jobs                             |
-| `Docs/`           | Architecture, checklists, prompts, decisions            |
-| `.cursor/rules/`  | AI / coding rules                                       |
-| `infrastructure/` | Optional — only when real deploy/proxy config           |
+| Path              | Own                                           |
+| ----------------- | --------------------------------------------- |
+| `civil-web/`      | React web client                              |
+| `civil-mobile/`   | Expo React Native client (Decisions `[13]`)   |
+| `backend/`        | Express API + Prisma + jobs                   |
+| `Docs/`           | Architecture, checklists, prompts, decisions  |
+| `.cursor/rules/`  | AI / coding rules                             |
+| `infrastructure/` | Optional — only when real deploy/proxy config |
 
 Work in the smallest relevant app. Do not cross-wire clients into the database.
 
@@ -30,7 +30,7 @@ Work in the smallest relevant app. Do not cross-wire clients into the database.
 - **Layer flow:** Route → Controller → Service → Repository → Prisma → PostgreSQL.
 - Controllers stay thin — **no** business workflows, or Prisma there.
 - Repositories — **data access only**; no business orchestration.
-- Web (and future mobile) — **REST `/api/v1` only**; never Postgres or Prisma.
+- Web and mobile — **REST `/api/v1` only**; never Postgres or Prisma.
 - Validation: **Zod** on the backend (security); frontend Zod is UX only.
 - Client state: **Zustand** for UI/client state — not an API cache. Conventions: [`Docs/[3] Decisions/[5] Client State (Zustand).md`](<../[3]%20Decisions/[5]%20Client%20State%20(Zustand).md>).
 - Theme tokens live in `src/theme/` — not one-off magic numbers in components.

@@ -1,6 +1,6 @@
 # Libraries
 
-Locked testing + quality + UI libs. Paths: `civil-web/` · `backend/` (`civil-mobile/` parked — Decisions `[11]`)  
+Locked testing + quality + UI libs. Paths: `civil-web/` · `civil-mobile/` · `backend/` (Decisions `[13]`)  
 Decision: [CI & Testing](../[3]%20Decisions/[3]%20CI%20%26%20Testing.md)
 
 ---
@@ -63,9 +63,9 @@ npm run test:e2e:ui
 
 ---
 
-## 2. Mobile (`civil-mobile/`) — PARKED
+## 2. Mobile (`civil-mobile/`)
 
-Archived reference only. App folder is not in the tree (`Docs/[3] Decisions/[11] Mobile Client Parked.md`). Re-validate installs when unparked.
+Active Expo client (`Docs/[3] Decisions/[13] Mobile Client Unparked.md`). Re-validate installs after restore.
 
 ### UI
 

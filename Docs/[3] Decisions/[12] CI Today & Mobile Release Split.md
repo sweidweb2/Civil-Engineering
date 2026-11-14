@@ -3,7 +3,7 @@
 **Status:** DISCUSSION (notes to revisit later; not a new lock)  
 **Date:** 2026-11-14  
 **Applies to:** `.github/workflows/ci.yml`, future mobile PR CI + store/release CD  
-**Related:** [CI & Testing](./[3]%20CI%20%26%20Testing.md), [Mobile Client Parked](./[11]%20Mobile%20Client%20Parked.md)
+**Related:** [CI & Testing](./[3]%20CI%20%26%20Testing.md), [Mobile Client Unparked](./[13]%20Mobile%20Client%20Unparked.md) (supersedes [11](./[11]%20Mobile%20Client%20Parked.md))
 
 ---
 
@@ -23,6 +23,8 @@
 **Docs-only changes:** path filter exists, but `quality` still skips unless app/shared paths changed.
 
 **CD/deploy is not in this file** — Vercel is separate; store builds aren’t wired yet.
+
+**Mobile job:** re-enabled with unpark (Decision `[13]`). Path filters and unit/audit steps run when `civil-mobile/**` or shared paths change.
 
 ---
 
@@ -62,17 +64,17 @@ You can call EAS from a second workflow file (e.g. `.github/workflows/mobile-rel
 
 ---
 
-## Bottom line (for later discussion)
+## Bottom line
 
-- Keep mobile PR CI here (already stubbed in `ci.yml`).
-- Don’t gitignore mobile (when/if the tree is restored; see parked decision).
+- Keep mobile PR CI here (re-enabled with unpark).
+- Don’t gitignore mobile.
 - Don’t expect this file to replace App Store/Play CD — add EAS/release when you’re ready to ship.
 
 ---
 
 ## Open questions (discuss later)
 
-- [ ] When mobile is unparked: restore `civil-mobile/` + wire npm scripts so the `mobile` job goes green
+- [x] When mobile is unparked: restore `civil-mobile/` + wire npm scripts so the `mobile` job goes green
 - [ ] Whether Detox stays PR-gated (label / `main` only) same as Playwright policy in [CI & Testing](./[3]%20CI%20%26%20Testing.md)
 - [ ] Exact trigger for store builds (tag vs `main` vs manual) and secrets layout
 - [ ] Whether docs-only PRs should get a dedicated lightweight job beyond path filter

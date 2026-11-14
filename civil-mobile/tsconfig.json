@@ -5,7 +5,8 @@
     "types": ["jest"],
     "paths": {
       "@/*": ["./src/*"],
-      "@/assets/*": ["./assets/*"]
+      "@/assets/*": ["./assets/*"],
+      "@/global.css": ["./global.css"]
     }
   },
   "include": [
@@ -14,7 +15,8 @@
     "**/*.d.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "uniwind-types.d.ts"
+    "uniwind-types.d.ts",
+    "css.d.ts"
   ],
   "exclude": ["node_modules", "android", "ios", "dist", "src/components/ui", "tests/e2e"]
 }

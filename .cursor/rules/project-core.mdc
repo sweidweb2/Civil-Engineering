@@ -13,14 +13,14 @@ Source of truth: `Docs/[1] Main App/[1] Tech Stack.md`. Do not invent alternate 
 | --- | --- | --- |
 | Backend | `backend/` | Single API + business logic + data access |
 | Web | `civil-web/` | React + TypeScript browser client |
-| Mobile | `civil-mobile/` | **Parked** — React Native + TypeScript client (deferred; see `Docs/[3] Decisions/[11] Mobile Client Parked.md`) |
+| Mobile | `civil-mobile/` | React Native + TypeScript (Expo) client — see `Docs/[3] Decisions/[13] Mobile Client Unparked.md` |
 
-Active delivery is **backend + civil-web** only. Do not restore or scaffold `civil-mobile/` without a new decision. Clients talk to the same versioned REST API only. Never let web (or a future mobile client) touch PostgreSQL or Prisma directly.
+Active delivery is **backend + civil-web + civil-mobile**. Clients talk to the same versioned REST API only. Never let web or mobile touch PostgreSQL or Prisma directly.
 
 ## Locked stack
 
 - Web: React + TypeScript
-- Mobile: React Native + TypeScript (**parked** — not in active tree)
+- Mobile: React Native + TypeScript (Expo)
 - Backend: Express + TypeScript (monolith, layered, DDD modules)
 - DB: Supabase Postgres + Prisma
 - No Redis / BullMQ: jobs stay synchronous; rate limiting is in-process memory (`express-rate-limit`)
@@ -28,7 +28,7 @@ Active delivery is **backend + civil-web** only. Do not restore or scaffold `civ
 - Auth: JWT access + refresh tokens
 - Clients: feature-based folders + Zustand (UI/client state only)
 - Validation: Zod on clients (UX) and backend (security) — frontend Zod is not a security boundary
-- Local run: `npm` in `backend/` and `civil-web/` — **no Docker required**; no Dockerfiles/Compose in repo (superseded: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`, `[8] Redis.md`)
+- Local run: `npm` in `backend/`, `civil-web/`, and `civil-mobile/` — **no Docker required**; no Dockerfiles/Compose in repo (superseded: `Docs/[3] Decisions/[4] Docker & Infrastructure.md`, `[8] Redis.md`)
 
 Still open (do not invent as locked): exact domain boundaries, production deploy/hosting topology (TBD), monitoring.  
 Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage (Cloudflare R2).md`.
@@ -44,7 +44,7 @@ Storage provider locked: Cloudflare R2 — see `Docs/[3] Decisions/[10] Storage 
 
 ## Responsibility split (clean / simple / fast / secure)
 
-**Clients (`civil-web`; future `civil-mobile` when unparked)**
+**Clients (`civil-web`, `civil-mobile`)**
 - UI, navigation, feature screens, local UX validation
 - Call REST only; hold tokens securely; keep Zustand for client/UI state — not every API response
 - No business rules that authorize data or enforce server invariants
@@ -302,11 +302,9 @@ civil-web/src/
 - **Shared components**: truly reusable UI in `components/`; do not dump feature-specific widgets there
 - **Responsibility boundaries**: web never touches Postgres/Prisma; talk to `/api/v1` only
 
-## Mobile architecture (`civil-mobile`) — PARKED
+## Mobile architecture (`civil-mobile`)
 
-Mobile is **deferred** (`Docs/[3] Decisions/[11] Mobile Client Parked.md`). Do not add `civil-mobile/` or treat it as required until unparked.
-
-When restored, it should be feature-based React Native + TypeScript with the same `/api/v1` contract as web:
+Feature-based React Native + TypeScript (Expo) with the same `/api/v1` contract as web (`Docs/[3] Decisions/[13] Mobile Client Unparked.md`):
 
 ```
 civil-mobile/src/

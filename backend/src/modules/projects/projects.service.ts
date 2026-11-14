@@ -1,14 +1,9 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import {
-  type DbClient,
-  runInTransaction as defaultRunInTransaction,
-} from '../../database/transaction.js'
 import { conflict, notFound, validationError } from '../../errors/app-error.js'
 import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
-import type { StepsService } from '../steps/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
 import { scheduleProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
@@ -17,9 +12,6 @@ import type { Project, ProjectListItem, ProjectStatus } from './projects.types.j
 export type ProjectsServiceDeps = {
   config?: AppConfig
   storage?: StorageService
-  stepsService?: Pick<StepsService, 'assignActiveToProject'>
-  /** Injectable for tests — defaults to Prisma interactive transaction. */
-  runInTransaction?: <T>(fn: (tx: DbClient) => Promise<T>) => Promise<T>
 }
 
 export type ProjectsService = {
@@ -64,8 +56,7 @@ export function createProjectsService(
   repository: ProjectsRepository,
   deps: ProjectsServiceDeps = {},
 ): ProjectsService {
-  const { config, storage, stepsService } = deps
-  const runInTransaction = deps.runInTransaction ?? defaultRunInTransaction
+  const { config, storage } = deps
 
   async function loadOrThrow(id: string): Promise<Project> {
     const project = await repository.findById(id)
@@ -184,18 +175,7 @@ export function createProjectsService(
         progress: scheduleProgress(input.startDate, input.endDate),
       }
 
-      // Create + template clone must share one transaction so a failed clone
-      // never leaves an orphan project (and a stuck unique `code`).
-      if (!stepsService) {
-        return presentProject(await repository.create(payload))
-      }
-
-      const created = await runInTransaction(async (tx) => {
-        const project = await repository.create(payload, tx)
-        await stepsService.assignActiveToProject(project.id, ownerId, tx)
-        return project
-      })
-      return presentProject(created)
+      return presentProject(await repository.create(payload))
     },
 
     async updateProject(id, input, actor) {

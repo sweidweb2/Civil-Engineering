@@ -19,6 +19,5 @@ export function createCategoriesModule() {
   return createCategoriesRoutes(controller)
 }
 
-export { assertCategoryBinding } from './categories.binding.js'
 export { createCategoriesService }
 export type { CategoriesService }

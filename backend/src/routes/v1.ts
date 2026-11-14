@@ -28,7 +28,6 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use('/listings', modules.listings)
   router.use('/listing-images', modules.listingImages)
   router.use('/reviews', modules.reviews)
-  router.use('/input-types', modules.inputTypes)
   router.use('/steps', modules.steps)
   router.use('/projects', modules.projects)
   router.use('/project-images', modules.projectImages)

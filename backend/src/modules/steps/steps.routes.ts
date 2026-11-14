@@ -6,13 +6,9 @@ import { validate } from '../../middleware/validate.js'
 import type { StepsController } from './steps.controller.js'
 import {
   createStepBodySchema,
-  createStepInputBodySchema,
-  listStepInputsQuerySchema,
   listStepsQuerySchema,
   stepIdParamsSchema,
-  stepInputParamsSchema,
   updateStepBodySchema,
-  updateStepInputBodySchema,
 } from './steps.schema.js'
 import { STEP_MANAGER_ROLES } from './steps.service.js'
 
@@ -24,28 +20,6 @@ export function createStepsRoutes(controller: StepsController): Router {
 
   router.get('/', validate({ query: listStepsQuerySchema }), controller.list)
   router.post('/', validate({ body: createStepBodySchema }), controller.create)
-
-  router.get(
-    '/:id/inputs',
-    validate({ params: stepIdParamsSchema, query: listStepInputsQuerySchema }),
-    controller.listInputs,
-  )
-  router.post(
-    '/:id/inputs',
-    validate({ params: stepIdParamsSchema, body: createStepInputBodySchema }),
-    controller.createInput,
-  )
-  router.patch(
-    '/:id/inputs/:inputId',
-    validate({ params: stepInputParamsSchema, body: updateStepInputBodySchema }),
-    controller.updateInput,
-  )
-  router.delete(
-    '/:id/inputs/:inputId',
-    validate({ params: stepInputParamsSchema }),
-    controller.removeInput,
-  )
-
   router.get('/:id', validate({ params: stepIdParamsSchema }), controller.getById)
   router.patch(
     '/:id',

@@ -1,7 +1,5 @@
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { validationError } from '../../src/errors/app-error.js'
-import type { InputTypesService } from '../../src/modules/input-types/index.js'
 import type { StepRecord, StepsRepository } from '../../src/modules/steps/steps.repository.js'
 import { createStepsService } from '../../src/modules/steps/steps.service.js'
 
@@ -15,7 +13,6 @@ function stepRecord(overrides: Partial<StepRecord> = {}): StepRecord {
     orderNb: 0,
     status: 'ACTIVE',
     userId: manager.id,
-    inputCount: 0,
     createdAt: new Date('2026-10-23T00:00:00.000Z'),
     updatedAt: new Date('2026-10-23T00:00:00.000Z'),
     ...overrides,
@@ -24,9 +21,6 @@ function stepRecord(overrides: Partial<StepRecord> = {}): StepRecord {
 
 describe('stepsService', () => {
   let repository: StepsRepository
-  let requireActiveInputType: Mock<InputTypesService['requireActiveInputType']>
-  let inputTypes: Pick<InputTypesService, 'requireActiveInputType'>
-  const categories = { requirePlatformCategory: vi.fn() }
 
   beforeEach(() => {
     repository = {
@@ -37,20 +31,11 @@ describe('stepsService', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      assignActiveToProject: vi.fn(),
-      listInputs: vi.fn(),
-      findInputById: vi.fn(),
-      listUsedInputOrders: vi.fn(),
-      createInput: vi.fn(),
-      updateInput: vi.fn(),
-      deleteInput: vi.fn(),
     }
-    requireActiveInputType = vi.fn()
-    inputTypes = { requireActiveInputType }
   })
 
   it('forbids clients from listing steps', async () => {
-    const service = createStepsService(repository, inputTypes, categories)
+    const service = createStepsService(repository)
     await expect(service.listSteps({ page: 1, limit: 20 }, client)).rejects.toMatchObject({
       status: 403,
     })
@@ -63,7 +48,7 @@ describe('stepsService', () => {
       inactiveCount: 0,
       archivedCount: 0,
     })
-    const service = createStepsService(repository, inputTypes, categories)
+    const service = createStepsService(repository)
 
     const result = await service.listSteps({ page: 1, limit: 20 }, manager)
     expect(result.data).toHaveLength(1)
@@ -74,7 +59,7 @@ describe('stepsService', () => {
   it('creates a step with a free order', async () => {
     vi.mocked(repository.listUsedStepOrders).mockResolvedValue([0])
     vi.mocked(repository.create).mockResolvedValue(stepRecord({ orderNb: 1, name: 'Structure' }))
-    const service = createStepsService(repository, inputTypes, categories)
+    const service = createStepsService(repository)
 
     const result = await service.createStep({ name: 'Structure' }, manager)
     expect(result.data.orderNb).toBe(1)
@@ -83,33 +68,11 @@ describe('stepsService', () => {
 
   it('hides other users steps', async () => {
     vi.mocked(repository.findById).mockResolvedValue(stepRecord({ userId: 'other-pm' }))
-    const service = createStepsService(repository, inputTypes, categories)
+    const service = createStepsService(repository)
 
     await expect(service.getStepById('step-1', manager)).rejects.toMatchObject({
       status: 404,
       code: 'STEP_NOT_FOUND',
     })
-  })
-
-  it('assigns active templates to a project', async () => {
-    vi.mocked(repository.assignActiveToProject).mockResolvedValue(3)
-    const service = createStepsService(repository, inputTypes, categories)
-
-    await service.assignActiveToProject('project-1', manager.id)
-    expect(repository.assignActiveToProject).toHaveBeenCalledWith(
-      'project-1',
-      manager.id,
-      undefined,
-    )
-  })
-
-  it('rejects step inputs when the input type is inactive', async () => {
-    vi.mocked(repository.findById).mockResolvedValue(stepRecord())
-    requireActiveInputType.mockRejectedValue(validationError('Select an active input type'))
-    const service = createStepsService(repository, inputTypes, categories)
-
-    await expect(
-      service.createStepInput('step-1', { label: 'Note', inputTypeId: 'it-1' }, manager),
-    ).rejects.toMatchObject({ status: 400 })
   })
 })

@@ -56,14 +56,10 @@ describe.skipIf(!hasDb)('steps API (integration)', () => {
     return res.body.tokens.accessToken as string
   }
 
-  it('lets a manager create a step and attach an input', async () => {
+  it('lets a manager create and list a step', async () => {
     const app = createApp({ config })
     await createManager('pm-steps@example.com')
     const token = await login(app, 'pm-steps@example.com')
-    const prisma = getPrisma()
-    const inputType = await prisma.inputType.create({
-      data: { code: 'TEXT', label: 'Text', status: 'ACTIVE', sortOrder: 10 },
-    })
 
     const created = await request(app)
       .post('/api/v1/steps')
@@ -72,19 +68,11 @@ describe.skipIf(!hasDb)('steps API (integration)', () => {
     expect(created.status).toBe(201)
     expect(created.body.data.name).toBe('Foundation')
 
-    const stepId = created.body.data.id as string
-    const input = await request(app)
-      .post(`/api/v1/steps/${stepId}/inputs`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ label: 'Concrete grade', inputTypeId: inputType.id })
-    expect(input.status).toBe(201)
-    expect(input.body.data.label).toBe('Concrete grade')
-
     const listed = await request(app)
       .get('/api/v1/steps?page=1&limit=20')
       .set('Authorization', `Bearer ${token}`)
     expect(listed.status).toBe(200)
     expect(listed.body.data).toHaveLength(1)
-    expect(listed.body.data[0].inputCount).toBe(1)
+    expect(listed.body.data[0].name).toBe('Foundation')
   })
 })

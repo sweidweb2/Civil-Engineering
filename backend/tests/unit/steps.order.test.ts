@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { UniqueConflictError } from '../../src/errors/app-error.js'
-import {
-  allocateOrdered,
-  allocateOrderedWithActiveType,
-  resolveOrderNb,
-} from '../../src/modules/steps/steps.order.js'
+import { allocateOrdered, resolveOrderNb } from '../../src/modules/steps/steps.order.js'
 
 describe('resolveOrderNb', () => {
   it('keeps a free requested order', () => {
@@ -72,31 +68,5 @@ describe('allocateOrdered', () => {
       }),
     ).rejects.toMatchObject({ status: 409, code: 'ORDER_CONFLICT' })
     expect(persist).toHaveBeenCalledTimes(5)
-  })
-})
-
-describe('allocateOrderedWithActiveType', () => {
-  it('resolves the active type then persists with order', async () => {
-    const requireActiveInputType = vi.fn().mockResolvedValue({
-      id: 'it-1',
-      code: 'TEXT',
-      label: 'Text',
-    })
-    const persist = vi.fn().mockResolvedValue({ id: 'input-1' })
-
-    const result = await allocateOrderedWithActiveType({
-      requireActiveInputType,
-      inputTypeId: 'it-1',
-      listUsed: async () => [],
-      requested: 3,
-      persist,
-      conflictMessage: 'order conflict',
-      conflictCode: 'ORDER_CONFLICT',
-    })
-
-    expect(requireActiveInputType).toHaveBeenCalledWith('it-1')
-    expect(persist).toHaveBeenCalledWith(3, { id: 'it-1', code: 'TEXT', label: 'Text' })
-    expect(result.data).toEqual({ id: 'input-1' })
-    expect(result.meta).toBeUndefined()
   })
 })

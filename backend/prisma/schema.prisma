@@ -304,8 +304,6 @@ model Category {
   parent     Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
   children   Category[]    @relation("CategoryTree")
   listings   Listing[]
-  stepInputs StepInput[]
-  projectStepInputs ProjectStepInput[]
 
   @@index([scope, kind])
   @@index([providerId])
@@ -435,7 +433,6 @@ model Project {
   archivedAt      DateTime?
   owner           User           @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   images          ProjectImage[]
-  stepperProjects StepperProject[]
 
   @@index([ownerId])
   @@index([status])
@@ -468,7 +465,7 @@ model ProjectImage {
 }
 
 // =============================================================================
-// steps — Per-user project step templates; copied onto projects at create
+// steps — Per-user step templates
 // =============================================================================
 
 enum StepStatus {
@@ -478,7 +475,7 @@ enum StepStatus {
   ARCHIVED
 }
 
-/// User-owned step templates. Active steps for the project owner are assigned on project create.
+/// User-owned step templates.
 model Step {
   id        String     @id @default(cuid())
   name      String
@@ -488,101 +485,12 @@ model Step {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inputs    StepInput[]
 
   @@unique([userId, orderNb])
   @@index([userId])
   @@index([userId, status])
   @@index([userId, orderNb])
   @@map("steps")
-}
-
-/// Project-owned stepper instance (cloned from a template at create; independent afterward).
-model StepperProject {
-  id        String   @id @default(cuid())
-  projectId String
-  name      String
-  orderNb   Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  inputs    ProjectStepInput[]
-
-  @@unique([projectId, orderNb])
-  @@index([projectId])
-  @@map("stepper_project")
-}
-
-/// Project-owned stepper field (cloned or added on the project). Independent of templates.
-model ProjectStepInput {
-  id               String   @id @default(cuid())
-  stepperProjectId String
-  inputTypeId      String
-  /// Snapshotted at create so catalog renames cannot change rendering of this field.
-  inputTypeCode    String
-  inputTypeLabel   String
-  label            String
-  orderNb          Int      @default(0)
-  /// Required when inputTypeCode is CATEGORY; scopes the listing picker.
-  categoryId       String?
-  /// Flexible JSON: scalar (TEXT/NUMBER/YES_NO/DATE) or listing snapshot (CATEGORY).
-  value            Json?
-  /// True when added on the project (not cloned from a template).
-  isProjectOnly    Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  stepperProject   StepperProject @relation(fields: [stepperProjectId], references: [id], onDelete: Cascade)
-  inputType        InputType      @relation(fields: [inputTypeId], references: [id], onDelete: Restrict)
-  category         Category?      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  @@unique([stepperProjectId, orderNb])
-  @@index([stepperProjectId])
-  @@index([inputTypeId])
-  @@index([categoryId])
-  @@map("project_step_inputs")
-}
-
-/// Platform catalog of field kinds for step inputs. SUPER manages; only ACTIVE types are selectable.
-model InputType {
-  id        String         @id @default(cuid())
-  code      String         @unique
-  label     String
-  status    InputTypeStatus @default(ACTIVE)
-  sortOrder Int            @default(0)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  stepInputs StepInput[]
-  projectStepInputs ProjectStepInput[]
-
-  @@index([status, sortOrder])
-  @@map("input_types")
-}
-
-enum InputTypeStatus {
-  ACTIVE
-  INACTIVE
-}
-
-/// Input fields attached to a step template (stepper_inputs). Cloned onto projects at create.
-model StepInput {
-  id          String   @id @default(cuid())
-  stepId      String
-  inputTypeId String
-  label       String
-  orderNb     Int      @default(0)
-  /// Required when input type code is CATEGORY; scopes the listing picker on projects.
-  categoryId  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  step        Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  inputType   InputType @relation(fields: [inputTypeId], references: [id], onDelete: Restrict)
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  @@unique([stepId, orderNb])
-  @@index([stepId])
-  @@index([inputTypeId])
-  @@index([categoryId])
-  @@map("stepper_inputs")
 }
 
 // =============================================================================

@@ -44,7 +44,7 @@ test.describe('PM shell navigation', () => {
       (res) =>
         res.url().includes('/api/v1/projects') &&
         res.request().method() === 'POST' &&
-        !res.url().includes('/steppers'),
+        !res.url().includes('/archive'),
     )
     await page
       .locator('#create-name')
@@ -56,7 +56,7 @@ test.describe('PM shell navigation', () => {
     expect(res.ok()).toBeTruthy()
 
     await expect(page).toHaveURL(/\/pm\/projects\/[^/]+/, { timeout: 20_000 })
-    await expect(page.getByRole('tab', { name: 'Steppers' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible()
   })
 
   test('opens notifications inbox', async ({ page }) => {

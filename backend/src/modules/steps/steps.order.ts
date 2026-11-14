@@ -1,5 +1,4 @@
 import { conflict, isUniqueConflictError, validationError } from '../../errors/app-error.js'
-import type { ActiveInputTypeRef } from '../input-types/index.js'
 
 const MAX_ORDER = 10_000
 const MAX_ALLOCATION_ATTEMPTS = 5
@@ -61,26 +60,4 @@ export async function allocateOrdered<T>(options: {
     }
   }
   throw conflict(options.conflictMessage, options.conflictCode)
-}
-
-/**
- * Shared template/instance create path: resolve ACTIVE input type, then allocate order.
- */
-export async function allocateOrderedWithActiveType<T>(options: {
-  requireActiveInputType: (id: string) => Promise<ActiveInputTypeRef>
-  inputTypeId: string
-  listUsed: () => Promise<readonly number[]>
-  requested: number | undefined
-  persist: (orderNb: number, inputType: ActiveInputTypeRef) => Promise<T>
-  conflictMessage: string
-  conflictCode: string
-}): Promise<{ data: T; meta?: OrderMeta }> {
-  const inputType = await options.requireActiveInputType(options.inputTypeId)
-  return allocateOrdered({
-    listUsed: options.listUsed,
-    requested: options.requested,
-    persist: (orderNb) => options.persist(orderNb, inputType),
-    conflictMessage: options.conflictMessage,
-    conflictCode: options.conflictCode,
-  })
 }

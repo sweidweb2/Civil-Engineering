@@ -6,20 +6,6 @@ export type Step = {
   orderNb: number
   status: StepStatus
   userId: string
-  inputCount: number
-  createdAt: string
-  updatedAt: string
-}
-
-export type StepInput = {
-  id: string
-  stepId: string
-  inputTypeId: string
-  inputTypeCode: string
-  inputTypeLabel: string
-  label: string
-  orderNb: number
-  categoryId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -36,21 +22,7 @@ export type PaginatedSteps = {
   }
 }
 
-export type PaginatedStepInputs = {
-  data: StepInput[]
-  meta: {
-    page: number
-    limit: number
-    total: number
-  }
-}
-
 export type StepMutationResult = {
   data: Step
-  meta?: OrderAdjustMeta
-}
-
-export type StepInputMutationResult = {
-  data: StepInput
   meta?: OrderAdjustMeta
 }

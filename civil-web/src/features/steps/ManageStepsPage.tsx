@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Archive, ListOrdered, ListTree, Pencil, Trash2 } from 'lucide-react'
+import { useCallback } from 'react'
+import { Archive, ListOrdered, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -43,7 +43,6 @@ import {
 } from '@/components/ui/table'
 import { AdminConfirmDeleteDialog } from '@/features/admin/components/AdminConfirmDeleteDialog'
 import { useAdminCrudPage } from '@/features/admin/hooks/useAdminCrudPage'
-import { StepInputsPanel } from '@/features/projects/components/StepInputsPanel'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -103,8 +102,6 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
     emptyForm: EMPTY_FORM,
     formFromRow: formFromStep,
   })
-  const [inputsStep, setInputsStep] = useState<Step | null>(null)
-
   const statusOptions = STATUS_VALUES.map((value) => ({
     value,
     label:
@@ -252,7 +249,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<TableSkeleton columns={7} />}
+        loadingFallback={<TableSkeleton columns={5} />}
       >
         <DataPanel
           toolbar={
@@ -274,8 +271,6 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
               <TableRow>
                 <TableHead>{t('admin:steps.headers.order')}</TableHead>
                 <TableHead>{t('admin:steps.headers.name')}</TableHead>
-                <TableHead>{t('admin:steps.headers.fields')}</TableHead>
-                <TableHead>{t('admin:steps.headers.inputs')}</TableHead>
                 <TableHead>{t('admin:steps.headers.status')}</TableHead>
                 <TableHead>{t('admin:steps.headers.active')}</TableHead>
                 <TableHead className="text-right">{t('common:actions')}</TableHead>
@@ -284,7 +279,7 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     {t('admin:steps.empty')}
                   </TableCell>
                 </TableRow>
@@ -294,21 +289,6 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
                     <TableCell className="tabular-nums">{row.orderNb}</TableCell>
                     <TableCell title={row.name} className="max-w-72 truncate">
                       {ellipsis(row.name, 48)}
-                    </TableCell>
-                    <TableCell className="tabular-nums">{row.inputCount}</TableCell>
-                    <TableCell>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        aria-label={t('admin:steps.manageInputsAria', { name: row.name })}
-                        title={t('admin:steps.manageInputsTitle')}
-                        disabled={busyId === row.id}
-                        onClick={() => setInputsStep(row)}
-                      >
-                        <ListTree />
-                        {t('admin:steps.manageInputs')}
-                      </Button>
                     </TableCell>
                     <TableCell>{statusBadge(row.status)}</TableCell>
                     <TableCell>
@@ -459,15 +439,6 @@ export function ManageStepsPage({ embedded = false }: ManageStepsPageProps) {
         })}
         onOpenChange={(open) => !open && setPendingDelete(null)}
         onConfirm={() => void confirmDelete()}
-      />
-
-      <StepInputsPanel
-        step={inputsStep}
-        open={inputsStep !== null}
-        onOpenChange={(next) => {
-          if (!next) setInputsStep(null)
-        }}
-        onChanged={() => void remote.refetch()}
       />
     </div>
   )

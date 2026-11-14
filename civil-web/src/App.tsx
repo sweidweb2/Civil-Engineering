@@ -34,7 +34,6 @@ import { ProjectsListPage } from '@/features/projects/ProjectsListPage'
 import { ProviderProfilePage } from '@/features/provider/ProviderProfilePage'
 import { ManageProvidersPage } from '@/features/providers/ManageProvidersPage'
 import { ManageReviewsPage } from '@/features/reviews/ManageReviewsPage'
-import { ManageInputTypesPage } from '@/features/steps/ManageInputTypesPage'
 import { ManageStepsPage } from '@/features/steps/ManageStepsPage'
 import { UserDetailsPage } from '@/features/users/UserDetailsPage'
 import { UserQueuePage } from '@/features/users/UserQueuePage'
@@ -90,7 +89,6 @@ function App() {
             <Route path="errors" element={<ErrorLogsPage />} />
             <Route path="notifications" element={<ManageNotificationsPage />} />
             <Route path="steps" element={<ManageStepsPage />} />
-            <Route path="input-types" element={<ManageInputTypesPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 

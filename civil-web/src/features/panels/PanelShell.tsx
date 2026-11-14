@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   FolderKanban,
   FolderTree,
-  FormInput,
   Home,
   LayoutDashboard,
   Library,
@@ -332,7 +331,6 @@ export const SUPER_NAV: PanelNavItem[] = [
   { to: '/super/activity', labelKey: 'activity', icon: Activity },
   { to: '/super/errors', labelKey: 'errors', icon: AlertTriangle },
   { to: '/super/steps', labelKey: 'steps', icon: ListOrdered },
-  { to: '/super/input-types', labelKey: 'inputTypes', icon: FormInput },
   { to: '/super/settings', labelKey: 'settings', icon: Settings },
 ]
 

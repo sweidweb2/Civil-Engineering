@@ -9,19 +9,8 @@ import {
   projectIdParamsSchema,
   updateProjectBodySchema,
 } from './projects.schema.js'
-import type { ProjectSteppersController } from './projects.steppers.controller.js'
-import {
-  createProjectStepInputBodySchema,
-  projectStepInputIdParamsSchema,
-  projectStepperIdParamsSchema,
-  projectStepperParamsSchema,
-  upsertStepperValuesBodySchema,
-} from './projects.steppers.schema.js'
 
-export function createProjectsRoutes(
-  controller: ProjectsController,
-  steppersController?: ProjectSteppersController,
-): Router {
+export function createProjectsRoutes(controller: ProjectsController): Router {
   const router = Router()
 
   router.use(authenticate)
@@ -29,41 +18,6 @@ export function createProjectsRoutes(
   router.get('/', validate({ query: listProjectsQuerySchema }), controller.list)
   router.get('/summary', controller.summary)
   router.get('/timeline', controller.timeline)
-
-  if (steppersController) {
-    router.get(
-      '/:id/steppers',
-      validate({ params: projectStepperParamsSchema }),
-      steppersController.list,
-    )
-    router.get(
-      '/:id/steppers/:projectStepId',
-      validate({ params: projectStepperIdParamsSchema }),
-      steppersController.getById,
-    )
-    router.put(
-      '/:id/steppers/:projectStepId/values',
-      validate({
-        params: projectStepperIdParamsSchema,
-        body: upsertStepperValuesBodySchema,
-      }),
-      steppersController.saveValues,
-    )
-    router.post(
-      '/:id/steppers/:projectStepId/inputs',
-      validate({
-        params: projectStepperIdParamsSchema,
-        body: createProjectStepInputBodySchema,
-      }),
-      steppersController.addInput,
-    )
-    router.delete(
-      '/:id/steppers/:projectStepId/inputs/:inputId',
-      validate({ params: projectStepInputIdParamsSchema }),
-      steppersController.removeInput,
-    )
-  }
-
   router.get('/:id', validate({ params: projectIdParamsSchema }), controller.getById)
   router.post('/', validate({ body: createProjectBodySchema }), controller.create)
   router.patch(

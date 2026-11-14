@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
-import type { ListStepInputsQuery, ListStepsQuery } from './steps.schema.js'
+import type { ListStepsQuery } from './steps.schema.js'
 import type { StepsService } from './steps.service.js'
 
 export type StepsController = {
@@ -11,10 +11,6 @@ export type StepsController = {
   create: RequestHandler
   update: RequestHandler
   remove: RequestHandler
-  listInputs: RequestHandler
-  createInput: RequestHandler
-  updateInput: RequestHandler
-  removeInput: RequestHandler
 }
 
 export function createStepsController(service: StepsService): StepsController {
@@ -44,43 +40,6 @@ export function createStepsController(service: StepsService): StepsController {
 
     remove: wrap(async (req, res) => {
       await service.deleteStep(String(req.params.id), parseAuthActor(req))
-      res.status(204).send()
-    }),
-
-    listInputs: wrap(async (req, res) => {
-      const result = await service.listStepInputs(
-        String(req.params.id),
-        req.query as unknown as ListStepInputsQuery,
-        parseAuthActor(req),
-      )
-      res.status(200).json(result)
-    }),
-
-    createInput: wrap(async (req, res) => {
-      const result = await service.createStepInput(
-        String(req.params.id),
-        req.body,
-        parseAuthActor(req),
-      )
-      res.status(201).json(result)
-    }),
-
-    updateInput: wrap(async (req, res) => {
-      const result = await service.updateStepInput(
-        String(req.params.id),
-        String(req.params.inputId),
-        req.body,
-        parseAuthActor(req),
-      )
-      res.status(200).json(result)
-    }),
-
-    removeInput: wrap(async (req, res) => {
-      await service.deleteStepInput(
-        String(req.params.id),
-        String(req.params.inputId),
-        parseAuthActor(req),
-      )
       res.status(204).send()
     }),
   }

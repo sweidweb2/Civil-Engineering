@@ -12,9 +12,10 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import type { Category } from '@/services/categories'
+import { type Category, localizedCategoryName } from '@/services/categories'
 import { RENTAL_UNITS } from '@/services/listings'
 import type { Provider } from '@/services/providers'
+import { useLocaleStore } from '@/stores/localeStore'
 
 import type { ListingForm } from '../listings.form'
 
@@ -45,8 +46,10 @@ export function ListingFields({
   showDescription = true,
 }: Props) {
   const { t } = useTranslation(['admin', 'common'])
+  const locale = useLocaleStore((state) => state.locale)
   const rentalLabel = (unit: string) =>
     t(`admin:listings.form.rentalUnits.${unit}`, { defaultValue: unit })
+  const categoryLabel = (category: Category) => localizedCategoryName(category, locale)
 
   function patch(partial: Partial<ListingForm>) {
     onChange({ ...form, ...partial })
@@ -96,7 +99,7 @@ export function ListingFields({
           <Select
             items={categories.map((category) => ({
               value: category.id,
-              label: category.name,
+              label: categoryLabel(category),
             }))}
             value={form.categoryId}
             onValueChange={(value) => {
@@ -109,7 +112,7 @@ export function ListingFields({
             <SelectContent>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
-                  {category.name}
+                  {categoryLabel(category)}
                 </SelectItem>
               ))}
             </SelectContent>

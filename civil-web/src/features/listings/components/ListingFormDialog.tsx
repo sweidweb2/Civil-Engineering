@@ -139,10 +139,12 @@ export function ListingFormDialog({
             {
               id: listing.categoryId,
               name: listing.categoryName ?? t('admin:listings.form.categoryFallback'),
+              nameAr: listing.categoryNameAr,
               kind: listing.type ?? 'MATERIAL',
               slug: '',
               parentId: null,
               parentName: null,
+              parentNameAr: null,
               isActive: true,
               sortOrder: 0,
               childCount: 0,

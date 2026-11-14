@@ -1,4 +1,18 @@
+import type { AppLocale } from '@/stores/localeStore'
+
 import { apiRequest } from './api'
+
+/** Prefer Arabic category name when locale is `ar` and set; otherwise the stored name. */
+export function localizedListingCategoryName(
+  listing: { categoryName: string | null; categoryNameAr?: string | null },
+  locale: AppLocale,
+): string | null {
+  if (locale === 'ar') {
+    const arabic = listing.categoryNameAr?.trim()
+    if (arabic) return arabic
+  }
+  return listing.categoryName
+}
 
 export type ListingType = 'MATERIAL' | 'EQUIPMENT' | 'SERVICE'
 export type ListingStatus = 'ACTIVE' | 'INACTIVE'
@@ -10,6 +24,7 @@ export type Listing = {
   providerName: string | null
   categoryId: string | null
   categoryName: string | null
+  categoryNameAr: string | null
   /** Derived from category kind when set. */
   type: ListingType | null
   name: string

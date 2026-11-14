@@ -21,7 +21,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { type Category, listCategories } from '@/services/categories'
+import {
+  type Category,
+  listCategories,
+  localizedCategoryName,
+  localizedCategoryParentName,
+} from '@/services/categories'
+import { useLocaleStore } from '@/stores/localeStore'
 import {
   INPUT_TYPES_PICKER_QUERY_KEY,
   type InputType,
@@ -49,9 +55,16 @@ export function AddStepperInputDialog({
   onSubmit,
 }: AddStepperInputDialogProps) {
   const { t } = useTranslation(['projects', 'common'])
+  const locale = useLocaleStore((state) => state.locale)
   const [label, setLabel] = useState('')
   const [typeId, setTypeId] = useState('')
   const [categoryId, setCategoryId] = useState('')
+
+  const categoryOptionLabel = (category: Category) => {
+    const name = localizedCategoryName(category, locale)
+    const parent = localizedCategoryParentName(category, locale)
+    return parent ? `${parent} / ${name}` : name
+  }
 
   const loadPickerTypes = useCallback(() => listInputTypesForPicker(), [])
   const typesRemote = useRemoteData(loadPickerTypes, {
@@ -154,9 +167,7 @@ export function AddStepperInputDialog({
               <Select
                 items={categories.map((category) => ({
                   value: category.id,
-                  label: category.parentName
-                    ? `${category.parentName} / ${category.name}`
-                    : category.name,
+                  label: categoryOptionLabel(category),
                 }))}
                 value={categoryId || undefined}
                 onValueChange={(value) => {
@@ -169,9 +180,7 @@ export function AddStepperInputDialog({
                 <SelectContent>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
-                      {category.parentName
-                        ? `${category.parentName} / ${category.name}`
-                        : category.name}
+                      {categoryOptionLabel(category)}
                     </SelectItem>
                   ))}
                 </SelectContent>

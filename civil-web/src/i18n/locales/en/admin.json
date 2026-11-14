@@ -580,6 +580,8 @@
     "searchAria": "Search categories",
     "noMatch": "No categories match.",
     "nameRequired": "Name is required",
+    "nameAr": "Name (Arabic)",
+    "nameArHint": "Optional. Shown when the app language is Arabic; otherwise the main name is used.",
     "created": "Category created",
     "updated": "Category updated",
     "removedToast": "Category removed",
@@ -599,6 +601,7 @@
     "deleteAria": "Delete {{name}}",
     "headers": {
       "name": "Name",
+      "nameAr": "Name (AR)",
       "kind": "Kind",
       "parent": "Parent",
       "status": "Status"

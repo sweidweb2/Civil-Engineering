@@ -19,8 +19,11 @@ import {
   type Listing,
   type ListingType,
   listListings,
+  localizedListingCategoryName,
 } from '@/services/listings'
 import { listVerifications, type User } from '@/services/users'
+import type { AppLocale } from '@/stores/localeStore'
+import { useLocaleStore } from '@/stores/localeStore'
 
 import type { DirectoryItem, DirectoryKind } from './admin.types'
 import { directoryWindows, readPageWindow } from './lib/directory-page'
@@ -42,12 +45,12 @@ function personName(user: User): string {
   return named || user.email
 }
 
-function listingItem(listing: Listing): DirectoryItem {
+function listingItem(listing: Listing, locale: AppLocale): DirectoryItem {
   return {
     id: listing.id,
     name: listing.name,
     kind: listing.type === 'EQUIPMENT' ? 'equipment' : 'material',
-    category: listing.categoryName ?? '—',
+    category: localizedListingCategoryName(listing, locale) ?? '—',
     location: listing.providerName ?? '—',
     source: listing.providerName ?? '—',
     price: formatListingPrice(listing),
@@ -72,9 +75,15 @@ function workerItem(user: User): DirectoryItem {
   }
 }
 
-async function listingSlice(type: ListingType, page: number, limit: number, q?: string) {
+async function listingSlice(
+  type: ListingType,
+  page: number,
+  limit: number,
+  locale: AppLocale,
+  q?: string,
+) {
   const result = await listListings(page, limit, { type, status: 'ACTIVE', q, counts: false })
-  return { total: result.meta.total, items: result.data.map(listingItem) }
+  return { total: result.meta.total, items: result.data.map((row) => listingItem(row, locale)) }
 }
 
 async function loadDirectory(input: {
@@ -82,8 +91,10 @@ async function loadDirectory(input: {
   query: string
   kind: DirectoryFilter
   includeWorkers: boolean
+  locale: AppLocale
 }): Promise<{ stats: DirectoryStats; items: DirectoryItem[]; total: number }> {
   const q = input.query || undefined
+  const { locale } = input
   const materialIsList = !q && input.kind === 'material'
   const equipmentIsList = !q && input.kind === 'equipment'
   const workerIsList = !q && input.kind === 'worker'
@@ -92,8 +103,13 @@ async function loadDirectory(input: {
   const materialPage = materialIsList ? input.page : 1
 
   const [materials, equipment, workers] = await Promise.all([
-    listingSlice('MATERIAL', materialPage, materialLimit),
-    listingSlice('EQUIPMENT', equipmentIsList ? input.page : 1, equipmentIsList ? PAGE_SIZE : 1),
+    listingSlice('MATERIAL', materialPage, materialLimit, locale),
+    listingSlice(
+      'EQUIPMENT',
+      equipmentIsList ? input.page : 1,
+      equipmentIsList ? PAGE_SIZE : 1,
+      locale,
+    ),
     input.includeWorkers
       ? listVerifications({
           page: workerIsList ? input.page : 1,
@@ -116,7 +132,7 @@ async function loadDirectory(input: {
 
   if (q && (input.kind === 'material' || input.kind === 'equipment')) {
     const type: ListingType = input.kind === 'material' ? 'MATERIAL' : 'EQUIPMENT'
-    const page = await listingSlice(type, input.page, PAGE_SIZE, q)
+    const page = await listingSlice(type, input.page, PAGE_SIZE, locale, q)
     return { stats, items: page.items, total: page.total }
   }
   if (q && input.kind === 'worker') {
@@ -126,8 +142,8 @@ async function loadDirectory(input: {
 
   const filtered = q
     ? await Promise.all([
-        listingSlice('MATERIAL', 1, 1, q),
-        listingSlice('EQUIPMENT', 1, 1, q),
+        listingSlice('MATERIAL', 1, 1, locale, q),
+        listingSlice('EQUIPMENT', 1, 1, locale, q),
         input.includeWorkers ? listVerifications({ page: 1, limit: 1, q }) : Promise.resolve(null),
       ])
     : null
@@ -170,7 +186,7 @@ async function loadDirectory(input: {
         window.skip,
         window.take,
       )
-      return listings.map(listingItem)
+      return listings.map((row) => listingItem(row, locale))
     }),
   )
   return { stats, items: chunks.flat(), total: combinedTotal }
@@ -211,6 +227,7 @@ function DirectoryCards({ items }: { items: DirectoryItem[] }) {
 export function DirectoryPage() {
   const { t } = useTranslation(['admin', 'common'])
   useDocumentTitle(t('admin:directory.documentTitle'))
+  const locale = useLocaleStore((state) => state.locale)
   const location = useLocation()
   const includeWorkers = !location.pathname.startsWith('/pm')
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
@@ -233,11 +250,11 @@ export function DirectoryPage() {
   const [heldStats, setHeldStats] = useState<DirectoryStats | null>(null)
 
   const load = useCallback(
-    () => loadDirectory({ page, query: debouncedQuery, kind: activeKind, includeWorkers }),
-    [activeKind, debouncedQuery, includeWorkers, page],
+    () => loadDirectory({ page, query: debouncedQuery, kind: activeKind, includeWorkers, locale }),
+    [activeKind, debouncedQuery, includeWorkers, locale, page],
   )
   const remote = useRemoteData(load, {
-    queryKey: ['directory', includeWorkers, activeKind, page, debouncedQuery],
+    queryKey: ['directory', includeWorkers, activeKind, page, debouncedQuery, locale],
   })
 
   if (remote.status === 'success' && heldStats !== remote.data.stats) {

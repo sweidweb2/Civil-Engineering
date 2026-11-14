@@ -1,3 +1,5 @@
+import type { AppLocale } from '@/stores/localeStore'
+
 import { apiRequest } from './api'
 
 export type CategoryKind = 'MATERIAL' | 'EQUIPMENT' | 'SERVICE' | 'WORKER'
@@ -6,9 +8,11 @@ export type Category = {
   id: string
   kind: CategoryKind
   name: string
+  nameAr: string | null
   slug: string
   parentId: string | null
   parentName: string | null
+  parentNameAr: string | null
   isActive: boolean
   sortOrder: number
   childCount: number
@@ -36,6 +40,7 @@ export type PaginatedCategories = {
 
 export type CategoryWriteInput = {
   name: string
+  nameAr?: string | null
   kind: CategoryKind
   parentId?: string | null
   isActive?: boolean
@@ -53,6 +58,30 @@ export function categoryKindLabel(kind: CategoryKind): string {
   if (kind === 'EQUIPMENT') return 'Equipment'
   if (kind === 'SERVICE') return 'Service'
   return 'Worker'
+}
+
+/** Prefer Arabic name when locale is `ar` and `nameAr` is non-empty; otherwise `name`. */
+export function localizedCategoryName(
+  category: { name: string; nameAr?: string | null },
+  locale: AppLocale,
+): string {
+  if (locale === 'ar') {
+    const arabic = category.nameAr?.trim()
+    if (arabic) return arabic
+  }
+  return category.name
+}
+
+/** Prefer Arabic parent name when locale is `ar` and set; otherwise parent `name`. */
+export function localizedCategoryParentName(
+  category: { parentName: string | null; parentNameAr?: string | null },
+  locale: AppLocale,
+): string | null {
+  if (locale === 'ar') {
+    const arabic = category.parentNameAr?.trim()
+    if (arabic) return arabic
+  }
+  return category.parentName
 }
 
 export function listCategories(

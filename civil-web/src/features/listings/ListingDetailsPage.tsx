@@ -21,10 +21,12 @@ import {
   getListingById,
   type Listing,
   listingTypeLabel,
+  localizedListingCategoryName,
   RENTAL_UNITS,
   rentalUnitLabel,
   updateListing,
 } from '@/services/listings'
+import { useLocaleStore } from '@/stores/localeStore'
 
 import { ListingFields } from './components/ListingFields'
 import { ListingImagesSection } from './components/ListingImagesSection'
@@ -39,6 +41,7 @@ function isListingCategory(category: Category) {
 
 export function ListingDetailsPage() {
   const { t } = useTranslation(['admin', 'common'])
+  const locale = useLocaleStore((state) => state.locale)
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
   const listingsPath = `${portalBaseFromPath(location.pathname)}/listings`
@@ -123,10 +126,12 @@ export function ListingDetailsPage() {
             {
               id: listing.categoryId,
               name: listing.categoryName ?? t('admin:listings.form.categoryFallback'),
+              nameAr: listing.categoryNameAr,
               kind: listing.type ?? 'MATERIAL',
               slug: '',
               parentId: null,
               parentName: null,
+              parentNameAr: null,
               isActive: true,
               sortOrder: 0,
               childCount: 0,
@@ -205,7 +210,9 @@ export function ListingDetailsPage() {
                       <dt className="text-xs text-muted-foreground">
                         {t('admin:listings.headers.category')}
                       </dt>
-                      <dd className="text-sm font-medium">{listing.categoryName || '—'}</dd>
+                      <dd className="text-sm font-medium">
+                        {localizedListingCategoryName(listing, locale) || '—'}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted-foreground">

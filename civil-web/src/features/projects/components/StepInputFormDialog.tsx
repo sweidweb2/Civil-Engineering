@@ -18,9 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Category } from '@/services/categories'
+import {
+  type Category,
+  localizedCategoryName,
+  localizedCategoryParentName,
+} from '@/services/categories'
 import type { InputType } from '@/services/input-types'
 import type { StepInput } from '@/services/steps'
+import { useLocaleStore } from '@/stores/localeStore'
 
 export type StepInputFormValues = {
   label: string
@@ -73,6 +78,12 @@ export function StepInputFormDialog({
   onSave,
 }: Props) {
   const { t } = useTranslation(['admin', 'common'])
+  const locale = useLocaleStore((state) => state.locale)
+  const categoryOptionLabel = (category: Category) => {
+    const name = localizedCategoryName(category, locale)
+    const parent = localizedCategoryParentName(category, locale)
+    return parent ? `${parent} / ${name}` : name
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,9 +141,7 @@ export function StepInputFormDialog({
               <Select
                 items={categoryOptions.map((category) => ({
                   value: category.id,
-                  label: category.parentName
-                    ? `${category.parentName} / ${category.name}`
-                    : category.name,
+                  label: categoryOptionLabel(category),
                 }))}
                 value={form.categoryId || undefined}
                 onValueChange={(value) => {
@@ -145,9 +154,7 @@ export function StepInputFormDialog({
                 <SelectContent>
                   {categoryOptions.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
-                      {category.parentName
-                        ? `${category.parentName} / ${category.name}`
-                        : category.name}
+                      {categoryOptionLabel(category)}
                     </SelectItem>
                   ))}
                 </SelectContent>

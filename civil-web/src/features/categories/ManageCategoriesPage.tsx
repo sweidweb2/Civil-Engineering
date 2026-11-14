@@ -58,23 +58,34 @@ import {
   deleteCategory,
   isCategoryKind,
   listCategories,
+  localizedCategoryName,
+  localizedCategoryParentName,
   updateCategory,
 } from '@/services/categories'
+import { useLocaleStore } from '@/stores/localeStore'
 
 const EMPTY_COUNTS: CategoryKindCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0, WORKER: 0 }
 
 type CategoryForm = {
   name: string
+  nameAr: string
   kind: CategoryKind
   parentId: string
   isActive: boolean
 }
 
-const EMPTY_FORM: CategoryForm = { name: '', kind: 'MATERIAL', parentId: '', isActive: true }
+const EMPTY_FORM: CategoryForm = {
+  name: '',
+  nameAr: '',
+  kind: 'MATERIAL',
+  parentId: '',
+  isActive: true,
+}
 
 function formFromCategory(category: Category): CategoryForm {
   return {
     name: category.name,
+    nameAr: category.nameAr ?? '',
     kind: category.kind,
     parentId: category.parentId ?? '',
     isActive: category.isActive,
@@ -84,6 +95,7 @@ function formFromCategory(category: Category): CategoryForm {
 export function ManageCategoriesPage() {
   const { t } = useTranslation(['admin', 'common'])
   useDocumentTitle(t('admin:categories.documentTitle'))
+  const locale = useLocaleStore((state) => state.locale)
   const { isAdmin } = usePermissions()
   const { query, setQuery, debouncedQuery, page, setPage } = usePagedQuery()
   const {
@@ -107,6 +119,8 @@ export function ManageCategoriesPage() {
   const [parents, setParents] = useState<Category[]>([])
 
   const kindLabel = (kind: CategoryKind) => t(`admin:categoryKind.${kind}`)
+  const displayName = (category: Category) => localizedCategoryName(category, locale)
+  const displayParentName = (category: Category) => localizedCategoryParentName(category, locale)
 
   const load = useCallback(
     () => listCategories(page, PAGE_SIZE, { q: debouncedQuery || undefined }),
@@ -117,6 +131,7 @@ export function ManageCategoriesPage() {
   const total = remote.status === 'success' ? remote.data.meta.total : 0
   const counts = remote.status === 'success' ? remote.data.meta.kindCounts : EMPTY_COUNTS
   const totalPages = pageCount(total)
+  const tableColumns = isAdmin ? 6 : 5
 
   useEffect(() => {
     if (!dialogOpen) return
@@ -146,8 +161,10 @@ export function ManageCategoriesPage() {
         ...editing,
         id: editing.parentId,
         name: editing.parentName ?? t('admin:categories.parentFallback'),
+        nameAr: editing.parentNameAr,
         parentId: null,
         parentName: null,
+        parentNameAr: null,
       },
       ...parents,
     ]
@@ -163,8 +180,10 @@ export function ManageCategoriesPage() {
       toast.error(t('admin:categories.nameRequired'))
       return
     }
+    const nameAr = form.nameAr.trim()
     const payload = {
       name,
+      nameAr: nameAr || null,
       kind: form.kind,
       parentId: form.parentId || null,
       isActive: form.isActive,
@@ -238,7 +257,7 @@ export function ManageCategoriesPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<TableSkeleton columns={isAdmin ? 5 : 4} />}
+        loadingFallback={<TableSkeleton columns={tableColumns} />}
       >
         <DataPanel
           toolbar={
@@ -258,6 +277,7 @@ export function ManageCategoriesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('admin:categories.headers.name')}</TableHead>
+                <TableHead>{t('admin:categories.headers.nameAr')}</TableHead>
                 <TableHead>{t('admin:categories.headers.kind')}</TableHead>
                 <TableHead>{t('admin:categories.headers.parent')}</TableHead>
                 <TableHead>{t('admin:categories.headers.status')}</TableHead>
@@ -269,55 +289,66 @@ export function ManageCategoriesPage() {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 5 : 4} className="text-muted-foreground">
+                  <TableCell colSpan={tableColumns} className="text-muted-foreground">
                     {t('admin:categories.noMatch')}
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell title={row.name} className="max-w-56 truncate">
-                      {ellipsis(row.name, 36)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{kindLabel(row.kind)}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-40 truncate" title={row.parentName ?? undefined}>
-                      {ellipsis(row.parentName, 24)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={row.isActive ? 'default' : 'outline'}>
-                        {row.isActive ? t('common:active') : t('common:inactive')}
-                      </Badge>
-                    </TableCell>
-                    {isAdmin ? (
-                      <TableCell className="text-right">
-                        <RowActions>
-                          <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="outline"
-                            aria-label={t('admin:categories.editAria', { name: row.name })}
-                            disabled={busyId === row.id}
-                            onClick={() => openEdit(row)}
-                          >
-                            <Pencil />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="destructive"
-                            aria-label={t('admin:categories.deleteAria', { name: row.name })}
-                            disabled={busyId === row.id}
-                            onClick={() => setPendingDelete(row)}
-                          >
-                            <Trash2 />
-                          </Button>
-                        </RowActions>
+                rows.map((row) => {
+                  const name = displayName(row)
+                  const parentName = displayParentName(row)
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell title={name} className="max-w-56 truncate">
+                        {ellipsis(name, 36)}
                       </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))
+                      <TableCell
+                        title={row.nameAr ?? undefined}
+                        className="max-w-40 truncate"
+                        dir={row.nameAr ? 'rtl' : undefined}
+                      >
+                        {ellipsis(row.nameAr?.trim() || '—', 24)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{kindLabel(row.kind)}</Badge>
+                      </TableCell>
+                      <TableCell className="max-w-40 truncate" title={parentName ?? undefined}>
+                        {ellipsis(parentName, 24)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.isActive ? 'default' : 'outline'}>
+                          {row.isActive ? t('common:active') : t('common:inactive')}
+                        </Badge>
+                      </TableCell>
+                      {isAdmin ? (
+                        <TableCell className="text-right">
+                          <RowActions>
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="outline"
+                              aria-label={t('admin:categories.editAria', { name })}
+                              disabled={busyId === row.id}
+                              onClick={() => openEdit(row)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="destructive"
+                              aria-label={t('admin:categories.deleteAria', { name })}
+                              disabled={busyId === row.id}
+                              onClick={() => setPendingDelete(row)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </RowActions>
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
@@ -343,6 +374,19 @@ export function ManageCategoriesPage() {
                   setForm((current) => ({ ...current, name: event.target.value }))
                 }
               />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="category-name-ar">{t('admin:categories.nameAr')}</Label>
+              <Input
+                id="category-name-ar"
+                value={form.nameAr}
+                maxLength={80}
+                dir="rtl"
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, nameAr: event.target.value }))
+                }
+              />
+              <p className="text-muted-foreground text-xs">{t('admin:categories.nameArHint')}</p>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="category-kind">{t('admin:categories.headers.kind')}</Label>
@@ -376,7 +420,10 @@ export function ManageCategoriesPage() {
               <Select
                 items={[
                   { value: 'none', label: t('admin:categories.parentNone') },
-                  ...parentOptions.map((option) => ({ value: option.id, label: option.name })),
+                  ...parentOptions.map((option) => ({
+                    value: option.id,
+                    label: displayName(option),
+                  })),
                 ]}
                 value={form.parentId || 'none'}
                 disabled={Boolean(editing && editing.childCount > 0)}
@@ -392,7 +439,7 @@ export function ManageCategoriesPage() {
                   <SelectItem value="none">{t('admin:categories.parentNone')}</SelectItem>
                   {parentOptions.map((option) => (
                     <SelectItem key={option.id} value={option.id}>
-                      {option.name}
+                      {displayName(option)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -432,7 +479,9 @@ export function ManageCategoriesPage() {
           deleteBlocked
             ? t('admin:categories.deleteBlocked')
             : t('admin:categories.deleteDescription', {
-                name: pendingDelete?.name ?? t('admin:categories.theCategory'),
+                name: pendingDelete
+                  ? displayName(pendingDelete)
+                  : t('admin:categories.theCategory'),
               })
         }
         confirmDisabled={deleteBlocked}

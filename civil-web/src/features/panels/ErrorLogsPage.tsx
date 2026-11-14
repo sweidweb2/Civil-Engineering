@@ -89,7 +89,7 @@ export function ErrorLogsPage() {
                     <TableCell className="max-w-md truncate" title={row.message}>
                       {row.message}
                     </TableCell>
-                    <TableCell className="max-w-[12rem] truncate font-mono text-xs">
+                    <TableCell className="max-w-[12rem] truncate font-mono text-sm">
                       {row.method ? `${row.method} ` : ''}
                       {row.path ?? '—'}
                     </TableCell>

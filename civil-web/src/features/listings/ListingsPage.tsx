@@ -48,8 +48,10 @@ import {
   type Listing,
   type ListingType,
   listListings,
+  localizedListingCategoryName,
 } from '@/services/listings'
 import { getMyProvider } from '@/services/providers'
+import { useLocaleStore } from '@/stores/localeStore'
 
 import { ListingFormDialog } from './components/ListingFormDialog'
 
@@ -254,6 +256,7 @@ export function ListingsBrowser({
   manageOwn?: boolean
 }) {
   const { t } = useTranslation(['admin', 'common'])
+  const locale = useLocaleStore((state) => state.locale)
   const embedded = Boolean(providerId) && !manageOwn
   const location = useLocation()
   const navigate = useNavigate()
@@ -492,9 +495,9 @@ export function ListingsBrowser({
                       </TableCell>
                       <TableCell
                         className="max-w-40 truncate"
-                        title={listing.categoryName ?? undefined}
+                        title={localizedListingCategoryName(listing, locale) ?? undefined}
                       >
-                        {ellipsis(listing.categoryName ?? '—', 24)}
+                        {ellipsis(localizedListingCategoryName(listing, locale) ?? '—', 24)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatListingPrice(listing)}

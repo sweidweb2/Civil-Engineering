@@ -2,6 +2,7 @@ import 'dotenv/config'
 
 import { createApp } from './app.js'
 import { loadConfig } from './config/index.js'
+import { closePool } from './database/pool.js'
 import { startBackgroundJobs } from './jobs/index.js'
 import { getLogger } from './logging/index.js'
 
@@ -21,7 +22,9 @@ if (!process.env.VERCEL) {
   function shutdown(signal: string) {
     logger.info({ signal }, 'shutting down')
     server.close(() => {
-      process.exit(0)
+      void closePool()
+        .catch((err) => logger.error({ err }, 'failed to close postgres pool'))
+        .finally(() => process.exit(0))
     })
   }
 

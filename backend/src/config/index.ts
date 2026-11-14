@@ -7,6 +7,7 @@ const baseEnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   TRUST_PROXY: z.enum(['true', 'false']).optional(),
   DATABASE_URL: z.string().min(1).optional(),
+  DB_POOL_MAX: z.coerce.number().int().positive().max(15).optional(),
   JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
   JWT_REFRESH_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
   JWT_ACCESS_EXPIRES_IN: z.string().min(1).default('15m'),

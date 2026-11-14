@@ -7,3 +7,4 @@
  */
 export type { PrismaClient } from './prisma.js'
 export { prisma } from './prisma.js'
+export { closePool, getPool } from './pool.js'

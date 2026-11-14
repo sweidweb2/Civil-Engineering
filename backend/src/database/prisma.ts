@@ -3,21 +3,21 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../generated/prisma/client.js'
 import { logPerf } from '../logging/perf.js'
 
+import { getPool } from './pool.js'
+
 /**
  * Shared Prisma Client — import only from repositories (and rare infra), never controllers/services.
  * Lazy: created on first use so the API can boot without DATABASE_URL until persistence is needed.
+ * Uses one bounded `pg.Pool` so we never exhaust Supabase pooler session slots.
  */
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient
 }
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is required to use Prisma Client')
-  }
-
-  const adapter = new PrismaPg({ connectionString })
+  const pool = getPool()
+  // External shared pool — do not let the adapter dispose it on $disconnect.
+  const adapter = new PrismaPg(pool, { disposeExternalPool: false })
   const base = new PrismaClient({ adapter })
 
   const extended = base.$extends({
@@ -33,8 +33,10 @@ function createPrismaClient(): PrismaClient {
               model,
               operation,
               ms,
-              // avoid dumping full args (PII); only count keys
               argKeys: args && typeof args === 'object' ? Object.keys(args as object) : [],
+              poolWaiting: pool.waitingCount,
+              poolIdle: pool.idleCount,
+              poolTotal: pool.totalCount,
             })
           }
         },

@@ -13,6 +13,7 @@ package-lock.json
 *.min.js
 *.min.css
 civil-mobile/.expo
+civil-mobile/uniwind-types.d.ts
 civil-web/dist
 backend/dist
 Docs/**/*.png

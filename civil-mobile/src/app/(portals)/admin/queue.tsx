@@ -1,5 +1,5 @@
-import { PortalPlaceholderScreen } from '@/features/portals/PortalPlaceholderScreen'
+import { AdminQueueScreen } from '@/features/admin/AdminQueueScreen'
 
 export default function AdminQueue() {
-  return <PortalPlaceholderScreen title="Workers requests" />
+  return <AdminQueueScreen />
 }

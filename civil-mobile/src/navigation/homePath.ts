@@ -14,6 +14,7 @@ export function homePathForRole(role: AuthRole | null | undefined): string {
     case 'PROVIDER':
       return '/provider/listings'
     case 'WORKER':
+      return '/worker'
     case 'CLIENT':
     default:
       return '/client'
@@ -30,6 +31,8 @@ export function portalIdForRole(role: AuthRole | null | undefined): PortalId {
       return 'pm'
     case 'PROVIDER':
       return 'provider'
+    case 'WORKER':
+      return 'worker'
     default:
       return 'client'
   }
@@ -38,8 +41,5 @@ export function portalIdForRole(role: AuthRole | null | undefined): PortalId {
 /** True when pathname belongs to the portal for this role. */
 export function isPathInRolePortal(pathname: string, role: AuthRole | null | undefined): boolean {
   const portal = portalIdForRole(role)
-  if (portal === 'client') {
-    return pathname === '/client' || pathname.startsWith('/client/')
-  }
   return pathname === `/${portal}` || pathname.startsWith(`/${portal}/`)
 }

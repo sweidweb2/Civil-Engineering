@@ -12,13 +12,12 @@ import {
   Settings,
   Star,
   Store,
-  TrendingUp,
   UserCheck,
   UserRound,
   Users,
 } from 'lucide-react-native'
 
-export type PortalId = 'super' | 'admin' | 'pm' | 'provider' | 'client'
+export type PortalId = 'super' | 'admin' | 'pm' | 'provider' | 'client' | 'worker'
 
 export type PortalNavItem = {
   key: string
@@ -61,7 +60,6 @@ export const ADMIN_MORE_LINKS: PortalNavItem[] = [
 ]
 
 export const PM_NAV: PortalNavItem[] = [
-  { key: 'analytics', label: 'Analytics', href: '/pm/analytics', icon: TrendingUp },
   { key: 'projects', label: 'Projects', href: '/pm/projects', icon: FolderKanban },
   { key: 'directory', label: 'Directory', href: '/pm/directory', icon: Library },
 ]
@@ -73,6 +71,10 @@ export const PROVIDER_NAV: PortalNavItem[] = [
 
 export const CLIENT_NAV: PortalNavItem[] = [
   { key: 'home', label: 'Home', href: '/client', icon: Home, end: true },
+]
+
+export const WORKER_NAV: PortalNavItem[] = [
+  { key: 'home', label: 'Home', href: '/worker', icon: Home, end: true },
 ]
 
 export function navForPortal(portal: PortalId): PortalNavItem[] {
@@ -87,6 +89,8 @@ export function navForPortal(portal: PortalId): PortalNavItem[] {
       return PROVIDER_NAV
     case 'client':
       return CLIENT_NAV
+    case 'worker':
+      return WORKER_NAV
   }
 }
 

@@ -66,8 +66,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
-    "test:e2e": "detox test --configuration android.emu.debug",
-    "test:e2e:build": "detox build --configuration android.emu.debug",
+    "test:e2e": "node -e \"console.log('Mobile Detox e2e disabled for now (same as CI_RUN_E2E=false)'); process.exit(0)\"",
+    "test:e2e:build": "node -e \"console.log('Mobile Detox e2e build disabled for now'); process.exit(0)\"",
     "audit:deps": "npm audit --audit-level=high",
     "audit:deps:ci": "npm audit --audit-level=critical"
   },

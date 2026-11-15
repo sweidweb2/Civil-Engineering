@@ -1,18 +1,7 @@
-# Mobile E2E (Detox)
+# Mobile E2E (Detox) — **disabled for now**
 
-Detox is installed and configured for **Android emulator**.
+Detox deps/config may still exist under the app, but **`npm run test:e2e` / `test:e2e:build` are no-ops**.
 
-## Prerequisites
+CI also skips Detox (`CI_RUN_E2E=false`). Re-enable later when you want emulator e2e in CI/local.
 
-1. Android Studio + emulator AVD named `Pixel_7_API_34` (or change `.detoxrc.js`)
-2. Generate native project once: `npx expo prebuild --platform android`
-3. Start emulator
-
-## Commands
-
-```bash
-npm run test:e2e:build   # build debug APK + androidTest
-npm run test:e2e         # run tests/e2e/*.e2e.ts
-```
-
-iOS Detox requires macOS — not configured on this Windows workspace.
+Focus on **`npm run test:unit`** (Jest) until then.

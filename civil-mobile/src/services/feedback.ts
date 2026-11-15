@@ -1,6 +1,5 @@
-import { Alert, Platform } from 'react-native'
-
 import { ApiError } from '@/services/api'
+import { useAlertStore } from '@/stores/alertStore'
 
 export function errorMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (error instanceof ApiError) return error.message
@@ -9,8 +8,8 @@ export function errorMessage(error: unknown, fallback = 'Something went wrong'):
 }
 
 /**
- * Blocking confirm / failure dialog (mobile equivalent of Alert Dialog).
- * RN Web's Alert.alert is a no-op — use window.confirm / alert there.
+ * In-app confirm / message dialog (works on native + web).
+ * Never uses window.alert / window.confirm.
  */
 export function showBlockingAlert(
   title: string,
@@ -22,43 +21,14 @@ export function showBlockingAlert(
     onCancel?: () => void
   },
 ) {
-  const body = `${title}\n\n${message}`
-  const hasCancel = Boolean(options?.cancelLabel || options?.onCancel)
-
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    if (hasCancel) {
-      if (window.confirm(body)) {
-        options?.onConfirm?.()
-      } else {
-        options?.onCancel?.()
-      }
-      return
-    }
-    window.alert(body)
-    options?.onConfirm?.()
-    return
-  }
-
-  const buttons: {
-    text: string
-    style?: 'cancel' | 'destructive' | 'default'
-    onPress?: () => void
-  }[] = []
-
-  if (hasCancel) {
-    buttons.push({
-      text: options?.cancelLabel ?? 'Cancel',
-      style: 'cancel',
-      onPress: options?.onCancel,
-    })
-  }
-
-  buttons.push({
-    text: options?.confirmLabel ?? 'OK',
-    onPress: options?.onConfirm,
+  useAlertStore.getState().show({
+    title,
+    message,
+    confirmLabel: options?.confirmLabel,
+    cancelLabel: options?.cancelLabel,
+    onConfirm: options?.onConfirm,
+    onCancel: options?.onCancel,
   })
-
-  Alert.alert(title, message, buttons)
 }
 
 export function showApiAlert(

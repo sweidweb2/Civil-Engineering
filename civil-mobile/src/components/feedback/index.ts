@@ -1,3 +1,4 @@
+export { AppAlertHost } from './AppAlertHost'
 export { AsyncState, InlineSpinner } from './AsyncState'
 export { ErrorBoundary } from './ErrorBoundary'
 export { IsometricLoader } from './IsometricLoader'

@@ -8,6 +8,7 @@ export {
   PM_NAV,
   PROVIDER_NAV,
   SUPER_NAV,
+  WORKER_NAV,
   type PortalId,
   type PortalNavItem,
 } from './portalNav'

@@ -11,6 +11,10 @@ export type Category = {
   parentId: string | null
   isActive: boolean
   sortOrder: number
+  childCount?: number
+  listingCount?: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 export type PaginatedCategories = {
@@ -22,6 +26,22 @@ export type PaginatedCategories = {
   }
 }
 
+export type CategoryWriteInput = {
+  name: string
+  nameAr?: string | null
+  kind: CategoryKind
+  parentId?: string | null
+  isActive?: boolean
+  sortOrder?: number
+}
+
+export const CATEGORY_KIND_OPTIONS: Array<{ value: CategoryKind; label: string }> = [
+  { value: 'MATERIAL', label: 'Material' },
+  { value: 'EQUIPMENT', label: 'Equipment' },
+  { value: 'SERVICE', label: 'Service' },
+  { value: 'WORKER', label: 'Worker' },
+]
+
 export function listCategories(
   page = 1,
   limit = 100,
@@ -32,6 +52,24 @@ export function listCategories(
   if (filters?.includeCounts === false) params.set('includeCounts', 'false')
   if (filters?.kind) params.set('kind', filters.kind)
   return apiRequest<PaginatedCategories>(`/categories?${params.toString()}`)
+}
+
+export function createCategory(input: CategoryWriteInput) {
+  return apiRequest<{ data: Category }>('/categories', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateCategory(id: string, input: Partial<CategoryWriteInput>) {
+  return apiRequest<{ data: Category }>(`/categories/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deleteCategory(id: string) {
+  return apiRequest<void>(`/categories/${id}`, { method: 'DELETE' })
 }
 
 export function isListingCategory(category: Category) {

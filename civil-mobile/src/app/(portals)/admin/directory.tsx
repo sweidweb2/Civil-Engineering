@@ -1,5 +1,5 @@
-import { PortalPlaceholderScreen } from '@/features/portals/PortalPlaceholderScreen'
+import { PmDirectoryScreen } from '@/features/pm/PmDirectoryScreen'
 
 export default function AdminDirectory() {
-  return <PortalPlaceholderScreen title="Directory" />
+  return <PmDirectoryScreen />
 }

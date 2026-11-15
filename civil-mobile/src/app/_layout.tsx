@@ -2,6 +2,7 @@ import '../../global.css'
 
 import { Stack } from 'expo-router'
 
+import { AppAlertHost } from '@/components/feedback/AppAlertHost'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
@@ -19,6 +20,7 @@ export default function RootLayout() {
       <ErrorBoundary>
         <PushNotificationsBridge />
         <Stack screenOptions={{ headerShown: false }} />
+        <AppAlertHost />
       </ErrorBoundary>
     </GluestackUIProvider>
   )

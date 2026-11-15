@@ -11,7 +11,7 @@ import { Input, InputField } from '@/components/ui/input'
 import { Pressable } from '@/components/ui/pressable'
 import { Switch } from '@/components/ui/switch'
 import { Textarea, TextareaInput } from '@/components/ui/textarea'
-import { OptionChips } from '@/features/provider/components/OptionChips'
+import { OptionChips } from '@/components/forms/OptionChips'
 import {
   EMPTY_LISTING_FORM,
   formFromListing,
@@ -28,7 +28,7 @@ import {
   type ListingStatus,
   updateListing,
 } from '@/services/listings'
-import { getMyProvider } from '@/services/providers'
+import { getMyProvider, listProviders, type Provider } from '@/services/providers'
 import { useToastApiError } from '@/services/toast'
 import { colors } from '@/theme/colors'
 
@@ -62,21 +62,30 @@ function BackButton({ fallbackHref }: { fallbackHref: string }) {
 
 type ProviderListingEditorScreenProps = {
   mode: 'create' | 'edit'
+  basePath?: string
+  scope?: 'mine' | 'admin'
 }
 
-export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScreenProps) {
+export function ProviderListingEditorScreen({
+  mode,
+  basePath = '/provider/listings',
+  scope = 'mine',
+}: ProviderListingEditorScreenProps) {
   const { id } = useLocalSearchParams<{ id?: string }>()
   const listingId = typeof id === 'string' ? id : id?.[0]
   const toastApiError = useToastApiError()
+  const isAdmin = scope === 'admin'
 
   const [form, setForm] = useState<ListingFormValues>(EMPTY_LISTING_FORM)
   const [formError, setFormError] = useState<string | undefined>()
   const [isSaving, setIsSaving] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [selectedProviderId, setSelectedProviderId] = useState('')
 
   const loadMine = useCallback(() => getMyProvider(), [])
-  const mineRemote = useRemoteData(loadMine)
-  const providerId = mineRemote.status === 'success' ? mineRemote.data.data.id : undefined
+  const mineRemote = useRemoteData(loadMine, { enabled: !isAdmin })
+  const mineProviderId = mineRemote.status === 'success' ? mineRemote.data.data.id : undefined
 
   const loadListing = useCallback(() => {
     if (!listingId) return Promise.reject(new Error('Listing id required'))
@@ -88,7 +97,9 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
 
   useEffect(() => {
     if (mode !== 'edit' || listingRemote.status !== 'success') return
-    setForm(formFromListing(listingRemote.data.data))
+    const listing = listingRemote.data.data
+    setForm(formFromListing(listing))
+    if (listing.providerId) setSelectedProviderId(listing.providerId)
   }, [listingRemote, mode])
 
   useEffect(() => {
@@ -105,9 +116,27 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
     }
   }, [])
 
-  const isBootLoading = mineRemote.isLoading || (mode === 'edit' && listingRemote.isLoading)
+  useEffect(() => {
+    if (!isAdmin) return
+    let cancelled = false
+    void listProviders(1, 100)
+      .then((result) => {
+        if (!cancelled) setProviders(result.data)
+      })
+      .catch(() => {
+        if (!cancelled) setProviders([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin])
+
+  const providerId = isAdmin ? selectedProviderId || undefined : mineProviderId
+
+  const isBootLoading =
+    (!isAdmin && mineRemote.isLoading) || (mode === 'edit' && listingRemote.isLoading)
   const bootError =
-    mineRemote.status === 'error'
+    !isAdmin && mineRemote.status === 'error'
       ? mineRemote.error
       : listingRemote.status === 'error'
         ? listingRemote.error
@@ -119,7 +148,10 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
   }
 
   async function onSave() {
-    if (!providerId) return
+    if (!providerId) {
+      setFormError(isAdmin ? 'Select a provider' : 'Provider not loaded')
+      return
+    }
     const parsed = listingWriteFromForm(form, providerId)
     if ('error' in parsed) {
       setFormError(parsed.error)
@@ -131,11 +163,11 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
       if (mode === 'create') {
         const created = await createListing(parsed.data)
         showBlockingAlert('Created', 'Listing was created.')
-        router.replace(`/provider/listings/${created.data.id}` as never)
+        router.replace(`${basePath}/${created.data.id}` as never)
       } else if (listingId) {
         await updateListing(listingId, parsed.data)
         showBlockingAlert('Saved', 'Listing was updated.')
-        router.replace(`/provider/listings/${listingId}` as never)
+        router.replace(`${basePath}/${listingId}` as never)
       }
     } catch (error) {
       if (error instanceof ApiError && error.status >= 500) toastApiError(error)
@@ -154,8 +186,12 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
     label: category.name,
   }))
 
-  const fallbackHref =
-    mode === 'edit' && listingId ? `/provider/listings/${listingId}` : '/provider/listings'
+  const providerOptions = providers.map((provider) => ({
+    value: provider.id,
+    label: provider.name,
+  }))
+
+  const fallbackHref = mode === 'edit' && listingId ? `${basePath}/${listingId}` : basePath
 
   return (
     <View className="flex-1 bg-background">
@@ -169,7 +205,7 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
         error={bootError}
         loadingLabel={mode === 'create' ? 'Loading…' : 'Loading listing…'}
         onRetry={() => {
-          void mineRemote.refetch()
+          if (!isAdmin) void mineRemote.refetch()
           if (mode === 'edit') void listingRemote.refetch()
         }}
       >
@@ -179,6 +215,16 @@ export function ProviderListingEditorScreen({ mode }: ProviderListingEditorScree
           keyboardShouldPersistTaps="handled"
         >
           {formError ? <Text className="text-sm text-destructive">{formError}</Text> : null}
+
+          {isAdmin ? (
+            <FormField label="Provider" isRequired>
+              <OptionChips
+                options={providerOptions}
+                value={selectedProviderId}
+                onChange={setSelectedProviderId}
+              />
+            </FormField>
+          ) : null}
 
           <FormField label="Name" isRequired>
             <Input>

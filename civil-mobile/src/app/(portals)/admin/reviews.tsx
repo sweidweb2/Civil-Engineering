@@ -1,5 +1,5 @@
-import { PortalPlaceholderScreen } from '@/features/portals/PortalPlaceholderScreen'
+import { AdminReviewsScreen } from '@/features/admin/AdminReviewsScreen'
 
 export default function AdminReviews() {
-  return <PortalPlaceholderScreen title="Reviews" />
+  return <AdminReviewsScreen />
 }

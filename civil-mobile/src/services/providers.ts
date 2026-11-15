@@ -25,18 +25,18 @@ export type ProviderLogoResponse = {
   meta: { logoDownloadUrl: string | null }
 }
 
-export function providerStatusLabel(status: ProviderStatus): string {
-  if (status === 'PENDING') return 'Pending'
-  if (status === 'APPROVED') return 'Approved'
-  return 'Suspended'
+export type PaginatedProviders = {
+  data: Provider[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
 }
 
-export function getMyProvider() {
-  return apiRequest<ProviderLogoResponse>('/providers/me')
-}
-
-export type ProviderUpdateInput = {
-  name?: string
+export type ProviderWriteInput = {
+  ownerUserId?: string | null
+  name: string
   description?: string | null
   phone?: string | null
   whatsapp?: string | null
@@ -45,6 +45,43 @@ export type ProviderUpdateInput = {
   address?: string | null
   city?: string | null
   country?: string | null
+  status?: ProviderStatus
+}
+
+export type ProviderUpdateInput = Partial<ProviderWriteInput> & {
+  name?: string
+}
+
+export const PROVIDER_STATUS_OPTIONS: Array<{ value: ProviderStatus; label: string }> = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+]
+
+export function providerStatusLabel(status: ProviderStatus): string {
+  return PROVIDER_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
+}
+
+export function getMyProvider() {
+  return apiRequest<ProviderLogoResponse>('/providers/me')
+}
+
+export function listProviders(page = 1, limit = 20, q?: string, status?: ProviderStatus) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (q) params.set('q', q)
+  if (status) params.set('status', status)
+  return apiRequest<PaginatedProviders>(`/providers?${params.toString()}`)
+}
+
+export function getProvider(id: string) {
+  return apiRequest<ProviderLogoResponse>(`/providers/${id}`)
+}
+
+export function createProvider(input: ProviderWriteInput) {
+  return apiRequest<{ data: Provider }>('/providers', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }
 
 export function updateProvider(id: string, input: ProviderUpdateInput) {

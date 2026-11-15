@@ -30,7 +30,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function BackButton() {
+function BackButton({ fallbackHref }: { fallbackHref: string }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -38,7 +38,7 @@ function BackButton() {
       className="size-9 items-center justify-center rounded-md"
       onPress={() => {
         if (router.canGoBack()) router.back()
-        else router.replace('/provider/listings')
+        else router.replace(fallbackHref as never)
       }}
     >
       <ChevronLeft size={24} color={colors.light.text} />
@@ -46,7 +46,13 @@ function BackButton() {
   )
 }
 
-export function ProviderListingDetailsScreen() {
+type ProviderListingDetailsScreenProps = {
+  basePath?: string
+}
+
+export function ProviderListingDetailsScreen({
+  basePath = '/provider/listings',
+}: ProviderListingDetailsScreenProps) {
   const { id } = useLocalSearchParams<{ id: string }>()
   const listingId = typeof id === 'string' ? id : id?.[0]
   const toastApiError = useToastApiError()
@@ -81,7 +87,7 @@ export function ProviderListingDetailsScreen() {
                 ? 'Listing was hidden because it is still referenced.'
                 : 'Listing was removed.',
             )
-            router.replace('/provider/listings')
+            router.replace(basePath as never)
           } catch (error) {
             if (error instanceof ApiError && error.status >= 500) toastApiError(error)
             else showApiAlert(error, 'Could not delete listing')
@@ -97,7 +103,7 @@ export function ProviderListingDetailsScreen() {
     <View className="flex-1 bg-background" testID="e2e-provider-listing-detail">
       <Header
         title={listing?.name ?? 'Listing'}
-        leftSlot={<BackButton />}
+        leftSlot={<BackButton fallbackHref={basePath} />}
         rightSlot={
           listing ? (
             <Badge variant={listing.status === 'ACTIVE' ? 'default' : 'secondary'}>
@@ -157,7 +163,7 @@ export function ProviderListingDetailsScreen() {
               <Button
                 className="flex-1"
                 variant="outline"
-                onPress={() => router.push(`/provider/listings/${listing.id}/edit` as never)}
+                onPress={() => router.push(`${basePath}/${listing.id}/edit` as never)}
               >
                 <ButtonText>Edit</ButtonText>
               </Button>

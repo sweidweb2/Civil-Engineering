@@ -19,7 +19,7 @@ import { getMyProvider } from '@/services/providers'
 
 const PAGE_SIZE = 20
 
-function ListingRow({ item }: { item: Listing }) {
+function ListingRow({ item, basePath }: { item: Listing; basePath: string }) {
   const price = formatListingPrice(item)
   const typeLabel = item.type ? listingTypeLabel(item.type) : null
 
@@ -28,7 +28,7 @@ function ListingRow({ item }: { item: Listing }) {
       accessibilityRole="button"
       accessibilityLabel={`Open ${item.name}`}
       className="flex-row gap-3 border-b border-border px-4 py-3 active:bg-muted/40"
-      onPress={() => router.push(`/provider/listings/${item.id}` as never)}
+      onPress={() => router.push(`${basePath}/${item.id}` as never)}
     >
       <View className="size-14 overflow-hidden rounded-md border border-border bg-muted/40">
         {item.mainImageUrl ? (
@@ -57,28 +57,38 @@ function ListingRow({ item }: { item: Listing }) {
   )
 }
 
-export function ProviderListingsScreen() {
+type ProviderListingsScreenProps = {
+  basePath?: string
+  /** `mine` scopes to the signed-in provider; `admin` lists all. */
+  scope?: 'mine' | 'admin'
+}
+
+export function ProviderListingsScreen({
+  basePath = '/provider/listings',
+  scope = 'mine',
+}: ProviderListingsScreenProps) {
   const [query, setQuery] = useState('')
   const [appliedQuery, setAppliedQuery] = useState('')
   const [page, setPage] = useState(1)
+  const isAdmin = scope === 'admin'
 
   const loadMine = useCallback(() => getMyProvider(), [])
-  const mineRemote = useRemoteData(loadMine)
+  const mineRemote = useRemoteData(loadMine, { enabled: !isAdmin })
   const providerId = mineRemote.status === 'success' ? mineRemote.data.data.id : undefined
 
   const loadListings = useCallback(() => {
-    if (!providerId) {
+    if (!isAdmin && !providerId) {
       return Promise.reject(new Error('Provider not loaded'))
     }
     return listListings(page, PAGE_SIZE, {
-      providerId,
+      providerId: isAdmin ? undefined : providerId,
       q: appliedQuery || undefined,
       counts: false,
     })
-  }, [appliedQuery, page, providerId])
+  }, [appliedQuery, isAdmin, page, providerId])
 
   const listingsRemote = useRemoteData(loadListings, {
-    enabled: Boolean(providerId),
+    enabled: isAdmin || Boolean(providerId),
   })
 
   const hasListings = listingsRemote.status === 'success'
@@ -88,12 +98,13 @@ export function ProviderListingsScreen() {
 
   // Nice iso loader only on first paint — keep the list mounted for pull-to-refresh / paging.
   const isInitialLoading =
-    mineRemote.isLoading || (Boolean(providerId) && listingsRemote.isLoading && !hasListings)
+    (!isAdmin && mineRemote.isLoading) ||
+    ((isAdmin || Boolean(providerId)) && listingsRemote.isLoading && !hasListings)
 
   const isRefreshing = hasListings && listingsRemote.isLoading
 
   const error =
-    mineRemote.status === 'error'
+    !isAdmin && mineRemote.status === 'error'
       ? mineRemote.error
       : listingsRemote.status === 'error'
         ? listingsRemote.error
@@ -101,10 +112,10 @@ export function ProviderListingsScreen() {
 
   const onRetry = useMemo(
     () => () => {
-      void mineRemote.refetch()
-      if (providerId) void listingsRemote.refetch()
+      if (!isAdmin) void mineRemote.refetch()
+      if (isAdmin || providerId) void listingsRemote.refetch()
     },
-    [listingsRemote, mineRemote, providerId],
+    [isAdmin, listingsRemote, mineRemote, providerId],
   )
 
   function onSearch() {
@@ -118,7 +129,7 @@ export function ProviderListingsScreen() {
         title="Listings"
         subtitle={total ? `${total} total` : undefined}
         rightSlot={
-          <Button size="sm" onPress={() => router.push('/provider/listings/new' as never)}>
+          <Button size="sm" onPress={() => router.push(`${basePath}/new` as never)}>
             <ButtonText>Add</ButtonText>
           </Button>
         }
@@ -149,12 +160,12 @@ export function ProviderListingsScreen() {
         <FlatList
           data={rows}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ListingRow item={item} />}
+          renderItem={({ item }) => <ListingRow item={item} basePath={basePath} />}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRetry} />}
           ListEmptyComponent={
             <View className="items-center px-6 py-16">
               <Text className="text-center text-base text-muted-foreground">
-                No listings yet for your company.
+                {isAdmin ? 'No listings yet.' : 'No listings yet for your company.'}
               </Text>
             </View>
           }

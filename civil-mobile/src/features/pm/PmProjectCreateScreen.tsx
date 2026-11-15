@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { router } from 'expo-router'
-import { FolderKanban } from 'lucide-react-native'
+import { FolderKanban, Images } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { GalleryImagesField } from '@/components/files/GalleryImagesField'
 import { ChoiceField, FieldRow, FormError, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { enumOptions } from '@/i18n/labels'
 import { ApiError } from '@/services/api'
 import { showApiAlert } from '@/services/feedback'
+import type { PickedFile } from '@/services/filePicker'
+import { uploadQueuedImages } from '@/services/galleryImages'
 import { createProject, PROJECT_TYPE_OPTIONS, type ProjectType } from '@/services/projects'
 import { useToastApiError, useToastSuccess } from '@/services/toast'
 
@@ -27,6 +30,7 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState<string | undefined>()
   const [isSaving, setIsSaving] = useState(false)
+  const [queuedImages, setQueuedImages] = useState<PickedFile[]>([])
 
   async function onCreate() {
     if (!name.trim()) {
@@ -45,6 +49,10 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
         endDate: endDate.trim() || null,
       })
       toastSuccess(t('projects.created'))
+      if (queuedImages.length > 0) {
+        const failed = await uploadQueuedImages('project', created.data.id, queuedImages)
+        if (failed > 0) toastApiError(new Error(t('gallery.someFailed', { count: failed })))
+      }
       router.replace(`${basePath}/${created.data.id}` as never)
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
@@ -118,6 +126,9 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
             autoCapitalize="none"
           />
         </FieldRow>
+      </Section>
+      <Section title={t('gallery.title')} icon={Images} tone="info">
+        <GalleryImagesField kind="project" onQueueChange={setQueuedImages} disabled={isSaving} />
       </Section>
     </FormScreen>
   )

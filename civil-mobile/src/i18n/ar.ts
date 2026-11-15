@@ -521,4 +521,21 @@ export const ar: Messages = {
     emptyTitle: 'لا توجد إعلانات بعد',
     emptyDescription: 'أضف أول إعلان ليتمكن مديرو المشاريع من إيجادك والتواصل معك.',
   },
+  gallery: {
+    title: 'الصور',
+    hint: '{{count}} من {{max}} صورة · الأولى هي الغلاف',
+    add: 'إضافة صورة',
+    main: 'الغلاف',
+    setMain: 'تعيين كغلاف',
+    imageActions: 'خيارات الصورة',
+    removeTitle: 'إزالة هذه الصورة؟',
+    removeBody: 'ستُحذف الصورة من هذا العنصر.',
+    someFailed: 'تعذر رفع {{count}} صورة. افتح العنصر لإضافتها مجددًا.',
+  },
+  logo: {
+    change: 'تغيير الشعار',
+    remove: 'إزالة الشعار',
+    updated: 'تم تحديث الشعار',
+    removed: 'تمت إزالة الشعار',
+  },
 }

@@ -1,4 +1,7 @@
+import { optimizeIfImage } from '../lib/optimizeImage'
 import { apiRequest } from './api'
+import type { PickedFile } from './filePicker'
+import { appendImagePart } from './galleryImages'
 
 export type ProviderStatus = 'PENDING' | 'APPROVED' | 'SUSPENDED'
 
@@ -89,4 +92,18 @@ export function updateProvider(id: string, input: ProviderUpdateInput) {
     method: 'PATCH',
     body: JSON.stringify(input),
   })
+}
+
+export async function uploadProviderLogo(id: string, picked: PickedFile) {
+  const optimized = await optimizeIfImage(picked)
+  const form = new FormData()
+  await appendImagePart(form, 'image', optimized)
+  return apiRequest<ProviderLogoResponse>(`/providers/${id}/logo/upload`, {
+    method: 'POST',
+    body: form,
+  })
+}
+
+export function clearProviderLogo(id: string) {
+  return apiRequest<ProviderLogoResponse>(`/providers/${id}/logo`, { method: 'DELETE' })
 }

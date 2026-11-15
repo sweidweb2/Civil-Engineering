@@ -116,11 +116,15 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     return authSession?.getAccessToken() ?? null
   }
 
+  const isFormData = typeof FormData !== 'undefined' && rest.body instanceof FormData
+
   const execute = async (token: string | null) => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
       headers: {
-        'Content-Type': 'application/json',
+        // Multipart bodies must not carry a JSON content type: fetch has to set
+        // `multipart/form-data; boundary=…` itself.
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(headers as Record<string, string> | undefined),
       },

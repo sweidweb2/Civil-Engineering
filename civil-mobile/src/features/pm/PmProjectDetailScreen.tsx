@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { ChevronRight, FolderKanban, ListChecks, MapPin, StickyNote } from 'lucide-react-native'
+import {
+  ChevronRight,
+  FolderKanban,
+  Images,
+  ListChecks,
+  MapPin,
+  StickyNote,
+} from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { GalleryImagesField } from '@/components/files/GalleryImagesField'
 import {
   Card,
   ChoiceField,
@@ -203,6 +211,10 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
             </View>
             <ChevronRight size={18} color={colors.primary} />
           </Pressable>
+
+          <Section title={t('gallery.title')} icon={Images} tone="info">
+            <GalleryImagesField kind="project" ownerId={project.id} />
+          </Section>
 
           <Section title={t('projects.basics')} icon={FolderKanban}>
             <TextField label={t('projects.name')} required value={name} onChangeText={setName} />

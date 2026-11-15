@@ -113,4 +113,21 @@ describe('apiRequest', () => {
     const refreshCalls = fetchMock.mock.calls.filter(([u]) => String(u).endsWith('/auth/refresh'))
     expect(refreshCalls).toHaveLength(1)
   })
+
+  it('lets fetch set the multipart boundary for FormData bodies', async () => {
+    bind({ access: 'a1', refresh: 'r1', cleared: false })
+    fetchMock.mockResolvedValueOnce(res(200, { data: 1 }))
+    await apiRequest('/upload', { method: 'POST', body: new FormData() })
+    const headers = fetchMock.mock.calls[0]![1].headers as Record<string, string>
+    expect(headers['Content-Type']).toBeUndefined()
+    expect(headers.Authorization).toBe('Bearer a1')
+  })
+
+  it('still sends JSON content type for normal bodies', async () => {
+    bind({ access: 'a1', refresh: 'r1', cleared: false })
+    fetchMock.mockResolvedValueOnce(res(200, { data: 1 }))
+    await apiRequest('/x', { method: 'POST', body: JSON.stringify({ a: 1 }) })
+    const headers = fetchMock.mock.calls[0]![1].headers as Record<string, string>
+    expect(headers['Content-Type']).toBe('application/json')
+  })
 })

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { router, useLocalSearchParams } from 'expo-router'
-import { Banknote, Package } from 'lucide-react-native'
+import { Banknote, Images, Package } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { GalleryImagesField } from '@/components/files/GalleryImagesField'
 import {
   ChoiceField,
   FieldRow,
@@ -24,6 +25,8 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { type Category, isListingCategory, listCategories } from '@/services/categories'
 import { showApiAlert } from '@/services/feedback'
+import type { PickedFile } from '@/services/filePicker'
+import { uploadQueuedImages } from '@/services/galleryImages'
 import {
   createListing,
   getListingById,
@@ -56,6 +59,7 @@ export function ProviderListingEditorScreen({
   const [form, setForm] = useState<ListingFormValues>(EMPTY_LISTING_FORM)
   const [formError, setFormError] = useState<string | undefined>()
   const [isSaving, setIsSaving] = useState(false)
+  const [queuedImages, setQueuedImages] = useState<PickedFile[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [selectedProviderId, setSelectedProviderId] = useState('')
@@ -140,6 +144,10 @@ export function ProviderListingEditorScreen({
       if (mode === 'create') {
         const created = await createListing(parsed.data)
         toastSuccess(t('listings.created'))
+        if (queuedImages.length > 0) {
+          const failed = await uploadQueuedImages('listing', created.data.id, queuedImages)
+          if (failed > 0) toastApiError(new Error(t('gallery.someFailed', { count: failed })))
+        }
         router.replace(`${basePath}/${created.data.id}` as never)
       } else if (listingId) {
         await updateListing(listingId, parsed.data)
@@ -297,6 +305,15 @@ export function ProviderListingEditorScreen({
             />
           </>
         ) : null}
+      </Section>
+
+      <Section title={t('gallery.title')} icon={Images} tone="info">
+        <GalleryImagesField
+          kind="listing"
+          ownerId={mode === 'edit' ? listingId : undefined}
+          onQueueChange={setQueuedImages}
+          disabled={isSaving}
+        />
       </Section>
     </FormScreen>
   )

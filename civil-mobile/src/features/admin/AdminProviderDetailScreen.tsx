@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { MapPin, Phone, Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { LogoField } from '@/components/files/LogoField'
 import {
   Card,
   ChoiceField,
@@ -13,7 +14,6 @@ import {
   Section,
   StatusPill,
   TextField,
-  Thumbnail,
   toneForStatus,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
@@ -47,6 +47,9 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
   }, [providerId])
   const remote = useRemoteData(load, { enabled: mode === 'edit' && Boolean(providerId) })
   const provider = remote.status === 'success' ? remote.data.data : null
+  const remoteLogoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
+  const [logoOverride, setLogoOverride] = useState<string | null | undefined>(undefined)
+  const logoUrl = logoOverride !== undefined ? logoOverride : remoteLogoUrl
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -141,8 +144,8 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
     >
       <FormError message={error} />
       {provider ? (
-        <Card className="flex-row items-center gap-4">
-          <Thumbnail imageUrl={provider.logoUrl} icon={Store} size={64} />
+        <Card className="flex-row items-center gap-5">
+          <LogoField providerId={provider.id} logoUrl={logoUrl} onChanged={setLogoOverride} />
           <View className="min-w-0 flex-1 gap-1.5">
             <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
               {provider.name}

@@ -4,6 +4,7 @@ import { Building2 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
+import { LogoField } from '@/components/files/LogoField'
 import {
   FieldRow,
   FormScroll,
@@ -47,7 +48,10 @@ export function ProviderProfileScreen() {
   const load = useCallback(() => getMyProvider(), [])
   const remote = useRemoteData(load)
   const provider = remote.status === 'success' ? remote.data.data : null
-  const logoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
+  const remoteLogoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
+  // Set right after an upload/remove so the new logo shows without a refetch.
+  const [logoOverride, setLogoOverride] = useState<string | null | undefined>(undefined)
+  const logoUrl = logoOverride !== undefined ? logoOverride : remoteLogoUrl
 
   useEffect(() => {
     if (!provider) return
@@ -127,6 +131,9 @@ export function ProviderProfileScreen() {
 
           {tab === 'company' ? (
             <Section title={t('profile.companyInfo')} icon={Building2}>
+              {provider ? (
+                <LogoField providerId={provider.id} logoUrl={logoUrl} onChanged={setLogoOverride} />
+              ) : null}
               <TextField
                 label={t('profile.companyName')}
                 required

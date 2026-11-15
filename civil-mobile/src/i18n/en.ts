@@ -528,6 +528,23 @@ export const en = {
     emptyTitle: 'No listings yet',
     emptyDescription: 'Add your first listing so project managers can find and contact you.',
   },
+  gallery: {
+    title: 'Photos',
+    hint: '{{count}} of {{max}} photos · the first one is the cover',
+    add: 'Add photo',
+    main: 'Cover',
+    setMain: 'Set as cover',
+    imageActions: 'Photo options',
+    removeTitle: 'Remove this photo?',
+    removeBody: 'The photo will be deleted from this item.',
+    someFailed: '{{count}} photo(s) could not be uploaded. Open the item to add them again.',
+  },
+  logo: {
+    change: 'Change logo',
+    remove: 'Remove logo',
+    updated: 'Logo updated',
+    removed: 'Logo removed',
+  },
 }
 
 export type Messages = typeof en

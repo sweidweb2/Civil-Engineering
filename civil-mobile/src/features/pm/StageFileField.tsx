@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Modal, Text, View } from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import * as WebBrowser from 'expo-web-browser'
 import {
@@ -7,14 +7,13 @@ import {
   FileText,
   FolderOpen,
   ImageIcon,
-  type LucideIcon,
   RefreshCw,
   Trash2,
   Upload,
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { OptionSheet } from '@/components/files/OptionSheet'
 import { PressableScale } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
@@ -36,31 +35,6 @@ type StageFileFieldProps = {
   disabled?: boolean
 }
 
-function SourceRow({
-  icon: Icon,
-  label,
-  onPress,
-}: {
-  icon: LucideIcon
-  label: string
-  onPress: () => void
-}) {
-  const colors = useThemeColors()
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      className="h-16 flex-row items-center gap-4 rounded-2xl bg-muted px-4 active:opacity-70"
-      onPress={onPress}
-    >
-      <View className="size-10 items-center justify-center rounded-xl bg-primary/10">
-        <Icon size={20} color={colors.primary} />
-      </View>
-      <Text className="flex-1 text-base font-semibold text-foreground">{label}</Text>
-    </Pressable>
-  )
-}
-
 /**
  * Attach a photo or document to a project stage.
  * Camera / photo-library permissions are requested on demand (see `pickFile`),
@@ -76,7 +50,6 @@ export function StageFileField({
 }: StageFileFieldProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
-  const insets = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.tokens?.accessToken ?? null)
   const toastApiError = useToastApiError()
   const toastSuccess = useToastSuccess()
@@ -229,42 +202,32 @@ export function StageFileField({
         </View>
       ) : null}
 
-      <Modal
+      <OptionSheet
         visible={sheetOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSheetOpen(false)}
-        statusBarTranslucent
-      >
-        <Pressable
-          accessibilityLabel={t('files.cancel')}
-          className="flex-1 justify-end bg-black/50"
-          onPress={() => setSheetOpen(false)}
-        >
-          <Pressable
-            className="gap-3 rounded-t-[32px] bg-background px-5 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}
-          >
-            <View className="mb-1 h-1.5 w-10 self-center rounded-full bg-border" />
-            <Text className="pb-1 text-lg font-bold text-foreground">{t('files.sheetTitle')}</Text>
-            <SourceRow
-              icon={Camera}
-              label={t('files.takePhoto')}
-              onPress={() => void onPick('camera')}
-            />
-            <SourceRow
-              icon={ImageIcon}
-              label={t('files.chooseLibrary')}
-              onPress={() => void onPick('library')}
-            />
-            <SourceRow
-              icon={hasFile ? RefreshCw : FolderOpen}
-              label={t('files.chooseFile')}
-              onPress={() => void onPick('file')}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+        title={t('files.sheetTitle')}
+        cancelLabel={t('files.cancel')}
+        onClose={() => setSheetOpen(false)}
+        options={[
+          {
+            key: 'camera',
+            icon: Camera,
+            label: t('files.takePhoto'),
+            onPress: () => void onPick('camera'),
+          },
+          {
+            key: 'library',
+            icon: ImageIcon,
+            label: t('files.chooseLibrary'),
+            onPress: () => void onPick('library'),
+          },
+          {
+            key: 'file',
+            icon: hasFile ? RefreshCw : FolderOpen,
+            label: t('files.chooseFile'),
+            onPress: () => void onPick('file'),
+          },
+        ]}
+      />
     </View>
   )
 }

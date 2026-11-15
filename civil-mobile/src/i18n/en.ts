@@ -115,7 +115,6 @@ export const en = {
     reviewStatus: {
       PENDING: 'Pending',
       ACCEPTED: 'Approved',
-      APPROVED: 'Approved',
       REJECTED: 'Rejected',
     },
     categoryKind: {

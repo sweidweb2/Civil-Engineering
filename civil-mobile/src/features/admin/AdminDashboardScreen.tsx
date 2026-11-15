@@ -35,34 +35,13 @@ import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { formatCount } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
-import type { Project } from '@/services/projects'
-import { getAdminOverview } from '@/services/users'
+import { type AdminOverview, getAdminOverview } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 
-type Overview = {
-  users: number
-  providers: number
-  pendingProviders: number
-  projects: number
-  listings: number
-  pendingRequests: number
-  pendingReviews: number
-  recentProjects: Project[]
-}
-
 /** One request: backend aggregates every tile + the five most recent projects. */
-async function loadOverview(): Promise<Overview> {
+async function loadOverview(): Promise<AdminOverview> {
   const { data } = await getAdminOverview()
-  return {
-    users: data.users,
-    providers: data.providers,
-    pendingProviders: data.pendingProviders,
-    projects: data.projects,
-    listings: data.listings,
-    pendingRequests: data.pendingRequests,
-    pendingReviews: data.pendingReviews,
-    recentProjects: data.recentProjects,
-  }
+  return data
 }
 function StatTile({
   icon,

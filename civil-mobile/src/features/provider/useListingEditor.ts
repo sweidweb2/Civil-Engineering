@@ -63,12 +63,13 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
     cacheKey: cacheKeys.providersPicker,
   })
 
+  const listingData = listingRemote.status === 'success' ? listingRemote.data.data : null
+
   useEffect(() => {
-    if (mode !== 'edit' || listingRemote.status !== 'success') return
-    const listing = listingRemote.data.data
-    setForm(formFromListing(listing))
-    if (listing.providerId) setSelectedProviderId(listing.providerId)
-  }, [listingRemote, mode])
+    if (mode !== 'edit' || !listingData) return
+    setForm(formFromListing(listingData))
+    if (listingData.providerId) setSelectedProviderId(listingData.providerId)
+  }, [listingData, mode])
 
   function setField<K extends keyof ListingFormValues>(key: K, value: ListingFormValues[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -91,12 +92,13 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
     try {
       if (mode === 'create') {
         const created = await createListing(parsed.data)
-        invalidateListingCaches()
         toastSuccess(t('listings.created'))
         if (queuedImages.length > 0) {
           const failed = await uploadQueuedImages('listing', created.data.id, queuedImages)
           if (failed > 0) toastApiError(new Error(t('gallery.someFailed', { count: failed })))
         }
+        // Invalidate after uploads so list thumbnails aren't cached without images.
+        invalidateListingCaches()
         router.replace(`${basePath}/${created.data.id}` as never)
       } else if (listingId) {
         await updateListing(listingId, parsed.data)

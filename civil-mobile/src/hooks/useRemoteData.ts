@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { REMOTE_STALE_MS, remoteCacheGet, remoteCacheSet } from '@/lib/remoteCache'
+import { useAuthStore } from '@/stores/authStore'
 
 export type RemoteIdle = { status: 'idle' }
 export type RemoteLoading = { status: 'loading' }
@@ -30,8 +31,9 @@ type RefetchOptions = {
 /**
  * Lightweight server-data fetch for a screen/feature.
  * Keeps loading/error/data local — do not dump results into Zustand.
- * Refetch keeps the previous success payload on screen (pull-to-refresh style).
- * Optional `cacheKey` shares fresh results across mounts for a short TTL.
+ * Same-key refetch keeps the previous success payload (pull-to-refresh).
+ * A changed `cacheKey` drops previous rows unless a fresh cache hit exists.
+ * In-flight responses are ignored once a newer request (or key) supersedes them.
  */
 export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
   const { enabled = true, cacheKey, staleTime = REMOTE_STALE_MS } = options
@@ -44,6 +46,9 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   const cacheKeyRef = useRef(cacheKey)
   const staleTimeRef = useRef(staleTime)
   const stateRef = useRef(state)
+  /** Cache key that `state` currently belongs to (prevents cross-page hadData). */
+  const dataKeyRef = useRef<string | undefined>(cached !== undefined ? cacheKey : undefined)
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
     loadRef.current = load
@@ -58,19 +63,27 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     stateRef.current = state
   }, [state])
 
-  // When the cache key changes, seed from cache if present.
+  // Key/load change: seed from cache, or clear previous rows and abandon in-flight work.
+  // `load` is included so uncached screens (no cacheKey) don't keep the prior entity's data.
   useEffect(() => {
-    if (!cacheKey) return
-    const hit = remoteCacheGet<T>(cacheKey)
+    requestIdRef.current += 1
+    const hit = cacheKey ? remoteCacheGet<T>(cacheKey) : undefined
     if (hit !== undefined) {
+      dataKeyRef.current = cacheKey
       setState({ status: 'success', data: hit })
+      setIsFetching(false)
+      return
     }
-  }, [cacheKey])
+    dataKeyRef.current = undefined
+    setState(enabled ? { status: 'loading' } : { status: 'idle' })
+  }, [cacheKey, enabled, load])
 
   const refetch = useCallback(async (refetchOptions?: RefetchOptions) => {
     const fresh = refetchOptions?.fresh === true
+    const requestId = ++requestIdRef.current
+    const requestKey = cacheKeyRef.current
     const hadData =
-      !fresh && stateRef.current.status === 'success'
+      !fresh && stateRef.current.status === 'success' && dataKeyRef.current === requestKey
         ? (stateRef.current as RemoteSuccess<T>).data
         : undefined
 
@@ -80,17 +93,23 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     setIsFetching(true)
     try {
       const data = await loadRef.current()
+      if (requestId !== requestIdRef.current) return
+      dataKeyRef.current = requestKey
       setState({ status: 'success', data })
-      const key = cacheKeyRef.current
-      if (key) remoteCacheSet(key, data, staleTimeRef.current)
+      // Never write cache after logout / session clear (in-flight may still resolve).
+      if (requestKey && useAuthStore.getState().tokens) {
+        remoteCacheSet(requestKey, data, staleTimeRef.current)
+      }
     } catch (error) {
+      if (requestId !== requestIdRef.current) return
       if (hadData !== undefined) {
         setState({ status: 'success', data: hadData })
       } else {
+        dataKeyRef.current = undefined
         setState({ status: 'error', error })
       }
     } finally {
-      setIsFetching(false)
+      if (requestId === requestIdRef.current) setIsFetching(false)
     }
   }, [])
 

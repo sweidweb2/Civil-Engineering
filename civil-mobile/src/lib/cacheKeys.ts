@@ -19,7 +19,7 @@ export const cacheKeys = {
   queue: 'queue:list',
 } as const
 
-/** After listing create/update/delete. */
+/** After listing create/update/delete or listing gallery changes. */
 export function invalidateListingCaches() {
   remoteCacheInvalidate(cacheKeys.dashboardProvider)
   remoteCacheInvalidate(cacheKeys.dashboardAdmin)
@@ -28,11 +28,17 @@ export function invalidateListingCaches() {
   remoteCacheInvalidate(cacheKeys.directory)
 }
 
-/** After project create/update/archive. */
+/** After project create/update/archive or project gallery changes. */
 export function invalidateProjectCaches() {
   remoteCacheInvalidate(cacheKeys.dashboardPm)
   remoteCacheInvalidate(cacheKeys.dashboardAdmin)
   remoteCacheInvalidate(cacheKeys.projects)
+}
+
+/** After gallery upload/delete/set-main for a listing or project owner. */
+export function invalidateGalleryCaches(kind: 'listing' | 'project') {
+  if (kind === 'listing') invalidateListingCaches()
+  else invalidateProjectCaches()
 }
 
 /** After user / approval / provider / review admin mutations. */
@@ -45,10 +51,14 @@ export function invalidateAdminCaches() {
   remoteCacheInvalidate(cacheKeys.categories)
   remoteCacheInvalidate(cacheKeys.categoriesPicker)
   remoteCacheInvalidate(cacheKeys.providersPicker)
+  remoteCacheInvalidate(cacheKeys.directory)
+  remoteCacheInvalidate(cacheKeys.listingsAdmin)
 }
 
-/** After provider profile save. */
+/** After provider profile save or logo change. */
 export function invalidateProviderProfileCaches() {
   remoteCacheInvalidate(cacheKeys.providersMe)
   remoteCacheInvalidate(cacheKeys.dashboardProvider)
+  remoteCacheInvalidate(cacheKeys.providers)
+  remoteCacheInvalidate(cacheKeys.dashboardAdmin)
 }

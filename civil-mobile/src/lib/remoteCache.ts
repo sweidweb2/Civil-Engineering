@@ -23,17 +23,18 @@ export function remoteCacheSet(key: string, data: unknown, staleMs = DEFAULT_STA
   store.set(key, { data, expiresAt: Date.now() + staleMs })
 }
 
-/** Drop one key, every key with a prefix (`providers:`), or the whole cache. */
+/**
+ * Drop the whole cache, one exact key, and every key that starts with the
+ * given prefix. Exact + prefix always both apply so `listings:mine` clears
+ * both a bare key and `listings:mine:1::` pages.
+ */
 export function remoteCacheInvalidate(keyOrPrefix?: string) {
   if (!keyOrPrefix) {
     store.clear()
     return
   }
-  if (store.has(keyOrPrefix)) {
-    store.delete(keyOrPrefix)
-    return
-  }
-  for (const key of store.keys()) {
+  store.delete(keyOrPrefix)
+  for (const key of [...store.keys()]) {
     if (key.startsWith(keyOrPrefix)) store.delete(key)
   }
 }

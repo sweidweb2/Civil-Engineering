@@ -6,6 +6,7 @@ import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale, Thumbnail } from '@/components/kit'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { invalidateProviderProfileCaches } from '@/lib/cacheKeys'
 import { clearProviderLogo, uploadProviderLogo } from '@/services/providers'
 import { useToastApiError, useToastSuccess } from '@/services/toast'
 
@@ -31,6 +32,7 @@ export function LogoField({
     setIsBusy(true)
     try {
       await clearProviderLogo(providerId)
+      invalidateProviderProfileCaches()
       onChanged(null)
       toastSuccess(t('logo.removed'))
     } catch (error) {
@@ -68,6 +70,7 @@ export function LogoField({
         onPick={(source) =>
           void pickAndRun(source, async (picked) => {
             const result = await uploadProviderLogo(providerId, picked)
+            invalidateProviderProfileCaches()
             onChanged(result.meta.logoDownloadUrl)
             toastSuccess(t('logo.updated'))
           })

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { useFilePick } from '@/hooks/useFilePick'
+import { invalidateGalleryCaches } from '@/lib/cacheKeys'
 import type { PickedFile, PickSource } from '@/services/filePicker'
 import {
   deleteGalleryImage,
@@ -61,6 +62,7 @@ export function useGalleryImages({ kind, ownerId, onQueueChange }: UseGalleryIma
   function setMain(image: GalleryImage) {
     return runBusy(async () => {
       await setMainGalleryImage(kind, image.id)
+      invalidateGalleryCaches(kind)
       await refresh()
     })
   }
@@ -68,6 +70,7 @@ export function useGalleryImages({ kind, ownerId, onQueueChange }: UseGalleryIma
   function removeImage(image: GalleryImage) {
     return runBusy(async () => {
       await deleteGalleryImage(kind, image.id)
+      invalidateGalleryCaches(kind)
       await refresh()
     })
   }
@@ -87,6 +90,7 @@ export function useGalleryImages({ kind, ownerId, onQueueChange }: UseGalleryIma
         return
       }
       await uploadGalleryImage(kind, ownerId, picked, { isMain: images.length === 0 })
+      invalidateGalleryCaches(kind)
       await refresh()
     })
   }

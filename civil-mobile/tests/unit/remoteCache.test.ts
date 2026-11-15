@@ -1,5 +1,6 @@
 import {
   cacheKeys,
+  invalidateGalleryCaches,
   invalidateListingCaches,
   invalidateProviderProfileCaches,
 } from '@/lib/cacheKeys'
@@ -24,13 +25,15 @@ describe('remoteCache', () => {
     jest.useRealTimers()
   })
 
-  it('invalidates by exact key or prefix', () => {
+  it('invalidates exact key and every key with that prefix', () => {
+    remoteCacheSet('listings:mine', [])
     remoteCacheSet('listings:mine:1::', [])
     remoteCacheSet('listings:admin:1::', [])
     remoteCacheSet('providers:me', { id: '1' })
-    remoteCacheInvalidate('listings:')
+    remoteCacheInvalidate('listings:mine')
+    expect(remoteCacheGet('listings:mine')).toBeUndefined()
     expect(remoteCacheGet('listings:mine:1::')).toBeUndefined()
-    expect(remoteCacheGet('listings:admin:1::')).toBeUndefined()
+    expect(remoteCacheGet('listings:admin:1::')).toEqual([])
     expect(remoteCacheGet('providers:me')).toEqual({ id: '1' })
   })
 
@@ -44,11 +47,26 @@ describe('remoteCache', () => {
     expect(remoteCacheGet(cacheKeys.providersMe)).toEqual({ id: '1' })
   })
 
-  it('invalidateProviderProfileCaches clears profile + provider dashboard', () => {
+  it('invalidateProviderProfileCaches clears profile, provider list, and dashboards', () => {
     remoteCacheSet(cacheKeys.providersMe, { id: '1' })
     remoteCacheSet(cacheKeys.dashboardProvider, {})
+    remoteCacheSet(`${cacheKeys.providers}:1::`, [])
+    remoteCacheSet(cacheKeys.dashboardAdmin, {})
     invalidateProviderProfileCaches()
     expect(remoteCacheGet(cacheKeys.providersMe)).toBeUndefined()
     expect(remoteCacheGet(cacheKeys.dashboardProvider)).toBeUndefined()
+    expect(remoteCacheGet(`${cacheKeys.providers}:1::`)).toBeUndefined()
+    expect(remoteCacheGet(cacheKeys.dashboardAdmin)).toBeUndefined()
+  })
+
+  it('invalidateGalleryCaches routes by kind', () => {
+    remoteCacheSet(`${cacheKeys.listingsMine}:1::`, [])
+    remoteCacheSet(`${cacheKeys.projects}:1::`, [])
+    invalidateGalleryCaches('listing')
+    expect(remoteCacheGet(`${cacheKeys.listingsMine}:1::`)).toBeUndefined()
+    expect(remoteCacheGet(`${cacheKeys.projects}:1::`)).toEqual([])
+    remoteCacheSet(`${cacheKeys.projects}:1::`, [])
+    invalidateGalleryCaches('project')
+    expect(remoteCacheGet(`${cacheKeys.projects}:1::`)).toBeUndefined()
   })
 })

@@ -117,7 +117,6 @@ export const ar: Messages = {
     reviewStatus: {
       PENDING: 'قيد المراجعة',
       ACCEPTED: 'معتمد',
-      APPROVED: 'معتمد',
       REJECTED: 'مرفوض',
     },
     categoryKind: { MATERIAL: 'مواد', EQUIPMENT: 'معدات', SERVICE: 'خدمات', WORKER: 'عمال' },

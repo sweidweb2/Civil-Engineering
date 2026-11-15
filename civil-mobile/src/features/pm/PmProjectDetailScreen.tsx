@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { invalidateProjectCaches } from '@/lib/cacheKeys'
 import {
   ChevronRight,
   FolderKanban,
@@ -28,9 +27,11 @@ import {
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel, enumOptions } from '@/i18n/labels'
+import { invalidateProjectCaches } from '@/lib/cacheKeys'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import {
   archiveProject,
@@ -41,7 +42,6 @@ import {
   type ProjectType,
   updateProject,
 } from '@/services/projects'
-import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useToastSuccess } from '@/services/toast'
 
 type PmProjectDetailScreenProps = {

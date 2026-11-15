@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ChoiceField, FormError, FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'
@@ -17,7 +18,6 @@ import {
   updateCategory,
 } from '@/services/categories'
 import { showBlockingAlert } from '@/services/feedback'
-import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/categories'

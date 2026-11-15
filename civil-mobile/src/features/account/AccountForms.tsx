@@ -13,11 +13,11 @@ import {
   providerProfileSchema,
   type ProviderProfileValues,
 } from '@/features/provider/profile.schema'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { changePassword } from '@/services/auth'
-import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useToastSuccess } from '@/services/toast'
 import { getUser, updateUser } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'

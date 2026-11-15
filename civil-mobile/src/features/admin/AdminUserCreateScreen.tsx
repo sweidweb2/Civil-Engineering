@@ -13,10 +13,10 @@ import {
   ToggleRow,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import type { AuthRole } from '@/services/auth'
-import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useToastSuccess } from '@/services/toast'
 import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 

@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import {
   Avatar,
   Card,
@@ -18,12 +17,13 @@ import {
   toneForStatus,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
+import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import { userDisplayName } from '@/lib/user'
 import type { AuthRole } from '@/services/auth'
 import { showBlockingAlert } from '@/services/feedback'
-import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useToastSuccess } from '@/services/toast'
 import {
   AUTH_ROLE_OPTIONS,

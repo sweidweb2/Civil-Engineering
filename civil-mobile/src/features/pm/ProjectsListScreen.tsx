@@ -13,8 +13,8 @@ import {
   toneForStatus,
 } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
-import { cacheKeys } from '@/lib/cacheKeys'
 import { enumLabel, enumOptions } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { listProjects, type Project, PROJECT_STATUS_OPTIONS } from '@/services/projects'
 
 const PAGE_SIZE = 20

@@ -11,8 +11,8 @@ import { Input, InputField } from '@/components/ui/input'
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import {
-  CATEGORY_KIND_OPTIONS,
   type Category,
+  CATEGORY_KIND_OPTIONS,
   type CategoryKind,
   listCategories,
 } from '@/services/categories'
@@ -25,7 +25,7 @@ function CategoryRow({ item }: { item: Category }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open ${item.name}`}
-      className="gap-1 border-b border-border px-4 py-3 active:bg-muted/40"
+      className="mx-5 mb-3 gap-1 rounded-3xl border border-border/60 bg-card p-4 active:opacity-80"
       onPress={() => router.push(`${BASE}/${item.id}` as never)}
     >
       <View className="flex-row items-start justify-between gap-2">
@@ -84,7 +84,7 @@ export function AdminCategoriesScreen() {
         }
       />
 
-      <View className="gap-3 border-b border-border px-4 py-3">
+      <View className="gap-3 px-5 pb-4">
         <View className="flex-row gap-2">
           <View className="min-w-0 flex-1">
             <Input>

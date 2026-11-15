@@ -12,7 +12,7 @@ import { useAuthStore } from '@/stores/authStore'
  * No-op on web — expo-notifications native APIs are unavailable there.
  */
 export function usePushNotifications() {
-  const user = useAuthStore((s) => s.user)
+  const userId = useAuthStore((s) => s.user?.id)
   const tokens = useAuthStore((s) => s.tokens)
   const isHydrated = useAuthStore((s) => s.isHydrated)
 
@@ -20,12 +20,12 @@ export function usePushNotifications() {
     if (Platform.OS === 'web') return
     if (!isHydrated) return
 
-    if (!user || !tokens?.accessToken) {
+    if (!userId || !tokens?.accessToken) {
       return
     }
 
     void registerPushForUser(tokens.accessToken)
-  }, [isHydrated, user?.id, tokens?.accessToken])
+  }, [isHydrated, userId, tokens?.accessToken])
 
   useEffect(() => {
     if (Platform.OS === 'web') return

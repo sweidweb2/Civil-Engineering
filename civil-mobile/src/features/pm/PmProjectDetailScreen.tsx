@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
@@ -20,8 +20,8 @@ import {
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   type ProjectStatus,
-  type ProjectType,
   projectStatusLabel,
+  type ProjectType,
   updateProject,
 } from '@/services/projects'
 import { useToastApiError } from '@/services/toast'
@@ -151,7 +151,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
         {project ? (
           <ScrollView
             className="flex-1"
-            contentContainerClassName="gap-4 px-4 py-4 pb-10"
+            contentContainerClassName="gap-4 px-5 pb-10 pt-2"
             keyboardShouldPersistTaps="handled"
           >
             <Button

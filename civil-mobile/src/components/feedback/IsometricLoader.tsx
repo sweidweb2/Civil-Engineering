@@ -11,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Polygon, Rect } from 'react-native-svg'
 
-import { colors } from '@/theme/colors'
+import { useThemeColors } from '@/hooks/useThemeColors'
 
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon)
 const AnimatedRect = Animated.createAnimatedComponent(Rect)
@@ -56,7 +56,7 @@ export function IsometricLoader({ label = 'Loading…', size = 160 }: IsometricL
     width: interpolate(t.value, [0, 1], [18, 60]),
   }))
 
-  const palette = colors.light
+  const palette = useThemeColors()
 
   return (
     <View

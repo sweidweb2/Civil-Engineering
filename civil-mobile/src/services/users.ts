@@ -55,7 +55,7 @@ export type UpdateUserInput = {
   phone?: string
 }
 
-export const AUTH_ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
+export const AUTH_ROLE_OPTIONS: { value: AuthRole; label: string }[] = [
   { value: 'SUPER', label: 'Super' },
   { value: 'ADMIN', label: 'Admin' },
   { value: 'MANAGER', label: 'Manager' },

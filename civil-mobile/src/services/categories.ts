@@ -35,7 +35,7 @@ export type CategoryWriteInput = {
   sortOrder?: number
 }
 
-export const CATEGORY_KIND_OPTIONS: Array<{ value: CategoryKind; label: string }> = [
+export const CATEGORY_KIND_OPTIONS: { value: CategoryKind; label: string }[] = [
   { value: 'MATERIAL', label: 'Material' },
   { value: 'EQUIPMENT', label: 'Equipment' },
   { value: 'SERVICE', label: 'Service' },

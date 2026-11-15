@@ -5,11 +5,12 @@ import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import { useAuthStore } from '@/stores/authStore'
 
-export function LogoutButton() {
+/** Confirm-then-logout flow shared by every "Log out" control. */
+export function useLogout() {
   const logout = useAuthStore((s) => s.logout)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  function onPress() {
+  function requestLogout() {
     if (isLoggingOut) return
 
     showBlockingAlert('Log out?', 'You will need to sign in again.', {
@@ -31,11 +32,17 @@ export function LogoutButton() {
     })
   }
 
+  return { isLoggingOut, requestLogout }
+}
+
+export function LogoutButton() {
+  const { isLoggingOut, requestLogout } = useLogout()
+
   return (
     <Button
       size="sm"
       variant="outline"
-      onPress={onPress}
+      onPress={requestLogout}
       disabled={isLoggingOut}
       accessibilityState={{ busy: isLoggingOut }}
     >

@@ -10,6 +10,7 @@ import { Input, InputField } from '@/components/ui/input'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
+import { useToastApiError } from '@/services/toast'
 import {
   type ApprovalListStatus,
   approveUser,
@@ -18,11 +19,10 @@ import {
   unapproveUser,
   type User,
 } from '@/services/users'
-import { useToastApiError } from '@/services/toast'
 
 const PAGE_SIZE = 20
 
-const APPROVAL_OPTIONS: Array<{ value: ApprovalListStatus; label: string }> = [
+const APPROVAL_OPTIONS: { value: ApprovalListStatus; label: string }[] = [
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
 ]
@@ -90,7 +90,7 @@ export function AdminQueueScreen() {
     <View className="flex-1 bg-background">
       <Header title="Workers requests" subtitle={total ? `${total} total` : undefined} />
 
-      <View className="gap-3 border-b border-border px-4 py-3">
+      <View className="gap-3 px-5 pb-4">
         <View className="flex-row gap-2">
           <View className="min-w-0 flex-1">
             <Input>
@@ -139,7 +139,7 @@ export function AdminQueueScreen() {
           renderItem={({ item }) => {
             const busy = busyId === item.id
             return (
-              <View className="gap-2 border-b border-border px-4 py-3">
+              <View className="mx-5 mb-3 gap-2 rounded-3xl border border-border/60 bg-card p-4">
                 <View className="flex-row items-start justify-between gap-2">
                   <Text
                     className="min-w-0 flex-1 text-base font-medium text-foreground"

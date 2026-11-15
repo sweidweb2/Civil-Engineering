@@ -15,18 +15,18 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { ApiError } from '@/services/api'
 import type { AuthRole } from '@/services/auth'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
+import { useToastApiError } from '@/services/toast'
 import {
   AUTH_ROLE_OPTIONS,
   deactivateUser,
   getUser,
-  type UserStatus,
   updateUser,
+  type UserStatus,
 } from '@/services/users'
-import { useToastApiError } from '@/services/toast'
 
 const BASE = '/admin/users'
 
-const STATUS_OPTIONS: Array<{ value: UserStatus; label: string }> = [
+const STATUS_OPTIONS: { value: UserStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'INACTIVE', label: 'Inactive' },
   { value: 'PENDING', label: 'Pending' },
@@ -134,7 +134,7 @@ export function AdminUserDetailScreen() {
         {user ? (
           <ScrollView
             className="flex-1"
-            contentContainerClassName="gap-4 px-4 py-4 pb-10"
+            contentContainerClassName="gap-4 px-5 pb-10 pt-2"
             keyboardShouldPersistTaps="handled"
           >
             <Text className="text-sm text-muted-foreground">{user.email}</Text>
@@ -187,7 +187,7 @@ export function AdminUserDetailScreen() {
               </Input>
             </FormField>
 
-            <View className="flex-row items-center justify-between rounded-md border border-border px-3 py-3">
+            <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
               <Text className="text-sm font-medium text-foreground">Verified</Text>
               <Switch value={isVerified} onValueChange={setIsVerified} />
             </View>

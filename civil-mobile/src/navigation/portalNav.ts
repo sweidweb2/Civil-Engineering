@@ -62,6 +62,7 @@ export const ADMIN_MORE_LINKS: PortalNavItem[] = [
 export const PM_NAV: PortalNavItem[] = [
   { key: 'projects', label: 'Projects', href: '/pm/projects', icon: FolderKanban },
   { key: 'directory', label: 'Directory', href: '/pm/directory', icon: Library },
+  { key: 'account', label: 'Account', href: '/pm/account', icon: UserRound },
 ]
 
 export const PROVIDER_NAV: PortalNavItem[] = [

@@ -9,6 +9,7 @@ import { Badge, BadgeText } from '@/components/ui/badge'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import { ApiError } from '@/services/api'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import {
@@ -19,7 +20,6 @@ import {
   rentalUnitLabel,
 } from '@/services/listings'
 import { useToastApiError } from '@/services/toast'
-import { colors } from '@/theme/colors'
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -31,6 +31,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 function BackButton({ fallbackHref }: { fallbackHref: string }) {
+  const colors = useThemeColors()
   return (
     <Pressable
       accessibilityRole="button"
@@ -41,7 +42,7 @@ function BackButton({ fallbackHref }: { fallbackHref: string }) {
         else router.replace(fallbackHref as never)
       }}
     >
-      <ChevronLeft size={24} color={colors.light.text} />
+      <ChevronLeft size={24} color={colors.text} />
     </Pressable>
   )
 }

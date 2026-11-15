@@ -12,14 +12,14 @@ import { Pressable } from '@/components/ui/pressable'
 import { Textarea, TextareaInput } from '@/components/ui/textarea'
 import { BackButton } from '@/features/pm/components/BackButton'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import { ApiError } from '@/services/api'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { getProjectById } from '@/services/projects'
 import {
   getProjectStagesSummary,
   PROJECT_STAGE_STATUS_OPTIONS,
-  type ProjectStageStatus,
   type ProjectStagesSummary,
+  type ProjectStageStatus,
   STAGE_KEYS,
   STAGE_LABELS,
   type StageKey,
@@ -29,8 +29,8 @@ import {
   upsertMaintenance,
   upsertMaterials,
 } from '@/services/project-stages'
+import { getProjectById } from '@/services/projects'
 import { useToastApiError } from '@/services/toast'
-import { colors } from '@/theme/colors'
 
 type StageDraft = Record<string, string>
 
@@ -57,12 +57,9 @@ function StageStepper({
   summary: ProjectStagesSummary | null
   onSelect: (key: StageKey) => void
 }) {
+  const colors = useThemeColors()
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      className="border-b border-border"
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0">
       <View className="flex-row gap-2 px-4 py-3">
         {STAGE_KEYS.map((key, index) => {
           const isActive = key === active
@@ -72,8 +69,8 @@ function StageStepper({
               key={key}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
-              className={`min-w-[108px] rounded-lg border px-3 py-2 ${
-                isActive ? 'border-primary bg-primary/10' : 'border-border bg-background'
+              className={`min-w-[116px] rounded-2xl border px-3 py-2.5 ${
+                isActive ? 'border-primary bg-primary/10' : 'border-border/60 bg-card'
               }`}
               onPress={() => onSelect(key)}
             >
@@ -86,7 +83,7 @@ function StageStepper({
               </Text>
               <Text
                 className="text-xs"
-                style={{ color: complete ? colors.light.success : colors.light.textMuted }}
+                style={{ color: complete ? colors.success : colors.textMuted }}
               >
                 {complete ? 'Complete' : summary?.[key]?.exists ? 'In progress' : 'Not started'}
               </Text>
@@ -98,7 +95,7 @@ function StageStepper({
   )
 }
 
-function fieldsForStage(key: StageKey): Array<{ key: string; label: string; multiline?: boolean }> {
+function fieldsForStage(key: StageKey): { key: string; label: string; multiline?: boolean }[] {
   switch (key) {
     case 'geotechnical':
       return [
@@ -317,7 +314,7 @@ export function PmProjectStagesScreen({ basePath = '/pm/projects' }: PmProjectSt
 
         <ScrollView
           className="flex-1"
-          contentContainerClassName="gap-4 px-4 py-4 pb-10"
+          contentContainerClassName="gap-4 px-5 pb-10 pt-2"
           keyboardShouldPersistTaps="handled"
         >
           <Text className="text-lg font-semibold text-foreground">{STAGE_LABELS[activeKey]}</Text>

@@ -26,7 +26,7 @@ const TYPE_OPTIONS = [
 
 function DirectoryRow({ item }: { item: Listing }) {
   return (
-    <View className="gap-1 border-b border-border px-4 py-3">
+    <View className="mx-5 mb-3 gap-1 rounded-3xl border border-border/60 bg-card p-4">
       <View className="flex-row items-start justify-between gap-2">
         <Text className="min-w-0 flex-1 text-base font-medium text-foreground" numberOfLines={1}>
           {item.name}
@@ -77,7 +77,7 @@ export function PmDirectoryScreen() {
     <View className="flex-1 bg-background">
       <Header title="Directory" subtitle={total ? `${total} active` : 'Browse marketplace'} />
 
-      <View className="gap-3 border-b border-border px-4 py-3">
+      <View className="gap-3 px-5 pb-4">
         <View className="flex-row gap-2">
           <View className="min-w-0 flex-1">
             <Input>

@@ -1,3 +1,4 @@
+export { usePushNotifications } from './usePushNotifications'
 export type {
   RemoteError,
   RemoteIdle,
@@ -6,4 +7,4 @@ export type {
   RemoteSuccess,
 } from './useRemoteData'
 export { useRemoteData } from './useRemoteData'
-export { usePushNotifications } from './usePushNotifications'
+export { useThemeColors } from './useThemeColors'

@@ -3,6 +3,7 @@ import { View } from 'react-native'
 import { router, usePathname } from 'expo-router'
 
 import { BottomNavigation, type BottomNavItem } from '@/components/layout/BottomNavigation'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import {
   ADMIN_MORE_LINKS,
   isNavItemActive,
@@ -10,7 +11,6 @@ import {
   type PortalId,
   type PortalNavItem,
 } from '@/navigation'
-import { colors } from '@/theme/colors'
 
 type PortalShellProps = {
   portal: PortalId
@@ -28,22 +28,30 @@ function tabIsActive(portal: PortalId, pathname: string, item: PortalNavItem): b
 
 /**
  * Authenticated portal chrome: screen content + role bottom tab bar.
- * All mobile portals use this instead of a sidebar.
+ * The bar shows on top-level destinations only, so detail and form screens
+ * get the full height and their own bottom action bar.
  */
 export function PortalShell({ portal, children }: PortalShellProps) {
+  const themeColors = useThemeColors()
   const pathname = usePathname()
   const nav = navForPortal(portal)
+
+  const isTopLevel = useMemo(() => {
+    const roots = portal === 'admin' ? [...nav, ...ADMIN_MORE_LINKS] : nav
+    return roots.some((item) => item.href === pathname)
+  }, [nav, pathname, portal])
 
   const items: BottomNavItem[] = useMemo(
     () =>
       nav.map((item) => {
-        const active = tabIsActive(portal, pathname, item)
         const Icon = item.icon
         return {
           key: item.key,
           label: item.label,
-          isActive: active,
-          icon: <Icon size={22} color={active ? colors.light.primary : colors.light.textMuted} />,
+          isActive: tabIsActive(portal, pathname, item),
+          renderIcon: (active: boolean) => (
+            <Icon size={22} color={active ? themeColors.onPrimary : themeColors.textMuted} />
+          ),
           onPress: () => {
             if (pathname !== item.href) {
               // Tabs replace so bottom-nav switches do not pile history.
@@ -52,13 +60,13 @@ export function PortalShell({ portal, children }: PortalShellProps) {
           },
         }
       }),
-    [nav, pathname, portal],
+    [nav, pathname, portal, themeColors],
   )
 
   return (
     <View className="flex-1 bg-background">
       <View className="min-h-0 flex-1">{children}</View>
-      <BottomNavigation items={items} />
+      {isTopLevel ? <BottomNavigation items={items} /> : null}
     </View>
   )
 }

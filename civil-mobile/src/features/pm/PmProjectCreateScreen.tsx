@@ -60,7 +60,7 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
       <Header title="New project" leftSlot={<BackButton fallbackHref={basePath} />} />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 px-4 py-4 pb-10"
+        contentContainerClassName="gap-4 px-5 pb-10 pt-2"
         keyboardShouldPersistTaps="handled"
       >
         {error ? <Text className="text-sm text-destructive">{error}</Text> : null}

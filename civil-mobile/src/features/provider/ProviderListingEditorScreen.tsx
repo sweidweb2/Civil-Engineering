@@ -5,13 +5,13 @@ import { ChevronLeft } from 'lucide-react-native'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
 import { FormField } from '@/components/forms/FormField'
+import { OptionChips } from '@/components/forms/OptionChips'
 import { Header } from '@/components/layout/Header'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Input, InputField } from '@/components/ui/input'
 import { Pressable } from '@/components/ui/pressable'
 import { Switch } from '@/components/ui/switch'
 import { Textarea, TextareaInput } from '@/components/ui/textarea'
-import { OptionChips } from '@/components/forms/OptionChips'
 import {
   EMPTY_LISTING_FORM,
   formFromListing,
@@ -19,6 +19,7 @@ import {
 } from '@/features/provider/listing.form'
 import { listingWriteFromForm } from '@/features/provider/listing.schema'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import { ApiError } from '@/services/api'
 import { type Category, isListingCategory, listCategories } from '@/services/categories'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
@@ -30,7 +31,6 @@ import {
 } from '@/services/listings'
 import { getMyProvider, listProviders, type Provider } from '@/services/providers'
 import { useToastApiError } from '@/services/toast'
-import { colors } from '@/theme/colors'
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -45,6 +45,7 @@ const RENTAL_UNIT_OPTIONS = [
 ]
 
 function BackButton({ fallbackHref }: { fallbackHref: string }) {
+  const colors = useThemeColors()
   return (
     <Pressable
       accessibilityRole="button"
@@ -55,7 +56,7 @@ function BackButton({ fallbackHref }: { fallbackHref: string }) {
         else router.replace(fallbackHref as never)
       }}
     >
-      <ChevronLeft size={24} color={colors.light.text} />
+      <ChevronLeft size={24} color={colors.text} />
     </Pressable>
   )
 }
@@ -211,7 +212,7 @@ export function ProviderListingEditorScreen({
       >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="gap-4 px-4 py-4 pb-10"
+          contentContainerClassName="gap-4 px-5 pb-10 pt-2"
           keyboardShouldPersistTaps="handled"
         >
           {formError ? <Text className="text-sm text-destructive">{formError}</Text> : null}
@@ -316,7 +317,7 @@ export function ProviderListingEditorScreen({
             </Textarea>
           </FormField>
 
-          <View className="flex-row items-center justify-between rounded-md border border-border px-3 py-3">
+          <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
             <Text className="text-sm font-medium text-foreground">Available for rent</Text>
             <Switch
               value={form.isForRent}

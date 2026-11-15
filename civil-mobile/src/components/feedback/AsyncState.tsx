@@ -2,9 +2,8 @@ import { Text, View } from 'react-native'
 import type { ReactNode } from 'react'
 
 import { IsometricLoader } from '@/components/feedback/IsometricLoader'
-import { Alert, AlertIcon, AlertText } from '@/components/ui/alert'
 import { Button, ButtonText } from '@/components/ui/button'
-import { AlertCircleIcon } from '@/components/ui/icon'
+import { AlertCircleIcon, Icon } from '@/components/ui/icon'
 import { Spinner } from '@/components/ui/spinner'
 import { errorMessage } from '@/services/feedback'
 
@@ -37,13 +36,16 @@ export function AsyncState({
 
   if (error) {
     return (
-      <View className="gap-3 p-4">
-        <Alert variant="destructive">
-          <AlertIcon as={AlertCircleIcon} />
-          <AlertText>{errorMessage(error, 'Could not load')}</AlertText>
-        </Alert>
+      <View className="flex-1 items-center justify-center gap-3 px-8 py-12">
+        <View className="size-16 items-center justify-center rounded-full bg-destructive/10">
+          <Icon as={AlertCircleIcon} className="size-7 text-destructive" />
+        </View>
+        <Text className="text-center text-lg font-bold text-foreground">Could not load</Text>
+        <Text className="text-center text-sm leading-5 text-muted-foreground">
+          {errorMessage(error, 'Something went wrong. Check your connection and try again.')}
+        </Text>
         {onRetry ? (
-          <Button variant="outline" size="sm" onPress={onRetry}>
+          <Button variant="outline" size="sm" className="mt-2" onPress={onRetry}>
             <ButtonText>Try again</ButtonText>
           </Button>
         ) : null}

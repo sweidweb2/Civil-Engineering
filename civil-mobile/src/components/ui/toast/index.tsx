@@ -11,7 +11,7 @@ const SCOPE = 'TOAST'
 const AnimatedView = Animated.createAnimatedComponent(View)
 const StyledAnimatedView = withUniwind(AnimatedView)
 const toastStyle = tva({
-  base: 'p-4 m-1 rounded-md gap-1 web:pointer-events-auto border-border',
+  base: 'p-4 mx-4 mt-12 rounded-2xl gap-1 web:pointer-events-auto border-border',
   variants: {
     action: {
       error: 'bg-popover text-popover-foreground',

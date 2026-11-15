@@ -27,10 +27,10 @@ function ListingRow({ item, basePath }: { item: Listing; basePath: string }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open ${item.name}`}
-      className="flex-row gap-3 border-b border-border px-4 py-3 active:bg-muted/40"
+      className="mx-5 mb-3 flex-row gap-3 rounded-3xl border border-border/60 bg-card p-4 active:opacity-80"
       onPress={() => router.push(`${basePath}/${item.id}` as never)}
     >
-      <View className="size-14 overflow-hidden rounded-md border border-border bg-muted/40">
+      <View className="size-16 overflow-hidden rounded-2xl bg-muted">
         {item.mainImageUrl ? (
           <Image source={{ uri: item.mainImageUrl }} className="size-full" resizeMode="cover" />
         ) : (
@@ -134,7 +134,7 @@ export function ProviderListingsScreen({
           </Button>
         }
       />
-      <View className="flex-row gap-2 border-b border-border px-4 py-3">
+      <View className="flex-row gap-2 px-5 pb-4">
         <View className="min-w-0 flex-1">
           <Input>
             <InputField

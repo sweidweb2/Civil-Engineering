@@ -4,6 +4,7 @@ import { HardHat } from 'lucide-react-native'
 import { Header } from '@/components/layout/Header'
 import { ScreenContainer } from '@/components/layout/ScreenContainer'
 import { LogoutButton } from '@/features/portals/LogoutButton'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import { useAuthStore } from '@/stores/authStore'
 
 type PortalHomeScreenProps = {
@@ -12,6 +13,7 @@ type PortalHomeScreenProps = {
 }
 
 export function PortalHomeScreen({ title, portalLabel }: PortalHomeScreenProps) {
+  const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
 
   const name =
@@ -26,7 +28,7 @@ export function PortalHomeScreen({ title, portalLabel }: PortalHomeScreenProps) 
       <ScreenContainer>
         <View className="items-center gap-4 py-12">
           <View className="size-16 items-center justify-center rounded-2xl border border-border bg-muted/40">
-            <HardHat size={32} color="#1A2A27" />
+            <HardHat size={32} color={colors.text} />
           </View>
           <Text className="text-center text-2xl font-semibold text-foreground">
             Welcome, {name}

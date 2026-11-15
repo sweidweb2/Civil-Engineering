@@ -6,7 +6,7 @@ export type ProjectStatus =
 export type ProjectType =
   'RESIDENTIAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'INFRASTRUCTURE' | 'RENOVATION' | 'OTHER'
 
-export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> = [
+export const PROJECT_TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
   { value: 'RESIDENTIAL', label: 'Residential' },
   { value: 'COMMERCIAL', label: 'Commercial' },
   { value: 'INDUSTRIAL', label: 'Industrial' },
@@ -15,7 +15,7 @@ export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> 
   { value: 'OTHER', label: 'Other' },
 ]
 
-export const PROJECT_STATUS_OPTIONS: Array<{ value: ProjectStatus; label: string }> = [
+export const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Draft' },
   { value: 'PLANNING', label: 'Planning' },
   { value: 'APPROVED', label: 'Approved' },

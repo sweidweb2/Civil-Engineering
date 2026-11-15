@@ -52,7 +52,7 @@ export type ProviderUpdateInput = Partial<ProviderWriteInput> & {
   name?: string
 }
 
-export const PROVIDER_STATUS_OPTIONS: Array<{ value: ProviderStatus; label: string }> = [
+export const PROVIDER_STATUS_OPTIONS: { value: ProviderStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'SUSPENDED', label: 'Suspended' },

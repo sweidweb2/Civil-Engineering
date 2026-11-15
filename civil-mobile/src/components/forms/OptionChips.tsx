@@ -20,8 +20,8 @@ export function OptionChips({ options, value, onChange, allowClear = false }: Op
       {allowClear ? (
         <Pressable
           accessibilityRole="button"
-          className={`rounded-md border px-3 py-2 ${
-            value === '' ? 'border-primary bg-primary/10' : 'border-border bg-background'
+          className={`rounded-full border px-4 py-2 ${
+            value === '' ? 'border-primary bg-primary/10' : 'border-border/60 bg-card'
           }`}
           onPress={() => onChange('')}
         >
@@ -39,8 +39,8 @@ export function OptionChips({ options, value, onChange, allowClear = false }: Op
             key={option.value}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            className={`rounded-md border px-3 py-2 ${
-              active ? 'border-primary bg-primary/10' : 'border-border bg-background'
+            className={`rounded-full border px-4 py-2 ${
+              active ? 'border-primary bg-primary/10' : 'border-border/60 bg-card'
             }`}
             onPress={() => onChange(option.value)}
           >

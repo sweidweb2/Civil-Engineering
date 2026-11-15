@@ -22,7 +22,7 @@ import { useToastApiError } from '@/services/toast'
 
 const PAGE_SIZE = 20
 
-const STATUS_OPTIONS: Array<{ value: ReviewStatus; label: string }> = [
+const STATUS_OPTIONS: { value: ReviewStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'REJECTED', label: 'Rejected' },
@@ -99,7 +99,7 @@ export function AdminReviewsScreen() {
     <View className="flex-1 bg-background">
       <Header title="Reviews" subtitle={total ? `${total} total` : undefined} />
 
-      <View className="gap-3 border-b border-border px-4 py-3">
+      <View className="gap-3 px-5 pb-4">
         <View className="flex-row gap-2">
           <View className="min-w-0 flex-1">
             <Input>
@@ -150,7 +150,7 @@ export function AdminReviewsScreen() {
           renderItem={({ item }) => {
             const busy = busyId === item.id
             return (
-              <View className="gap-2 border-b border-border px-4 py-3">
+              <View className="mx-5 mb-3 gap-2 rounded-3xl border border-border/60 bg-card p-4">
                 <View className="flex-row items-start justify-between gap-2">
                   <Text
                     className="min-w-0 flex-1 text-base font-medium text-foreground"

@@ -115,7 +115,7 @@ export function AdminProviderDetailScreen() {
         {provider ? (
           <ScrollView
             className="flex-1"
-            contentContainerClassName="gap-4 px-4 py-4 pb-10"
+            contentContainerClassName="gap-4 px-5 pb-10 pt-2"
             keyboardShouldPersistTaps="handled"
           >
             <FormField label="Name" isRequired>

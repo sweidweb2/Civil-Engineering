@@ -2,7 +2,7 @@ import { View } from 'react-native'
 import { Redirect } from 'expo-router'
 
 import { IsometricLoader } from '@/components/feedback/IsometricLoader'
-import { homePathForRole, portalIdForRole, type PortalId } from '@/navigation'
+import { homePathForRole, type PortalId, portalIdForRole } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
 
 type RequireAuthProps = {

@@ -195,14 +195,17 @@ jobs:
           cache: npm
           cache-dependency-path: civil-mobile/package-lock.json
       - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: TypeScript typecheck
+        run: npm run typecheck
       - name: Dependency audit (critical gate)
         run: npm run audit:deps:ci
       - name: Dependency audit (high — report)
         continue-on-error: true
         run: npm run audit:deps
       - name: Unit tests (Jest + RNTL)
-        run: |
-          if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi
+        run: npm run test:unit
       - name: E2E (Detox) — skipped for now
         if: env.CI_RUN_E2E == 'true'
         run: npm run test:e2e

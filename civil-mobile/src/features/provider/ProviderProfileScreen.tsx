@@ -18,14 +18,14 @@ import {
 } from '@/features/provider/company.schema'
 import {
   providerPasswordSchema,
-  providerProfileSchema,
   type ProviderPasswordValues,
+  providerProfileSchema,
   type ProviderProfileValues,
 } from '@/features/provider/profile.schema'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { changePassword } from '@/services/auth'
 import { ApiError } from '@/services/api'
+import { changePassword } from '@/services/auth'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import { getMyProvider, providerStatusLabel, updateProvider } from '@/services/providers'
 import { useToastApiError } from '@/services/toast'
@@ -200,7 +200,7 @@ export function ProviderProfileScreen() {
       >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="gap-6 px-4 py-4 pb-10"
+          contentContainerClassName="gap-6 px-5 pb-10 pt-2"
           keyboardShouldPersistTaps="handled"
         >
           <View className="items-center gap-3 rounded-xl border border-border bg-muted/30 p-4">

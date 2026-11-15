@@ -6,9 +6,9 @@ export {
   isNavItemActive,
   navForPortal,
   PM_NAV,
+  type PortalId,
+  type PortalNavItem,
   PROVIDER_NAV,
   SUPER_NAV,
   WORKER_NAV,
-  type PortalId,
-  type PortalNavItem,
 } from './portalNav'

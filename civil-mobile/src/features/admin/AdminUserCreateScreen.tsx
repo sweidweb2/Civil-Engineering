@@ -12,8 +12,8 @@ import { BackButton } from '@/features/pm/components/BackButton'
 import { ApiError } from '@/services/api'
 import type { AuthRole } from '@/services/auth'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 import { useToastApiError } from '@/services/toast'
+import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 
 const BASE = '/admin/users'
 
@@ -63,7 +63,7 @@ export function AdminUserCreateScreen() {
       <Header title="New user" leftSlot={<BackButton fallbackHref={BASE} />} />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 px-4 py-4 pb-10"
+        contentContainerClassName="gap-4 px-5 pb-10 pt-2"
         keyboardShouldPersistTaps="handled"
       >
         {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
@@ -131,7 +131,7 @@ export function AdminUserCreateScreen() {
           </Input>
         </FormField>
 
-        <View className="flex-row items-center justify-between rounded-md border border-border px-3 py-3">
+        <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
           <Text className="text-sm font-medium text-foreground">Verified</Text>
           <Switch value={isVerified} onValueChange={setIsVerified} />
         </View>

@@ -2,12 +2,13 @@
  * colors.ts — semantic palette for light mode (shared with web).
  * 60-30-10: canvas 60 / surfaces 30 / primary accent 10.
  * Source of truth for brand tokens. Wired into `civil-mobile/global.css`
- * (Uniwind light theme RGB channels). Dark mode remains TBD.
+ * (Uniwind light theme RGB channels). Dark palette mirrors the dark vars in global.css.
  */
 
 export const colors = {
   light: {
     primary: '#287A74',
+    onPrimary: '#FFFFFF',
     background: '#EEEEEE',
     surface: '#FFFFFF',
     muted: '#E8EEEC',
@@ -23,7 +24,25 @@ export const colors = {
     /** @deprecated use `chartMint` — kept for older imports */
     secondary: '#6FCF97',
   },
-  // dark: { … } — TBD
+  dark: {
+    primary: '#4DB6AC',
+    onPrimary: '#0A1412',
+    background: '#0F1715',
+    surface: '#17211F',
+    muted: '#1F2C29',
+    text: '#E6EFEC',
+    textMuted: '#9BB0AB',
+    border: '#2A3A37',
+    chartMint: '#6FCF97',
+    success: '#34B885',
+    warning: '#F59E0B',
+    error: '#F87171',
+    info: '#60A5FA',
+    disabled: '#6B7280',
+    /** @deprecated use `chartMint` */
+    secondary: '#6FCF97',
+  },
 } as const
 
 export type ColorToken = keyof typeof colors.light
+export type ColorPalette = { [K in ColorToken]: string }

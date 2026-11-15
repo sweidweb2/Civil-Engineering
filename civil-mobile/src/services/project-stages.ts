@@ -20,7 +20,7 @@ export const STAGE_LABELS: Record<StageKey, string> = {
   maintenance: 'Maintenance',
 }
 
-export const PROJECT_STAGE_STATUS_OPTIONS: Array<{ value: ProjectStageStatus; label: string }> = [
+export const PROJECT_STAGE_STATUS_OPTIONS: { value: ProjectStageStatus; label: string }[] = [
   { value: 'NOT_STARTED', label: 'Not started' },
   { value: 'IN_PROGRESS', label: 'In progress' },
   { value: 'COMPLETED', label: 'Completed' },

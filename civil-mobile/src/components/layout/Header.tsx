@@ -1,9 +1,6 @@
 import React from 'react'
-
-import { Box } from '@/components/ui/box'
-import { Heading } from '@/components/ui/heading'
-import { HStack } from '@/components/ui/hstack'
-import { Text } from '@/components/ui/text'
+import { Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type HeaderProps = {
   title: string
@@ -14,32 +11,39 @@ type HeaderProps = {
 }
 
 /**
- * App / screen header bar. Keep actions domain-agnostic via slots.
+ * Screen header. Top-level screens (no leftSlot) get a large title;
+ * pushed screens (with a back button in leftSlot) get a compact bar.
+ * Handles the status-bar inset itself.
  */
 export function Header({ title, subtitle, leftSlot, rightSlot, className }: HeaderProps) {
+  const insets = useSafeAreaInsets()
+  const compact = Boolean(leftSlot)
+
   return (
-    <HStack
-      className={`items-center justify-between border-b border-border bg-background px-4 py-3 ${className ?? ''}`}
-      space="md"
+    <View
+      className={`flex-row items-center gap-3 bg-background px-5 pb-3 ${className ?? ''}`}
+      style={{ paddingTop: insets.top + (compact ? 8 : 14) }}
     >
-      <HStack className="min-w-0 flex-1 items-center" space="sm">
-        {leftSlot}
-        <Box className="min-w-0 flex-1">
-          <Heading size="md" className="text-foreground" isTruncated>
-            {title}
-          </Heading>
-          {subtitle ? (
-            <Text size="sm" className="text-muted-foreground" isTruncated>
-              {subtitle}
-            </Text>
-          ) : null}
-        </Box>
-      </HStack>
-      {rightSlot ? (
-        <HStack className="shrink-0 items-center" space="sm">
-          {rightSlot}
-        </HStack>
-      ) : null}
-    </HStack>
+      {leftSlot}
+      <View className="min-w-0 flex-1">
+        <Text
+          className={
+            compact
+              ? 'text-lg font-bold text-foreground'
+              : 'text-[28px] font-bold leading-9 text-foreground'
+          }
+          numberOfLines={1}
+          accessibilityRole="header"
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {rightSlot ? <View className="shrink-0 flex-row items-center gap-2">{rightSlot}</View> : null}
+    </View>
   )
 }

@@ -1,4 +1,6 @@
 import '../../global.css'
+// Bind auth session → API refresh before any feature requests
+import '@/stores/authStore'
 
 import { Stack } from 'expo-router'
 
@@ -6,8 +8,6 @@ import { AppAlertHost } from '@/components/feedback/AppAlertHost'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-// Bind auth session → API refresh before any feature requests
-import '@/stores/authStore'
 
 function PushNotificationsBridge() {
   usePushNotifications()
@@ -16,7 +16,7 @@ function PushNotificationsBridge() {
 
 export default function RootLayout() {
   return (
-    <GluestackUIProvider mode="light">
+    <GluestackUIProvider mode="system">
       <ErrorBoundary>
         <PushNotificationsBridge />
         <Stack screenOptions={{ headerShown: false }} />

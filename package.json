@@ -6,10 +6,10 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "npm run lint --prefix civil-web && npm run lint --prefix backend",
-    "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix backend",
+    "lint": "npm run lint --prefix civil-web && npm run lint --prefix civil-mobile && npm run lint --prefix backend",
+    "typecheck": "npm run typecheck --prefix civil-web && npm run typecheck --prefix civil-mobile && npm run typecheck --prefix backend",
     "ci:local": "npm run format:check && npm run lint && npm run typecheck",
-    "test:unit": "npm run test:unit --prefix backend && npm run test:unit --prefix civil-web",
+    "test:unit": "npm run test:unit --prefix backend && npm run test:unit --prefix civil-web && npm run test:unit --prefix civil-mobile",
     "test:integration": "npm run test:integration:local --prefix backend",
     "test:ci": "npm run ci:local && npm run test:unit && npm run test:integration",
     "db:migrate": "npm run db:migrate --prefix backend",

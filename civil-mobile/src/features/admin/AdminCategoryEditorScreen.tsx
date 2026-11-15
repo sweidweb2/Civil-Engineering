@@ -137,7 +137,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
       >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="gap-4 px-4 py-4 pb-10"
+          contentContainerClassName="gap-4 px-5 pb-10 pt-2"
           keyboardShouldPersistTaps="handled"
         >
           {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
@@ -171,7 +171,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
             </Input>
           </FormField>
 
-          <View className="flex-row items-center justify-between rounded-md border border-border px-3 py-3">
+          <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
             <Text className="text-sm font-medium text-foreground">Active</Text>
             <Switch value={isActive} onValueChange={setIsActive} />
           </View>

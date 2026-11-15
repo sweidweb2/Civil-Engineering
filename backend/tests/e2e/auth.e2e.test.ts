@@ -29,11 +29,14 @@ describe('backend e2e (auth)', () => {
       email: 'e2e@example.com',
       password: 'password1',
       firstName: 'E2E',
+      role: 'CLIENT',
+      deviceId: 'test-device-e2e-auth',
     })
 
     expect(registered.status).toBe(201)
     expect(registered.body.tokens.accessToken).toBeTruthy()
     expect(registered.body.user.role).toBe('CLIENT')
+    expect(registered.body.pendingApproval).toBe(false)
 
     const loggedIn = await request(app).post('/api/v1/auth/login').send({
       email: 'e2e@example.com',

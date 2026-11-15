@@ -3,6 +3,7 @@ const API_BASE_URL = (
 ).replace(/\/$/, '')
 
 export type ApiErrorBody = {
+  code?: string
   error?: {
     code?: string
     message?: string
@@ -65,7 +66,7 @@ async function exchangeRefreshToken(refreshToken: string): Promise<AuthTokens> {
 
   if (!response.ok) {
     const message = data.error?.message || data.message || `Request failed (${response.status})`
-    throw new ApiError(response.status, message, data.error?.code)
+    throw new ApiError(response.status, message, data.error?.code ?? data.code)
   }
 
   if (!data.accessToken || !data.refreshToken) {
@@ -152,7 +153,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   if (!response.ok) {
     const message = data.error?.message || data.message || `Request failed (${response.status})`
-    throw new ApiError(response.status, message, data.error?.code)
+    throw new ApiError(response.status, message, data.error?.code ?? data.code)
   }
 
   return data as T

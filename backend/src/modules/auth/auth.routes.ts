@@ -2,7 +2,7 @@ import { Router } from 'express'
 
 import type { AppConfig } from '../../config/index.js'
 import { authenticate } from '../../middleware/authenticate.js'
-import { createAuthRateLimiter } from '../../middleware/rate-limit.js'
+import { createAuthRateLimiter, createRegisterRateLimiter } from '../../middleware/rate-limit.js'
 import { validate } from '../../middleware/validate.js'
 import type { AuthController } from './auth.controller.js'
 import {
@@ -15,8 +15,14 @@ import {
 export function createAuthRoutes(controller: AuthController, config: AppConfig): Router {
   const router = Router()
   const authLimiter = createAuthRateLimiter(config)
+  const registerLimiter = createRegisterRateLimiter(config)
 
-  router.post('/register', authLimiter, validate({ body: registerBodySchema }), controller.register)
+  router.post(
+    '/register',
+    registerLimiter,
+    validate({ body: registerBodySchema }),
+    controller.register,
+  )
   router.post('/login', authLimiter, validate({ body: loginBodySchema }), controller.login)
   router.post('/refresh', authLimiter, validate({ body: refreshBodySchema }), controller.refresh)
   router.post('/logout', authLimiter, validate({ body: refreshBodySchema }), controller.logout)

@@ -1,21 +1,29 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { UserRound } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
-import { Badge, BadgeText } from '@/components/ui/badge'
+import {
+  Avatar,
+  Card,
+  ChoiceField,
+  FieldRow,
+  FormScreen,
+  Section,
+  StatusPill,
+  TextField,
+  ToggleRow,
+  toneForStatus,
+} from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { BackButton } from '@/features/pm/components/BackButton'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { enumLabel, enumOptions } from '@/i18n/labels'
+import { userDisplayName } from '@/lib/user'
 import { ApiError } from '@/services/api'
 import type { AuthRole } from '@/services/auth'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 import {
   AUTH_ROLE_OPTIONS,
   deactivateUser,
@@ -25,17 +33,14 @@ import {
 } from '@/services/users'
 
 const BASE = '/admin/users'
-
-const STATUS_OPTIONS: { value: UserStatus; label: string }[] = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'INACTIVE', label: 'Inactive' },
-  { value: 'PENDING', label: 'Pending' },
-]
+const STATUS_OPTIONS = [{ value: 'ACTIVE' }, { value: 'INACTIVE' }, { value: 'PENDING' }]
 
 export function AdminUserDetailScreen() {
+  const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id: string }>()
   const userId = typeof id === 'string' ? id : id?.[0]
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
 
   const load = useCallback(() => {
     if (!userId) return Promise.reject(new Error('User id required'))
@@ -78,11 +83,11 @@ export function AdminUserDetailScreen() {
         displayName: displayName.trim() || undefined,
         phone: phone.trim() || undefined,
       })
-      showBlockingAlert('Saved', 'User was updated.')
+      toastSuccess(t('users.saved'))
       await remote.refetch()
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not save user')
+      else showApiAlert(err, t('users.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -90,19 +95,19 @@ export function AdminUserDetailScreen() {
 
   function onDeactivate() {
     if (!userId || isDeactivating) return
-    showBlockingAlert('Deactivate user?', 'The user will be marked inactive.', {
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Deactivate',
+    showBlockingAlert(t('users.deactivateTitle'), t('users.deactivateBody'), {
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('users.deactivate'),
       onConfirm: () => {
         void (async () => {
           setIsDeactivating(true)
           try {
             await deactivateUser(userId)
-            showBlockingAlert('Deactivated', 'User was deactivated.')
+            toastSuccess(t('users.deactivated'))
             router.replace(BASE as never)
           } catch (err) {
             if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-            else showApiAlert(err, 'Could not deactivate user')
+            else showApiAlert(err, t('users.deactivateFailed'))
           } finally {
             setIsDeactivating(false)
           }
@@ -112,107 +117,99 @@ export function AdminUserDetailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header
-        title={user?.email ?? 'User'}
-        leftSlot={<BackButton fallbackHref={BASE} />}
-        rightSlot={
-          user ? (
-            <Badge variant={user.status === 'ACTIVE' ? 'default' : 'secondary'}>
-              <BadgeText>{user.status}</BadgeText>
-            </Badge>
-          ) : undefined
-        }
-      />
-
-      <AsyncState
-        isLoading={remote.isLoading}
-        error={remote.status === 'error' ? remote.error : undefined}
-        onRetry={() => void remote.refetch()}
-        loadingLabel="Loading user…"
-      >
-        {user ? (
-          <ScrollView
+    <FormScreen
+      title={user ? userDisplayName(user) : t('users.user')}
+      subtitle={user?.email}
+      backHref={BASE}
+      isLoading={remote.isLoading}
+      error={remote.status === 'error' ? remote.error : undefined}
+      onRetry={() => void remote.refetch()}
+      loadingLabel={t('users.loadingOne')}
+      footer={
+        <>
+          <Button
             className="flex-1"
-            contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-            keyboardShouldPersistTaps="handled"
+            variant="destructive"
+            onPress={onDeactivate}
+            disabled={isDeactivating || user?.status === 'INACTIVE'}
+            accessibilityState={{ busy: isDeactivating }}
           >
-            <Text className="text-sm text-muted-foreground">{user.email}</Text>
-
-            <FormField label="Role">
-              <OptionChips
-                options={AUTH_ROLE_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                }))}
-                value={role}
-                onChange={(value) => setRole(value as AuthRole)}
-              />
-            </FormField>
-
-            <FormField label="Status">
-              <OptionChips
-                options={STATUS_OPTIONS}
-                value={status}
-                onChange={(value) => setStatus(value as UserStatus)}
-              />
-            </FormField>
-
-            <View className="flex-row gap-3">
-              <View className="min-w-0 flex-1">
-                <FormField label="First name">
-                  <Input>
-                    <InputField value={firstName} onChangeText={setFirstName} />
-                  </Input>
-                </FormField>
-              </View>
-              <View className="min-w-0 flex-1">
-                <FormField label="Last name">
-                  <Input>
-                    <InputField value={lastName} onChangeText={setLastName} />
-                  </Input>
-                </FormField>
+            {isDeactivating ? <ButtonSpinner /> : null}
+            <ButtonText>{t('users.deactivate')}</ButtonText>
+          </Button>
+          <Button
+            className="flex-[2]"
+            onPress={() => void onSave()}
+            disabled={isSaving}
+            accessibilityState={{ busy: isSaving }}
+          >
+            {isSaving ? <ButtonSpinner /> : null}
+            <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
+          </Button>
+        </>
+      }
+    >
+      {user ? (
+        <>
+          <Card className="flex-row items-center gap-4">
+            <Avatar name={userDisplayName(user)} imageUrl={user.profile?.avatarUrl} size={64} />
+            <View className="min-w-0 flex-1 gap-1.5">
+              <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+                {userDisplayName(user)}
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                <StatusPill
+                  label={enumLabel(t, 'userStatus', user.status)}
+                  tone={toneForStatus(user.status)}
+                />
+                <StatusPill label={enumLabel(t, 'role', user.role)} tone="info" />
               </View>
             </View>
+          </Card>
 
-            <FormField label="Display name">
-              <Input>
-                <InputField value={displayName} onChangeText={setDisplayName} />
-              </Input>
-            </FormField>
+          <Section title={t('users.access')} icon={UserRound}>
+            <ChoiceField
+              label={t('users.role')}
+              options={enumOptions(t, 'role', AUTH_ROLE_OPTIONS)}
+              value={role}
+              onChange={(value) => setRole(value as AuthRole)}
+            />
+            <ChoiceField
+              label={t('users.status')}
+              options={enumOptions(t, 'userStatus', STATUS_OPTIONS)}
+              value={status}
+              onChange={(value) => setStatus(value as UserStatus)}
+            />
+            <ToggleRow
+              label={t('users.verified')}
+              value={isVerified}
+              onValueChange={setIsVerified}
+            />
+          </Section>
 
-            <FormField label="Phone">
-              <Input>
-                <InputField value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-              </Input>
-            </FormField>
-
-            <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-              <Text className="text-sm font-medium text-foreground">Verified</Text>
-              <Switch value={isVerified} onValueChange={setIsVerified} />
-            </View>
-
-            <Button
-              onPress={() => void onSave()}
-              disabled={isSaving}
-              accessibilityState={{ busy: isSaving }}
-            >
-              {isSaving ? <ButtonSpinner /> : null}
-              <ButtonText>{isSaving ? 'Saving…' : 'Save user'}</ButtonText>
-            </Button>
-
-            <Button
-              variant="destructive"
-              onPress={onDeactivate}
-              disabled={isDeactivating || user.status === 'INACTIVE'}
-              accessibilityState={{ busy: isDeactivating }}
-            >
-              {isDeactivating ? <ButtonSpinner /> : null}
-              <ButtonText>{isDeactivating ? 'Deactivating…' : 'Deactivate user'}</ButtonText>
-            </Button>
-          </ScrollView>
-        ) : null}
-      </AsyncState>
-    </View>
+          <Section title={t('users.profile')}>
+            <FieldRow>
+              <TextField
+                label={t('common.firstName')}
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+              <TextField label={t('common.lastName')} value={lastName} onChangeText={setLastName} />
+            </FieldRow>
+            <TextField
+              label={t('common.displayName')}
+              value={displayName}
+              onChangeText={setDisplayName}
+            />
+            <TextField
+              label={t('common.phone')}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+          </Section>
+        </>
+      ) : null}
+    </FormScreen>
   )
 }

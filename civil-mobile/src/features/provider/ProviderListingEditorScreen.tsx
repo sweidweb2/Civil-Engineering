@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { ChevronLeft } from 'lucide-react-native'
+import { Banknote, Package } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
+import {
+  ChoiceField,
+  FieldRow,
+  FormError,
+  FormScreen,
+  Section,
+  SelectField,
+  TextField,
+  ToggleRow,
+} from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Pressable } from '@/components/ui/pressable'
-import { Switch } from '@/components/ui/switch'
-import { Textarea, TextareaInput } from '@/components/ui/textarea'
 import {
   EMPTY_LISTING_FORM,
   formFromListing,
@@ -19,10 +21,9 @@ import {
 } from '@/features/provider/listing.form'
 import { listingWriteFromForm } from '@/features/provider/listing.schema'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { ApiError } from '@/services/api'
 import { type Category, isListingCategory, listCategories } from '@/services/categories'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
+import { showApiAlert } from '@/services/feedback'
 import {
   createListing,
   getListingById,
@@ -30,36 +31,9 @@ import {
   updateListing,
 } from '@/services/listings'
 import { getMyProvider, listProviders, type Provider } from '@/services/providers'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
-const STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'INACTIVE', label: 'Inactive' },
-]
-
-const RENTAL_UNIT_OPTIONS = [
-  { value: 'HOUR', label: 'Hour' },
-  { value: 'DAY', label: 'Day' },
-  { value: 'WEEK', label: 'Week' },
-  { value: 'MONTH', label: 'Month' },
-]
-
-function BackButton({ fallbackHref }: { fallbackHref: string }) {
-  const colors = useThemeColors()
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Go back"
-      className="size-9 items-center justify-center rounded-md"
-      onPress={() => {
-        if (router.canGoBack()) router.back()
-        else router.replace(fallbackHref as never)
-      }}
-    >
-      <ChevronLeft size={24} color={colors.text} />
-    </Pressable>
-  )
-}
+const RENTAL_UNITS = ['HOUR', 'DAY', 'WEEK', 'MONTH']
 
 type ProviderListingEditorScreenProps = {
   mode: 'create' | 'edit'
@@ -74,7 +48,9 @@ export function ProviderListingEditorScreen({
 }: ProviderListingEditorScreenProps) {
   const { id } = useLocalSearchParams<{ id?: string }>()
   const listingId = typeof id === 'string' ? id : id?.[0]
+  const { t } = useTranslation()
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
   const isAdmin = scope === 'admin'
 
   const [form, setForm] = useState<ListingFormValues>(EMPTY_LISTING_FORM)
@@ -150,7 +126,7 @@ export function ProviderListingEditorScreen({
 
   async function onSave() {
     if (!providerId) {
-      setFormError(isAdmin ? 'Select a provider' : 'Provider not loaded')
+      setFormError(isAdmin ? t('listings.selectProvider') : t('listings.providerNotLoaded'))
       return
     }
     const parsed = listingWriteFromForm(form, providerId)
@@ -163,20 +139,17 @@ export function ProviderListingEditorScreen({
     try {
       if (mode === 'create') {
         const created = await createListing(parsed.data)
-        showBlockingAlert('Created', 'Listing was created.')
+        toastSuccess(t('listings.created'))
         router.replace(`${basePath}/${created.data.id}` as never)
       } else if (listingId) {
         await updateListing(listingId, parsed.data)
-        showBlockingAlert('Saved', 'Listing was updated.')
+        toastSuccess(t('listings.saved'))
         router.replace(`${basePath}/${listingId}` as never)
       }
     } catch (error) {
       if (error instanceof ApiError && error.status >= 500) toastApiError(error)
       else
-        showApiAlert(
-          error,
-          mode === 'create' ? 'Could not create listing' : 'Could not save listing',
-        )
+        showApiAlert(error, t(mode === 'create' ? 'listings.createFailed' : 'listings.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -186,178 +159,145 @@ export function ProviderListingEditorScreen({
     value: category.id,
     label: category.name,
   }))
-
   const providerOptions = providers.map((provider) => ({
     value: provider.id,
     label: provider.name,
   }))
-
   const fallbackHref = mode === 'edit' && listingId ? `${basePath}/${listingId}` : basePath
 
   return (
-    <View className="flex-1 bg-background">
-      <Header
-        title={mode === 'create' ? 'New listing' : 'Edit listing'}
-        leftSlot={<BackButton fallbackHref={fallbackHref} />}
-      />
-
-      <AsyncState
-        isLoading={isBootLoading}
-        error={bootError}
-        loadingLabel={mode === 'create' ? 'Loading…' : 'Loading listing…'}
-        onRetry={() => {
-          if (!isAdmin) void mineRemote.refetch()
-          if (mode === 'edit') void listingRemote.refetch()
-        }}
-      >
-        <ScrollView
+    <FormScreen
+      title={t(mode === 'create' ? 'listings.new' : 'listings.edit')}
+      backHref={fallbackHref}
+      isLoading={isBootLoading}
+      error={bootError}
+      loadingLabel={t('listings.loadingOne')}
+      onRetry={() => {
+        if (!isAdmin) void mineRemote.refetch()
+        if (mode === 'edit') void listingRemote.refetch()
+      }}
+      footer={
+        <Button
           className="flex-1"
-          contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-          keyboardShouldPersistTaps="handled"
+          onPress={() => void onSave()}
+          disabled={isSaving || !providerId}
+          accessibilityState={{ busy: isSaving }}
         >
-          {formError ? <Text className="text-sm text-destructive">{formError}</Text> : null}
+          {isSaving ? <ButtonSpinner /> : null}
+          <ButtonText>
+            {isSaving
+              ? t('common.saving')
+              : mode === 'create'
+                ? t('listings.create')
+                : t('common.save')}
+          </ButtonText>
+        </Button>
+      }
+    >
+      <FormError message={formError} />
 
-          {isAdmin ? (
-            <FormField label="Provider" isRequired>
-              <OptionChips
-                options={providerOptions}
-                value={selectedProviderId}
-                onChange={setSelectedProviderId}
-              />
-            </FormField>
-          ) : null}
+      <Section title={t('listings.details')} icon={Package}>
+        {isAdmin ? (
+          <SelectField
+            label={t('listings.provider')}
+            required
+            options={providerOptions}
+            value={selectedProviderId}
+            onChange={setSelectedProviderId}
+          />
+        ) : null}
+        <TextField
+          label={t('common.name')}
+          required
+          value={form.name}
+          onChangeText={(value) => setField('name', value)}
+          placeholder={t('listings.namePlaceholder')}
+        />
+        <ChoiceField
+          label={t('listings.status')}
+          options={[
+            { value: 'ACTIVE', label: t('common.active') },
+            { value: 'INACTIVE', label: t('common.inactive') },
+          ]}
+          value={form.status}
+          onChange={(value) => setField('status', value as ListingStatus)}
+        />
+        <SelectField
+          label={t('listings.category')}
+          options={categoryOptions}
+          value={form.categoryId}
+          onChange={(value) => setField('categoryId', value)}
+          allowClear
+          placeholder={t('common.optional')}
+        />
+        <TextField
+          label={t('listings.brand')}
+          value={form.brand}
+          onChangeText={(value) => setField('brand', value)}
+        />
+        <TextField
+          label={t('common.description')}
+          multiline
+          value={form.description}
+          onChangeText={(value) => setField('description', value)}
+        />
+      </Section>
 
-          <FormField label="Name" isRequired>
-            <Input>
-              <InputField
-                value={form.name}
-                onChangeText={(value) => setField('name', value)}
-                placeholder="Listing name"
-              />
-            </Input>
-          </FormField>
-
-          <FormField label="Status">
-            <OptionChips
-              options={STATUS_OPTIONS}
-              value={form.status}
-              onChange={(value) => setField('status', value as ListingStatus)}
+      <Section title={t('listings.pricing')} icon={Banknote} tone="success">
+        <TextField
+          label={t('listings.price')}
+          value={form.price}
+          onChangeText={(value) => setField('price', value)}
+          keyboardType="decimal-pad"
+          placeholder="0.00"
+        />
+        <FieldRow>
+          <TextField
+            label={t('listings.currency')}
+            value={form.currency}
+            onChangeText={(value) => setField('currency', value.toUpperCase())}
+            autoCapitalize="characters"
+            maxLength={3}
+            placeholder="USD"
+          />
+          <TextField
+            label={t('listings.unit')}
+            value={form.unit}
+            onChangeText={(value) => setField('unit', value)}
+            placeholder="kg, m3"
+          />
+        </FieldRow>
+        <TextField
+          label={t('listings.quantity')}
+          value={form.quantityAvailable}
+          onChangeText={(value) => setField('quantityAvailable', value)}
+          keyboardType="decimal-pad"
+        />
+        <ToggleRow
+          label={t('listings.forRent')}
+          value={form.isForRent}
+          onValueChange={(value) => setField('isForRent', value)}
+        />
+        {form.isForRent ? (
+          <>
+            <TextField
+              label={t('listings.rentalPrice')}
+              value={form.rentalPrice}
+              onChangeText={(value) => setField('rentalPrice', value)}
+              keyboardType="decimal-pad"
             />
-          </FormField>
-
-          <FormField label="Category" helperText="Optional">
-            <OptionChips
-              options={categoryOptions}
-              value={form.categoryId}
-              onChange={(value) => setField('categoryId', value)}
-              allowClear
+            <ChoiceField
+              label={t('listings.rentalUnit')}
+              options={RENTAL_UNITS.map((value) => ({
+                value,
+                label: t(`enums.rentalUnit.${value}`),
+              }))}
+              value={form.rentalUnit}
+              onChange={(value) => setField('rentalUnit', value)}
             />
-          </FormField>
-
-          <FormField label="Price">
-            <Input>
-              <InputField
-                value={form.price}
-                onChangeText={(value) => setField('price', value)}
-                keyboardType="decimal-pad"
-                placeholder="0.00"
-              />
-            </Input>
-          </FormField>
-
-          <View className="flex-row gap-3">
-            <View className="min-w-0 flex-1">
-              <FormField label="Currency">
-                <Input>
-                  <InputField
-                    value={form.currency}
-                    onChangeText={(value) => setField('currency', value.toUpperCase())}
-                    autoCapitalize="characters"
-                    maxLength={3}
-                    placeholder="USD"
-                  />
-                </Input>
-              </FormField>
-            </View>
-            <View className="min-w-0 flex-1">
-              <FormField label="Unit">
-                <Input>
-                  <InputField
-                    value={form.unit}
-                    onChangeText={(value) => setField('unit', value)}
-                    placeholder="kg, m³…"
-                  />
-                </Input>
-              </FormField>
-            </View>
-          </View>
-
-          <FormField label="Brand">
-            <Input>
-              <InputField value={form.brand} onChangeText={(value) => setField('brand', value)} />
-            </Input>
-          </FormField>
-
-          <FormField label="Quantity available">
-            <Input>
-              <InputField
-                value={form.quantityAvailable}
-                onChangeText={(value) => setField('quantityAvailable', value)}
-                keyboardType="decimal-pad"
-              />
-            </Input>
-          </FormField>
-
-          <FormField label="Description">
-            <Textarea>
-              <TextareaInput
-                value={form.description}
-                onChangeText={(value) => setField('description', value)}
-              />
-            </Textarea>
-          </FormField>
-
-          <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-            <Text className="text-sm font-medium text-foreground">Available for rent</Text>
-            <Switch
-              value={form.isForRent}
-              onValueChange={(value) => setField('isForRent', value)}
-            />
-          </View>
-
-          {form.isForRent ? (
-            <>
-              <FormField label="Rental price">
-                <Input>
-                  <InputField
-                    value={form.rentalPrice}
-                    onChangeText={(value) => setField('rentalPrice', value)}
-                    keyboardType="decimal-pad"
-                  />
-                </Input>
-              </FormField>
-              <FormField label="Rental unit">
-                <OptionChips
-                  options={RENTAL_UNIT_OPTIONS}
-                  value={form.rentalUnit}
-                  onChange={(value) => setField('rentalUnit', value)}
-                />
-              </FormField>
-            </>
-          ) : null}
-
-          <Button
-            onPress={() => void onSave()}
-            disabled={isSaving || !providerId}
-            accessibilityState={{ busy: isSaving }}
-          >
-            {isSaving ? <ButtonSpinner /> : null}
-            <ButtonText>
-              {isSaving ? 'Saving…' : mode === 'create' ? 'Create listing' : 'Save changes'}
-            </ButtonText>
-          </Button>
-        </ScrollView>
-      </AsyncState>
-    </View>
+          </>
+        ) : null}
+      </Section>
+    </FormScreen>
   )
 }

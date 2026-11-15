@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react-native'
 import type { ReactElement, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
 import { Button, ButtonText } from '@/components/ui/button'
@@ -25,6 +26,7 @@ type SearchBarProps = {
 
 /** Pill search field, designed to sit inside the hero header. */
 export function SearchBar({ value, onChangeText, onSubmit, placeholder }: SearchBarProps) {
+  const { t } = useTranslation()
   const colors = useThemeColors()
   return (
     <View className="h-12 flex-row items-center gap-2 rounded-2xl bg-card px-4">
@@ -34,17 +36,17 @@ export function SearchBar({ value, onChangeText, onSubmit, placeholder }: Search
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={() => onSubmit(value.trim())}
-        placeholder={placeholder ?? 'Search'}
+        placeholder={placeholder ?? t('common.search')}
         placeholderTextColor={colors.textMuted}
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}
-        accessibilityLabel={placeholder ?? 'Search'}
+        accessibilityLabel={placeholder ?? t('common.search')}
       />
       {value ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Clear search"
+          accessibilityLabel={t('common.clearSearch')}
           hitSlop={10}
           className="size-6 items-center justify-center rounded-full bg-muted"
           onPress={() => {
@@ -73,35 +75,37 @@ type FilterChipsProps = {
 export function FilterChips({ options, value, onChange, allLabel }: FilterChipsProps) {
   const all: ChipOption[] = allLabel ? [{ value: '', label: allLabel }, ...options] : options
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerClassName="gap-2 px-5 py-3"
-      className="grow-0"
-    >
-      {all.map((option) => {
-        const active = option.value === value
-        return (
-          <Pressable
-            key={option.value || '__all'}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            className={`h-9 items-center justify-center rounded-full border px-4 ${
-              active ? 'border-primary bg-primary' : 'border-border/60 bg-card'
-            }`}
-            onPress={() => onChange(option.value)}
-          >
-            <Text
-              className={`text-sm font-semibold ${
-                active ? 'text-primary-foreground' : 'text-muted-foreground'
+    <View className="shrink-0">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-2 px-5 py-3"
+        style={{ flexGrow: 0 }}
+      >
+        {all.map((option) => {
+          const active = option.value === value
+          return (
+            <Pressable
+              key={option.value || '__all'}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              className={`h-9 items-center justify-center rounded-full border px-4 ${
+                active ? 'border-primary bg-primary' : 'border-border/60 bg-card'
               }`}
+              onPress={() => onChange(option.value)}
             >
-              {option.label}
-            </Text>
-          </Pressable>
-        )
-      })}
-    </ScrollView>
+              <Text
+                className={`text-sm font-semibold ${
+                  active ? 'text-primary-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </ScrollView>
+    </View>
   )
 }
 
@@ -146,6 +150,7 @@ type PagerProps = {
 }
 
 export function Pager({ page, totalPages, onChange }: PagerProps) {
+  const { t } = useTranslation()
   const colors = useThemeColors()
   if (totalPages <= 1) return null
   const atStart = page <= 1
@@ -154,7 +159,7 @@ export function Pager({ page, totalPages, onChange }: PagerProps) {
     <View className="flex-row items-center justify-center gap-4 py-4">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Previous page"
+        accessibilityLabel={t('common.previousPage')}
         disabled={atStart}
         className={`size-10 items-center justify-center rounded-full border border-border/60 bg-card ${
           atStart ? 'opacity-40' : ''
@@ -164,11 +169,11 @@ export function Pager({ page, totalPages, onChange }: PagerProps) {
         <ChevronLeft size={18} color={colors.text} />
       </Pressable>
       <Text className="text-sm font-semibold text-muted-foreground">
-        Page {page} of {totalPages}
+        {t('common.pageOf', { page, total: totalPages })}
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Next page"
+        accessibilityLabel={t('common.nextPage')}
         disabled={atEnd}
         className={`size-10 items-center justify-center rounded-full border border-border/60 bg-card ${
           atEnd ? 'opacity-40' : ''
@@ -241,6 +246,7 @@ export function PagedList<T>({
       loadingLabel={loadingLabel}
     >
       <FlatList
+        className="flex-1"
         data={data}
         keyExtractor={keyExtractor}
         renderItem={({ item }) => renderItem(item)}

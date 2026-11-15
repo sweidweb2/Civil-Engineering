@@ -71,13 +71,13 @@ export function IsometricLoader({ label = 'Loading…', size = 160 }: IsometricL
 
           {/* Platform / slab */}
           <Polygon points="80,118 124,96 80,74 36,96" fill={palette.border} />
-          <Polygon points="36,96 80,118 80,126 36,104" fill="#B8C5C2" />
-          <Polygon points="80,118 124,96 124,104 80,126" fill="#9AADAA" />
+          <Polygon points="36,96 80,118 80,126 36,104" fill="#C9C9C9" />
+          <Polygon points="80,118 124,96 124,104 80,126" fill="#AFAFAF" />
 
           {/* Left crate */}
-          <Polygon points="52,92 72,82 72,58 52,68" fill="#A8B8B5" />
-          <Polygon points="72,82 92,92 92,68 72,58" fill="#8A9E9A" />
-          <Polygon points="52,68 72,58 92,68 72,78" fill="#C5D2CF" />
+          <Polygon points="52,92 72,82 72,58 52,68" fill="#BDBDBD" />
+          <Polygon points="72,82 92,92 92,68 72,58" fill="#9E9E9E" />
+          <Polygon points="52,68 72,58 92,68 72,78" fill="#D6D6D6" />
 
           {/* Right crate (brand accent) */}
           <AnimatedPolygon
@@ -85,13 +85,13 @@ export function IsometricLoader({ label = 'Loading…', size = 160 }: IsometricL
             points="88,86 112,74 112,48 88,60"
             fill={palette.primary}
           />
-          <Polygon points="112,74 132,86 132,60 112,48" fill="#1F5F5A" />
-          <Polygon points="88,60 112,48 132,60 108,72" fill={palette.chartMint} opacity={0.9} />
+          <Polygon points="112,74 132,86 132,60 112,48" fill="#008489" />
+          <Polygon points="88,60 112,48 132,60 108,72" fill={palette.primary} opacity={0.9} />
 
           {/* Back shed */}
-          <Polygon points="48,56 80,40 80,18 48,34" fill="#D5DEDC" />
-          <Polygon points="80,40 112,56 112,34 80,18" fill="#BFCBC8" />
-          <Polygon points="48,34 80,18 112,34 80,50" fill="#E8EEEC" />
+          <Polygon points="48,56 80,40 80,18 48,34" fill="#E4E4E4" />
+          <Polygon points="80,40 112,56 112,34 80,18" fill="#D0D0D0" />
+          <Polygon points="48,34 80,18 112,34 80,50" fill="#F0F0F0" />
 
           {/* Soft roof shimmer */}
           <AnimatedPolygon

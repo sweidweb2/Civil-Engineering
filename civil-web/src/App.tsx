@@ -8,6 +8,7 @@ import { AdminAnalyticsPage } from '@/features/admin/AdminAnalyticsPage'
 import { DirectoryPage } from '@/features/admin/DirectoryPage'
 import { SettingsPage } from '@/features/admin/SettingsPage'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { PendingApprovalPage } from '@/features/auth/PendingApprovalPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { ManageCategoriesPage } from '@/features/categories/ManageCategoriesPage'
 import { NotFoundPage } from '@/features/errors/NotFoundPage'
@@ -69,6 +70,7 @@ function App() {
           <Route path="/" element={<RootRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/pending-approval" element={<PendingApprovalPage />} />
           <Route path="/500" element={<UnexpectedErrorPage />} />
 
           <Route

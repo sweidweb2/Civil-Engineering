@@ -27,8 +27,10 @@ describe('registerSchema', () => {
       lastName: 'Lovelace',
       email: 'ada@example.com',
       password: 'password1',
+      role: 'WORKER',
     })
     expect(result.success).toBe(true)
+    if (result.success) expect(result.data.role).toBe('WORKER')
   })
 
   it('requires password of at least 8 characters', () => {
@@ -37,6 +39,17 @@ describe('registerSchema', () => {
       lastName: '',
       email: 'ada@example.com',
       password: 'short',
+      role: 'CLIENT',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('requires a register role', () => {
+    const result = registerSchema.safeParse({
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'password1',
     })
     expect(result.success).toBe(false)
   })

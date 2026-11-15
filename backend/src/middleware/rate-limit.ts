@@ -29,8 +29,20 @@ export function createApiRateLimiter(config: AppConfig) {
   })
 }
 
-/** Stricter limiter for auth endpoints (brute-force resistance). */
+/** Stricter limiter for login / refresh / logout (brute-force resistance). */
 export function createAuthRateLimiter(config: AppConfig) {
+  return rateLimit({
+    windowMs: config.authRateLimitWindowMs,
+    limit: config.authRateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => config.env === 'test',
+    handler: rateLimitHandler,
+  })
+}
+
+/** Register-specific limiter (IP window) — device lifetime cap is enforced in the auth service. */
+export function createRegisterRateLimiter(config: AppConfig) {
   return rateLimit({
     windowMs: config.authRateLimitWindowMs,
     limit: config.authRateLimitMax,

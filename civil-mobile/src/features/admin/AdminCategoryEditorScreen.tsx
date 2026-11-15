@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { FolderTree } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
+import { ChoiceField, FormError, FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { BackButton } from '@/features/pm/components/BackButton'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { enumOptions } from '@/i18n/labels'
 import { ApiError } from '@/services/api'
 import {
   CATEGORY_KIND_OPTIONS,
@@ -21,7 +17,7 @@ import {
   updateCategory,
 } from '@/services/categories'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/categories'
 
@@ -30,9 +26,11 @@ type AdminCategoryEditorScreenProps = {
 }
 
 export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenProps) {
+  const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id?: string }>()
   const categoryId = typeof id === 'string' ? id : id?.[0]
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
 
   const [name, setName] = useState('')
   const [nameAr, setNameAr] = useState('')
@@ -65,7 +63,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
 
   async function onSave() {
     if (!name.trim()) {
-      setError('Name is required')
+      setError(t('categories.nameRequired'))
       return
     }
     setError(undefined)
@@ -80,11 +78,11 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
       }
       if (mode === 'create') {
         const created = await createCategory(payload)
-        showBlockingAlert('Created', 'Category was created.')
+        toastSuccess(t('categories.created'))
         router.replace(`${BASE}/${created.data.id}` as never)
       } else if (categoryId) {
         await updateCategory(categoryId, payload)
-        showBlockingAlert('Saved', 'Category was updated.')
+        toastSuccess(t('categories.saved'))
         await remote.refetch()
       }
     } catch (err) {
@@ -92,7 +90,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
       else
         showApiAlert(
           err,
-          mode === 'create' ? 'Could not create category' : 'Could not save category',
+          t(mode === 'create' ? 'categories.createFailed' : 'categories.saveFailed'),
         )
     } finally {
       setIsSaving(false)
@@ -101,19 +99,19 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
 
   function onDelete() {
     if (!categoryId || isDeleting) return
-    showBlockingAlert('Delete category?', 'This cannot be undone if the category is unused.', {
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Delete',
+    showBlockingAlert(t('categories.deleteTitle'), t('categories.deleteBody'), {
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('common.delete'),
       onConfirm: () => {
         void (async () => {
           setIsDeleting(true)
           try {
             await deleteCategory(categoryId)
-            showBlockingAlert('Deleted', 'Category was removed.')
+            toastSuccess(t('categories.deleted'))
             router.replace(BASE as never)
           } catch (err) {
             if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-            else showApiAlert(err, 'Could not delete category')
+            else showApiAlert(err, t('categories.deleteFailed'))
           } finally {
             setIsDeleting(false)
           }
@@ -123,83 +121,63 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header
-        title={mode === 'create' ? 'New category' : (category?.name ?? 'Category')}
-        leftSlot={<BackButton fallbackHref={BASE} />}
-      />
-
-      <AsyncState
-        isLoading={mode === 'edit' && remote.isLoading}
-        error={mode === 'edit' && remote.status === 'error' ? remote.error : undefined}
-        onRetry={() => void remote.refetch()}
-        loadingLabel="Loading category…"
-      >
-        <ScrollView
-          className="flex-1"
-          contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-          keyboardShouldPersistTaps="handled"
-        >
-          {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-          <FormField label="Name" isRequired>
-            <Input>
-              <InputField value={name} onChangeText={setName} placeholder="Category name" />
-            </Input>
-          </FormField>
-
-          <FormField label="Arabic name">
-            <Input>
-              <InputField value={nameAr} onChangeText={setNameAr} />
-            </Input>
-          </FormField>
-
-          <FormField label="Kind">
-            <OptionChips
-              options={CATEGORY_KIND_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.label,
-              }))}
-              value={kind}
-              onChange={(value) => setKind(value as CategoryKind)}
-            />
-          </FormField>
-
-          <FormField label="Sort order">
-            <Input>
-              <InputField value={sortOrder} onChangeText={setSortOrder} keyboardType="number-pad" />
-            </Input>
-          </FormField>
-
-          <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-            <Text className="text-sm font-medium text-foreground">Active</Text>
-            <Switch value={isActive} onValueChange={setIsActive} />
-          </View>
-
-          <Button
-            onPress={() => void onSave()}
-            disabled={isSaving}
-            accessibilityState={{ busy: isSaving }}
-          >
-            {isSaving ? <ButtonSpinner /> : null}
-            <ButtonText>
-              {isSaving ? 'Saving…' : mode === 'create' ? 'Create category' : 'Save category'}
-            </ButtonText>
-          </Button>
-
+    <FormScreen
+      title={mode === 'create' ? t('categories.new') : (category?.name ?? t('categories.category'))}
+      backHref={BASE}
+      isLoading={mode === 'edit' && remote.isLoading}
+      error={mode === 'edit' && remote.status === 'error' ? remote.error : undefined}
+      onRetry={() => void remote.refetch()}
+      loadingLabel={t('categories.loadingOne')}
+      footer={
+        <>
           {mode === 'edit' ? (
             <Button
+              className="flex-1"
               variant="destructive"
               onPress={onDelete}
               disabled={isDeleting}
               accessibilityState={{ busy: isDeleting }}
             >
               {isDeleting ? <ButtonSpinner /> : null}
-              <ButtonText>{isDeleting ? 'Deleting…' : 'Delete category'}</ButtonText>
+              <ButtonText>{t('common.delete')}</ButtonText>
             </Button>
           ) : null}
-        </ScrollView>
-      </AsyncState>
-    </View>
+          <Button
+            className="flex-[2]"
+            onPress={() => void onSave()}
+            disabled={isSaving}
+            accessibilityState={{ busy: isSaving }}
+          >
+            {isSaving ? <ButtonSpinner /> : null}
+            <ButtonText>
+              {isSaving
+                ? t('common.saving')
+                : mode === 'create'
+                  ? t('categories.create')
+                  : t('common.save')}
+            </ButtonText>
+          </Button>
+        </>
+      }
+    >
+      <FormError message={error} />
+      <Section title={t('categories.details')} icon={FolderTree}>
+        <TextField label={t('common.name')} required value={name} onChangeText={setName} />
+        <TextField label={t('categories.arabicName')} value={nameAr} onChangeText={setNameAr} />
+        <ChoiceField
+          label={t('categories.kind')}
+          options={enumOptions(t, 'categoryKind', CATEGORY_KIND_OPTIONS)}
+          value={kind}
+          onChange={(value) => setKind(value as CategoryKind)}
+        />
+        <TextField
+          label={t('categories.sortOrder')}
+          value={sortOrder}
+          onChangeText={setSortOrder}
+          keyboardType="number-pad"
+        />
+        <ToggleRow label={t('common.active')} value={isActive} onValueChange={setIsActive} />
+      </Section>
+    </FormScreen>
   )
 }

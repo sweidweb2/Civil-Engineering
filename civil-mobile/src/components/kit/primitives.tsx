@@ -151,3 +151,32 @@ export function SectionLabel({ children, action }: { children: string; action?: 
     </View>
   )
 }
+
+/** Square card thumbnail: the image when there is one, a tinted icon otherwise. */
+export function Thumbnail({
+  imageUrl,
+  icon: Icon,
+  size = 64,
+}: {
+  imageUrl?: string | null
+  icon: LucideIcon
+  size?: number
+}) {
+  const colors = useThemeColors()
+  return (
+    <View
+      className="items-center justify-center overflow-hidden rounded-2xl bg-primary/10"
+      style={{ width: size, height: size }}
+    >
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ width: size, height: size }}
+          contentFit="cover"
+        />
+      ) : (
+        <Icon size={Math.round(size * 0.4)} color={colors.primary} />
+      )}
+    </View>
+  )
+}

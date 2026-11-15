@@ -42,7 +42,7 @@ export function BottomNavigation({ items }: BottomNavigationProps) {
               accessibilityLabel={item.label}
               accessibilityState={{ selected: active }}
               className={`h-12 flex-row items-center justify-center gap-2 rounded-full ${
-                active ? 'bg-primary px-4' : 'flex-1'
+                active ? 'shrink bg-primary px-3.5' : 'flex-1'
               }`}
               onPress={item.onPress}
             >

@@ -6,6 +6,7 @@ export const API_BASE_URL =
   (import.meta.env.PROD ? '/api/v1' : 'http://localhost:3000/api/v1')
 
 export type ApiErrorBody = {
+  code?: string
   error?: {
     code?: string
     message?: string
@@ -290,6 +291,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   if (!response.ok) {
     const message = data.error?.message || data.message || `Request failed (${response.status})`
+    const code = data.error?.code ?? data.code
     perfLog('api', `← ${method} ${path} ERROR ${response.status} ${totalMs}ms`, {
       requestId,
       method,
@@ -297,9 +299,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       phase: 'end',
       ms: totalMs,
       status: response.status,
-      code: data.error?.code,
+      code,
     })
-    throw new ApiError(response.status, message, data.error?.code)
+    throw new ApiError(response.status, message, code)
   }
 
   perfLog('api', `← ${method} ${path} ${response.status} ${totalMs}ms`, {

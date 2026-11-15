@@ -1,8 +1,15 @@
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { useThemeStore } from '@/stores/themeStore'
 import type { ColorPalette } from '@/theme/colors'
 import { colors } from '@/theme/colors'
 
-/** Palette for the active color scheme (for props that cannot take `className`). */
+/** Palette for the active theme (for props that cannot take `className`). */
+export function useIsDark(): boolean {
+  const mode = useThemeStore((s) => s.mode)
+  const system = useColorScheme()
+  return (mode === 'system' ? system : mode) === 'dark'
+}
+
 export function useThemeColors(): ColorPalette {
-  return useColorScheme() === 'dark' ? colors.dark : colors.light
+  return useIsDark() ? colors.dark : colors.light
 }

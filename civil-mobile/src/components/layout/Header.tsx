@@ -2,6 +2,9 @@ import React from 'react'
 import { Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useStatusBarStyle } from '@/components/kit/headers'
+import { useIsDark } from '@/hooks/useThemeColors'
+
 type HeaderProps = {
   title: string
   subtitle?: string
@@ -17,6 +20,8 @@ type HeaderProps = {
  */
 export function Header({ title, subtitle, leftSlot, rightSlot, className }: HeaderProps) {
   const insets = useSafeAreaInsets()
+  const isDark = useIsDark()
+  useStatusBarStyle(isDark ? 'light' : 'dark')
   const compact = Boolean(leftSlot)
 
   return (

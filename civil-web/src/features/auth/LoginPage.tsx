@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { GuestOnly } from '@/components/auth'
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { cn } from '@/lib/utils'
+import { ApiError } from '@/services/api'
 import { toastApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -19,6 +20,7 @@ import { loginSchema, type LoginValues } from './login.schema'
 
 export function LoginPage() {
   const { t } = useTranslation(['auth', 'validation', 'common'])
+  const navigate = useNavigate()
   useDocumentTitle(t('auth:signIn'))
   const login = useAuthStore((s) => s.login)
   const [values, setValues] = useState<LoginValues>({
@@ -43,6 +45,10 @@ export function LoginPage() {
       await login(parsed.data.email, parsed.data.password)
       toast.success(t('auth:signedIn'))
     } catch (error) {
+      if (error instanceof ApiError && error.code === 'ACCOUNT_PENDING') {
+        navigate('/pending-approval')
+        return
+      }
       toastApiError(error, t('auth:couldNotSignIn'))
     } finally {
       setIsSubmitting(false)

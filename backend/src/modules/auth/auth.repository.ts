@@ -19,8 +19,17 @@ export type CreateAuthUserInput = {
   email: string
   passwordHash: string
   role: Role
+  status: UserStatus
   firstName?: string
   lastName?: string
+}
+
+export type RecordRegistrationAttemptInput = {
+  deviceId: string
+  ipAddress: string | null
+  userAgent: string | null
+  userId: string
+  role: Role
 }
 
 export type AuthPrincipalRecord = {
@@ -35,6 +44,8 @@ export type AuthRepository = {
   /** Lean row for request auth — never select password or profile. */
   findPrincipalById: (id: string) => Promise<AuthPrincipalRecord | null>
   createUserWithProfile: (input: CreateAuthUserInput) => Promise<AuthUserRecord>
+  countRegistrationsByDevice: (deviceId: string) => Promise<number>
+  recordRegistrationAttempt: (input: RecordRegistrationAttemptInput) => Promise<void>
   updatePasswordHash: (userId: string, passwordHash: string) => Promise<void>
   /** Persist a denied refresh jti until expiresAt (idempotent). */
   denyRefreshJti: (jti: string, expiresAt: Date) => Promise<void>
@@ -87,6 +98,7 @@ export function createAuthRepository(): AuthRepository {
           email: input.email,
           passwordHash: input.passwordHash,
           role: input.role,
+          status: input.status,
           profile: {
             create: {
               firstName: input.firstName ?? null,
@@ -99,6 +111,22 @@ export function createAuthRepository(): AuthRepository {
           profile: {
             select: { firstName: true, lastName: true, displayName: true },
           },
+        },
+      })
+    },
+
+    async countRegistrationsByDevice(deviceId) {
+      return prisma.registrationAttempt.count({ where: { deviceId } })
+    },
+
+    async recordRegistrationAttempt(input) {
+      await prisma.registrationAttempt.create({
+        data: {
+          deviceId: input.deviceId,
+          ipAddress: input.ipAddress,
+          userAgent: input.userAgent,
+          userId: input.userId,
+          role: input.role,
         },
       })
     },

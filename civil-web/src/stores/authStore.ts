@@ -19,7 +19,8 @@ type AuthState = {
     password: string
     firstName?: string
     lastName?: string
-  }) => Promise<void>
+    role: authApi.RegisterRole
+  }) => Promise<{ pendingApproval: boolean }>
   logout: () => Promise<void>
 }
 
@@ -42,7 +43,12 @@ export const useAuthStore = create<AuthState>()(
       },
       async register(input) {
         const result = await authApi.register(input)
+        if (result.pendingApproval || !result.tokens) {
+          set({ user: null, tokens: null })
+          return { pendingApproval: true }
+        }
         set({ user: result.user, tokens: result.tokens })
+        return { pendingApproval: false }
       },
       async logout() {
         const refreshToken = get().tokens?.refreshToken

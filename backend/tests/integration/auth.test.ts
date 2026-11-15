@@ -38,12 +38,15 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
       password: 'password1',
       firstName: 'Ada',
       lastName: 'Lovelace',
+      role: 'CLIENT',
+      deviceId: 'test-device-auth-1',
     })
 
     expect(register.status).toBe(201)
     expect(register.body.user).toMatchObject({
       email: 'ada@example.com',
       role: 'CLIENT',
+      status: 'ACTIVE',
       isVerified: false,
       profile: {
         firstName: 'Ada',
@@ -51,6 +54,7 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
         displayName: 'Ada Lovelace',
       },
     })
+    expect(register.body.pendingApproval).toBe(false)
     expect(register.body.tokens.accessToken).toBeTruthy()
     expect(register.body.tokens.refreshToken).toBeTruthy()
 
@@ -80,11 +84,15 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
     await request(app).post('/api/v1/auth/register').send({
       email: 'dup@example.com',
       password: 'password1',
+      role: 'CLIENT',
+      deviceId: 'test-device-auth-dup',
     })
 
     const res = await request(app).post('/api/v1/auth/register').send({
       email: 'dup@example.com',
       password: 'password1',
+      role: 'CLIENT',
+      deviceId: 'test-device-auth-dup-2',
     })
 
     expect(res.status).toBe(409)
@@ -97,6 +105,8 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
     await request(app).post('/api/v1/auth/register').send({
       email: 'login@example.com',
       password: 'password1',
+      role: 'CLIENT',
+      deviceId: 'test-device-auth-login',
     })
 
     const res = await request(app).post('/api/v1/auth/login').send({
@@ -123,6 +133,8 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
     const register = await request(app).post('/api/v1/auth/register').send({
       email: 'pwd@example.com',
       password: 'password1',
+      role: 'CLIENT',
+      deviceId: 'test-device-auth-pwd',
     })
     expect(register.status).toBe(201)
     const accessToken = register.body.tokens.accessToken as string
@@ -158,5 +170,55 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
       password: 'password2',
     })
     expect(newLogin.status).toBe(200)
+  })
+
+  it('registers workers as pending and blocks login until approved', async () => {
+    const app = createApp({ config })
+
+    const register = await request(app).post('/api/v1/auth/register').send({
+      email: 'worker@example.com',
+      password: 'password1',
+      role: 'WORKER',
+      deviceId: 'test-device-auth-worker',
+    })
+    expect(register.status).toBe(201)
+    expect(register.body).toMatchObject({
+      pendingApproval: true,
+      tokens: null,
+      user: { role: 'WORKER', status: 'PENDING' },
+    })
+
+    const login = await request(app).post('/api/v1/auth/login').send({
+      email: 'worker@example.com',
+      password: 'password1',
+    })
+    expect(login.status).toBe(401)
+    expect(login.body.code).toBe('ACCOUNT_PENDING')
+  })
+
+  it('rejects a 6th registration from the same device id', async () => {
+    const app = createApp({ config })
+    const deviceId = 'test-device-auth-limit'
+
+    for (let i = 0; i < 5; i += 1) {
+      const res = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          email: `limit${i}@example.com`,
+          password: 'password1',
+          role: 'CLIENT',
+          deviceId,
+        })
+      expect(res.status).toBe(201)
+    }
+
+    const blocked = await request(app).post('/api/v1/auth/register').send({
+      email: 'limit5@example.com',
+      password: 'password1',
+      role: 'CLIENT',
+      deviceId,
+    })
+    expect(blocked.status).toBe(409)
+    expect(blocked.body.code).toBe('REGISTRATION_DEVICE_LIMIT')
   })
 })

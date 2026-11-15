@@ -12,6 +12,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
 import {
   Avatar,
@@ -27,9 +28,10 @@ import {
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { enumLabel } from '@/i18n/labels'
 import { userDisplayName, userFirstName } from '@/lib/user'
 import { listListings } from '@/services/listings'
-import { listProjects, type Project, projectStatusLabel } from '@/services/projects'
+import { listProjects, type Project } from '@/services/projects'
 import { listProviders } from '@/services/providers'
 import { listReviews } from '@/services/reviews'
 import { listApprovals, listUsers } from '@/services/users'
@@ -147,7 +149,7 @@ function QuickAction({ icon, label, href }: { icon: LucideIcon; label: string; h
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="w-24 items-center gap-2 active:opacity-70"
+      className="min-w-0 flex-1 items-center gap-2 active:opacity-70"
       onPress={() => router.push(href as never)}
     >
       <IconTile icon={icon} size={56} />
@@ -159,6 +161,7 @@ function QuickAction({ icon, label, href }: { icon: LucideIcon; label: string; h
 }
 
 export function AdminDashboardScreen() {
+  const { t } = useTranslation()
   const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
@@ -170,19 +173,19 @@ export function AdminDashboardScreen() {
   const attention = [
     {
       icon: UserCheck,
-      label: 'Worker requests to approve',
+      label: t('dashboard.workerRequests'),
       count: data?.pendingRequests ?? 0,
       href: '/admin/queue',
     },
     {
       icon: Store,
-      label: 'Providers awaiting approval',
+      label: t('dashboard.pendingProviders'),
       count: data?.pendingProviders ?? 0,
       href: '/admin/providers',
     },
     {
       icon: Star,
-      label: 'Reviews to moderate',
+      label: t('dashboard.pendingReviews'),
       count: data?.pendingReviews ?? 0,
       href: '/admin/reviews',
     },
@@ -191,13 +194,13 @@ export function AdminDashboardScreen() {
   return (
     <View className="flex-1 bg-background" testID="e2e-root">
       <HeroHeader
-        eyebrow="Admin panel"
-        title={`Hi, ${user ? userFirstName(user) : 'there'}`}
-        subtitle="Here is what is happening today"
+        eyebrow={t('dashboard.eyebrow')}
+        title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
+        subtitle={t('dashboard.subtitle')}
         right={
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open your account"
+            accessibilityLabel={t('dashboard.openAccount')}
             onPress={() => router.push('/admin/account' as never)}
           >
             <Avatar name={user ? userDisplayName(user) : '?'} size={44} onHero />
@@ -220,7 +223,7 @@ export function AdminDashboardScreen() {
       >
         {attention.length > 0 ? (
           <View className="gap-2">
-            <SectionLabel>Needs attention</SectionLabel>
+            <SectionLabel>{t('dashboard.attention')}</SectionLabel>
             <Card className="py-1">
               {attention.map((item, index) => (
                 <AttentionRow key={item.href} {...item} last={index === attention.length - 1} />
@@ -230,33 +233,33 @@ export function AdminDashboardScreen() {
         ) : null}
 
         <View className="gap-2">
-          <SectionLabel>Overview</SectionLabel>
+          <SectionLabel>{t('dashboard.overview')}</SectionLabel>
           <View className="flex-row flex-wrap gap-3">
             <StatTile
               icon={Users}
               tone="primary"
-              label="Users"
+              label={t('users.title')}
               value={formatCount(data?.users, isFirstLoad)}
               href="/admin/users"
             />
             <StatTile
               icon={Store}
               tone="info"
-              label="Providers"
+              label={t('providers.title')}
               value={formatCount(data?.providers, isFirstLoad)}
               href="/admin/providers"
             />
             <StatTile
               icon={FolderKanban}
               tone="success"
-              label="Projects"
+              label={t('projects.title')}
               value={formatCount(data?.projects, isFirstLoad)}
               href="/admin/projects"
             />
             <StatTile
               icon={Package}
               tone="warning"
-              label="Listings"
+              label={t('listings.title')}
               value={formatCount(data?.listings, isFirstLoad)}
               href="/admin/listings"
             />
@@ -264,12 +267,16 @@ export function AdminDashboardScreen() {
         </View>
 
         <View className="gap-2">
-          <SectionLabel>Quick actions</SectionLabel>
+          <SectionLabel>{t('dashboard.quickActions')}</SectionLabel>
           <Card>
             <View className="flex-row justify-between">
-              <QuickAction icon={UserPlus} label="New user" href="/admin/users/new" />
-              <QuickAction icon={Store} label="New provider" href="/admin/providers/new" />
-              <QuickAction icon={FolderKanban} label="New project" href="/admin/projects/new" />
+              <QuickAction icon={UserPlus} label={t('users.new')} href="/admin/users/new" />
+              <QuickAction icon={Store} label={t('providers.new')} href="/admin/providers/new" />
+              <QuickAction
+                icon={FolderKanban}
+                label={t('projects.new')}
+                href="/admin/projects/new"
+              />
             </View>
           </Card>
         </View>
@@ -283,11 +290,11 @@ export function AdminDashboardScreen() {
                   hitSlop={8}
                   onPress={() => router.push('/admin/projects' as never)}
                 >
-                  <Text className="text-sm font-semibold text-primary">See all</Text>
+                  <Text className="text-sm font-semibold text-primary">{t('common.seeAll')}</Text>
                 </Pressable>
               }
             >
-              Recent projects
+              {t('dashboard.recentProjects')}
             </SectionLabel>
             <Card className="py-1">
               {data.recentProjects.map((project, index) => (
@@ -308,7 +315,7 @@ export function AdminDashboardScreen() {
                       {project.name}
                     </Text>
                     <StatusPill
-                      label={projectStatusLabel(project.status)}
+                      label={enumLabel(t, 'projectStatus', project.status)}
                       tone={toneForStatus(project.status)}
                     />
                   </View>

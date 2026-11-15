@@ -14,7 +14,13 @@ describe('loginSchema', () => {
 })
 
 describe('registerSchema', () => {
-  const base = { firstName: 'A', lastName: 'B', email: 'a@b.co', password: 'password1' }
+  const base = {
+    firstName: 'A',
+    lastName: 'B',
+    email: 'a@b.co',
+    password: 'password1',
+    role: 'CLIENT' as const,
+  }
 
   it('accepts a valid registration', () => {
     expect(registerSchema.safeParse(base).success).toBe(true)

@@ -13,106 +13,106 @@
 @layer theme {
   /* Brand RGB channels — 60-30-10 from src/theme/colors.ts (light) */
   :where(.light, .light *) {
-    --primary: 40 122 116;
+    --primary: 255 56 92;
     --primary-foreground: 255 255 255;
     --card: 255 255 255;
-    --secondary: 232 238 236;
-    --secondary-foreground: 26 42 39;
-    --background: 238 238 238;
+    --secondary: 0 132 137;
+    --secondary-foreground: 255 255 255;
+    --background: 247 247 247;
     --popover: 255 255 255;
-    --popover-foreground: 26 42 39;
-    --muted: 232 238 236;
-    --muted-foreground: 90 107 103;
-    --destructive: 220 38 38;
-    --foreground: 26 42 39;
-    --border: 213 222 220;
-    --input: 213 222 220;
-    --ring: 40 122 116;
+    --popover-foreground: 34 34 34;
+    --muted: 242 242 242;
+    --muted-foreground: 113 113 113;
+    --destructive: 193 53 21;
+    --foreground: 34 34 34;
+    --border: 221 221 221;
+    --input: 221 221 221;
+    --ring: 255 56 92;
     --success: 47 158 113;
     --warning: 217 119 6;
-    --info: 37 99 235;
-    --hero: 40 122 116;
+    --info: 0 132 137;
+    --hero: 255 56 92;
     --hero-foreground: 255 255 255;
-    --accent: 232 238 236;
-    --accent-foreground: 26 42 39;
+    --accent: 255 241 244;
+    --accent-foreground: 34 34 34;
   }
 
   @media (prefers-color-scheme: light) {
     :root:not(:where(.light, .light *, .dark, .dark *)) {
-      --primary: 40 122 116;
+      --primary: 255 56 92;
       --primary-foreground: 255 255 255;
       --card: 255 255 255;
-      --secondary: 232 238 236;
-      --secondary-foreground: 26 42 39;
-      --background: 238 238 238;
+      --secondary: 0 132 137;
+      --secondary-foreground: 255 255 255;
+      --background: 247 247 247;
       --popover: 255 255 255;
-      --popover-foreground: 26 42 39;
-      --muted: 232 238 236;
-      --muted-foreground: 90 107 103;
-      --destructive: 220 38 38;
-      --foreground: 26 42 39;
-      --border: 213 222 220;
-      --input: 213 222 220;
-      --ring: 40 122 116;
+      --popover-foreground: 34 34 34;
+      --muted: 242 242 242;
+      --muted-foreground: 113 113 113;
+      --destructive: 193 53 21;
+      --foreground: 34 34 34;
+      --border: 221 221 221;
+      --input: 221 221 221;
+      --ring: 255 56 92;
       --success: 47 158 113;
       --warning: 217 119 6;
-      --info: 37 99 235;
-      --hero: 40 122 116;
+      --info: 0 132 137;
+      --hero: 255 56 92;
       --hero-foreground: 255 255 255;
-      --accent: 232 238 236;
-      --accent-foreground: 26 42 39;
+      --accent: 255 241 244;
+      --accent-foreground: 34 34 34;
     }
   }
 
   :where(.dark, .dark *) {
-    --primary: 77 182 172;
-    --primary-foreground: 10 20 18;
-    --card: 23 33 31;
-    --secondary: 31 44 41;
-    --secondary-foreground: 230 239 236;
-    --background: 15 23 21;
-    --popover: 23 33 31;
-    --popover-foreground: 230 239 236;
-    --muted: 31 44 41;
-    --muted-foreground: 155 176 171;
-    --destructive: 248 113 113;
-    --foreground: 230 239 236;
-    --border: 42 58 55;
-    --input: 42 58 55;
-    --accent: 31 44 41;
-    --accent-foreground: 230 239 236;
-    --ring: 77 182 172;
+    --primary: 255 77 109;
+    --primary-foreground: 255 255 255;
+    --card: 28 28 30;
+    --secondary: 38 166 171;
+    --secondary-foreground: 255 255 255;
+    --background: 18 18 18;
+    --popover: 28 28 30;
+    --popover-foreground: 245 245 245;
+    --muted: 42 42 44;
+    --muted-foreground: 160 160 160;
+    --destructive: 255 123 92;
+    --foreground: 245 245 245;
+    --border: 51 51 54;
+    --input: 51 51 54;
+    --accent: 58 28 36;
+    --accent-foreground: 245 245 245;
+    --ring: 255 77 109;
     --success: 52 184 133;
     --warning: 245 158 11;
-    --info: 96 165 250;
-    --hero: 22 48 45;
-    --hero-foreground: 230 239 236;
+    --info: 38 166 171;
+    --hero: 58 21 32;
+    --hero-foreground: 255 255 255;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not(:where(.light, .light *, .dark, .dark *)) {
-      --primary: 77 182 172;
-      --primary-foreground: 10 20 18;
-      --card: 23 33 31;
-      --secondary: 31 44 41;
-      --secondary-foreground: 230 239 236;
-      --background: 15 23 21;
-      --popover: 23 33 31;
-      --popover-foreground: 230 239 236;
-      --muted: 31 44 41;
-      --muted-foreground: 155 176 171;
-      --destructive: 248 113 113;
-      --foreground: 230 239 236;
-      --border: 42 58 55;
-      --input: 42 58 55;
-      --accent: 31 44 41;
-      --accent-foreground: 230 239 236;
-      --ring: 77 182 172;
+      --primary: 255 77 109;
+      --primary-foreground: 255 255 255;
+      --card: 28 28 30;
+      --secondary: 38 166 171;
+      --secondary-foreground: 255 255 255;
+      --background: 18 18 18;
+      --popover: 28 28 30;
+      --popover-foreground: 245 245 245;
+      --muted: 42 42 44;
+      --muted-foreground: 160 160 160;
+      --destructive: 255 123 92;
+      --foreground: 245 245 245;
+      --border: 51 51 54;
+      --input: 51 51 54;
+      --accent: 58 28 36;
+      --accent-foreground: 245 245 245;
+      --ring: 255 77 109;
       --success: 52 184 133;
       --warning: 245 158 11;
-      --info: 96 165 250;
-      --hero: 22 48 45;
-      --hero-foreground: 230 239 236;
+      --info: 38 166 171;
+      --hero: 58 21 32;
+      --hero-foreground: 255 255 255;
     }
   }
 }

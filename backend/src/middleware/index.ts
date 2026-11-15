@@ -1,7 +1,11 @@
 export { authenticate, createAuthenticate } from './authenticate.js'
 export { authorize } from './authorize.js'
 export { perfTiming, pushServerTiming } from './perf-timing.js'
-export { createApiRateLimiter, createAuthRateLimiter } from './rate-limit.js'
+export {
+  createApiRateLimiter,
+  createAuthRateLimiter,
+  createRegisterRateLimiter,
+} from './rate-limit.js'
 export { requestContext } from './request-context.js'
 export { createRequestLogger } from './request-logger.js'
 export { requireTrustedOrigin } from './trusted-origin.js'

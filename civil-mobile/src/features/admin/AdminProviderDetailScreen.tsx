@@ -1,40 +1,51 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { Text, View } from 'react-native'
+import { router, useLocalSearchParams } from 'expo-router'
+import { MapPin, Phone, Store } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
-import { Badge, BadgeText } from '@/components/ui/badge'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Textarea, TextareaInput } from '@/components/ui/textarea'
-import { BackButton } from '@/features/pm/components/BackButton'
-import { useRemoteData } from '@/hooks/useRemoteData'
-import { ApiError } from '@/services/api'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import {
+  Card,
+  ChoiceField,
+  FieldRow,
+  FormError,
+  FormScreen,
+  Section,
+  StatusPill,
+  TextField,
+  Thumbnail,
+  toneForStatus,
+} from '@/components/kit'
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useRemoteData } from '@/hooks/useRemoteData'
+import { enumLabel, enumOptions } from '@/i18n/labels'
+import { ApiError } from '@/services/api'
+import { showApiAlert } from '@/services/feedback'
+import {
+  createProvider,
   getProvider,
   PROVIDER_STATUS_OPTIONS,
   type ProviderStatus,
-  providerStatusLabel,
   updateProvider,
 } from '@/services/providers'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/providers'
 
-export function AdminProviderDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+type Mode = 'create' | 'edit'
+
+function ProviderFormScreen({ mode }: { mode: Mode }) {
+  const { t } = useTranslation()
+  const { id } = useLocalSearchParams<{ id?: string }>()
   const providerId = typeof id === 'string' ? id : id?.[0]
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
 
   const load = useCallback(() => {
     if (!providerId) return Promise.reject(new Error('Provider id required'))
     return getProvider(providerId)
   }, [providerId])
-  const remote = useRemoteData(load, { enabled: Boolean(providerId) })
+  const remote = useRemoteData(load, { enabled: mode === 'edit' && Boolean(providerId) })
   const provider = remote.status === 'success' ? remote.data.data : null
 
   const [name, setName] = useState('')
@@ -47,6 +58,7 @@ export function AdminProviderDetailScreen() {
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('')
   const [status, setStatus] = useState<ProviderStatus>('PENDING')
+  const [error, setError] = useState<string | undefined>()
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -64,155 +76,148 @@ export function AdminProviderDetailScreen() {
   }, [provider])
 
   async function onSave() {
-    if (!providerId || !name.trim()) {
-      showApiAlert(new Error('Name is required'), 'Could not save')
+    if (!name.trim()) {
+      setError(t('providers.nameRequired'))
       return
     }
+    setError(undefined)
     setIsSaving(true)
+    const payload = {
+      name: name.trim(),
+      description: description.trim() || null,
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+      whatsapp: whatsapp.trim() || null,
+      website: website.trim() || null,
+      address: address.trim() || null,
+      city: city.trim() || null,
+      country: country.trim() || null,
+      status,
+    }
     try {
-      await updateProvider(providerId, {
-        name: name.trim(),
-        description: description.trim() || null,
-        email: email.trim() || null,
-        phone: phone.trim() || null,
-        whatsapp: whatsapp.trim() || null,
-        website: website.trim() || null,
-        address: address.trim() || null,
-        city: city.trim() || null,
-        country: country.trim() || null,
-        status,
-      })
-      showBlockingAlert('Saved', 'Provider was updated.')
-      await remote.refetch()
+      if (mode === 'create') {
+        const created = await createProvider(payload)
+        toastSuccess(t('providers.created'))
+        router.replace(`${BASE}/${created.data.id}` as never)
+      } else if (providerId) {
+        await updateProvider(providerId, payload)
+        toastSuccess(t('providers.saved'))
+        await remote.refetch()
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not save provider')
+      else
+        showApiAlert(err, t(mode === 'create' ? 'providers.createFailed' : 'providers.saveFailed'))
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header
-        title={provider?.name ?? 'Provider'}
-        leftSlot={<BackButton fallbackHref={BASE} />}
-        rightSlot={
-          provider ? (
-            <Badge variant={provider.status === 'APPROVED' ? 'default' : 'secondary'}>
-              <BadgeText>{providerStatusLabel(provider.status)}</BadgeText>
-            </Badge>
-          ) : undefined
-        }
-      />
-
-      <AsyncState
-        isLoading={remote.isLoading}
-        error={remote.status === 'error' ? remote.error : undefined}
-        onRetry={() => void remote.refetch()}
-        loadingLabel="Loading provider…"
-      >
-        {provider ? (
-          <ScrollView
-            className="flex-1"
-            contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-            keyboardShouldPersistTaps="handled"
-          >
-            <FormField label="Name" isRequired>
-              <Input>
-                <InputField value={name} onChangeText={setName} />
-              </Input>
-            </FormField>
-
-            <FormField label="Status">
-              <OptionChips
-                options={PROVIDER_STATUS_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                }))}
-                value={status}
-                onChange={(value) => setStatus(value as ProviderStatus)}
+    <FormScreen
+      title={mode === 'create' ? t('providers.new') : (provider?.name ?? t('providers.provider'))}
+      backHref={BASE}
+      isLoading={mode === 'edit' && remote.isLoading}
+      error={mode === 'edit' && remote.status === 'error' ? remote.error : undefined}
+      onRetry={() => void remote.refetch()}
+      loadingLabel={t('providers.loadingOne')}
+      footer={
+        <Button
+          className="flex-1"
+          onPress={() => void onSave()}
+          disabled={isSaving}
+          accessibilityState={{ busy: isSaving }}
+        >
+          {isSaving ? <ButtonSpinner /> : null}
+          <ButtonText>
+            {isSaving
+              ? t('common.saving')
+              : mode === 'create'
+                ? t('providers.create')
+                : t('common.save')}
+          </ButtonText>
+        </Button>
+      }
+    >
+      <FormError message={error} />
+      {provider ? (
+        <Card className="flex-row items-center gap-4">
+          <Thumbnail imageUrl={provider.logoUrl} icon={Store} size={64} />
+          <View className="min-w-0 flex-1 gap-1.5">
+            <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+              {provider.name}
+            </Text>
+            <View className="flex-row">
+              <StatusPill
+                label={enumLabel(t, 'providerStatus', provider.status)}
+                tone={toneForStatus(provider.status)}
               />
-            </FormField>
-
-            <FormField label="Description">
-              <Textarea>
-                <TextareaInput value={description} onChangeText={setDescription} />
-              </Textarea>
-            </FormField>
-
-            <FormField label="Email">
-              <Input>
-                <InputField
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </Input>
-            </FormField>
-
-            <View className="flex-row gap-3">
-              <View className="min-w-0 flex-1">
-                <FormField label="Phone">
-                  <Input>
-                    <InputField value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-                  </Input>
-                </FormField>
-              </View>
-              <View className="min-w-0 flex-1">
-                <FormField label="WhatsApp">
-                  <Input>
-                    <InputField
-                      value={whatsapp}
-                      onChangeText={setWhatsapp}
-                      keyboardType="phone-pad"
-                    />
-                  </Input>
-                </FormField>
-              </View>
             </View>
+          </View>
+        </Card>
+      ) : null}
 
-            <FormField label="Website">
-              <Input>
-                <InputField value={website} onChangeText={setWebsite} autoCapitalize="none" />
-              </Input>
-            </FormField>
+      <Section title={t('providers.company')} icon={Store}>
+        <TextField label={t('common.name')} required value={name} onChangeText={setName} />
+        <ChoiceField
+          label={t('providers.status')}
+          options={enumOptions(t, 'providerStatus', PROVIDER_STATUS_OPTIONS)}
+          value={status}
+          onChange={(value) => setStatus(value as ProviderStatus)}
+        />
+        <TextField
+          label={t('common.description')}
+          multiline
+          value={description}
+          onChangeText={setDescription}
+        />
+      </Section>
 
-            <FormField label="Address">
-              <Input>
-                <InputField value={address} onChangeText={setAddress} />
-              </Input>
-            </FormField>
+      <Section title={t('providers.contact')} icon={Phone} tone="info">
+        <TextField
+          label={t('common.email')}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <FieldRow>
+          <TextField
+            label={t('common.phone')}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+          />
+          <TextField
+            label={t('common.whatsapp')}
+            value={whatsapp}
+            onChangeText={setWhatsapp}
+            keyboardType="phone-pad"
+          />
+        </FieldRow>
+        <TextField
+          label={t('common.website')}
+          value={website}
+          onChangeText={setWebsite}
+          autoCapitalize="none"
+        />
+      </Section>
 
-            <View className="flex-row gap-3">
-              <View className="min-w-0 flex-1">
-                <FormField label="City">
-                  <Input>
-                    <InputField value={city} onChangeText={setCity} />
-                  </Input>
-                </FormField>
-              </View>
-              <View className="min-w-0 flex-1">
-                <FormField label="Country">
-                  <Input>
-                    <InputField value={country} onChangeText={setCountry} />
-                  </Input>
-                </FormField>
-              </View>
-            </View>
-
-            <Button
-              onPress={() => void onSave()}
-              disabled={isSaving}
-              accessibilityState={{ busy: isSaving }}
-            >
-              {isSaving ? <ButtonSpinner /> : null}
-              <ButtonText>{isSaving ? 'Saving…' : 'Save provider'}</ButtonText>
-            </Button>
-          </ScrollView>
-        ) : null}
-      </AsyncState>
-    </View>
+      <Section title={t('providers.location')} icon={MapPin} tone="success">
+        <TextField label={t('common.address')} value={address} onChangeText={setAddress} />
+        <FieldRow>
+          <TextField label={t('common.city')} value={city} onChangeText={setCity} />
+          <TextField label={t('common.country')} value={country} onChangeText={setCountry} />
+        </FieldRow>
+      </Section>
+    </FormScreen>
   )
+}
+
+export function AdminProviderDetailScreen() {
+  return <ProviderFormScreen mode="edit" />
+}
+
+export function AdminProviderCreateScreen() {
+  return <ProviderFormScreen mode="create" />
 }

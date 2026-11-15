@@ -1,24 +1,31 @@
 import { useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { UserRound } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
+import {
+  ChoiceField,
+  FieldRow,
+  FormError,
+  FormScreen,
+  Section,
+  TextField,
+  ToggleRow,
+} from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { BackButton } from '@/features/pm/components/BackButton'
+import { enumOptions } from '@/i18n/labels'
 import { ApiError } from '@/services/api'
 import type { AuthRole } from '@/services/auth'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { useToastApiError } from '@/services/toast'
+import { showApiAlert } from '@/services/feedback'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 
 const BASE = '/admin/users'
 
 export function AdminUserCreateScreen() {
+  const { t } = useTranslation()
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<AuthRole>('CLIENT')
@@ -32,7 +39,7 @@ export function AdminUserCreateScreen() {
 
   async function onCreate() {
     if (!email.trim() || !password.trim()) {
-      setError('Email and password are required')
+      setError(t('users.emailPasswordRequired'))
       return
     }
     setError(undefined)
@@ -48,103 +55,76 @@ export function AdminUserCreateScreen() {
         displayName: displayName.trim() || undefined,
         phone: phone.trim() || undefined,
       })
-      showBlockingAlert('Created', 'User was created.')
+      toastSuccess(t('users.created'))
       router.replace(`${BASE}/${created.data.id}` as never)
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not create user')
+      else showApiAlert(err, t('users.createFailed'))
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header title="New user" leftSlot={<BackButton fallbackHref={BASE} />} />
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-        keyboardShouldPersistTaps="handled"
-      >
-        {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-        <FormField label="Email" isRequired>
-          <Input>
-            <InputField
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholder="user@example.com"
-            />
-          </Input>
-        </FormField>
-
-        <FormField label="Password" isRequired>
-          <Input>
-            <InputField
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholder="Temporary password"
-            />
-          </Input>
-        </FormField>
-
-        <FormField label="Role">
-          <OptionChips
-            options={AUTH_ROLE_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
-            value={role}
-            onChange={(value) => setRole(value as AuthRole)}
-          />
-        </FormField>
-
-        <View className="flex-row gap-3">
-          <View className="min-w-0 flex-1">
-            <FormField label="First name">
-              <Input>
-                <InputField value={firstName} onChangeText={setFirstName} />
-              </Input>
-            </FormField>
-          </View>
-          <View className="min-w-0 flex-1">
-            <FormField label="Last name">
-              <Input>
-                <InputField value={lastName} onChangeText={setLastName} />
-              </Input>
-            </FormField>
-          </View>
-        </View>
-
-        <FormField label="Display name">
-          <Input>
-            <InputField value={displayName} onChangeText={setDisplayName} />
-          </Input>
-        </FormField>
-
-        <FormField label="Phone">
-          <Input>
-            <InputField value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          </Input>
-        </FormField>
-
-        <View className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-          <Text className="text-sm font-medium text-foreground">Verified</Text>
-          <Switch value={isVerified} onValueChange={setIsVerified} />
-        </View>
-
+    <FormScreen
+      title={t('users.new')}
+      backHref={BASE}
+      footer={
         <Button
+          className="flex-1"
           onPress={() => void onCreate()}
           disabled={isSaving}
           accessibilityState={{ busy: isSaving }}
         >
           {isSaving ? <ButtonSpinner /> : null}
-          <ButtonText>{isSaving ? 'Creating…' : 'Create user'}</ButtonText>
+          <ButtonText>{isSaving ? t('common.creating') : t('users.create')}</ButtonText>
         </Button>
-      </ScrollView>
-    </View>
+      }
+    >
+      <FormError message={error} />
+      <Section title={t('users.account')} icon={UserRound}>
+        <TextField
+          label={t('common.email')}
+          required
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="user@example.com"
+        />
+        <TextField
+          label={t('common.password')}
+          required
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholder={t('users.tempPassword')}
+        />
+        <ChoiceField
+          label={t('users.role')}
+          options={enumOptions(t, 'role', AUTH_ROLE_OPTIONS)}
+          value={role}
+          onChange={(value) => setRole(value as AuthRole)}
+        />
+        <ToggleRow label={t('users.verified')} value={isVerified} onValueChange={setIsVerified} />
+      </Section>
+      <Section title={t('users.profile')}>
+        <FieldRow>
+          <TextField label={t('common.firstName')} value={firstName} onChangeText={setFirstName} />
+          <TextField label={t('common.lastName')} value={lastName} onChangeText={setLastName} />
+        </FieldRow>
+        <TextField
+          label={t('common.displayName')}
+          value={displayName}
+          onChangeText={setDisplayName}
+        />
+        <TextField
+          label={t('common.phone')}
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+        />
+      </Section>
+    </FormScreen>
   )
 }

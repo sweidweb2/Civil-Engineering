@@ -38,6 +38,7 @@ describe('registerSchema', () => {
       lastName: 'Lovelace',
       email: 'ada@example.com',
       password: 'short',
+      role: 'CLIENT',
     })
     expect(result.success).toBe(false)
     if (result.success) return
@@ -50,9 +51,11 @@ describe('registerSchema', () => {
       lastName: 'Lovelace',
       email: ' ada@example.com ',
       password: 'password1',
+      role: 'MANAGER',
     })
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.email).toBe('ada@example.com')
+    expect(result.data.role).toBe('MANAGER')
   })
 })

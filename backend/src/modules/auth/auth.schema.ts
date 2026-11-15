@@ -6,6 +6,17 @@ export const roleSchema = z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAG
 
 export type RoleName = z.infer<typeof roleSchema>
 
+/** Roles allowed on public self-registration. */
+export const registerRoleSchema = z.enum(['CLIENT', 'WORKER', 'MANAGER'])
+
+export type RegisterRole = z.infer<typeof registerRoleSchema>
+
+const deviceIdSchema = z
+  .string()
+  .trim()
+  .min(8, 'Device id is required')
+  .max(128, 'Device id is too long')
+
 export const registerBodySchema = z.object({
   email: z
     .string()
@@ -14,6 +25,9 @@ export const registerBodySchema = z.object({
   password: passwordSchema,
   firstName: z.string().min(1).max(80).optional(),
   lastName: z.string().min(1).max(80).optional(),
+  role: registerRoleSchema.default('CLIENT'),
+  /** Stable client-generated device fingerprint (MAC is not available in browsers). */
+  deviceId: deviceIdSchema,
 })
 
 export const loginBodySchema = z.object({

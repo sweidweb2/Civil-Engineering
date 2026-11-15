@@ -1,46 +1,46 @@
 /**
- * colors.ts — semantic palette for light mode (shared with web).
- * 60-30-10: canvas 60 / surfaces 30 / primary accent 10.
- * Source of truth for brand tokens. Wired into `civil-mobile/global.css`
- * (Uniwind light theme RGB channels). Dark palette mirrors the dark vars in global.css.
+ * colors.ts - brand palette. Source of truth, mirrored by the RGB variables in
+ * `civil-mobile/global.css` (which drive every Tailwind class).
+ *   primary   #FF385C  actions, active states, the hero header
+ *   secondary #008489  accents and info
+ *   neutral   #FFFFFF  surfaces and text on color
+ * Change a color here AND in global.css (light + dark blocks).
  */
 
 export const colors = {
   light: {
-    primary: '#287A74',
+    primary: '#FF385C',
     onPrimary: '#FFFFFF',
-    background: '#EEEEEE',
+    secondary: '#008489',
+    background: '#F7F7F7',
     surface: '#FFFFFF',
-    muted: '#E8EEEC',
-    text: '#1A2A27',
-    textMuted: '#5A6B67',
-    border: '#D5DEDC',
-    chartMint: '#6FCF97',
+    muted: '#F2F2F2',
+    text: '#222222',
+    textMuted: '#717171',
+    border: '#DDDDDD',
+    chartMint: '#008489',
     success: '#2F9E71',
     warning: '#D97706',
-    error: '#DC2626',
-    info: '#2563EB',
-    disabled: '#9CA3AF',
-    /** @deprecated use `chartMint` — kept for older imports */
-    secondary: '#6FCF97',
+    error: '#C13515',
+    info: '#008489',
+    disabled: '#B0B0B0',
   },
   dark: {
-    primary: '#4DB6AC',
-    onPrimary: '#0A1412',
-    background: '#0F1715',
-    surface: '#17211F',
-    muted: '#1F2C29',
-    text: '#E6EFEC',
-    textMuted: '#9BB0AB',
-    border: '#2A3A37',
-    chartMint: '#6FCF97',
+    primary: '#FF4D6D',
+    onPrimary: '#FFFFFF',
+    secondary: '#26A6AB',
+    background: '#121212',
+    surface: '#1C1C1E',
+    muted: '#2A2A2C',
+    text: '#F5F5F5',
+    textMuted: '#A0A0A0',
+    border: '#333336',
+    chartMint: '#26A6AB',
     success: '#34B885',
     warning: '#F59E0B',
-    error: '#F87171',
-    info: '#60A5FA',
-    disabled: '#6B7280',
-    /** @deprecated use `chartMint` */
-    secondary: '#6FCF97',
+    error: '#FF7B5C',
+    info: '#26A6AB',
+    disabled: '#6B6B6B',
   },
 } as const
 

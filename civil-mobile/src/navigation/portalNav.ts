@@ -52,7 +52,7 @@ export const ADMIN_NAV: PortalNavItem[] = [
 
 /** Destinations listed on Admin → More (not in the bottom bar). */
 export const ADMIN_MORE_LINKS: PortalNavItem[] = [
-  { key: 'queue', label: 'Workers requests', href: '/admin/queue', icon: UserCheck },
+  { key: 'queue', label: 'Registration requests', href: '/admin/queue', icon: UserCheck },
   { key: 'directory', label: 'Directory', href: '/admin/directory', icon: Library },
   { key: 'listings', label: 'Listings', href: '/admin/listings', icon: Package },
   { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: Star },

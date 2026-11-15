@@ -1,6 +1,7 @@
 import type { AppConfig } from '../../config/index.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { conflict, isUniqueConflictError, unauthorized } from '../../errors/app-error.js'
+import { ErrorCodes } from '../../errors/error-codes.js'
 import { enqueuePurgeExpiredDeniedRefreshTokens } from '../../jobs/index.js'
 import { getLogger } from '../../logging/index.js'
 import type { LoggingService } from '../logging/index.js'
@@ -15,10 +16,19 @@ import {
   verifyPassword,
   verifyRefreshToken,
 } from './auth.tokens.js'
-import type { AuthTokens, AuthUserDto, LoginResult } from './auth.types.js'
+import type {
+  AuthTokens,
+  AuthUserDto,
+  LoginResult,
+  RegisterContext,
+  RegisterResult,
+} from './auth.types.js'
+
+/** Lifetime self-serve registrations allowed per device fingerprint. */
+export const MAX_REGISTRATIONS_PER_DEVICE = 5
 
 export type AuthService = {
-  register: (input: RegisterBody) => Promise<LoginResult>
+  register: (input: RegisterBody, context: RegisterContext) => Promise<RegisterResult>
   login: (input: LoginBody) => Promise<LoginResult>
   refreshTokens: (input: RefreshBody) => Promise<AuthTokens>
   logout: (input: RefreshBody) => Promise<void>
@@ -30,6 +40,7 @@ function toUserDto(user: AuthUserRecord): AuthUserDto {
     id: user.id,
     email: user.email,
     role: user.role as RoleName,
+    status: user.status,
     isVerified: user.isVerified,
     profile: user.profile
       ? {
@@ -79,18 +90,32 @@ async function claimRefreshToken(
   return repository.claimRefreshJti(jti, expiresAt)
 }
 
+function statusForRegisterRole(role: RegisterBody['role']): 'ACTIVE' | 'PENDING' {
+  return role === 'CLIENT' ? 'ACTIVE' : 'PENDING'
+}
+
 export function createAuthService(
   repository: AuthRepository,
   config: AppConfig,
   logging?: LoggingService,
 ): AuthService {
   return {
-    async register(input) {
+    async register(input, context) {
+      const deviceCount = await repository.countRegistrationsByDevice(input.deviceId)
+      if (deviceCount >= MAX_REGISTRATIONS_PER_DEVICE) {
+        throw conflict(
+          'This device has reached the maximum number of registrations',
+          ErrorCodes.REGISTRATION_DEVICE_LIMIT,
+        )
+      }
+
       const existing = await repository.findByEmail(input.email)
       if (existing) {
         throw conflict('Email already registered')
       }
 
+      const role = input.role
+      const status = statusForRegisterRole(role)
       const passwordHash = await hashPassword(input.password)
       let user: AuthUserRecord
       try {
@@ -98,7 +123,8 @@ export function createAuthService(
           repository.createUserWithProfile({
             email: input.email,
             passwordHash,
-            role: 'CLIENT',
+            role,
+            status,
             firstName: input.firstName,
             lastName: input.lastName,
           }),
@@ -108,6 +134,18 @@ export function createAuthService(
           throw conflict('Email already registered')
         }
         throw error
+      }
+
+      try {
+        await repository.recordRegistrationAttempt({
+          deviceId: input.deviceId,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          userId: user.id,
+          role,
+        })
+      } catch (error) {
+        getLogger().error({ err: error }, 'failed to record registration attempt')
       }
 
       try {
@@ -121,9 +159,11 @@ export function createAuthService(
         getLogger().error({ err: error }, 'failed to write register activity')
       }
 
+      const pendingApproval = status === 'PENDING'
       return {
         user: toUserDto(user),
-        tokens: issueTokens(config, user),
+        tokens: pendingApproval ? null : issueTokens(config, user),
+        pendingApproval,
       }
     },
 
@@ -139,7 +179,7 @@ export function createAuthService(
       }
 
       if (user.status === 'PENDING') {
-        throw unauthorized('Account is pending admin approval', 'ACCOUNT_PENDING')
+        throw unauthorized('Account is pending admin approval', ErrorCodes.ACCOUNT_PENDING)
       }
 
       if (user.status !== 'ACTIVE') {

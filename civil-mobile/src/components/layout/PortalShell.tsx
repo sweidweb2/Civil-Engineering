@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { View } from 'react-native'
 import { router, usePathname } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 
 import { BottomNavigation, type BottomNavItem } from '@/components/layout/BottomNavigation'
 import { useThemeColors } from '@/hooks/useThemeColors'
@@ -32,6 +33,7 @@ function tabIsActive(portal: PortalId, pathname: string, item: PortalNavItem): b
  * get the full height and their own bottom action bar.
  */
 export function PortalShell({ portal, children }: PortalShellProps) {
+  const { t } = useTranslation()
   const themeColors = useThemeColors()
   const pathname = usePathname()
   const nav = navForPortal(portal)
@@ -47,7 +49,7 @@ export function PortalShell({ portal, children }: PortalShellProps) {
         const Icon = item.icon
         return {
           key: item.key,
-          label: item.label,
+          label: t(`nav.${item.key}`, { defaultValue: item.label }),
           isActive: tabIsActive(portal, pathname, item),
           renderIcon: (active: boolean) => (
             <Icon size={22} color={active ? themeColors.onPrimary : themeColors.textMuted} />
@@ -60,13 +62,15 @@ export function PortalShell({ portal, children }: PortalShellProps) {
           },
         }
       }),
-    [nav, pathname, portal, themeColors],
+    [nav, pathname, portal, themeColors, t],
   )
 
   return (
     <View className="flex-1 bg-background">
-      <View className="min-h-0 flex-1">{children}</View>
-      {isTopLevel ? <BottomNavigation items={items} /> : null}
+      <View className="min-h-0 w-full max-w-[720px] flex-1 self-center">
+        <View className="min-h-0 flex-1">{children}</View>
+        {isTopLevel ? <BottomNavigation items={items} /> : null}
+      </View>
     </View>
   )
 }

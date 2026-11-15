@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { GuestOnly } from '@/components/auth'
@@ -10,13 +10,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { type FieldErrors, parseForm } from '@/lib/form'
+import { cn } from '@/lib/utils'
+import type { RegisterRole } from '@/services/auth'
 import { toastApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 
 import { registerSchema, type RegisterValues } from './register.schema'
 
+const ROLES: RegisterRole[] = ['CLIENT', 'MANAGER', 'WORKER']
+
 export function RegisterPage() {
   const { t } = useTranslation(['auth', 'validation', 'common'])
+  const navigate = useNavigate()
   useDocumentTitle(t('auth:register'))
   const register = useAuthStore((s) => s.register)
   const [values, setValues] = useState<RegisterValues>({
@@ -24,6 +29,7 @@ export function RegisterPage() {
     lastName: '',
     email: '',
     password: '',
+    role: 'CLIENT',
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof RegisterValues>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -39,13 +45,18 @@ export function RegisterPage() {
     setFieldErrors({})
     setIsSubmitting(true)
     try {
-      const { firstName, lastName, email, password } = parsed.data
-      await register({
+      const { firstName, lastName, email, password, role } = parsed.data
+      const result = await register({
         email,
         password,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
+        role,
       })
+      if (result.pendingApproval) {
+        navigate('/pending-approval')
+        return
+      }
       toast.success(t('auth:accountCreated'))
     } catch (error) {
       toastApiError(error, t('auth:couldNotRegister'))
@@ -66,6 +77,38 @@ export function RegisterPage() {
               </div>
 
               <FieldGroup>
+                <Field>
+                  <FieldLabel>{t('auth:role')}</FieldLabel>
+                  <div className="flex flex-wrap gap-2">
+                    {ROLES.map((role) => {
+                      const active = values.role === role
+                      return (
+                        <button
+                          key={role}
+                          type="button"
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                            active
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border bg-card text-muted-foreground hover:text-foreground',
+                          )}
+                          aria-pressed={active}
+                          onClick={() => setValues((prev) => ({ ...prev, role }))}
+                        >
+                          {t(
+                            `auth:role${role === 'CLIENT' ? 'Client' : role === 'MANAGER' ? 'Manager' : 'Worker'}`,
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {values.role === 'CLIENT'
+                      ? t('auth:roleClientHint')
+                      : t('auth:rolePendingHint')}
+                  </p>
+                </Field>
+
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel htmlFor="firstName">{t('auth:firstName')}</FieldLabel>

@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { IsometricLoader } from '@/components/feedback/IsometricLoader'
 import { Button, ButtonText } from '@/components/ui/button'
@@ -27,11 +28,12 @@ export function AsyncState({
   error,
   onRetry,
   loadingFallback,
-  loadingLabel = 'Loading…',
+  loadingLabel,
   children,
 }: AsyncStateProps) {
+  const { t } = useTranslation()
   if (isLoading) {
-    return <>{loadingFallback ?? <IsometricLoader label={loadingLabel} />}</>
+    return <>{loadingFallback ?? <IsometricLoader label={loadingLabel ?? t('common.loading')} />}</>
   }
 
   if (error) {
@@ -40,13 +42,15 @@ export function AsyncState({
         <View className="size-16 items-center justify-center rounded-full bg-destructive/10">
           <Icon as={AlertCircleIcon} className="size-7 text-destructive" />
         </View>
-        <Text className="text-center text-lg font-bold text-foreground">Could not load</Text>
+        <Text className="text-center text-lg font-bold text-foreground">
+          {t('common.couldNotLoad')}
+        </Text>
         <Text className="text-center text-sm leading-5 text-muted-foreground">
-          {errorMessage(error, 'Something went wrong. Check your connection and try again.')}
+          {errorMessage(error, t('common.errorGeneric'))}
         </Text>
         {onRetry ? (
           <Button variant="outline" size="sm" className="mt-2" onPress={onRetry}>
-            <ButtonText>Try again</ButtonText>
+            <ButtonText>{t('common.tryAgain')}</ButtonText>
           </Button>
         ) : null}
       </View>
@@ -56,11 +60,12 @@ export function AsyncState({
   return <>{children}</>
 }
 
-export function InlineSpinner({ label = 'Loading…' }: { label?: string }) {
+export function InlineSpinner({ label }: { label?: string }) {
+  const { t } = useTranslation()
   return (
-    <View className="flex-row items-center gap-2" accessibilityLabel={label}>
+    <View className="flex-row items-center gap-2" accessibilityLabel={label ?? t('common.loading')}>
       <Spinner size="small" />
-      <Text className="text-sm text-muted-foreground">{label}</Text>
+      <Text className="text-sm text-muted-foreground">{label ?? t('common.loading')}</Text>
     </View>
   )
 }

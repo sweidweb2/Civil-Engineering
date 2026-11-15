@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text } from 'react-native'
 import { KeyRound, LogOut, UserRound } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
 import { FieldRow, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
@@ -30,6 +31,7 @@ const EMPTY_PASSWORD: ProviderPasswordValues = {
 
 /** Edit the signed-in user's own name and phone. */
 export function AccountDetailsForm() {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const userId = user?.id
   const toastApiError = useToastApiError()
@@ -90,40 +92,40 @@ export function AccountDetailsForm() {
             }
           : state.user,
       }))
-      toastSuccess('Account saved')
+      toastSuccess(t('account.saved'))
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not save account')
+      else showApiAlert(err, t('account.saveFailed'))
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <Section title="Your details" description={user?.email} icon={UserRound}>
+    <Section title={t('account.details')} description={user?.email} icon={UserRound}>
       <FieldRow>
         <TextField
-          label="First name"
+          label={t('common.firstName')}
           value={form.firstName}
           onChangeText={(value) => set('firstName', value)}
           error={errors.firstName}
         />
         <TextField
-          label="Last name"
+          label={t('common.lastName')}
           value={form.lastName}
           onChangeText={(value) => set('lastName', value)}
           error={errors.lastName}
         />
       </FieldRow>
       <TextField
-        label="Display name"
+        label={t('common.displayName')}
         value={form.displayName}
         onChangeText={(value) => set('displayName', value)}
         error={errors.displayName}
-        helper="Shown to other people in the app"
+        helper={t('account.displayNameHint')}
       />
       <TextField
-        label="Phone"
+        label={t('common.phone')}
         value={form.phone}
         onChangeText={(value) => set('phone', value)}
         error={errors.phone}
@@ -135,13 +137,14 @@ export function AccountDetailsForm() {
         accessibilityState={{ busy: isSaving }}
       >
         {isSaving ? <ButtonSpinner /> : null}
-        <ButtonText>{isSaving ? 'Saving…' : 'Save details'}</ButtonText>
+        <ButtonText>{isSaving ? t('common.saving') : t('account.saveDetails')}</ButtonText>
       </Button>
     </Section>
   )
 }
 
 export function PasswordForm() {
+  const { t } = useTranslation()
   const toastApiError = useToastApiError()
   const toastSuccess = useToastSuccess()
   const [form, setForm] = useState<ProviderPasswordValues>(EMPTY_PASSWORD)
@@ -163,10 +166,10 @@ export function PasswordForm() {
     try {
       await changePassword(parsed.data)
       setForm(EMPTY_PASSWORD)
-      toastSuccess('Password updated')
+      toastSuccess(t('account.passwordUpdated'))
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not update password')
+      else showApiAlert(err, t('account.passwordFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -174,13 +177,13 @@ export function PasswordForm() {
 
   return (
     <Section
-      title="Password"
-      description="At least 8 characters, with a letter and a number"
+      title={t('account.password')}
+      description={t('account.passwordHint')}
       icon={KeyRound}
       tone="info"
     >
       <TextField
-        label="Current password"
+        label={t('account.currentPassword')}
         required
         secureTextEntry
         value={form.currentPassword}
@@ -188,7 +191,7 @@ export function PasswordForm() {
         error={errors.currentPassword}
       />
       <TextField
-        label="New password"
+        label={t('account.newPassword')}
         required
         secureTextEntry
         value={form.newPassword}
@@ -196,7 +199,7 @@ export function PasswordForm() {
         error={errors.newPassword}
       />
       <TextField
-        label="Confirm new password"
+        label={t('account.confirmPassword')}
         required
         secureTextEntry
         value={form.confirmPassword}
@@ -210,7 +213,7 @@ export function PasswordForm() {
         accessibilityState={{ busy: isSaving }}
       >
         {isSaving ? <ButtonSpinner /> : null}
-        <ButtonText>{isSaving ? 'Updating…' : 'Update password'}</ButtonText>
+        <ButtonText>{isSaving ? t('account.updating') : t('account.updatePassword')}</ButtonText>
       </Button>
     </Section>
   )
@@ -218,6 +221,7 @@ export function PasswordForm() {
 
 /** Full-width red "Log out" row. */
 export function LogoutRow() {
+  const { t } = useTranslation()
   const colors = useThemeColors()
   const { isLoggingOut, requestLogout } = useLogout()
   return (
@@ -230,7 +234,7 @@ export function LogoutRow() {
     >
       <LogOut size={18} color={colors.error} />
       <Text className="text-base font-bold text-destructive">
-        {isLoggingOut ? 'Logging out…' : 'Log out'}
+        {isLoggingOut ? t('account.loggingOut') : t('account.logout')}
       </Text>
     </Pressable>
   )

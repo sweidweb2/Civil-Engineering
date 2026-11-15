@@ -35,6 +35,8 @@ function makeUser(overrides: Partial<AuthUserRecord> = {}): AuthUserRecord {
   }
 }
 
+const registerContext = { ipAddress: '127.0.0.1', userAgent: 'vitest' }
+
 describe('auth.service', () => {
   const config = loadTestConfig()
   let repository: AuthRepository
@@ -45,6 +47,8 @@ describe('auth.service', () => {
       findById: vi.fn(),
       findPrincipalById: vi.fn(),
       createUserWithProfile: vi.fn(),
+      countRegistrationsByDevice: vi.fn(async () => 0),
+      recordRegistrationAttempt: vi.fn(async () => undefined),
       updatePasswordHash: vi.fn(),
       denyRefreshJti: vi.fn(async () => undefined),
       claimRefreshJti: vi.fn(async () => 'claimed' as const),
@@ -53,21 +57,27 @@ describe('auth.service', () => {
     }
   })
 
-  it('registers a new user and returns tokens', async () => {
+  it('registers a client as active and returns tokens', async () => {
     vi.mocked(repository.findByEmail).mockResolvedValue(null)
     vi.mocked(repository.createUserWithProfile).mockResolvedValue(makeUser())
 
     const service = createAuthService(repository, config)
-    const result = await service.register({
-      email: 'user@example.com',
-      password: 'secret123',
-      firstName: 'Ada',
-      lastName: 'Lovelace',
-    })
+    const result = await service.register(
+      {
+        email: 'user@example.com',
+        password: 'secret123',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        role: 'CLIENT',
+        deviceId: 'device-test-1',
+      },
+      registerContext,
+    )
 
     expect(result.user.email).toBe('user@example.com')
     expect(result.user.role).toBe('CLIENT')
-    expect(result.user.isVerified).toBe(false)
+    expect(result.user.status).toBe('ACTIVE')
+    expect(result.pendingApproval).toBe(false)
     expect(result.tokens).toEqual({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -76,8 +86,83 @@ describe('auth.service', () => {
       expect.objectContaining({
         email: 'user@example.com',
         role: 'CLIENT',
+        status: 'ACTIVE',
       }),
     )
+    expect(repository.recordRegistrationAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deviceId: 'device-test-1',
+        ipAddress: '127.0.0.1',
+        role: 'CLIENT',
+      }),
+    )
+  })
+
+  it('registers a worker as pending without tokens', async () => {
+    vi.mocked(repository.findByEmail).mockResolvedValue(null)
+    vi.mocked(repository.createUserWithProfile).mockResolvedValue(
+      makeUser({ role: 'WORKER', status: 'PENDING' }),
+    )
+
+    const service = createAuthService(repository, config)
+    const result = await service.register(
+      {
+        email: 'worker@example.com',
+        password: 'secret123',
+        role: 'WORKER',
+        deviceId: 'device-test-1',
+      },
+      registerContext,
+    )
+
+    expect(result.pendingApproval).toBe(true)
+    expect(result.tokens).toBeNull()
+    expect(result.user.status).toBe('PENDING')
+    expect(repository.createUserWithProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'WORKER', status: 'PENDING' }),
+    )
+  })
+
+  it('registers a manager as pending without tokens', async () => {
+    vi.mocked(repository.findByEmail).mockResolvedValue(null)
+    vi.mocked(repository.createUserWithProfile).mockResolvedValue(
+      makeUser({ role: 'MANAGER', status: 'PENDING' }),
+    )
+
+    const service = createAuthService(repository, config)
+    const result = await service.register(
+      {
+        email: 'pm@example.com',
+        password: 'secret123',
+        role: 'MANAGER',
+        deviceId: 'device-test-1',
+      },
+      registerContext,
+    )
+
+    expect(result.pendingApproval).toBe(true)
+    expect(result.tokens).toBeNull()
+    expect(repository.createUserWithProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'MANAGER', status: 'PENDING' }),
+    )
+  })
+
+  it('rejects register when device already has 5 registrations', async () => {
+    vi.mocked(repository.countRegistrationsByDevice).mockResolvedValue(5)
+    const service = createAuthService(repository, config)
+
+    await expect(
+      service.register(
+        {
+          email: 'user@example.com',
+          password: 'secret123',
+          role: 'CLIENT',
+          deviceId: 'device-test-1',
+        },
+        registerContext,
+      ),
+    ).rejects.toMatchObject({ status: 409, code: 'REGISTRATION_DEVICE_LIMIT' })
+    expect(repository.createUserWithProfile).not.toHaveBeenCalled()
   })
 
   it('rejects duplicate email on register', async () => {
@@ -85,10 +170,15 @@ describe('auth.service', () => {
     const service = createAuthService(repository, config)
 
     await expect(
-      service.register({
-        email: 'user@example.com',
-        password: 'secret123',
-      }),
+      service.register(
+        {
+          email: 'user@example.com',
+          password: 'secret123',
+          role: 'CLIENT',
+          deviceId: 'device-test-1',
+        },
+        registerContext,
+      ),
     ).rejects.toMatchObject({ status: 409, code: 'CONFLICT' })
   })
 
@@ -102,6 +192,7 @@ describe('auth.service', () => {
     })
 
     expect(result.user.id).toBe('user-1')
+    expect(result.user.status).toBe('ACTIVE')
     expect(result.tokens.accessToken).toBe('access-token')
   })
 

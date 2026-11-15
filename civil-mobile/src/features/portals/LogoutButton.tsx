@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
@@ -7,15 +8,16 @@ import { useAuthStore } from '@/stores/authStore'
 
 /** Confirm-then-logout flow shared by every "Log out" control. */
 export function useLogout() {
+  const { t } = useTranslation()
   const logout = useAuthStore((s) => s.logout)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   function requestLogout() {
     if (isLoggingOut) return
 
-    showBlockingAlert('Log out?', 'You will need to sign in again.', {
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Log out',
+    showBlockingAlert(t('account.logoutTitle'), t('account.logoutBody'), {
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('account.logout'),
       onConfirm: () => {
         void (async () => {
           setIsLoggingOut(true)
@@ -23,7 +25,7 @@ export function useLogout() {
             await logout()
             router.replace('/login')
           } catch (error) {
-            showApiAlert(error, 'Log out failed', 'Could not log out')
+            showApiAlert(error, t('account.logoutFailed'))
           } finally {
             setIsLoggingOut(false)
           }
@@ -36,6 +38,7 @@ export function useLogout() {
 }
 
 export function LogoutButton() {
+  const { t } = useTranslation()
   const { isLoggingOut, requestLogout } = useLogout()
 
   return (
@@ -47,7 +50,7 @@ export function LogoutButton() {
       accessibilityState={{ busy: isLoggingOut }}
     >
       {isLoggingOut ? <ButtonSpinner /> : null}
-      <ButtonText>{isLoggingOut ? 'Logging out…' : 'Log out'}</ButtonText>
+      <ButtonText>{isLoggingOut ? t('account.loggingOut') : t('account.logout')}</ButtonText>
     </Button>
   )
 }

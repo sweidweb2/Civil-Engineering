@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native'
 import { AlertCircle, Check, ChevronDown, type LucideIcon, Search, X } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
@@ -21,15 +22,24 @@ import { IconTile } from './primitives'
 import type { Tone } from './tones'
 
 /** Scrollable form body that stays clear of the keyboard. */
-export function FormScroll({ children }: { children: ReactNode }) {
+export function FormScroll({
+  children,
+  insetBottom = false,
+}: {
+  children: ReactNode
+  /** Adds the home-indicator inset when nothing else sits under the form. */
+  insetBottom?: boolean
+}) {
+  const insets = useSafeAreaInsets()
   return (
     <KeyboardAvoidingView
       className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
+        contentContainerStyle={insetBottom ? { paddingBottom: 32 + insets.bottom } : undefined}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -110,14 +120,14 @@ export function TextField({
     <View className="gap-1.5">
       <FieldLabel label={label} required={required} />
       <View
-        className={`flex-row gap-2 rounded-2xl border bg-background px-3.5 ${borderClass} ${
+        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-2xl border bg-background px-3.5 ${borderClass} ${
           multiline ? 'min-h-[104px] items-start py-3' : 'h-12 items-center'
         }`}
       >
         {Icon ? <Icon size={18} color={focused ? colors.primary : colors.textMuted} /> : null}
         <TextInput
           {...input}
-          className={`flex-1 text-base text-foreground ${multiline ? '' : 'h-full'}`}
+          className={`min-w-0 flex-1 text-base text-foreground ${multiline ? '' : 'h-full'}`}
           placeholderTextColor={colors.disabled}
           textAlignVertical={multiline ? 'top' : 'center'}
           accessibilityLabel={label}
@@ -305,7 +315,7 @@ type SelectFieldProps = {
 /** Picker for long option lists: opens a searchable bottom sheet. */
 export function SelectField({
   label,
-  placeholder = 'Select',
+  placeholder,
   options,
   value,
   onChange,
@@ -313,6 +323,7 @@ export function SelectField({
   helper,
   allowClear = false,
 }: SelectFieldProps) {
+  const { t } = useTranslation()
   const colors = useThemeColors()
   const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
@@ -335,7 +346,7 @@ export function SelectField({
       <FieldLabel label={label} required={required} />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${selected?.label ?? placeholder}`}
+        accessibilityLabel={`${label}: ${selected?.label ?? placeholder ?? t('common.select')}`}
         className="h-12 flex-row items-center gap-2 rounded-2xl border border-border bg-background px-3.5"
         onPress={() => setOpen(true)}
       >
@@ -343,7 +354,7 @@ export function SelectField({
           className={`flex-1 text-base ${selected ? 'text-foreground' : 'text-muted-foreground'}`}
           numberOfLines={1}
         >
-          {selected?.label ?? placeholder}
+          {selected?.label ?? placeholder ?? t('common.select')}
         </Text>
         <ChevronDown size={18} color={colors.textMuted} />
       </Pressable>
@@ -357,7 +368,11 @@ export function SelectField({
         statusBarTranslucent
       >
         <View className="flex-1 justify-end bg-black/50">
-          <Pressable accessibilityLabel="Close" className="flex-1" onPress={() => setOpen(false)} />
+          <Pressable
+            accessibilityLabel={t('common.close')}
+            className="flex-1"
+            onPress={() => setOpen(false)}
+          />
           <View
             className="max-h-[75%] rounded-t-[32px] bg-card px-5 pt-3"
             style={{ paddingBottom: Math.max(insets.bottom, 16) }}
@@ -367,7 +382,7 @@ export function SelectField({
               <Text className="text-lg font-bold text-foreground">{label}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Close"
+                accessibilityLabel={t('common.close')}
                 hitSlop={8}
                 className="size-9 items-center justify-center rounded-full bg-muted"
                 onPress={() => setOpen(false)}
@@ -383,7 +398,7 @@ export function SelectField({
                   className="h-full flex-1 text-base text-foreground"
                   value={query}
                   onChangeText={setQuery}
-                  placeholder="Search"
+                  placeholder={t('common.search')}
                   placeholderTextColor={colors.textMuted}
                   autoCorrect={false}
                 />
@@ -396,12 +411,16 @@ export function SelectField({
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
                 allowClear && !query ? (
-                  <SheetOption label="None" active={value === ''} onPress={() => choose('')} />
+                  <SheetOption
+                    label={t('common.none')}
+                    active={value === ''}
+                    onPress={() => choose('')}
+                  />
                 ) : null
               }
               ListEmptyComponent={
                 <Text className="py-8 text-center text-sm text-muted-foreground">
-                  Nothing matches.
+                  {t('common.nothingMatches')}
                 </Text>
               }
               renderItem={({ item }) => (

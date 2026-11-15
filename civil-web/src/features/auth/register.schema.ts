@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 import i18n from '@/i18n'
 
+export const registerRoleSchema = z.enum(['CLIENT', 'WORKER', 'MANAGER'])
+
 // Messages are resolved lazily (at parse time) so they follow the active locale.
 export const registerSchema = z.object({
   firstName: z
@@ -23,6 +25,7 @@ export const registerSchema = z.object({
     .max(128, { error: () => i18n.t('validation:maxLength', { max: 128 }) })
     .regex(/[A-Za-z]/, { error: () => i18n.t('validation:passwordLetter') })
     .regex(/[0-9]/, { error: () => i18n.t('validation:passwordNumber') }),
+  role: registerRoleSchema,
 })
 
 export type RegisterValues = z.infer<typeof registerSchema>

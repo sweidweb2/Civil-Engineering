@@ -1,11 +1,17 @@
 import { apiRequest, type AuthTokens, refreshTokens } from './api'
+import { getDeviceId } from './deviceId'
 
 export type AuthRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
+
+export type RegisterRole = 'CLIENT' | 'WORKER' | 'MANAGER'
+
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING'
 
 export type AuthUser = {
   id: string
   email: string
   role: AuthRole
+  status?: UserStatus
   isVerified: boolean
   profile: {
     firstName: string | null
@@ -21,6 +27,12 @@ export type AuthResponse = {
   tokens: AuthTokens
 }
 
+export type RegisterResponse = {
+  user: AuthUser
+  tokens: AuthTokens | null
+  pendingApproval: boolean
+}
+
 export function login(email: string, password: string) {
   return apiRequest<AuthResponse>('/auth/login', {
     method: 'POST',
@@ -29,15 +41,17 @@ export function login(email: string, password: string) {
   })
 }
 
-export function register(input: {
+export async function register(input: {
   email: string
   password: string
   firstName?: string
   lastName?: string
+  role: RegisterRole
 }) {
-  return apiRequest<AuthResponse>('/auth/register', {
+  const deviceId = await getDeviceId()
+  return apiRequest<RegisterResponse>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, deviceId }),
     skipAuthRefresh: true,
   })
 }

@@ -1,17 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { ChevronRight, FolderKanban, ListChecks, MapPin, StickyNote } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
-import { Badge, BadgeText } from '@/components/ui/badge'
+import {
+  Card,
+  ChoiceField,
+  FieldRow,
+  FormScreen,
+  IconTile,
+  ProgressBar,
+  Section,
+  StatusPill,
+  TextField,
+  Thumbnail,
+  toneForStatus,
+} from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Textarea, TextareaInput } from '@/components/ui/textarea'
-import { BackButton } from '@/features/pm/components/BackButton'
+import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useThemeColors } from '@/hooks/useThemeColors'
+import { enumLabel, enumOptions } from '@/i18n/labels'
 import { ApiError } from '@/services/api'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import {
@@ -20,20 +30,22 @@ import {
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   type ProjectStatus,
-  projectStatusLabel,
   type ProjectType,
   updateProject,
 } from '@/services/projects'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 type PmProjectDetailScreenProps = {
   basePath?: string
 }
 
 export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDetailScreenProps) {
+  const { t } = useTranslation()
+  const colors = useThemeColors()
   const { id } = useLocalSearchParams<{ id: string }>()
   const projectId = typeof id === 'string' ? id : id?.[0]
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
 
   const load = useCallback(() => {
     if (!projectId) return Promise.reject(new Error('Project id required'))
@@ -73,7 +85,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
 
   async function onSave() {
     if (!projectId || !name.trim()) {
-      showApiAlert(new Error('Name is required'), 'Could not save')
+      showApiAlert(new Error(t('projects.nameRequired')), t('projects.saveFailed'))
       return
     }
     setIsSaving(true)
@@ -91,11 +103,11 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
         endDate: endDate.trim() || null,
         notes: notes.trim() || undefined,
       })
-      showBlockingAlert('Saved', 'Project was updated.')
+      toastSuccess(t('projects.saved'))
       await remote.refetch()
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not save project')
+      else showApiAlert(err, t('projects.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -103,172 +115,153 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
 
   function onArchive() {
     if (!projectId || isArchiving) return
-    showBlockingAlert(
-      'Archive project?',
-      'The project will be archived and leave the active list.',
-      {
-        cancelLabel: 'Cancel',
-        confirmLabel: 'Archive',
-        onConfirm: () => {
-          void (async () => {
-            setIsArchiving(true)
-            try {
-              await archiveProject(projectId)
-              showBlockingAlert('Archived', 'Project was archived.')
-              router.replace(basePath as never)
-            } catch (err) {
-              if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-              else showApiAlert(err, 'Could not archive project')
-            } finally {
-              setIsArchiving(false)
-            }
-          })()
-        },
+    showBlockingAlert(t('projects.archiveTitle'), t('projects.archiveBody'), {
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('projects.archive'),
+      onConfirm: () => {
+        void (async () => {
+          setIsArchiving(true)
+          try {
+            await archiveProject(projectId)
+            toastSuccess(t('projects.archived'))
+            router.replace(basePath as never)
+          } catch (err) {
+            if (err instanceof ApiError && err.status >= 500) toastApiError(err)
+            else showApiAlert(err, t('projects.archiveFailed'))
+          } finally {
+            setIsArchiving(false)
+          }
+        })()
       },
-    )
+    })
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header
-        title={project?.name ?? 'Project'}
-        leftSlot={<BackButton fallbackHref={basePath} />}
-        rightSlot={
-          project ? (
-            <Badge variant={project.status === 'IN_PROGRESS' ? 'default' : 'secondary'}>
-              <BadgeText>{projectStatusLabel(project.status)}</BadgeText>
-            </Badge>
-          ) : undefined
-        }
-      />
-
-      <AsyncState
-        isLoading={remote.isLoading}
-        error={remote.status === 'error' ? remote.error : undefined}
-        onRetry={() => void remote.refetch()}
-        loadingLabel="Loading project…"
-      >
-        {project ? (
-          <ScrollView
+    <FormScreen
+      title={project?.name ?? t('projects.project')}
+      subtitle={project?.code ?? undefined}
+      backHref={basePath}
+      isLoading={remote.isLoading}
+      error={remote.status === 'error' ? remote.error : undefined}
+      onRetry={() => void remote.refetch()}
+      loadingLabel={t('projects.loadingOne')}
+      footer={
+        <>
+          <Button
             className="flex-1"
-            contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-            keyboardShouldPersistTaps="handled"
+            variant="destructive"
+            onPress={onArchive}
+            disabled={isArchiving}
+            accessibilityState={{ busy: isArchiving }}
           >
-            <Button
-              variant="outline"
-              onPress={() => router.push(`${basePath}/${project.id}/stages` as never)}
-            >
-              <ButtonText>Open stages stepper</ButtonText>
-            </Button>
-
-            <FormField label="Name" isRequired>
-              <Input>
-                <InputField value={name} onChangeText={setName} />
-              </Input>
-            </FormField>
-
-            <FormField label="Code">
-              <Input>
-                <InputField value={code} onChangeText={setCode} />
-              </Input>
-            </FormField>
-
-            <FormField label="Status">
-              <OptionChips
-                options={PROJECT_STATUS_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                }))}
-                value={status}
-                onChange={(value) => setStatus(value as ProjectStatus)}
-              />
-            </FormField>
-
-            <FormField label="Type">
-              <OptionChips
-                options={PROJECT_TYPE_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                }))}
-                value={type}
-                allowClear
-                onChange={(value) => setType(value as ProjectType | '')}
-              />
-            </FormField>
-
-            <FormField label="Description">
-              <Textarea>
-                <TextareaInput value={description} onChangeText={setDescription} />
-              </Textarea>
-            </FormField>
-
-            <FormField label="Address">
-              <Input>
-                <InputField value={address} onChangeText={setAddress} />
-              </Input>
-            </FormField>
-
-            <View className="flex-row gap-3">
-              <View className="min-w-0 flex-1">
-                <FormField label="City">
-                  <Input>
-                    <InputField value={city} onChangeText={setCity} />
-                  </Input>
-                </FormField>
-              </View>
-              <View className="min-w-0 flex-1">
-                <FormField label="Country">
-                  <Input>
-                    <InputField value={country} onChangeText={setCountry} />
-                  </Input>
-                </FormField>
+            {isArchiving ? <ButtonSpinner /> : null}
+            <ButtonText>{t('projects.archive')}</ButtonText>
+          </Button>
+          <Button
+            className="flex-[2]"
+            onPress={() => void onSave()}
+            disabled={isSaving}
+            accessibilityState={{ busy: isSaving }}
+          >
+            {isSaving ? <ButtonSpinner /> : null}
+            <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
+          </Button>
+        </>
+      }
+    >
+      {project ? (
+        <>
+          <Card className="gap-3">
+            <View className="flex-row items-center gap-3">
+              <Thumbnail imageUrl={project.mainImageUrl} icon={FolderKanban} size={72} />
+              <View className="min-w-0 flex-1 gap-2">
+                <StatusPill
+                  label={enumLabel(t, 'projectStatus', project.status)}
+                  tone={toneForStatus(project.status)}
+                />
+                <View className="flex-row items-center gap-3">
+                  <View className="flex-1">
+                    <ProgressBar value={project.progress} />
+                  </View>
+                  <Text className="text-sm font-bold text-foreground">
+                    {Math.round(project.progress)}%
+                  </Text>
+                </View>
               </View>
             </View>
+          </Card>
 
-            <View className="flex-row gap-3">
-              <View className="min-w-0 flex-1">
-                <FormField label="Start" helperText="YYYY-MM-DD">
-                  <Input>
-                    <InputField value={startDate} onChangeText={setStartDate} />
-                  </Input>
-                </FormField>
-              </View>
-              <View className="min-w-0 flex-1">
-                <FormField label="End" helperText="YYYY-MM-DD">
-                  <Input>
-                    <InputField value={endDate} onChangeText={setEndDate} />
-                  </Input>
-                </FormField>
-              </View>
+          <Pressable
+            accessibilityRole="button"
+            className="flex-row items-center gap-3 rounded-3xl border border-primary/30 bg-primary/10 p-4 active:opacity-80"
+            onPress={() => router.push(`${basePath}/${project.id}/stages` as never)}
+          >
+            <IconTile icon={ListChecks} />
+            <View className="min-w-0 flex-1">
+              <Text className="text-base font-bold text-foreground">{t('projects.stages')}</Text>
+              <Text className="text-sm text-muted-foreground">{t('projects.stagesHint')}</Text>
             </View>
+            <ChevronRight size={18} color={colors.primary} />
+          </Pressable>
 
-            <FormField label="Notes">
-              <Textarea>
-                <TextareaInput value={notes} onChangeText={setNotes} />
-              </Textarea>
-            </FormField>
+          <Section title={t('projects.basics')} icon={FolderKanban}>
+            <TextField label={t('projects.name')} required value={name} onChangeText={setName} />
+            <TextField label={t('projects.code')} value={code} onChangeText={setCode} />
+            <ChoiceField
+              label={t('projects.status')}
+              options={enumOptions(t, 'projectStatus', PROJECT_STATUS_OPTIONS)}
+              value={status}
+              onChange={(value) => setStatus(value as ProjectStatus)}
+            />
+            <ChoiceField
+              label={t('projects.type')}
+              options={enumOptions(t, 'projectType', PROJECT_TYPE_OPTIONS)}
+              value={type}
+              allowClear
+              onChange={(value) => setType(value as ProjectType | '')}
+            />
+            <TextField
+              label={t('common.description')}
+              multiline
+              value={description}
+              onChangeText={setDescription}
+            />
+          </Section>
 
-            <Button
-              onPress={() => void onSave()}
-              disabled={isSaving}
-              accessibilityState={{ busy: isSaving }}
-            >
-              {isSaving ? <ButtonSpinner /> : null}
-              <ButtonText>{isSaving ? 'Saving…' : 'Save project'}</ButtonText>
-            </Button>
+          <Section title={t('projects.location')} icon={MapPin} tone="info">
+            <TextField label={t('common.address')} value={address} onChangeText={setAddress} />
+            <FieldRow>
+              <TextField label={t('common.city')} value={city} onChangeText={setCity} />
+              <TextField label={t('common.country')} value={country} onChangeText={setCountry} />
+            </FieldRow>
+            <FieldRow>
+              <TextField
+                label={t('projects.start')}
+                value={startDate}
+                onChangeText={setStartDate}
+                helper={t('common.dateFormat')}
+                autoCapitalize="none"
+              />
+              <TextField
+                label={t('projects.end')}
+                value={endDate}
+                onChangeText={setEndDate}
+                helper={t('common.dateFormat')}
+                autoCapitalize="none"
+              />
+            </FieldRow>
+          </Section>
 
-            <Button
-              variant="destructive"
-              onPress={onArchive}
-              disabled={isArchiving}
-              accessibilityState={{ busy: isArchiving }}
-            >
-              {isArchiving ? <ButtonSpinner /> : null}
-              <ButtonText>{isArchiving ? 'Archiving…' : 'Archive project'}</ButtonText>
-            </Button>
-          </ScrollView>
-        ) : null}
-      </AsyncState>
-    </View>
+          <Section title={t('projects.notes')} icon={StickyNote} tone="warning">
+            <TextField
+              label={t('projects.notes')}
+              multiline
+              value={notes}
+              onChangeText={setNotes}
+            />
+          </Section>
+        </>
+      ) : null}
+    </FormScreen>
   )
 }

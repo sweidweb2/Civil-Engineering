@@ -115,6 +115,21 @@ model ManagerProfile {
   @@map("manager_profiles")
 }
 
+/// Self-serve registration fingerprint (device id + IP). Caps abuse per device.
+model RegistrationAttempt {
+  id        String   @id @default(cuid())
+  deviceId  String
+  ipAddress String?
+  userAgent String?
+  userId    String?
+  role      Role
+  createdAt DateTime @default(now())
+
+  @@index([deviceId, createdAt])
+  @@index([ipAddress])
+  @@map("registration_attempts")
+}
+
 // =============================================================================
 // auth — JWT refresh denylist (rotation + logout); no full session table yet
 // =============================================================================

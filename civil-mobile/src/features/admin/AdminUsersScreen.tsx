@@ -1,149 +1,73 @@
-import { useCallback, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { useCallback } from 'react'
+import { Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { Header } from '@/components/layout/Header'
-import { Badge, BadgeText } from '@/components/ui/badge'
-import { Button, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Pressable } from '@/components/ui/pressable'
+import { Avatar, ListCard, ListScreen, StatusPill, toneForStatus } from '@/components/kit'
+import { listView, useListState } from '@/hooks/useListState'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { listUsers, type User } from '@/services/users'
+import { enumLabel } from '@/i18n/labels'
+import { userDisplayName } from '@/lib/user'
+import { listUsers } from '@/services/users'
 
 const PAGE_SIZE = 20
 const BASE = '/admin/users'
 
-function displayName(user: User): string {
-  return (
-    user.profile?.displayName ||
-    [user.profile?.firstName, user.profile?.lastName].filter(Boolean).join(' ') ||
-    user.email
-  )
-}
-
-function UserRow({ item }: { item: User }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${displayName(item)}`}
-      className="mx-5 mb-3 gap-1 rounded-3xl border border-border/60 bg-card p-4 active:opacity-80"
-      onPress={() => router.push(`${BASE}/${item.id}` as never)}
-    >
-      <View className="flex-row items-start justify-between gap-2">
-        <Text className="min-w-0 flex-1 text-base font-medium text-foreground" numberOfLines={1}>
-          {displayName(item)}
-        </Text>
-        <Badge variant={item.status === 'ACTIVE' ? 'default' : 'secondary'}>
-          <BadgeText>{item.status}</BadgeText>
-        </Badge>
-      </View>
-      <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-        {[item.email, item.role].join(' · ')}
-      </Text>
-    </Pressable>
-  )
-}
-
 export function AdminUsersScreen() {
-  const [query, setQuery] = useState('')
-  const [appliedQuery, setAppliedQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const { t } = useTranslation()
+  const list = useListState()
 
   const load = useCallback(
-    () => listUsers(page, PAGE_SIZE, appliedQuery || undefined),
-    [appliedQuery, page],
+    () => listUsers(list.page, PAGE_SIZE, list.appliedQuery || undefined),
+    [list.appliedQuery, list.page],
   )
   const remote = useRemoteData(load)
-
-  const hasData = remote.status === 'success'
-  const rows = hasData ? remote.data.data : []
-  const total = hasData ? remote.data.meta.total : 0
-  const totalPages = Math.max(1, hasData ? remote.data.meta.totalPages : 1)
-  const isInitialLoading = remote.isLoading && !hasData
-  const isRefreshing = hasData && remote.isLoading
-
-  const statusSubtitle = useMemo(() => (total ? `${total} total` : undefined), [total])
-
-  function onSearch() {
-    setPage(1)
-    setAppliedQuery(query.trim())
-  }
+  const view = listView(remote, PAGE_SIZE)
 
   return (
-    <View className="flex-1 bg-background">
-      <Header
-        title="Users"
-        subtitle={statusSubtitle}
-        rightSlot={
-          <Button size="sm" onPress={() => router.push(`${BASE}/new` as never)}>
-            <ButtonText>Add</ButtonText>
-          </Button>
-        }
-      />
-
-      <View className="flex-row gap-2 px-5 pb-4">
-        <View className="min-w-0 flex-1">
-          <Input>
-            <InputField
-              placeholder="Search users"
-              value={query}
-              onChangeText={setQuery}
-              onSubmitEditing={onSearch}
-              returnKeyType="search"
+    <ListScreen
+      title={t('users.title')}
+      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
+      searchPlaceholder={t('users.search')}
+      query={list.query}
+      onQueryChange={list.setQuery}
+      onSearch={list.onSearch}
+      addLabel={t('users.add')}
+      onAdd={() => router.push(`${BASE}/new` as never)}
+      data={view.rows}
+      keyExtractor={(item) => item.id}
+      renderItem={(item) => (
+        <ListCard
+          accessibilityLabel={userDisplayName(item)}
+          leading={<Avatar name={userDisplayName(item)} imageUrl={item.profile?.avatarUrl} />}
+          onPress={() => router.push(`${BASE}/${item.id}` as never)}
+        >
+          <View className="flex-row items-start justify-between gap-2">
+            <Text className="min-w-0 flex-1 text-base font-bold text-foreground" numberOfLines={1}>
+              {userDisplayName(item)}
+            </Text>
+            <StatusPill
+              label={enumLabel(t, 'userStatus', item.status)}
+              tone={toneForStatus(item.status)}
             />
-          </Input>
-        </View>
-        <Button size="sm" variant="outline" onPress={onSearch}>
-          <ButtonText>Search</ButtonText>
-        </Button>
-      </View>
-
-      <AsyncState
-        isLoading={isInitialLoading}
-        error={remote.status === 'error' ? remote.error : undefined}
-        onRetry={() => void remote.refetch()}
-        loadingLabel="Loading users…"
-      >
-        <FlatList
-          data={rows}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <UserRow item={item} />}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={() => void remote.refetch()} />
-          }
-          ListEmptyComponent={
-            <View className="items-center px-6 py-16">
-              <Text className="text-center text-base text-muted-foreground">No users found.</Text>
-            </View>
-          }
-          ListFooterComponent={
-            totalPages > 1 ? (
-              <View className="flex-row items-center justify-between gap-3 px-4 py-4">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={page <= 1}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ButtonText>Previous</ButtonText>
-                </Button>
-                <Text className="text-sm text-muted-foreground">
-                  Page {page} / {totalPages}
-                </Text>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={page >= totalPages}
-                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  <ButtonText>Next</ButtonText>
-                </Button>
-              </View>
-            ) : null
-          }
-        />
-      </AsyncState>
-    </View>
+          </View>
+          <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+            {item.email}
+          </Text>
+          <Text className="text-xs font-semibold text-primary">
+            {enumLabel(t, 'role', item.role)}
+          </Text>
+        </ListCard>
+      )}
+      isInitialLoading={view.isInitialLoading}
+      isRefreshing={view.isRefreshing}
+      error={view.error}
+      onRefresh={() => void remote.refetch()}
+      loadingLabel={t('users.loading')}
+      page={list.page}
+      totalPages={view.totalPages}
+      onPageChange={list.setPage}
+      emptyTitle={t('users.empty')}
+    />
   )
 }

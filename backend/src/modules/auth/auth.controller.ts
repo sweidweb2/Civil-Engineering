@@ -8,6 +8,7 @@ import {
   REFRESH_COOKIE,
   setAuthCookies,
 } from './auth.cookies.js'
+import { clientIp, clientUserAgent } from './client-meta.js'
 import type { AuthService } from './auth.service.js'
 
 export type AuthController = {
@@ -43,8 +44,15 @@ export function createAuthController(service: AuthService, config: AppConfig): A
   return {
     async register(req, res, next) {
       try {
-        const result = await service.register(req.body)
-        setAuthCookies(res, result.tokens, config)
+        const result = await service.register(req.body, {
+          ipAddress: clientIp(req),
+          userAgent: clientUserAgent(req),
+        })
+        if (result.tokens) {
+          setAuthCookies(res, result.tokens, config)
+        } else {
+          clearAuthCookies(res, config)
+        }
         res.status(201).json(result)
       } catch (error) {
         next(error)

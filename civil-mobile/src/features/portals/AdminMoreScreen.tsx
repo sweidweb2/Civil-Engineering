@@ -1,31 +1,34 @@
 import { ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { ChevronRight } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
 import { Avatar, Card, HeroHeader, IconTile, SectionLabel, type Tone } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { LogoutRow } from '@/features/account/AccountForms'
 import { useThemeColors } from '@/hooks/useThemeColors'
-import { roleLabel, userDisplayName } from '@/lib/user'
+import { enumLabel } from '@/i18n/labels'
+import { userDisplayName } from '@/lib/user'
 import { ADMIN_MORE_LINKS } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
 
-const LINK_META: Record<string, { tone: Tone; description: string }> = {
-  queue: { tone: 'warning', description: 'Approve or remove worker sign-ups' },
-  directory: { tone: 'info', description: 'Browse the active marketplace' },
-  listings: { tone: 'primary', description: 'Manage every provider listing' },
-  reviews: { tone: 'success', description: 'Moderate ratings and comments' },
-  categories: { tone: 'neutral', description: 'Organise materials, equipment and services' },
+const LINK_TONES: Record<string, Tone> = {
+  queue: 'warning',
+  directory: 'info',
+  listings: 'primary',
+  reviews: 'success',
+  categories: 'neutral',
 }
 
 export function AdminMoreScreen() {
+  const { t } = useTranslation()
   const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
-  const name = user ? userDisplayName(user) : 'Account'
+  const name = user ? userDisplayName(user) : t('account.title')
 
   return (
     <View className="flex-1 bg-background">
-      <HeroHeader title="More" subtitle="Everything else in the admin panel" />
+      <HeroHeader title={t('nav.more')} subtitle={t('more.subtitle')} />
 
       <ScrollView
         className="flex-1"
@@ -44,35 +47,34 @@ export function AdminMoreScreen() {
               {name}
             </Text>
             <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-              {user ? `${roleLabel(user.role)} · ${user.email}` : ''}
+              {user ? `${enumLabel(t, 'role', user.role)} · ${user.email}` : ''}
             </Text>
           </View>
           <ChevronRight size={18} color={colors.disabled} />
         </Pressable>
 
         <View className="gap-2">
-          <SectionLabel>Manage</SectionLabel>
+          <SectionLabel>{t('more.manage')}</SectionLabel>
           <Card className="py-1">
             {ADMIN_MORE_LINKS.map((item, index) => {
-              const meta = LINK_META[item.key]
               return (
                 <Pressable
                   key={item.key}
                   accessibilityRole="button"
-                  accessibilityLabel={item.label}
+                  accessibilityLabel={t(`more.links.${item.key}.title`)}
                   className={`flex-row items-center gap-3 py-3 active:opacity-70 ${
                     index === ADMIN_MORE_LINKS.length - 1 ? '' : 'border-b border-border/60'
                   }`}
                   onPress={() => router.push(item.href as never)}
                 >
-                  <IconTile icon={item.icon} tone={meta?.tone ?? 'primary'} />
+                  <IconTile icon={item.icon} tone={LINK_TONES[item.key] ?? 'primary'} />
                   <View className="min-w-0 flex-1">
-                    <Text className="text-base font-semibold text-foreground">{item.label}</Text>
-                    {meta ? (
-                      <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-                        {meta.description}
-                      </Text>
-                    ) : null}
+                    <Text className="text-base font-semibold text-foreground">
+                      {t(`more.links.${item.key}.title`)}
+                    </Text>
+                    <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+                      {t(`more.links.${item.key}.description`)}
+                    </Text>
                   </View>
                   <ChevronRight size={18} color={colors.disabled} />
                 </Pressable>

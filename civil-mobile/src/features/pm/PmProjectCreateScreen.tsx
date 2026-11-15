@@ -1,25 +1,24 @@
 import { useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import { FolderKanban } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { FormField } from '@/components/forms/FormField'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
+import { ChoiceField, FieldRow, FormError, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
-import { Textarea, TextareaInput } from '@/components/ui/textarea'
-import { BackButton } from '@/features/pm/components/BackButton'
+import { enumOptions } from '@/i18n/labels'
 import { ApiError } from '@/services/api'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
+import { showApiAlert } from '@/services/feedback'
 import { createProject, PROJECT_TYPE_OPTIONS, type ProjectType } from '@/services/projects'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 type PmProjectCreateScreenProps = {
   basePath?: string
 }
 
 export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCreateScreenProps) {
+  const { t } = useTranslation()
   const toastApiError = useToastApiError()
+  const toastSuccess = useToastSuccess()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
@@ -31,7 +30,7 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
 
   async function onCreate() {
     if (!name.trim()) {
-      setError('Name is required')
+      setError(t('projects.nameRequired'))
       return
     }
     setError(undefined)
@@ -45,86 +44,81 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
         startDate: startDate.trim() || null,
         endDate: endDate.trim() || null,
       })
-      showBlockingAlert('Created', 'Project was created.')
+      toastSuccess(t('projects.created'))
       router.replace(`${basePath}/${created.data.id}` as never)
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not create project')
+      else showApiAlert(err, t('projects.createFailed'))
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header title="New project" leftSlot={<BackButton fallbackHref={basePath} />} />
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-4 px-5 pb-10 pt-2"
-        keyboardShouldPersistTaps="handled"
-      >
-        {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
-
-        <FormField label="Name" isRequired>
-          <Input>
-            <InputField value={name} onChangeText={setName} placeholder="Project name" />
-          </Input>
-        </FormField>
-
-        <FormField label="Code">
-          <Input>
-            <InputField value={code} onChangeText={setCode} placeholder="Optional code" />
-          </Input>
-        </FormField>
-
-        <FormField label="Type">
-          <OptionChips
-            options={PROJECT_TYPE_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
-            value={type}
-            allowClear
-            onChange={(value) => setType(value as ProjectType | '')}
-          />
-        </FormField>
-
-        <FormField label="Description">
-          <Textarea>
-            <TextareaInput value={description} onChangeText={setDescription} />
-          </Textarea>
-        </FormField>
-
-        <View className="flex-row gap-3">
-          <View className="min-w-0 flex-1">
-            <FormField label="Start date" helperText="YYYY-MM-DD">
-              <Input>
-                <InputField
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  placeholder="2026-01-01"
-                />
-              </Input>
-            </FormField>
-          </View>
-          <View className="min-w-0 flex-1">
-            <FormField label="End date" helperText="YYYY-MM-DD">
-              <Input>
-                <InputField value={endDate} onChangeText={setEndDate} placeholder="2026-12-31" />
-              </Input>
-            </FormField>
-          </View>
-        </View>
-
+    <FormScreen
+      title={t('projects.new')}
+      backHref={basePath}
+      footer={
         <Button
+          className="flex-1"
           onPress={() => void onCreate()}
           disabled={isSaving}
           accessibilityState={{ busy: isSaving }}
         >
           {isSaving ? <ButtonSpinner /> : null}
-          <ButtonText>{isSaving ? 'Creating…' : 'Create project'}</ButtonText>
+          <ButtonText>{isSaving ? t('common.creating') : t('projects.create')}</ButtonText>
         </Button>
-      </ScrollView>
-    </View>
+      }
+    >
+      <FormError message={error} />
+      <Section title={t('projects.basics')} icon={FolderKanban}>
+        <TextField
+          label={t('projects.name')}
+          required
+          value={name}
+          onChangeText={setName}
+          placeholder={t('projects.namePlaceholder')}
+        />
+        <TextField
+          label={t('projects.code')}
+          value={code}
+          onChangeText={setCode}
+          placeholder={t('common.optional')}
+        />
+        <ChoiceField
+          label={t('projects.type')}
+          options={enumOptions(t, 'projectType', PROJECT_TYPE_OPTIONS)}
+          value={type}
+          allowClear
+          onChange={(value) => setType(value as ProjectType | '')}
+        />
+        <TextField
+          label={t('common.description')}
+          multiline
+          value={description}
+          onChangeText={setDescription}
+        />
+      </Section>
+      <Section title={t('projects.schedule')}>
+        <FieldRow>
+          <TextField
+            label={t('projects.start')}
+            value={startDate}
+            onChangeText={setStartDate}
+            placeholder="2026-01-01"
+            helper={t('common.dateFormat')}
+            autoCapitalize="none"
+          />
+          <TextField
+            label={t('projects.end')}
+            value={endDate}
+            onChangeText={setEndDate}
+            placeholder="2026-12-31"
+            helper={t('common.dateFormat')}
+            autoCapitalize="none"
+          />
+        </FieldRow>
+      </Section>
+    </FormScreen>
   )
 }

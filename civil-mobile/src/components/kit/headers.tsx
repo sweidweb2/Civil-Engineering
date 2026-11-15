@@ -1,11 +1,21 @@
+import { type ReactNode, useCallback } from 'react'
 import { Text, View } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
+import { setStatusBarStyle } from 'expo-status-bar'
 import { ChevronLeft, type LucideIcon } from 'lucide-react-native'
-import type { ReactNode } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
-import { useThemeColors } from '@/hooks/useThemeColors'
+import { useIsDark, useThemeColors } from '@/hooks/useThemeColors'
+
+/** Sets the status-bar icon color while this screen is focused. */
+export function useStatusBarStyle(style: 'light' | 'dark') {
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(style)
+    }, [style]),
+  )
+}
 
 function goBack(fallbackHref: string) {
   if (router.canGoBack()) router.back()
@@ -68,6 +78,7 @@ export function HeroHeader({
   children,
 }: HeroHeaderProps) {
   const insets = useSafeAreaInsets()
+  useStatusBarStyle('light')
   return (
     <View
       className="overflow-hidden rounded-b-[32px] bg-hero px-5 pb-5"
@@ -127,6 +138,8 @@ type AppBarProps = {
 /** Compact bar for detail and form screens. */
 export function AppBar({ title, subtitle, backHref, right }: AppBarProps) {
   const insets = useSafeAreaInsets()
+  const isDark = useIsDark()
+  useStatusBarStyle(isDark ? 'light' : 'dark')
   return (
     <View
       className="flex-row items-center gap-3 bg-background px-4 pb-3"

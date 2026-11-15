@@ -1,13 +1,14 @@
-import { useCallback, useState } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { useCallback, useMemo, useState } from 'react'
+import { Text, View } from 'react-native'
+import { Star } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import { OptionChips } from '@/components/forms/OptionChips'
-import { Header } from '@/components/layout/Header'
-import { Badge, BadgeText } from '@/components/ui/badge'
+import { IconTile, ListCard, ListScreen, StatusPill, toneForStatus } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
+import { listView, useListState } from '@/hooks/useListState'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useThemeColors } from '@/hooks/useThemeColors'
+import { enumLabel } from '@/i18n/labels'
 import { ApiError } from '@/services/api'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import {
@@ -15,78 +16,79 @@ import {
   listReviews,
   type Review,
   type ReviewStatus,
-  reviewStatusLabel,
   updateReview,
 } from '@/services/reviews'
-import { useToastApiError } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 const PAGE_SIZE = 20
+const STATUSES: ReviewStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'HIDDEN']
 
-const STATUS_OPTIONS: { value: ReviewStatus; label: string }[] = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'APPROVED', label: 'Approved' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'HIDDEN', label: 'Hidden' },
-]
+function Stars({ rating }: { rating: number }) {
+  const colors = useThemeColors()
+  return (
+    <View className="flex-row items-center gap-0.5" accessibilityLabel={`${rating}/5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={14}
+          color={n <= rating ? colors.warning : colors.border}
+          fill={n <= rating ? colors.warning : 'transparent'}
+        />
+      ))}
+    </View>
+  )
+}
 
 export function AdminReviewsScreen() {
+  const { t } = useTranslation()
   const toastApiError = useToastApiError()
-  const [query, setQuery] = useState('')
-  const [appliedQuery, setAppliedQuery] = useState('')
-  const [status, setStatus] = useState<ReviewStatus | ''>('PENDING')
-  const [page, setPage] = useState(1)
+  const toastSuccess = useToastSuccess()
+  const list = useListState('PENDING')
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(
     () =>
-      listReviews(page, PAGE_SIZE, {
-        q: appliedQuery || undefined,
-        status: status || undefined,
+      listReviews(list.page, PAGE_SIZE, {
+        q: list.appliedQuery || undefined,
+        status: (list.filter || undefined) as ReviewStatus | undefined,
       }),
-    [appliedQuery, page, status],
+    [list.appliedQuery, list.filter, list.page],
   )
   const remote = useRemoteData(load)
-
-  const hasData = remote.status === 'success'
-  const rows = hasData ? remote.data.data : []
-  const total = hasData ? remote.data.meta.total : 0
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const isInitialLoading = remote.isLoading && !hasData
-  const isRefreshing = hasData && remote.isLoading
-
-  function onSearch() {
-    setPage(1)
-    setAppliedQuery(query.trim())
-  }
+  const view = listView(remote, PAGE_SIZE)
+  const statusOptions = useMemo(
+    () => STATUSES.map((value) => ({ value, label: enumLabel(t, 'reviewStatus', value) })),
+    [t],
+  )
 
   async function setReviewStatus(review: Review, next: ReviewStatus) {
     setBusyId(review.id)
     try {
       await updateReview(review.id, { status: next })
-      showBlockingAlert('Updated', `Review marked ${reviewStatusLabel(next).toLowerCase()}.`)
+      toastSuccess(t('reviews.markedAs', { status: enumLabel(t, 'reviewStatus', next) }))
       await remote.refetch()
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, 'Could not update review')
+      else showApiAlert(err, t('reviews.updateFailed'))
     } finally {
       setBusyId(null)
     }
   }
 
   function onDelete(review: Review) {
-    showBlockingAlert('Delete review?', 'This permanently removes the review.', {
-      cancelLabel: 'Cancel',
-      confirmLabel: 'Delete',
+    showBlockingAlert(t('reviews.deleteTitle'), t('reviews.deleteBody'), {
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('common.delete'),
       onConfirm: () => {
         void (async () => {
           setBusyId(review.id)
           try {
             await deleteReview(review.id)
-            showBlockingAlert('Deleted', 'Review was removed.')
+            toastSuccess(t('reviews.deleted'))
             await remote.refetch()
           } catch (err) {
             if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-            else showApiAlert(err, 'Could not delete review')
+            else showApiAlert(err, t('reviews.deleteFailed'))
           } finally {
             setBusyId(null)
           }
@@ -96,148 +98,92 @@ export function AdminReviewsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Header title="Reviews" subtitle={total ? `${total} total` : undefined} />
-
-      <View className="gap-3 px-5 pb-4">
-        <View className="flex-row gap-2">
-          <View className="min-w-0 flex-1">
-            <Input>
-              <InputField
-                placeholder="Search reviews"
-                value={query}
-                onChangeText={setQuery}
-                onSubmitEditing={onSearch}
-                returnKeyType="search"
+    <ListScreen
+      title={t('reviews.title')}
+      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
+      backHref="/admin/more"
+      searchPlaceholder={t('reviews.search')}
+      query={list.query}
+      onQueryChange={list.setQuery}
+      onSearch={list.onSearch}
+      filterOptions={statusOptions}
+      filterValue={list.filter}
+      onFilterChange={list.onFilter}
+      allLabel={t('common.all')}
+      data={view.rows}
+      keyExtractor={(item) => item.id}
+      renderItem={(item) => {
+        const busy = busyId === item.id
+        return (
+          <ListCard leading={<IconTile icon={Star} tone="warning" />}>
+            <View className="flex-row items-start justify-between gap-2">
+              <Text
+                className="min-w-0 flex-1 text-base font-bold text-foreground"
+                numberOfLines={1}
+              >
+                {item.targetName || item.targetType}
+              </Text>
+              <StatusPill
+                label={enumLabel(t, 'reviewStatus', item.status)}
+                tone={toneForStatus(item.status)}
               />
-            </Input>
-          </View>
-          <Button size="sm" variant="outline" onPress={onSearch}>
-            <ButtonText>Search</ButtonText>
-          </Button>
-        </View>
-        <OptionChips
-          options={STATUS_OPTIONS.map((option) => ({
-            value: option.value,
-            label: option.label,
-          }))}
-          value={status}
-          allowClear
-          onChange={(value) => {
-            setStatus(value as ReviewStatus | '')
-            setPage(1)
-          }}
-        />
-      </View>
-
-      <AsyncState
-        isLoading={isInitialLoading}
-        error={remote.status === 'error' ? remote.error : undefined}
-        onRetry={() => void remote.refetch()}
-        loadingLabel="Loading reviews…"
-      >
-        <FlatList
-          data={rows}
-          keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={() => void remote.refetch()} />
-          }
-          ListEmptyComponent={
-            <View className="items-center px-6 py-16">
-              <Text className="text-center text-base text-muted-foreground">No reviews found.</Text>
             </View>
-          }
-          renderItem={({ item }) => {
-            const busy = busyId === item.id
-            return (
-              <View className="mx-5 mb-3 gap-2 rounded-3xl border border-border/60 bg-card p-4">
-                <View className="flex-row items-start justify-between gap-2">
-                  <Text
-                    className="min-w-0 flex-1 text-base font-medium text-foreground"
-                    numberOfLines={1}
-                  >
-                    {item.targetName || item.targetType}
-                  </Text>
-                  <Badge variant={item.status === 'APPROVED' ? 'default' : 'secondary'}>
-                    <BadgeText>{reviewStatusLabel(item.status)}</BadgeText>
-                  </Badge>
-                </View>
-                <Text className="text-sm text-muted-foreground">
-                  {item.rating}/5 · {item.targetType}
-                </Text>
-                <Text className="text-sm text-foreground" numberOfLines={3}>
-                  {item.comment?.trim() || 'No comment'}
-                </Text>
-                <View className="flex-row flex-wrap gap-2 pt-1">
-                  {item.status !== 'APPROVED' ? (
-                    <Button
-                      size="sm"
-                      disabled={busy}
-                      onPress={() => void setReviewStatus(item, 'APPROVED')}
-                    >
-                      {busy ? <ButtonSpinner /> : null}
-                      <ButtonText>Approve</ButtonText>
-                    </Button>
-                  ) : null}
-                  {item.status !== 'REJECTED' ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onPress={() => void setReviewStatus(item, 'REJECTED')}
-                    >
-                      <ButtonText>Reject</ButtonText>
-                    </Button>
-                  ) : null}
-                  {item.status !== 'HIDDEN' ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onPress={() => void setReviewStatus(item, 'HIDDEN')}
-                    >
-                      <ButtonText>Hide</ButtonText>
-                    </Button>
-                  ) : null}
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={busy}
-                    onPress={() => onDelete(item)}
-                  >
-                    <ButtonText>Delete</ButtonText>
-                  </Button>
-                </View>
-              </View>
-            )
-          }}
-          ListFooterComponent={
-            totalPages > 1 ? (
-              <View className="flex-row items-center justify-between gap-3 px-4 py-4">
+            <Stars rating={item.rating} />
+            <Text className="text-sm text-foreground" numberOfLines={3}>
+              {item.comment?.trim() || t('reviews.noComment')}
+            </Text>
+            <View className="flex-row flex-wrap gap-2 pt-2">
+              {item.status !== 'APPROVED' ? (
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  onPress={() => void setReviewStatus(item, 'APPROVED')}
+                >
+                  {busy ? <ButtonSpinner /> : null}
+                  <ButtonText>{t('reviews.approve')}</ButtonText>
+                </Button>
+              ) : null}
+              {item.status !== 'REJECTED' ? (
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={page <= 1}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={busy}
+                  onPress={() => void setReviewStatus(item, 'REJECTED')}
                 >
-                  <ButtonText>Previous</ButtonText>
+                  <ButtonText>{t('reviews.reject')}</ButtonText>
                 </Button>
-                <Text className="text-sm text-muted-foreground">
-                  Page {page} / {totalPages}
-                </Text>
+              ) : null}
+              {item.status !== 'HIDDEN' ? (
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={page >= totalPages}
-                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={busy}
+                  onPress={() => void setReviewStatus(item, 'HIDDEN')}
                 >
-                  <ButtonText>Next</ButtonText>
+                  <ButtonText>{t('reviews.hide')}</ButtonText>
                 </Button>
-              </View>
-            ) : null
-          }
-        />
-      </AsyncState>
-    </View>
+              ) : null}
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={busy}
+                onPress={() => onDelete(item)}
+              >
+                <ButtonText>{t('common.delete')}</ButtonText>
+              </Button>
+            </View>
+          </ListCard>
+        )
+      }}
+      isInitialLoading={view.isInitialLoading}
+      isRefreshing={view.isRefreshing}
+      error={view.error}
+      onRefresh={() => void remote.refetch()}
+      loadingLabel={t('reviews.loading')}
+      page={list.page}
+      totalPages={view.totalPages}
+      onPageChange={list.setPage}
+      emptyTitle={t('reviews.empty')}
+    />
   )
 }

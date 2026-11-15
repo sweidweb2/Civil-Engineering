@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { FilePickError, pickFile, type PickedFile, type PickSource } from '@/services/filePicker'
+import { FilePickError, type PickedFile, pickFile, type PickSource } from '@/services/filePicker'
 import { useToastApiError } from '@/services/toast'
 
 /**

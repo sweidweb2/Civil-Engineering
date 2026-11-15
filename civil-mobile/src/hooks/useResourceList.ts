@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { listView, useListState } from '@/hooks/useListState'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -31,7 +31,10 @@ export function useResourceList<T>(
   const pageSize = options.pageSize ?? 20
   const list = useListState(options.initialFilter)
   const fetcherRef = useRef(fetcher)
-  fetcherRef.current = fetcher
+
+  useEffect(() => {
+    fetcherRef.current = fetcher
+  }, [fetcher])
 
   const load = useCallback(
     () =>

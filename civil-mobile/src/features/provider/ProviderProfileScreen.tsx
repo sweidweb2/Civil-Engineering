@@ -4,7 +4,6 @@ import { Building2 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
-import { LogoField } from '@/features/provider/LogoField'
 import {
   FieldRow,
   FormScroll,
@@ -26,6 +25,7 @@ import {
   providerCompanySchema,
   type ProviderCompanyValues,
 } from '@/features/provider/company.schema'
+import { LogoField } from '@/features/provider/LogoField'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { type FieldErrors, parseForm } from '@/lib/form'

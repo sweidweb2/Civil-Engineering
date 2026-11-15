@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { remoteCacheGet, remoteCacheSet, REMOTE_STALE_MS } from '@/lib/remoteCache'
+import { REMOTE_STALE_MS, remoteCacheGet, remoteCacheSet } from '@/lib/remoteCache'
 
 export type RemoteIdle = { status: 'idle' }
 export type RemoteLoading = { status: 'loading' }

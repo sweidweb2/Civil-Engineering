@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { MapPin, Phone, Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { LogoField } from '@/features/provider/LogoField'
 import {
   Card,
   ChoiceField,
@@ -17,6 +16,7 @@ import {
   toneForStatus,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { LogoField } from '@/features/provider/LogoField'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import {

@@ -21,7 +21,6 @@ import {
 } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
 import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
@@ -90,7 +89,6 @@ function ActiveProjectCard({ project }: { project: Project }) {
 
 export function PmDashboardScreen() {
   const { t } = useTranslation()
-  const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: 'dashboard:pm' })

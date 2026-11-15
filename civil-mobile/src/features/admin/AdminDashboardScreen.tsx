@@ -31,6 +31,7 @@ import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
+import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
 import { listListings } from '@/services/listings'
 import { listProjects, type Project } from '@/services/projects'
@@ -50,38 +51,35 @@ type Overview = {
   recentProjects: Project[]
 }
 
-function totalOf(result: PromiseSettledResult<{ meta: { total: number } }>): number | null {
-  return result.status === 'fulfilled' ? result.value.meta.total : null
-}
-
-/** Each count loads independently so one failing endpoint only blanks its own tile. */
+/**
+ * Prefer meta aggregates (statusCounts / counts) so we don't fire a separate
+ * list-for-total request per tile. Five parallel calls instead of seven.
+ */
 async function loadOverview(): Promise<Overview> {
-  const [users, providers, pendingProviders, projects, listings, requests, reviews] =
-    await Promise.allSettled([
-      listUsers(1, 1),
-      listProviders(1, 1),
-      listProviders(1, 1, undefined, 'PENDING'),
-      listProjects({ page: 1, limit: 5 }),
-      listListings(1, 1, { counts: false }),
-      listApprovals({ approval: 'pending', page: 1, limit: 1 }),
-      listReviews(1, 1, { status: 'PENDING' }),
-    ])
+  const [users, providers, projects, listings, requests, reviews] = await Promise.allSettled([
+    listUsers(1, 1),
+    listProviders(1, 1),
+    listProjects({ page: 1, limit: 5 }),
+    listListings(1, 1, { counts: false }),
+    listApprovals({ approval: 'pending', page: 1, limit: 1 }),
+    listReviews(1, 1),
+  ])
 
   return {
     users: totalOf(users),
     providers: totalOf(providers),
-    pendingProviders: totalOf(pendingProviders),
+    pendingProviders:
+      providers.status === 'fulfilled' ? providers.value.meta.statusCounts.PENDING : null,
     projects: totalOf(projects),
     listings: totalOf(listings),
-    pendingRequests: totalOf(requests),
-    pendingReviews: totalOf(reviews),
-    recentProjects: projects.status === 'fulfilled' ? projects.value.data : [],
+    pendingRequests:
+      requests.status === 'fulfilled'
+        ? (requests.value.meta.counts?.pending ?? requests.value.meta.total)
+        : null,
+    pendingReviews:
+      reviews.status === 'fulfilled' ? (reviews.value.meta.statusCounts?.PENDING ?? null) : null,
+    recentProjects: fulfilledRows(projects),
   }
-}
-
-function formatCount(value: number | null | undefined, isLoading: boolean): string {
-  if (isLoading) return '…'
-  return value == null ? '—' : value.toLocaleString()
 }
 
 function StatTile({
@@ -163,7 +161,7 @@ export function AdminDashboardScreen() {
   const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { cacheKey: 'dashboard:admin' })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data
@@ -212,7 +210,7 @@ export function AdminDashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={remote.isLoading && Boolean(data)}
+            refreshing={remote.isFetching && Boolean(data)}
             onRefresh={() => void remote.refetch()}
             tintColor={colors.primary}
             colors={[colors.primary]}

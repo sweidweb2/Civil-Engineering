@@ -23,8 +23,9 @@ import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
+import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
-import { listProjects, type Project, type ProjectStatus } from '@/services/projects'
+import { getProjectSummary, listProjects, type Project } from '@/services/projects'
 import { useAuthStore } from '@/stores/authStore'
 import { softShadows } from '@/theme/shadows'
 
@@ -37,32 +38,22 @@ type Overview = {
   recent: Project[]
 }
 
-function totalOf(result: PromiseSettledResult<{ meta: { total: number } }>): number | null {
-  return result.status === 'fulfilled' ? result.value.meta.total : null
-}
-
-/** Each count loads on its own so one failing request only blanks its own tile. */
+/** Summary aggregates + two list slices (recent / active) — 3 calls instead of 4. */
 async function loadOverview(): Promise<Overview> {
-  const count = (status: ProjectStatus) => listProjects({ page: 1, limit: 1, status })
-  const [all, inProgress, completed, onHold] = await Promise.allSettled([
+  const [summary, recent, active] = await Promise.allSettled([
+    getProjectSummary(),
     listProjects({ page: 1, limit: 5 }),
     listProjects({ page: 1, limit: 10, status: 'IN_PROGRESS' }),
-    count('COMPLETED'),
-    count('ON_HOLD'),
   ])
+  const counts = summary.status === 'fulfilled' ? summary.value.data.counts : null
   return {
-    total: totalOf(all),
-    inProgress: totalOf(inProgress),
-    completed: totalOf(completed),
-    onHold: totalOf(onHold),
-    active: inProgress.status === 'fulfilled' ? inProgress.value.data : [],
-    recent: all.status === 'fulfilled' ? all.value.data : [],
+    total: summary.status === 'fulfilled' ? summary.value.data.total : totalOf(recent),
+    inProgress: counts?.IN_PROGRESS ?? totalOf(active),
+    completed: counts?.COMPLETED ?? null,
+    onHold: counts?.ON_HOLD ?? null,
+    active: fulfilledRows(active),
+    recent: fulfilledRows(recent),
   }
-}
-
-function formatCount(value: number | null | undefined, isLoading: boolean): string {
-  if (isLoading) return '…'
-  return value == null ? '—' : value.toLocaleString()
 }
 
 function ActiveProjectCard({ project }: { project: Project }) {
@@ -102,7 +93,7 @@ export function PmDashboardScreen() {
   const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { cacheKey: 'dashboard:pm' })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data
@@ -144,7 +135,7 @@ export function PmDashboardScreen() {
       </HeroHeader>
 
       <DashboardScroll
-        refreshing={remote.isLoading && Boolean(data)}
+        refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
         {isEmpty ? (

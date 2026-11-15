@@ -7,12 +7,10 @@ import { GalleryImagesField } from '@/components/files/GalleryImagesField'
 import { ChoiceField, FieldRow, FormError, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { enumOptions } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
-import { showApiAlert } from '@/services/feedback'
 import type { PickedFile } from '@/services/filePicker'
 import { uploadQueuedImages } from '@/services/galleryImages'
 import { createProject, PROJECT_TYPE_OPTIONS, type ProjectType } from '@/services/projects'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastApiError, useToastSuccess } from '@/services/toast'
 
 type PmProjectCreateScreenProps = {
   basePath?: string
@@ -21,6 +19,7 @@ type PmProjectCreateScreenProps = {
 export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCreateScreenProps) {
   const { t } = useTranslation()
   const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -55,8 +54,7 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
       }
       router.replace(`${basePath}/${created.data.id}` as never)
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('projects.createFailed'))
+      handleApiError(err, t('projects.createFailed'))
     } finally {
       setIsSaving(false)
     }

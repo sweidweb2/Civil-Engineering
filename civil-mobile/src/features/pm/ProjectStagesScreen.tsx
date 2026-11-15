@@ -11,8 +11,6 @@ import { StageFileField } from '@/features/pm/StageFileField'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel, enumOptions } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
-import { showApiAlert } from '@/services/feedback'
 import {
   getProjectStagesSummary,
   PROJECT_STAGE_STATUS_OPTIONS,
@@ -27,7 +25,7 @@ import {
   upsertMaterials,
 } from '@/services/project-stages'
 import { getProjectById } from '@/services/projects'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 
 type StageDraft = Record<string, string>
 
@@ -191,15 +189,15 @@ function toRequiredString(value: string | undefined): string {
   return value?.trim() ?? ''
 }
 
-type PmProjectStagesScreenProps = {
+type ProjectStagesScreenProps = {
   basePath?: string
 }
 
-export function PmProjectStagesScreen({ basePath = '/pm/projects' }: PmProjectStagesScreenProps) {
+export function ProjectStagesScreen({ basePath = '/pm/projects' }: ProjectStagesScreenProps) {
   const { id } = useLocalSearchParams<{ id: string }>()
   const projectId = typeof id === 'string' ? id : id?.[0]
   const { t } = useTranslation()
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
   const [activeKey, setActiveKey] = useState<StageKey>('geotechnical')
@@ -316,8 +314,7 @@ export function PmProjectStagesScreen({ basePath = '/pm/projects' }: PmProjectSt
         toastSuccess(t('stages.saved', { stage: enumLabel(t, 'stage', activeKey) }))
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('stages.saveFailed'))
+      handleApiError(err, t('stages.saveFailed'))
     } finally {
       setIsSaving(false)
     }

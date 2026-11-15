@@ -1,1 +1,0 @@
-export { AdminProviderCreateScreen } from './AdminProviderDetailScreen'

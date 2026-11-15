@@ -7,7 +7,6 @@ import { ChoiceField, FormError, FormScreen, Section, TextField, ToggleRow } fro
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumOptions } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
 import {
   CATEGORY_KIND_OPTIONS,
   type CategoryKind,
@@ -16,8 +15,8 @@ import {
   listCategories,
   updateCategory,
 } from '@/services/categories'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { showBlockingAlert } from '@/services/feedback'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/categories'
 
@@ -29,7 +28,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id?: string }>()
   const categoryId = typeof id === 'string' ? id : id?.[0]
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
   const [name, setName] = useState('')
@@ -86,12 +85,10 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
         await remote.refetch()
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else
-        showApiAlert(
-          err,
-          t(mode === 'create' ? 'categories.createFailed' : 'categories.saveFailed'),
-        )
+      handleApiError(
+        err,
+        t(mode === 'create' ? 'categories.createFailed' : 'categories.saveFailed'),
+      )
     } finally {
       setIsSaving(false)
     }
@@ -110,8 +107,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
             toastSuccess(t('categories.deleted'))
             router.replace(BASE as never)
           } catch (err) {
-            if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-            else showApiAlert(err, t('categories.deleteFailed'))
+            handleApiError(err, t('categories.deleteFailed'))
           } finally {
             setIsDeleting(false)
           }

@@ -95,6 +95,12 @@ export type UpdateProjectInput = {
   notes?: string
 }
 
+export type ProjectSummary = {
+  total: number
+  averageProgress: number
+  counts: Record<ProjectStatus, number>
+}
+
 export function listProjects(
   params: {
     page?: number
@@ -112,6 +118,11 @@ export function listProjects(
   if (params.type) search.set('type', params.type)
   if (params.q?.trim()) search.set('q', params.q.trim())
   return apiRequest<PaginatedProjects>(`/projects?${search.toString()}`)
+}
+
+/** Aggregate status counts — one round-trip instead of N list-for-total calls. */
+export function getProjectSummary() {
+  return apiRequest<{ data: ProjectSummary }>('/projects/summary')
 }
 
 export function getProjectById(id: string) {

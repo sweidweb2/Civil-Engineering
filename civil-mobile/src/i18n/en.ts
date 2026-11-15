@@ -114,9 +114,9 @@ export const en = {
     providerStatus: { PENDING: 'Pending', APPROVED: 'Approved', SUSPENDED: 'Suspended' },
     reviewStatus: {
       PENDING: 'Pending',
+      ACCEPTED: 'Approved',
       APPROVED: 'Approved',
       REJECTED: 'Rejected',
-      HIDDEN: 'Hidden',
     },
     categoryKind: {
       MATERIAL: 'Material',

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { remoteCacheInvalidate } from '@/lib/remoteCache'
 import { bindAuthSession } from '@/services/api'
 import type { AuthTokens, AuthUser } from '@/services/auth'
 import * as authApi from '@/services/auth'
@@ -38,12 +39,17 @@ export const useAuthStore = create<AuthState>()(
       isHydrated: false,
       setHydrated: (value) => set({ isHydrated: value }),
       setTokens: (tokens) => set({ tokens }),
-      clearSession: () => set({ user: null, tokens: null }),
+      clearSession: () => {
+        remoteCacheInvalidate()
+        set({ user: null, tokens: null })
+      },
       async login(email, password) {
+        remoteCacheInvalidate()
         const result = await authApi.login(email, password)
         set({ user: result.user, tokens: result.tokens })
       },
       async register(input) {
+        remoteCacheInvalidate()
         const result = await authApi.register(input)
         if (result.pendingApproval || !result.tokens) {
           set({ user: null, tokens: null })
@@ -61,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
             await authApi.logout(refreshToken)
           }
         } finally {
+          remoteCacheInvalidate()
           set({ user: null, tokens: null })
         }
       },

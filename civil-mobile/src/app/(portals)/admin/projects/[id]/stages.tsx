@@ -1,5 +1,5 @@
-import { PmProjectStagesScreen } from '@/features/pm/PmProjectStagesScreen'
+import { ProjectStagesScreen } from '@/features/pm/ProjectStagesScreen'
 
-export default function AdminProjectStages() {
-  return <PmProjectStagesScreen basePath="/admin/projects" />
+export default function AdminProjectStagesRoute() {
+  return <ProjectStagesScreen basePath="/admin/projects" />
 }

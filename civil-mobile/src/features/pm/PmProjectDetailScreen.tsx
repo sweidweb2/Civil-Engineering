@@ -30,7 +30,6 @@ import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel, enumOptions } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
 import {
   archiveProject,
@@ -41,7 +40,7 @@ import {
   type ProjectType,
   updateProject,
 } from '@/services/projects'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 
 type PmProjectDetailScreenProps = {
   basePath?: string
@@ -52,7 +51,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
   const colors = useThemeColors()
   const { id } = useLocalSearchParams<{ id: string }>()
   const projectId = typeof id === 'string' ? id : id?.[0]
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
   const load = useCallback(() => {
@@ -114,8 +113,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
       toastSuccess(t('projects.saved'))
       await remote.refetch()
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('projects.saveFailed'))
+      handleApiError(err, t('projects.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -134,8 +132,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
             toastSuccess(t('projects.archived'))
             router.replace(basePath as never)
           } catch (err) {
-            if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-            else showApiAlert(err, t('projects.archiveFailed'))
+            handleApiError(err, t('projects.archiveFailed'))
           } finally {
             setIsArchiving(false)
           }

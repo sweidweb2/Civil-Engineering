@@ -4,7 +4,7 @@ import { Building2 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
-import { LogoField } from '@/components/files/LogoField'
+import { LogoField } from '@/features/provider/LogoField'
 import {
   FieldRow,
   FormScroll,
@@ -29,16 +29,15 @@ import {
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { ApiError } from '@/services/api'
-import { showApiAlert } from '@/services/feedback'
+import { remoteCacheInvalidate } from '@/lib/remoteCache'
 import { getMyProvider, updateProvider } from '@/services/providers'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 
 type Key = keyof ProviderCompanyValues
 
 export function ProviderProfileScreen() {
   const { t } = useTranslation()
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [tab, setTab] = useState('company')
   const [form, setForm] = useState<ProviderCompanyValues>(EMPTY_COMPANY)
@@ -46,7 +45,7 @@ export function ProviderProfileScreen() {
   const [isSaving, setIsSaving] = useState(false)
 
   const load = useCallback(() => getMyProvider(), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { cacheKey: 'providers:me' })
   const provider = remote.status === 'success' ? remote.data.data : null
   const remoteLogoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
   // Set right after an upload/remove so the new logo shows without a refetch.
@@ -81,11 +80,11 @@ export function ProviderProfileScreen() {
     setIsSaving(true)
     try {
       await updateProvider(provider.id, companyWriteFromForm(parsed.data))
+      remoteCacheInvalidate('dashboard:provider')
       toastSuccess(t('profile.companySaved'))
-      await remote.refetch()
+      await remote.refetch({ fresh: true })
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('profile.companySaveFailed'))
+      handleApiError(err, t('profile.companySaveFailed'))
     } finally {
       setIsSaving(false)
     }

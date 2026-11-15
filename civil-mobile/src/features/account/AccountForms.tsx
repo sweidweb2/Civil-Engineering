@@ -16,10 +16,8 @@ import {
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { ApiError } from '@/services/api'
 import { changePassword } from '@/services/auth'
-import { showApiAlert } from '@/services/feedback'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 import { getUser, updateUser } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -34,7 +32,7 @@ export function AccountDetailsForm() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const userId = user?.id
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
   const [form, setForm] = useState<ProviderProfileValues>({
@@ -94,8 +92,7 @@ export function AccountDetailsForm() {
       }))
       toastSuccess(t('account.saved'))
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('account.saveFailed'))
+      handleApiError(err, t('account.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -145,7 +142,7 @@ export function AccountDetailsForm() {
 
 export function PasswordForm() {
   const { t } = useTranslation()
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [form, setForm] = useState<ProviderPasswordValues>(EMPTY_PASSWORD)
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -168,8 +165,7 @@ export function PasswordForm() {
       setForm(EMPTY_PASSWORD)
       toastSuccess(t('account.passwordUpdated'))
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('account.passwordFailed'))
+      handleApiError(err, t('account.passwordFailed'))
     } finally {
       setIsSaving(false)
     }

@@ -1,4 +1,5 @@
 export { homePathForRole, isPathInRolePortal, portalIdForRole } from './homePath'
+export { makePortalLayout } from './makePortalLayout'
 export {
   ADMIN_MORE_LINKS,
   ADMIN_NAV,

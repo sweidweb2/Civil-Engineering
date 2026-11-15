@@ -1,15 +1,13 @@
-import { useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import { Building2, Camera, ImageIcon, Trash2 } from 'lucide-react-native'
+import { Building2, Camera } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale, Thumbnail } from '@/components/kit'
+import { usePickAndUpload } from '@/hooks/usePickAndUpload'
 import { useThemeColors } from '@/hooks/useThemeColors'
-import { FilePickError, pickFile, type PickSource } from '@/services/filePicker'
 import { clearProviderLogo, uploadProviderLogo } from '@/services/providers'
 import { useToastApiError, useToastSuccess } from '@/services/toast'
-
-import { OptionSheet } from './OptionSheet'
 
 /** Tap-to-change company logo for a provider. */
 export function LogoField({
@@ -24,30 +22,12 @@ export function LogoField({
 }) {
   const { t } = useTranslation()
   const colors = useThemeColors()
-  const toastApiError = useToastApiError()
   const toastSuccess = useToastSuccess()
-  const [open, setOpen] = useState(false)
-  const [isBusy, setIsBusy] = useState(false)
-
-  async function onPick(source: PickSource) {
-    setOpen(false)
-    try {
-      const picked = await pickFile(source, t)
-      if (!picked) return
-      setIsBusy(true)
-      const result = await uploadProviderLogo(providerId, picked)
-      onChanged(result.meta.logoDownloadUrl)
-      toastSuccess(t('logo.updated'))
-    } catch (error) {
-      if (error instanceof FilePickError) toastApiError(new Error(t(`files.${error.code}`)))
-      else toastApiError(error)
-    } finally {
-      setIsBusy(false)
-    }
-  }
+  const toastApiError = useToastApiError()
+  const { sheetOpen, setSheetOpen, isBusy, setIsBusy, pickAndRun } = usePickAndUpload()
 
   async function onRemove() {
-    setOpen(false)
+    setSheetOpen(false)
     setIsBusy(true)
     try {
       await clearProviderLogo(providerId)
@@ -67,7 +47,7 @@ export function LogoField({
         accessibilityLabel={t('logo.change')}
         disabled={isBusy}
         scaleTo={0.94}
-        onPress={() => setOpen(true)}
+        onPress={() => setSheetOpen(true)}
       >
         <Thumbnail imageUrl={logoUrl} icon={Building2} size={96} />
         <View className="absolute -bottom-1 -right-1 size-9 items-center justify-center rounded-full border-2 border-background bg-primary">
@@ -81,36 +61,19 @@ export function LogoField({
       </PressableScale>
       <Text className="text-xs font-semibold text-primary">{t('logo.change')}</Text>
 
-      <OptionSheet
-        visible={open}
+      <PickSourceSheet
+        visible={sheetOpen}
         title={t('logo.change')}
-        cancelLabel={t('common.cancel')}
-        onClose={() => setOpen(false)}
-        options={[
-          {
-            key: 'camera',
-            icon: Camera,
-            label: t('files.takePhoto'),
-            onPress: () => void onPick('camera'),
-          },
-          {
-            key: 'library',
-            icon: ImageIcon,
-            label: t('files.chooseLibrary'),
-            onPress: () => void onPick('library'),
-          },
-          ...(logoUrl
-            ? [
-                {
-                  key: 'remove',
-                  icon: Trash2,
-                  label: t('logo.remove'),
-                  destructive: true,
-                  onPress: () => void onRemove(),
-                },
-              ]
-            : []),
-        ]}
+        onClose={() => setSheetOpen(false)}
+        onPick={(source) =>
+          void pickAndRun(source, async (picked) => {
+            const result = await uploadProviderLogo(providerId, picked)
+            onChanged(result.meta.logoDownloadUrl)
+            toastSuccess(t('logo.updated'))
+          })
+        }
+        onRemove={logoUrl ? () => void onRemove() : undefined}
+        removeLabel={t('logo.remove')}
       />
     </View>
   )

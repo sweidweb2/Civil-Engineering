@@ -9,10 +9,9 @@ import { Card, FormScreen, IconTile, InfoRow, StatusPill } from '@/components/ki
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
+import { showBlockingAlert } from '@/services/feedback'
 import { deleteListing, formatListingPrice, getListingById } from '@/services/listings'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 
 type ProviderListingDetailsScreenProps = {
   basePath?: string
@@ -24,7 +23,7 @@ export function ProviderListingDetailsScreen({
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id: string }>()
   const listingId = typeof id === 'string' ? id : id?.[0]
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -55,8 +54,7 @@ export function ProviderListingDetailsScreen({
             )
             router.replace(basePath as never)
           } catch (error) {
-            if (error instanceof ApiError && error.status >= 500) toastApiError(error)
-            else showApiAlert(error, t('listings.deleteFailed'))
+            handleApiError(error, t('listings.deleteFailed'))
           } finally {
             setIsDeleting(false)
           }

@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { MapPin, Phone, Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { LogoField } from '@/components/files/LogoField'
+import { LogoField } from '@/features/provider/LogoField'
 import {
   Card,
   ChoiceField,
@@ -19,8 +19,6 @@ import {
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
-import { showApiAlert } from '@/services/feedback'
 import {
   createProvider,
   getProvider,
@@ -28,7 +26,7 @@ import {
   type ProviderStatus,
   updateProvider,
 } from '@/services/providers'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/providers'
 
@@ -38,7 +36,7 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id?: string }>()
   const providerId = typeof id === 'string' ? id : id?.[0]
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
   const load = useCallback(() => {
@@ -108,9 +106,7 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
         await remote.refetch()
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else
-        showApiAlert(err, t(mode === 'create' ? 'providers.createFailed' : 'providers.saveFailed'))
+      handleApiError(err, t(mode === 'create' ? 'providers.createFailed' : 'providers.saveFailed'))
     } finally {
       setIsSaving(false)
     }

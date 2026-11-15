@@ -20,10 +20,9 @@ import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { userDisplayName } from '@/lib/user'
-import { ApiError } from '@/services/api'
 import type { AuthRole } from '@/services/auth'
-import { showApiAlert, showBlockingAlert } from '@/services/feedback'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { showBlockingAlert } from '@/services/feedback'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 import {
   AUTH_ROLE_OPTIONS,
   deactivateUser,
@@ -39,7 +38,7 @@ export function AdminUserDetailScreen() {
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id: string }>()
   const userId = typeof id === 'string' ? id : id?.[0]
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
   const load = useCallback(() => {
@@ -86,8 +85,7 @@ export function AdminUserDetailScreen() {
       toastSuccess(t('users.saved'))
       await remote.refetch()
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('users.saveFailed'))
+      handleApiError(err, t('users.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -106,8 +104,7 @@ export function AdminUserDetailScreen() {
             toastSuccess(t('users.deactivated'))
             router.replace(BASE as never)
           } catch (err) {
-            if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-            else showApiAlert(err, t('users.deactivateFailed'))
+            handleApiError(err, t('users.deactivateFailed'))
           } finally {
             setIsDeactivating(false)
           }

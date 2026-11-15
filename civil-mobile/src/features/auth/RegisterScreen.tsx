@@ -11,10 +11,8 @@ import { registerSchema } from '@/features/auth/register.schema'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
-import { ApiError } from '@/services/api'
 import type { RegisterRole } from '@/services/auth'
-import { showApiAlert } from '@/services/feedback'
-import { useToastApiError } from '@/services/toast'
+import { useHandleApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 import { glow } from '@/theme/shadows'
 
@@ -23,7 +21,7 @@ export function RegisterScreen() {
   const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const register = useAuthStore((s) => s.register)
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -75,11 +73,7 @@ export function RegisterScreen() {
       const nextRole = useAuthStore.getState().user?.role
       router.replace(homePathForRole(nextRole) as never)
     } catch (error) {
-      if (error instanceof ApiError && error.status >= 500) {
-        toastApiError(error)
-      } else {
-        showApiAlert(error, t('auth.couldNotRegister'), t('auth.couldNotRegister'))
-      }
+      handleApiError(error, t('auth.couldNotRegister'), t('auth.couldNotRegister'))
     } finally {
       setIsSubmitting(false)
     }

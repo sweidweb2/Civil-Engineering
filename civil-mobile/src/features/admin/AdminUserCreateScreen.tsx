@@ -14,17 +14,15 @@ import {
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { enumOptions } from '@/i18n/labels'
-import { ApiError } from '@/services/api'
 import type { AuthRole } from '@/services/auth'
-import { showApiAlert } from '@/services/feedback'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastSuccess } from '@/services/toast'
 import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 
 const BASE = '/admin/users'
 
 export function AdminUserCreateScreen() {
   const { t } = useTranslation()
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -58,8 +56,7 @@ export function AdminUserCreateScreen() {
       toastSuccess(t('users.created'))
       router.replace(`${BASE}/${created.data.id}` as never)
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) toastApiError(err)
-      else showApiAlert(err, t('users.createFailed'))
+      handleApiError(err, t('users.createFailed'))
     } finally {
       setIsSaving(false)
     }

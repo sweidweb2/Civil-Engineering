@@ -1,6 +1,6 @@
 import { apiRequest } from './api'
 
-export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'HIDDEN'
+export type ReviewStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'APPROVED' | 'HIDDEN'
 export type ReviewTargetType = 'PROVIDER' | 'LISTING' | 'WORKER'
 
 export type Review = {
@@ -15,18 +15,25 @@ export type Review = {
   updatedAt: string
 }
 
+export type ReviewStatusCounts = {
+  PENDING: number
+  ACCEPTED: number
+  REJECTED: number
+}
+
 export type PaginatedReviews = {
   data: Review[]
   meta: {
     page: number
     limit: number
     total: number
+    statusCounts?: ReviewStatusCounts
   }
 }
 
 export function reviewStatusLabel(status: ReviewStatus): string {
   if (status === 'PENDING') return 'Pending'
-  if (status === 'APPROVED') return 'Approved'
+  if (status === 'ACCEPTED' || status === 'APPROVED') return 'Approved'
   if (status === 'REJECTED') return 'Rejected'
   return 'Hidden'
 }

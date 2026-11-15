@@ -17,7 +17,8 @@ import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { glow, softShadows } from '@/theme/shadows'
 
-import { PressableScale } from './primitives'
+import { PressableScale, StatusPill } from './primitives'
+import type { Tone } from './tones'
 
 type SearchBarProps = {
   value: string
@@ -324,5 +325,37 @@ export function ListCard({
     >
       {body}
     </PressableScale>
+  )
+}
+
+/** Title + optional status pill + muted subtitle (+ optional trailing block). */
+export function StandardListRow({
+  title,
+  subtitle,
+  statusLabel,
+  statusTone = 'neutral',
+  extra,
+}: {
+  title: string
+  subtitle?: string | null
+  statusLabel?: string
+  statusTone?: Tone
+  extra?: ReactNode
+}) {
+  return (
+    <>
+      <View className="flex-row items-start justify-between gap-2">
+        <Text className="min-w-0 flex-1 text-base font-bold text-foreground" numberOfLines={1}>
+          {title}
+        </Text>
+        {statusLabel ? <StatusPill label={statusLabel} tone={statusTone} /> : null}
+      </View>
+      {subtitle ? (
+        <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+          {subtitle}
+        </Text>
+      ) : null}
+      {extra}
+    </>
   )
 }

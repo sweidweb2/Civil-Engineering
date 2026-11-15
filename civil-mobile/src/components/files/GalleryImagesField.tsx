@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { Image } from 'expo-image'
-import { Camera, ImageIcon, Plus, Star, Trash2 } from 'lucide-react-native'
+import { ImageIcon, Plus, Star, Trash2 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { OptionSheet } from '@/components/files/OptionSheet'
+import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale } from '@/components/kit'
+import { usePickAndUpload } from '@/hooks/usePickAndUpload'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { showBlockingAlert } from '@/services/feedback'
-import { FilePickError, type PickedFile, pickFile, type PickSource } from '@/services/filePicker'
+import type { PickedFile } from '@/services/filePicker'
 import {
   deleteGalleryImage,
   type GalleryImage,
@@ -17,9 +20,6 @@ import {
   setMainGalleryImage,
   uploadGalleryImage,
 } from '@/services/galleryImages'
-import { useToastApiError } from '@/services/toast'
-
-import { OptionSheet } from './OptionSheet'
 
 type Tile = {
   key: string
@@ -52,13 +52,12 @@ export function GalleryImagesField({
 }: GalleryImagesFieldProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
-  const toastApiError = useToastApiError()
+  const { sheetOpen, setSheetOpen, isBusy, setIsBusy, pickAndRun, toastApiError } =
+    usePickAndUpload()
 
   const [images, setImages] = useState<GalleryImage[]>([])
   const [queue, setQueue] = useState<PickedFile[]>([])
   const [isLoading, setIsLoading] = useState(Boolean(ownerId))
-  const [isBusy, setIsBusy] = useState(false)
-  const [addOpen, setAddOpen] = useState(false)
   const [active, setActive] = useState<Tile | null>(null)
 
   const refresh = useCallback(async () => {
@@ -94,28 +93,6 @@ export function GalleryImagesField({
       }))
   const count = tiles.length
   const canAdd = count < MAX_GALLERY_IMAGES && !disabled && !isBusy
-
-  async function onPick(source: PickSource) {
-    setAddOpen(false)
-    try {
-      const picked = await pickFile(source, t)
-      if (!picked) return
-      if (!ownerId) {
-        const next = [...queue, picked]
-        setQueue(next)
-        onQueueChange?.(next)
-        return
-      }
-      setIsBusy(true)
-      await uploadGalleryImage(kind, ownerId, picked, { isMain: images.length === 0 })
-      await refresh()
-    } catch (error) {
-      if (error instanceof FilePickError) toastApiError(new Error(t(`files.${error.code}`)))
-      else toastApiError(error)
-    } finally {
-      setIsBusy(false)
-    }
-  }
 
   async function setMain(image: GalleryImage) {
     setActive(null)
@@ -207,7 +184,7 @@ export function GalleryImagesField({
             accessibilityLabel={t('gallery.add')}
             scaleTo={0.94}
             className="aspect-square w-[30.5%] items-center justify-center gap-1 rounded-2xl border-[1.5px] border-dashed border-primary/40 bg-primary/5"
-            onPress={() => setAddOpen(true)}
+            onPress={() => setSheetOpen(true)}
           >
             <Plus size={24} color={colors.primary} />
             <Text className="text-xs font-semibold text-primary">{t('gallery.add')}</Text>
@@ -215,25 +192,22 @@ export function GalleryImagesField({
         ) : null}
       </View>
 
-      <OptionSheet
-        visible={addOpen}
+      <PickSourceSheet
+        visible={sheetOpen}
         title={t('gallery.add')}
-        cancelLabel={t('common.cancel')}
-        onClose={() => setAddOpen(false)}
-        options={[
-          {
-            key: 'camera',
-            icon: Camera,
-            label: t('files.takePhoto'),
-            onPress: () => void onPick('camera'),
-          },
-          {
-            key: 'library',
-            icon: ImageIcon,
-            label: t('files.chooseLibrary'),
-            onPress: () => void onPick('library'),
-          },
-        ]}
+        onClose={() => setSheetOpen(false)}
+        onPick={(source) =>
+          void pickAndRun(source, async (picked) => {
+            if (!ownerId) {
+              const next = [...queue, picked]
+              setQueue(next)
+              onQueueChange?.(next)
+              return
+            }
+            await uploadGalleryImage(kind, ownerId, picked, { isMain: images.length === 0 })
+            await refresh()
+          })
+        }
       />
 
       <OptionSheet

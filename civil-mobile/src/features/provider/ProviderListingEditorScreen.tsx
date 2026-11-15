@@ -22,9 +22,7 @@ import {
 } from '@/features/provider/listing.form'
 import { listingWriteFromForm } from '@/features/provider/listing.schema'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { ApiError } from '@/services/api'
 import { type Category, isListingCategory, listCategories } from '@/services/categories'
-import { showApiAlert } from '@/services/feedback'
 import type { PickedFile } from '@/services/filePicker'
 import { uploadQueuedImages } from '@/services/galleryImages'
 import {
@@ -34,7 +32,7 @@ import {
   updateListing,
 } from '@/services/listings'
 import { getMyProvider, listProviders, type Provider } from '@/services/providers'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError, useToastApiError, useToastSuccess } from '@/services/toast'
 
 const RENTAL_UNITS = ['HOUR', 'DAY', 'WEEK', 'MONTH']
 
@@ -53,6 +51,7 @@ export function ProviderListingEditorScreen({
   const listingId = typeof id === 'string' ? id : id?.[0]
   const { t } = useTranslation()
   const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const isAdmin = scope === 'admin'
 
@@ -65,7 +64,7 @@ export function ProviderListingEditorScreen({
   const [selectedProviderId, setSelectedProviderId] = useState('')
 
   const loadMine = useCallback(() => getMyProvider(), [])
-  const mineRemote = useRemoteData(loadMine, { enabled: !isAdmin })
+  const mineRemote = useRemoteData(loadMine, { enabled: !isAdmin, cacheKey: 'providers:me' })
   const mineProviderId = mineRemote.status === 'success' ? mineRemote.data.data.id : undefined
 
   const loadListing = useCallback(() => {
@@ -155,9 +154,7 @@ export function ProviderListingEditorScreen({
         router.replace(`${basePath}/${listingId}` as never)
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status >= 500) toastApiError(error)
-      else
-        showApiAlert(error, t(mode === 'create' ? 'listings.createFailed' : 'listings.saveFailed'))
+      handleApiError(error, t(mode === 'create' ? 'listings.createFailed' : 'listings.saveFailed'))
     } finally {
       setIsSaving(false)
     }

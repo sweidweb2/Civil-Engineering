@@ -2,25 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import * as WebBrowser from 'expo-web-browser'
-import {
-  Camera,
-  FileText,
-  FolderOpen,
-  ImageIcon,
-  RefreshCw,
-  Trash2,
-  Upload,
-} from 'lucide-react-native'
+import { FileText, ImageIcon, Trash2, Upload } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { OptionSheet } from '@/components/files/OptionSheet'
+import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { usePickAndUpload } from '@/hooks/usePickAndUpload'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { fileIdFromStorageKey } from '@/lib/fileKey'
-import { FilePickError, pickFile, type PickSource } from '@/services/filePicker'
 import { getDownloadUrl, uploadFile } from '@/services/files'
-import { useToastApiError, useToastSuccess } from '@/services/toast'
+import { useToastSuccess } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 import { softShadows } from '@/theme/shadows'
 
@@ -51,11 +43,9 @@ export function StageFileField({
   const { t } = useTranslation()
   const colors = useThemeColors()
   const accessToken = useAuthStore((s) => s.tokens?.accessToken ?? null)
-  const toastApiError = useToastApiError()
   const toastSuccess = useToastSuccess()
+  const { sheetOpen, setSheetOpen, isBusy, pickAndRun } = usePickAndUpload()
 
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
   const [preview, setPreview] = useState<Preview | null>(null)
   // After an upload the local image is already shown; skip refetching it once.
   const skipFetchFor = useRef<string | null>(null)
@@ -88,40 +78,9 @@ export function StageFileField({
     }
   }, [value, accessToken])
 
-  async function onPick(source: PickSource) {
-    setSheetOpen(false)
-    if (!accessToken) return
-    try {
-      const picked = await pickFile(source, t)
-      if (!picked) return
-      setIsUploading(true)
-      const uploaded = await uploadFile(accessToken, {
-        ...picked,
-        entityType: 'PROJECT',
-        entityId: projectId,
-      })
-      skipFetchFor.current = uploaded.key
-      setPreview({
-        url: picked.mime.startsWith('image/') ? picked.uri : '',
-        mime: uploaded.mime,
-        name: uploaded.originalName,
-      })
-      onChange(uploaded.key)
-      toastSuccess(t('files.uploaded'))
-    } catch (error) {
-      if (error instanceof FilePickError) {
-        toastApiError(new Error(t(`files.${error.code}`)))
-      } else {
-        toastApiError(error instanceof Error ? error : new Error(t('files.uploadFailed')))
-      }
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
   const isImage = Boolean(preview?.mime.startsWith('image/') && preview.url)
   const hasFile = Boolean(value)
-  const busy = disabled || isUploading
+  const busy = disabled || isBusy
 
   return (
     <View className="gap-3">
@@ -130,7 +89,7 @@ export function StageFileField({
       <PressableScale
         accessibilityRole="button"
         accessibilityLabel={hasFile ? t('files.replace') : t('files.add')}
-        accessibilityState={{ busy: isUploading, disabled: busy }}
+        accessibilityState={{ busy: isBusy, disabled: busy }}
         disabled={busy}
         scaleTo={0.98}
         className={`h-40 overflow-hidden rounded-3xl border-[1.5px] ${
@@ -171,7 +130,7 @@ export function StageFileField({
           </View>
         )}
 
-        {isUploading ? (
+        {isBusy ? (
           <View className="absolute inset-0 items-center justify-center gap-2 bg-background/80">
             <ActivityIndicator color={colors.primary} />
             <Text className="text-sm font-semibold text-foreground">{t('files.uploading')}</Text>
@@ -179,7 +138,7 @@ export function StageFileField({
         ) : null}
       </PressableScale>
 
-      {hasFile && !isUploading ? (
+      {hasFile && !isBusy ? (
         <View className="flex-row gap-3">
           {preview && !isImage && preview.url ? (
             <Pressable
@@ -202,31 +161,30 @@ export function StageFileField({
         </View>
       ) : null}
 
-      <OptionSheet
+      <PickSourceSheet
         visible={sheetOpen}
         title={t('files.sheetTitle')}
-        cancelLabel={t('files.cancel')}
         onClose={() => setSheetOpen(false)}
-        options={[
-          {
-            key: 'camera',
-            icon: Camera,
-            label: t('files.takePhoto'),
-            onPress: () => void onPick('camera'),
-          },
-          {
-            key: 'library',
-            icon: ImageIcon,
-            label: t('files.chooseLibrary'),
-            onPress: () => void onPick('library'),
-          },
-          {
-            key: 'file',
-            icon: hasFile ? RefreshCw : FolderOpen,
-            label: t('files.chooseFile'),
-            onPress: () => void onPick('file'),
-          },
-        ]}
+        allowFile
+        hasExisting={hasFile}
+        onPick={(source) => {
+          if (!accessToken) return
+          void pickAndRun(source, async (picked) => {
+            const uploaded = await uploadFile(accessToken, {
+              ...picked,
+              entityType: 'PROJECT',
+              entityId: projectId,
+            })
+            skipFetchFor.current = uploaded.key
+            setPreview({
+              url: picked.mime.startsWith('image/') ? picked.uri : '',
+              mime: uploaded.mime,
+              name: uploaded.originalName,
+            })
+            onChange(uploaded.key)
+            toastSuccess(t('files.uploaded'))
+          })
+        }}
       />
     </View>
   )

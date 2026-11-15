@@ -116,9 +116,9 @@ export const ar: Messages = {
     providerStatus: { PENDING: 'قيد المراجعة', APPROVED: 'معتمد', SUSPENDED: 'موقوف' },
     reviewStatus: {
       PENDING: 'قيد المراجعة',
+      ACCEPTED: 'معتمد',
       APPROVED: 'معتمد',
       REJECTED: 'مرفوض',
-      HIDDEN: 'مخفي',
     },
     categoryKind: { MATERIAL: 'مواد', EQUIPMENT: 'معدات', SERVICE: 'خدمات', WORKER: 'عمال' },
     userStatus: { ACTIVE: 'نشط', INACTIVE: 'غير نشط', PENDING: 'قيد المراجعة' },

@@ -28,12 +28,19 @@ export type ProviderLogoResponse = {
   meta: { logoDownloadUrl: string | null }
 }
 
+export type ProviderStatusCounts = {
+  PENDING: number
+  APPROVED: number
+  SUSPENDED: number
+}
+
 export type PaginatedProviders = {
   data: Provider[]
   meta: {
     page: number
     limit: number
     total: number
+    statusCounts: ProviderStatusCounts
   }
 }
 

@@ -24,6 +24,13 @@ export type User = {
   updatedAt: string
 }
 
+export type UserDirectoryCounts = {
+  accounts: number
+  active: number
+  inactive: number
+  managers: number
+}
+
 export type PaginatedUsers = {
   data: User[]
   meta: {
@@ -31,6 +38,7 @@ export type PaginatedUsers = {
     limit: number
     total: number
     totalPages: number
+    counts?: UserDirectoryCounts
   }
 }
 
@@ -94,6 +102,12 @@ export function deactivateUser(id: string) {
   })
 }
 
+export type ApprovalCounts = {
+  pending: number
+  approved: number
+  providersPending: number
+}
+
 export type PaginatedApprovals = {
   data: User[]
   meta: {
@@ -101,6 +115,7 @@ export type PaginatedApprovals = {
     limit: number
     total: number
     totalPages: number
+    counts?: ApprovalCounts
   }
 }
 

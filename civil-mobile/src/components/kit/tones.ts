@@ -48,6 +48,7 @@ const STATUS_TONES: Record<string, Tone> = {
   // providers / reviews / approvals
   PENDING: 'warning',
   APPROVED: 'success',
+  ACCEPTED: 'success',
   SUSPENDED: 'danger',
   REJECTED: 'danger',
   HIDDEN: 'neutral',

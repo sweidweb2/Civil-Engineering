@@ -1,5 +1,5 @@
-import { AdminProviderCreateScreen } from '@/features/admin/AdminProviderCreateScreen'
+import { AdminProviderCreateScreen } from '@/features/admin/AdminProviderDetailScreen'
 
-export default function AdminProviderCreate() {
+export default function AdminProviderCreateRoute() {
   return <AdminProviderCreateScreen />
 }

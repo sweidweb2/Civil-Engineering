@@ -1,14 +1,3 @@
-import { Stack } from 'expo-router'
+import { makePortalLayout } from '@/navigation/makePortalLayout'
 
-import { PortalShell } from '@/components/layout/PortalShell'
-import { RequireAuth } from '@/features/portals/RequireAuth'
-
-export default function ProviderLayout() {
-  return (
-    <RequireAuth portal="provider">
-      <PortalShell portal="provider">
-        <Stack screenOptions={{ headerShown: false }} />
-      </PortalShell>
-    </RequireAuth>
-  )
-}
+export default makePortalLayout('provider')

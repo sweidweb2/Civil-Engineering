@@ -29,6 +29,8 @@ import {
 } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { remoteCacheSet } from '@/lib/remoteCache'
+import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
 import { formatListingPrice, type Listing, listListings } from '@/services/listings'
 import { getMyProvider, type Provider } from '@/services/providers'
@@ -42,30 +44,25 @@ type Overview = {
   recent: Listing[]
 }
 
-function totalOf(result: PromiseSettledResult<{ meta: { total: number } }>): number | null {
-  return result.status === 'fulfilled' ? result.value.meta.total : null
-}
-
+/**
+ * Provider list endpoints auto-scope to the signed-in provider, so profile +
+ * listing stats can load in parallel (one RTT instead of sequential 1+3).
+ */
 async function loadOverview(): Promise<Overview> {
-  const mine = await getMyProvider()
-  const providerId = mine.data.id
-  const [all, live, hidden] = await Promise.allSettled([
-    listListings(1, 5, { providerId, counts: false }),
-    listListings(1, 1, { providerId, status: 'ACTIVE', counts: false }),
-    listListings(1, 1, { providerId, status: 'INACTIVE', counts: false }),
+  const [mine, all, live, hidden] = await Promise.allSettled([
+    getMyProvider(),
+    listListings(1, 5, { counts: false }),
+    listListings(1, 1, { status: 'ACTIVE', counts: false }),
+    listListings(1, 1, { status: 'INACTIVE', counts: false }),
   ])
+  if (mine.status === 'fulfilled') remoteCacheSet('providers:me', mine.value)
   return {
-    provider: mine.data,
+    provider: mine.status === 'fulfilled' ? mine.value.data : null,
     total: totalOf(all),
     live: totalOf(live),
     hidden: totalOf(hidden),
-    recent: all.status === 'fulfilled' ? all.value.data : [],
+    recent: fulfilledRows(all),
   }
-}
-
-function formatCount(value: number | null | undefined, isLoading: boolean): string {
-  if (isLoading) return '…'
-  return value == null ? '—' : value.toLocaleString()
 }
 
 const STATUS_BANNER: Record<
@@ -109,7 +106,7 @@ export function ProviderDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load)
+  const remote = useRemoteData(load, { cacheKey: 'dashboard:provider' })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data
@@ -152,7 +149,7 @@ export function ProviderDashboardScreen() {
       </HeroHeader>
 
       <DashboardScroll
-        refreshing={remote.isLoading && Boolean(data)}
+        refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
         {banner ? (

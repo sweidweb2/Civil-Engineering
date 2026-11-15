@@ -1,14 +1,3 @@
-import { Slot } from 'expo-router'
+import { makePortalLayout } from '@/navigation/makePortalLayout'
 
-import { PortalShell } from '@/components/layout/PortalShell'
-import { RequireAuth } from '@/features/portals/RequireAuth'
-
-export default function WorkerLayout() {
-  return (
-    <RequireAuth portal="worker">
-      <PortalShell portal="worker">
-        <Slot />
-      </PortalShell>
-    </RequireAuth>
-  )
-}
+export default makePortalLayout('worker', 'slot')

@@ -12,8 +12,7 @@ import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
 import { ApiError } from '@/services/api'
-import { showApiAlert } from '@/services/feedback'
-import { useToastApiError } from '@/services/toast'
+import { useHandleApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
 import { glow } from '@/theme/shadows'
 
@@ -22,7 +21,7 @@ export function LoginScreen() {
   const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
-  const toastApiError = useToastApiError()
+  const handleApiError = useHandleApiError()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -50,11 +49,7 @@ export function LoginScreen() {
         router.replace('/pending-approval' as never)
         return
       }
-      if (error instanceof ApiError && error.status >= 500) {
-        toastApiError(error)
-      } else {
-        showApiAlert(error, t('auth.couldNotSignIn'), t('auth.couldNotSignIn'))
-      }
+      handleApiError(error, t('auth.couldNotSignIn'), t('auth.couldNotSignIn'))
     } finally {
       setIsSubmitting(false)
     }

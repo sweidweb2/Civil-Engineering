@@ -7,7 +7,11 @@ import {
   MAX_BRAND_IMAGE_BYTES,
 } from '../files/image-policy.js'
 import type { FilesService } from '../files/index.js'
-import type { UserDirectoryCounts, UsersRepository } from './users.repository.js'
+import type { ListingsService } from '../listings/index.js'
+import type { ProjectsService } from '../projects/index.js'
+import type { ProvidersService } from '../providers/index.js'
+import type { ReviewsService } from '../reviews/index.js'
+import type { ApprovalCounts, UserDirectoryCounts, UsersRepository } from './users.repository.js'
 import type {
   CreateApprovalBody,
   CreateUserBody,
@@ -21,6 +25,7 @@ import type {
   UpdateUserBody,
 } from './users.schema.js'
 import {
+  type AdminOverview,
   APPROVAL_ROLES,
   type ApprovalRole,
   type User,
@@ -50,6 +55,8 @@ export type UsersService = {
     data: UserLookup[]
     meta: { total: number; page: number; limit: number; totalPages: number }
   }>
+  /** Admin dashboard aggregate in one round-trip (counts + newest projects). */
+  getAdminOverview: (actor: AuthActor) => Promise<AdminOverview>
   getUserById: (id: string) => Promise<User>
   /** Self or admin may read a user record. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<User>
@@ -76,7 +83,7 @@ export type UsersService = {
       page: number
       limit: number
       totalPages: number
-      counts: { pending: number; approved: number; providersPending: number }
+      counts: ApprovalCounts
     }
   }>
   createApproval: (input: CreateApprovalBody, actor: AuthActor) => Promise<User>
@@ -106,6 +113,34 @@ export type UsersFilesGateway = Pick<
   'requireReadyAttachment' | 'downloadUrl' | 'softDelete' | 'uploadBytes'
 >
 
+/** Public service surfaces of other modules used by the admin overview (no repository reach-in). */
+export type UsersAdminOverviewGateway = {
+  providers: Pick<ProvidersService, 'countProvidersByStatus'>
+  listings: Pick<ListingsService, 'countListingsByStatus'>
+  projects: Pick<ProjectsService, 'listProjects'>
+  reviews: Pick<ReviewsService, 'countReviewsByStatus'>
+}
+
+const RECENT_PROJECTS_LIMIT = 5
+
+const emptyDirectoryCounts: UserDirectoryCounts = {
+  accounts: 0,
+  active: 0,
+  inactive: 0,
+  managers: 0,
+  createdThisMonth: 0,
+  createdLastMonth: 0,
+  activeCreatedThisMonth: 0,
+  activeCreatedLastMonth: 0,
+  inactiveCreatedThisMonth: 0,
+  inactiveCreatedLastMonth: 0,
+  managersCreatedThisMonth: 0,
+  managersCreatedLastMonth: 0,
+  roles: { SUPER: 0, ADMIN: 0, MANAGER: 0, PROVIDER: 0, WORKER: 0, CLIENT: 0 },
+}
+
+const emptyApprovalCounts: ApprovalCounts = { pending: 0, approved: 0, providersPending: 0 }
+
 const unavailableFiles: UsersFilesGateway = {
   async requireReadyAttachment() {
     throw validationError('Storage is not configured')
@@ -124,6 +159,7 @@ const unavailableFiles: UsersFilesGateway = {
 export function createUsersService(
   repository: UsersRepository,
   filesService: UsersFilesGateway = unavailableFiles,
+  adminOverview?: UsersAdminOverviewGateway,
 ): UsersService {
   async function loadOrThrow(id: string): Promise<User> {
     const user = await repository.findById(id)
@@ -187,7 +223,9 @@ export function createUsersService(
       assertAdmin(actor)
       const [{ users, total }, counts] = await Promise.all([
         repository.findMany(query),
-        repository.countDirectory(),
+        query.counts === false
+          ? Promise.resolve(emptyDirectoryCounts)
+          : repository.countDirectory(),
       ])
       const page = query.page ?? 1
       const limit = query.limit ?? 20
@@ -216,6 +254,35 @@ export function createUsersService(
           limit,
           totalPages: Math.ceil(total / limit),
         },
+      }
+    },
+
+    async getAdminOverview(actor) {
+      if (!isAdmin(actor.roles)) {
+        throw forbidden('Only admins can view the admin overview')
+      }
+      if (!adminOverview) {
+        throw validationError('Admin overview is not configured')
+      }
+      const { providers, listings, projects, reviews } = adminOverview
+      const [directory, approvals, providerCounts, listingCounts, reviewCounts, recent] =
+        await Promise.all([
+          repository.countDirectory(),
+          repository.countApprovals(),
+          providers.countProvidersByStatus(),
+          listings.countListingsByStatus(),
+          reviews.countReviewsByStatus(),
+          projects.listProjects({ page: 1, limit: RECENT_PROJECTS_LIMIT }, actor),
+        ])
+      return {
+        users: directory.accounts,
+        providers: providerCounts.PENDING + providerCounts.APPROVED + providerCounts.SUSPENDED,
+        pendingProviders: providerCounts.PENDING,
+        projects: recent.meta.total,
+        listings: listingCounts.ACTIVE + listingCounts.INACTIVE,
+        pendingRequests: approvals.pending,
+        pendingReviews: reviewCounts.PENDING,
+        recentProjects: recent.data,
       }
     },
 
@@ -362,7 +429,7 @@ export function createUsersService(
       const limit = query.limit ?? 20
       const [{ users, total }, counts] = await Promise.all([
         repository.findApprovals(query),
-        repository.countApprovals(),
+        query.counts === false ? Promise.resolve(emptyApprovalCounts) : repository.countApprovals(),
       ])
       return {
         data: users,

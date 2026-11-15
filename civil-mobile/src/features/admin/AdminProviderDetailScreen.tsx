@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { MapPin, Phone, Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import {
   Card,
   ChoiceField,
@@ -26,7 +27,8 @@ import {
   type ProviderStatus,
   updateProvider,
 } from '@/services/providers'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
+import { useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/providers'
 
@@ -98,10 +100,12 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
     try {
       if (mode === 'create') {
         const created = await createProvider(payload)
+        invalidateAdminCaches()
         toastSuccess(t('providers.created'))
         router.replace(`${BASE}/${created.data.id}` as never)
       } else if (providerId) {
         await updateProvider(providerId, payload)
+        invalidateAdminCaches()
         toastSuccess(t('providers.saved'))
         await remote.refetch()
       }

@@ -8,6 +8,8 @@ import { ChoiceField, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
 import { StageFileField } from '@/features/pm/StageFileField'
+import { saveStageDraft, type StageDraft } from '@/features/pm/stagePayloads'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel, enumOptions } from '@/i18n/labels'
@@ -18,16 +20,9 @@ import {
   type ProjectStageStatus,
   STAGE_KEYS,
   type StageKey,
-  upsertDesign,
-  upsertGeotechnical,
-  upsertLicensing,
-  upsertMaintenance,
-  upsertMaterials,
 } from '@/services/project-stages'
 import { getProjectById } from '@/services/projects'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
-
-type StageDraft = Record<string, string>
+import { useToastSuccess } from '@/services/toast'
 
 function emptyDraft(status: ProjectStageStatus = 'NOT_STARTED'): StageDraft {
   return { status }
@@ -180,15 +175,6 @@ function fileFieldsForStage(key: StageKey): string[] {
   }
 }
 
-function toNullable(value: string | undefined): string | null {
-  const trimmed = value?.trim() ?? ''
-  return trimmed.length > 0 ? trimmed : null
-}
-
-function toRequiredString(value: string | undefined): string {
-  return value?.trim() ?? ''
-}
-
 type ProjectStagesScreenProps = {
   basePath?: string
 }
@@ -239,74 +225,7 @@ export function ProjectStagesScreen({ basePath = '/pm/projects' }: ProjectStages
     if (!projectId) return
     setIsSaving(true)
     try {
-      const status = (draft.status as ProjectStageStatus) || 'NOT_STARTED'
-      if (activeKey === 'geotechnical') {
-        await upsertGeotechnical(projectId, {
-          soilType: toRequiredString(draft.soilType),
-          soilBearingCapacity: toRequiredString(draft.soilBearingCapacity),
-          groundwaterLevel: toNullable(draft.groundwaterLevel),
-          foundationRecommendation: toRequiredString(draft.foundationRecommendation),
-          reportFilePath: toRequiredString(draft.reportFilePath),
-          consultantName: toRequiredString(draft.consultantName),
-          status,
-          startDate: toRequiredString(draft.startDate),
-          completionDate: toRequiredString(draft.completionDate),
-          notes: toRequiredString(draft.notes),
-        })
-      } else if (activeKey === 'design') {
-        await upsertDesign(projectId, {
-          architecturalDesignPath: toRequiredString(draft.architecturalDesignPath),
-          structuralDesignPath: toRequiredString(draft.structuralDesignPath),
-          mepDesignPath: toRequiredString(draft.mepDesignPath),
-          architectName: toRequiredString(draft.architectName),
-          structuralEngineerName: toRequiredString(draft.structuralEngineerName),
-          mepEngineerName: toRequiredString(draft.mepEngineerName),
-          status,
-          startDate: toRequiredString(draft.startDate),
-          completionDate: toRequiredString(draft.completionDate),
-          notes: toRequiredString(draft.notes),
-        })
-      } else if (activeKey === 'licensing') {
-        await upsertLicensing(projectId, {
-          permitNumber: toRequiredString(draft.permitNumber),
-          issuingAuthority: toRequiredString(draft.issuingAuthority),
-          applicationDate: toRequiredString(draft.applicationDate),
-          approvalDate: toNullable(draft.approvalDate),
-          permitFilePath: toRequiredString(draft.permitFilePath),
-          status,
-          expiryDate: toNullable(draft.expiryDate),
-          notes: toRequiredString(draft.notes),
-        })
-      } else if (activeKey === 'materials') {
-        await upsertMaterials(projectId, {
-          supplierName: toRequiredString(draft.supplierName),
-          materialDescription: toRequiredString(draft.materialDescription),
-          quantity: toRequiredString(draft.quantity),
-          unit: toRequiredString(draft.unit),
-          totalCost: toRequiredString(draft.totalCost),
-          currency: toRequiredString(draft.currency) || 'USD',
-          originCountry: toRequiredString(draft.originCountry),
-          orderDate: toRequiredString(draft.orderDate),
-          expectedArrivalDate: toRequiredString(draft.expectedArrivalDate),
-          actualArrivalDate: toNullable(draft.actualArrivalDate),
-          invoiceFilePath: toRequiredString(draft.invoiceFilePath),
-          status,
-          notes: toRequiredString(draft.notes),
-        })
-      } else {
-        await upsertMaintenance(projectId, {
-          maintenanceType: toRequiredString(draft.maintenanceType),
-          description: toRequiredString(draft.description),
-          responsiblePerson: toRequiredString(draft.responsiblePerson),
-          scheduledDate: toRequiredString(draft.scheduledDate),
-          completionDate: toNullable(draft.completionDate),
-          cost: toRequiredString(draft.cost),
-          status,
-          reportFilePath: toRequiredString(draft.reportFilePath),
-          notes: toRequiredString(draft.notes),
-        })
-      }
-
+      await saveStageDraft(projectId, activeKey, draft)
       await stagesRemote.refetch()
       if (continueNext && !isLast) {
         setActiveKey(STAGE_KEYS[activeIndex + 1]!)

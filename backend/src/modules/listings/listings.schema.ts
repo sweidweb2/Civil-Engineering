@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { countsQuerySchema } from '../_shared/counts.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 
 export const listingTypeSchema = z.enum(['MATERIAL', 'EQUIPMENT', 'SERVICE'])
@@ -46,11 +47,7 @@ export const listingIdParamsSchema = z.object({
 
 export const listListingsQuerySchema = paginationQuerySchema.extend({
   q: optionalQueryText,
-  counts: z.preprocess((value) => {
-    if (value === 'false' || value === '0' || value === false) return false
-    if (value === 'true' || value === '1' || value === true) return true
-    return value
-  }, z.boolean().optional()),
+  counts: countsQuerySchema,
   type: listingTypeSchema.optional(),
   status: listingStatusSchema.optional(),
   providerId: z.preprocess(

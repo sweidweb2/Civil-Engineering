@@ -52,12 +52,20 @@ export type ListingTypeCounts = {
   SERVICE: number
 }
 
+export type ListingStatusCounts = {
+  ACTIVE: number
+  INACTIVE: number
+}
+
 export type PaginatedListings = {
   data: Listing[]
   meta: {
     page: number
     limit: number
     total: number
+    /** Always present (cheap status groupBy). Provider-scoped for provider callers. */
+    statusCounts: ListingStatusCounts
+    /** Zeroed when the caller passes `counts=false` (skips the category join). */
     typeCounts: ListingTypeCounts
   }
 }

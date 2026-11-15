@@ -72,10 +72,27 @@ export const AUTH_ROLE_OPTIONS: { value: AuthRole; label: string }[] = [
   { value: 'CLIENT', label: 'Client' },
 ]
 
-export function listUsers(page = 1, limit = 20, q?: string) {
+export function listUsers(page = 1, limit = 20, q?: string, counts = true) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (q) params.set('q', q)
+  if (!counts) params.set('counts', 'false')
   return apiRequest<PaginatedUsers>(`/users?${params.toString()}`)
+}
+
+export type AdminOverview = {
+  users: number
+  providers: number
+  pendingProviders: number
+  projects: number
+  listings: number
+  pendingRequests: number
+  pendingReviews: number
+  recentProjects: import('./projects').Project[]
+}
+
+/** Single-request admin dashboard aggregates + recent projects. */
+export function getAdminOverview() {
+  return apiRequest<{ data: AdminOverview }>('/users/admin-overview')
 }
 
 export function getUser(id: string) {
@@ -124,6 +141,7 @@ export function listApprovals(query: {
   page?: number
   limit?: number
   q?: string
+  counts?: boolean
 }) {
   const params = new URLSearchParams({
     approval: query.approval,
@@ -131,6 +149,7 @@ export function listApprovals(query: {
     limit: String(query.limit ?? 20),
   })
   if (query.q) params.set('q', query.q)
+  if (query.counts === false) params.set('counts', 'false')
   return apiRequest<PaginatedApprovals>(`/users/approvals?${params.toString()}`)
 }
 

@@ -6,13 +6,24 @@ import {
 import { createReviewsController } from './reviews.controller.js'
 import { createReviewsRepository } from './reviews.repository.js'
 import { createReviewsRoutes } from './reviews.routes.js'
-import { createReviewsService } from './reviews.service.js'
+import { createReviewsService, type ReviewsService } from './reviews.service.js'
 
-export function createReviewsModule(
-  deps: ListingsModuleDeps & { listingsService?: ListingsService } = {},
-) {
-  const repository = createReviewsRepository()
-  const service = createReviewsService(repository, deps.listingsService ?? getListingsService(deps))
+export type ReviewsModuleDeps = ListingsModuleDeps & {
+  listingsService?: ListingsService
+  /** Injected by the composition root so other modules can share the same instance. */
+  service?: ReviewsService
+}
+
+/** Builds a fresh service. The composition root calls this once per app. */
+export function buildReviewsService(deps: ReviewsModuleDeps = {}): ReviewsService {
+  return createReviewsService(
+    createReviewsRepository(),
+    deps.listingsService ?? getListingsService(deps),
+  )
+}
+
+export function createReviewsModule(deps: ReviewsModuleDeps = {}) {
+  const service = deps.service ?? buildReviewsService(deps)
   const controller = createReviewsController(service)
   return createReviewsRoutes(controller)
 }

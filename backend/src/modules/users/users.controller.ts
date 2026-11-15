@@ -16,6 +16,7 @@ const avatarUpload = createImageUpload(MAX_BRAND_IMAGE_BYTES)
 export type UsersController = {
   list: (req: Request, res: Response, next: NextFunction) => Promise<void>
   listLookup: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  getAdminOverview: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getById: (req: Request, res: Response, next: NextFunction) => Promise<void>
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>
@@ -54,6 +55,14 @@ export function createUsersController(service: UsersService): UsersController {
         const query = req.query as unknown as ListLookupQuery
         const result = await service.listLookup(query, parseAuthActor(req))
         res.status(200).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+    async getAdminOverview(req, res, next) {
+      try {
+        const data = await service.getAdminOverview(parseAuthActor(req))
+        res.status(200).json({ data })
       } catch (error) {
         next(error)
       }

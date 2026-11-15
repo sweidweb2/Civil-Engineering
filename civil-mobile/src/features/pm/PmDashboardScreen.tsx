@@ -22,6 +22,7 @@ import {
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
 import { getProjectSummary, listProjects, type Project } from '@/services/projects'
@@ -91,7 +92,7 @@ export function PmDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load, { cacheKey: 'dashboard:pm' })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardPm })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data

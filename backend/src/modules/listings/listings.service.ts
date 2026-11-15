@@ -24,6 +24,7 @@ import type {
 import type {
   Listing,
   ListingSnapshot,
+  ListingStatusCounts,
   ListingTypeCounts,
   PaginatedListings,
 } from './listings.types.js'
@@ -44,6 +45,7 @@ export type ListingsService = {
   getListingSnapshots: (ids: string[]) => Promise<ListingSnapshot[]>
   getListingNames: (ids: string[]) => Promise<Array<{ id: string; name: string }>>
   listingExists: (id: string) => Promise<boolean>
+  countListingsByStatus: (providerId?: string) => Promise<ListingStatusCounts>
   listListingChoices: (filters?: {
     take?: number
     categoryId?: string
@@ -282,6 +284,7 @@ export function createListingsService(
     getListingSnapshots: (ids) => repository.findSnapshotsByIds(ids),
     getListingNames: (ids) => repository.findNamesByIds(ids),
     listingExists: (id) => repository.existsById(id),
+    countListingsByStatus: (providerId) => repository.countByStatus(providerId),
     listListingChoices: (filters = {}) =>
       repository.listChoices({
         take: filters.take ?? 100,
@@ -297,13 +300,13 @@ export function createListingsService(
           ? { ...query, providerId: await resolveOwnedProviderId(actor) }
           : query
       const emptyCounts: ListingTypeCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 }
-      const [{ items, total }, typeCounts] =
+      const [{ items, total }, statusCounts, typeCounts] = await Promise.all([
+        repository.findMany(scopedQuery),
+        repository.countByStatus(scopedQuery.providerId),
         scopedQuery.counts === false
-          ? [await repository.findMany(scopedQuery), emptyCounts]
-          : await Promise.all([
-              repository.findMany(scopedQuery),
-              repository.countByType(scopedQuery.providerId),
-            ])
+          ? Promise.resolve(emptyCounts)
+          : repository.countByType(scopedQuery.providerId),
+      ])
 
       const uniquePaths = [
         ...new Set(
@@ -330,6 +333,7 @@ export function createListingsService(
           page: scopedQuery.page,
           limit: scopedQuery.limit,
           total,
+          statusCounts,
           typeCounts,
         },
       }

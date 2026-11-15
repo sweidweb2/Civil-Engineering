@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { ListCard, ListScreen, StandardListRow, Thumbnail, toneForStatus } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel, enumOptions } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { listProviders, PROVIDER_STATUS_OPTIONS, type ProviderStatus } from '@/services/providers'
 
 const PAGE_SIZE = 20
@@ -20,8 +21,9 @@ export function AdminProvidersScreen() {
         PAGE_SIZE,
         query || undefined,
         (filter || undefined) as ProviderStatus | undefined,
+        false,
       ),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: 'providers:list' },
+    { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.providers },
   )
   const statusOptions = useMemo(
     () => enumOptions(t, 'providerStatus', PROVIDER_STATUS_OPTIONS),

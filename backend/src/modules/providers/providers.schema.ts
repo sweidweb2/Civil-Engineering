@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { countsQuerySchema } from '../_shared/counts.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 
 export const providerStatusSchema = z.enum(['PENDING', 'APPROVED', 'SUSPENDED'])
@@ -11,6 +12,7 @@ export const providerIdParamsSchema = z.object({
 export const listProvidersQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().max(120).optional(),
   status: providerStatusSchema.optional(),
+  counts: countsQuerySchema,
 })
 
 function blankToUndefined(value: unknown) {
@@ -115,6 +117,8 @@ export type ListProvidersQuery = {
   limit: number
   q?: string
   status?: z.infer<typeof providerStatusSchema>
+  /** `false` skips the status groupBy; `statusCounts` is returned zeroed. */
+  counts?: boolean
 }
 
 export type CreateProviderBody = {

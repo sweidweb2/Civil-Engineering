@@ -8,12 +8,11 @@ import { useTranslation } from 'react-i18next'
 import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
-import { usePickAndUpload } from '@/hooks/usePickAndUpload'
+import { useFilePick } from '@/hooks/useFilePick'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { fileIdFromStorageKey } from '@/lib/fileKey'
 import { getDownloadUrl, uploadFile } from '@/services/files'
 import { useToastSuccess } from '@/services/toast'
-import { useAuthStore } from '@/stores/authStore'
 import { softShadows } from '@/theme/shadows'
 
 type Preview = { url: string; mime: string; name: string }
@@ -42,9 +41,8 @@ export function StageFileField({
 }: StageFileFieldProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
-  const accessToken = useAuthStore((s) => s.tokens?.accessToken ?? null)
   const toastSuccess = useToastSuccess()
-  const { sheetOpen, setSheetOpen, isBusy, pickAndRun } = usePickAndUpload()
+  const { sheetOpen, setSheetOpen, isBusy, pickAndRun } = useFilePick()
 
   const [preview, setPreview] = useState<Preview | null>(null)
   // After an upload the local image is already shown; skip refetching it once.
@@ -61,11 +59,11 @@ export function StageFileField({
       return
     }
     const fileId = fileIdFromStorageKey(value)
-    if (!fileId || !accessToken) {
+    if (!fileId) {
       setPreview(null)
       return
     }
-    getDownloadUrl(accessToken, fileId)
+    getDownloadUrl(fileId)
       .then((result) => {
         if (cancelled) return
         setPreview({ url: result.downloadUrl, mime: result.mime, name: result.originalName })
@@ -76,7 +74,7 @@ export function StageFileField({
     return () => {
       cancelled = true
     }
-  }, [value, accessToken])
+  }, [value])
 
   const isImage = Boolean(preview?.mime.startsWith('image/') && preview.url)
   const hasFile = Boolean(value)
@@ -168,9 +166,8 @@ export function StageFileField({
         allowFile
         hasExisting={hasFile}
         onPick={(source) => {
-          if (!accessToken) return
           void pickAndRun(source, async (picked) => {
-            const uploaded = await uploadFile(accessToken, {
+            const uploaded = await uploadFile({
               ...picked,
               entityType: 'PROJECT',
               entityId: projectId,

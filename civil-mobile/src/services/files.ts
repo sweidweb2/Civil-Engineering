@@ -25,41 +25,34 @@ export type DownloadUrlResponse = {
   originalName: string
 }
 
-export function presignFile(
-  accessToken: string,
-  input: {
-    entityType: FileEntityType
-    entityId: string
-    mime: string
-    size: number
-    originalName: string
-  },
-) {
+export function presignFile(input: {
+  entityType: FileEntityType
+  entityId: string
+  mime: string
+  size: number
+  originalName: string
+}) {
   return apiRequest<PresignFileResponse>('/files/presign', {
     method: 'POST',
-    accessToken,
     body: JSON.stringify(input),
   })
 }
 
-export function completeFile(accessToken: string, fileId: string) {
+export function completeFile(fileId: string) {
   return apiRequest<CompleteFileResponse>(`/files/${fileId}/complete`, {
     method: 'POST',
-    accessToken,
   })
 }
 
-export function getDownloadUrl(accessToken: string, fileId: string) {
+export function getDownloadUrl(fileId: string) {
   return apiRequest<DownloadUrlResponse>(`/files/${fileId}/download-url`, {
     method: 'GET',
-    accessToken,
   })
 }
 
-export function deleteFile(accessToken: string, fileId: string) {
+export function deleteFile(fileId: string) {
   return apiRequest<void>(`/files/${fileId}`, {
     method: 'DELETE',
-    accessToken,
   })
 }
 
@@ -67,17 +60,14 @@ export function deleteFile(accessToken: string, fileId: string) {
  * Optimize (images) → presign → PUT to R2 → complete.
  * Bytes never go through Express.
  */
-export async function uploadFile(
-  accessToken: string,
-  input: {
-    uri: string
-    mime: string
-    originalName: string
-    size: number
-    entityType: FileEntityType
-    entityId: string
-  },
-): Promise<CompleteFileResponse> {
+export async function uploadFile(input: {
+  uri: string
+  mime: string
+  originalName: string
+  size: number
+  entityType: FileEntityType
+  entityId: string
+}): Promise<CompleteFileResponse> {
   const optimized = await optimizeIfImage({
     uri: input.uri,
     mime: input.mime,
@@ -85,7 +75,7 @@ export async function uploadFile(
     size: input.size,
   })
 
-  const presign = await presignFile(accessToken, {
+  const presign = await presignFile({
     entityType: input.entityType,
     entityId: input.entityId,
     mime: optimized.mime,
@@ -106,5 +96,5 @@ export async function uploadFile(
     throw new Error(`Upload to storage failed (${put.status})`)
   }
 
-  return completeFile(accessToken, presign.fileId)
+  return completeFile(presign.fileId)
 }

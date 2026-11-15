@@ -29,8 +29,8 @@ import {
 } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { remoteCacheSet } from '@/lib/remoteCache'
-import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
+import { cacheKeys } from '@/lib/cacheKeys'
+import { formatCount, fulfilledRows } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
 import { formatListingPrice, type Listing, listListings } from '@/services/listings'
 import { getMyProvider, type Provider } from '@/services/providers'
@@ -45,26 +45,25 @@ type Overview = {
 }
 
 /**
- * Provider list endpoints auto-scope to the signed-in provider, so profile +
- * listing stats can load in parallel (one RTT instead of sequential 1+3).
+ * Two parallel calls: own provider profile + a small listing page whose
+ * `meta.total` / `meta.statusCounts` drive the hero stats (provider lists
+ * auto-scope to the signed-in provider). `providers:me` is seeded by the
+ * profile/editor screens through `useRemoteData`, not from here.
  */
 async function loadOverview(): Promise<Overview> {
-  const [mine, all, live, hidden] = await Promise.allSettled([
+  const [mine, listings] = await Promise.allSettled([
     getMyProvider(),
     listListings(1, 5, { counts: false }),
-    listListings(1, 1, { status: 'ACTIVE', counts: false }),
-    listListings(1, 1, { status: 'INACTIVE', counts: false }),
   ])
-  if (mine.status === 'fulfilled') remoteCacheSet('providers:me', mine.value)
+  const meta = listings.status === 'fulfilled' ? listings.value.meta : null
   return {
     provider: mine.status === 'fulfilled' ? mine.value.data : null,
-    total: totalOf(all),
-    live: totalOf(live),
-    hidden: totalOf(hidden),
-    recent: fulfilledRows(all),
+    total: meta?.total ?? null,
+    live: meta?.statusCounts?.ACTIVE ?? null,
+    hidden: meta?.statusCounts?.INACTIVE ?? null,
+    recent: fulfilledRows(listings),
   }
 }
-
 const STATUS_BANNER: Record<
   Provider['status'],
   {
@@ -106,7 +105,7 @@ export function ProviderDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load, { cacheKey: 'dashboard:provider' })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardProvider })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data

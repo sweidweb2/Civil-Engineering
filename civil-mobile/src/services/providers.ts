@@ -76,10 +76,17 @@ export function getMyProvider() {
   return apiRequest<ProviderLogoResponse>('/providers/me')
 }
 
-export function listProviders(page = 1, limit = 20, q?: string, status?: ProviderStatus) {
+export function listProviders(
+  page = 1,
+  limit = 20,
+  q?: string,
+  status?: ProviderStatus,
+  counts = true,
+) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (q) params.set('q', q)
   if (status) params.set('status', status)
+  if (!counts) params.set('counts', 'false')
   return apiRequest<PaginatedProviders>(`/providers?${params.toString()}`)
 }
 

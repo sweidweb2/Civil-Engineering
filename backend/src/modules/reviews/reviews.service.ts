@@ -10,10 +10,17 @@ import {
 import type { ListingsService } from '../listings/index.js'
 import type { ReviewRecord, ReviewsRepository } from './reviews.repository.js'
 import type { CreateReviewBody, ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
-import type { PaginatedReviews, Review, ReviewTargetOption } from './reviews.types.js'
+import type {
+  PaginatedReviews,
+  Review,
+  ReviewStatusCounts,
+  ReviewTargetOption,
+} from './reviews.types.js'
 
 export type ReviewsService = {
   listReviews: (query: ListReviewsQuery, actor: AuthActor) => Promise<PaginatedReviews>
+  /** Internal count for other modules (no actor / authorization). */
+  countReviewsByStatus: () => Promise<ReviewStatusCounts>
   listTargets: (
     targetType: CreateReviewBody['targetType'],
     actor: AuthActor,
@@ -123,11 +130,15 @@ export function createReviewsService(
   }
 
   return {
+    countReviewsByStatus: () => repository.countByStatus(),
+
     async listReviews(query, actor) {
       assertAdmin(actor, 'Only admins can list reviews')
       const [{ items, total }, statusCounts] = await Promise.all([
         repository.findMany(query),
-        repository.countByStatus(),
+        query.counts === false
+          ? Promise.resolve<ReviewStatusCounts>({ PENDING: 0, ACCEPTED: 0, REJECTED: 0 })
+          : repository.countByStatus(),
       ])
       return {
         data: (await withListingNames(items)).map(toReviewDto),

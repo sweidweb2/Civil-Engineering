@@ -13,6 +13,7 @@ import {
   toneForStatus,
 } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { listProjects, type Project, PROJECT_STATUS_OPTIONS } from '@/services/projects'
 
@@ -33,7 +34,7 @@ export function ProjectsListScreen({ basePath = '/pm/projects' }: ProjectsListSc
         q: query || undefined,
         status: (filter || undefined) as Project['status'] | undefined,
       }),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: `projects:list:${basePath}` },
+    { pageSize: PAGE_SIZE, cacheKeyPrefix: `${cacheKeys.projects}:${basePath}` },
   )
   const statusOptions = useMemo(() => enumOptions(t, 'projectStatus', PROJECT_STATUS_OPTIONS), [t])
 

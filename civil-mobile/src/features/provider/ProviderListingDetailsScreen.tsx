@@ -7,11 +7,13 @@ import { useTranslation } from 'react-i18next'
 
 import { Card, FormScreen, IconTile, InfoRow, StatusPill } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
+import { invalidateListingCaches } from '@/lib/cacheKeys'
 import { showBlockingAlert } from '@/services/feedback'
 import { deleteListing, formatListingPrice, getListingById } from '@/services/listings'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useToastSuccess } from '@/services/toast'
 
 type ProviderListingDetailsScreenProps = {
   basePath?: string
@@ -49,6 +51,7 @@ export function ProviderListingDetailsScreen({
           setIsDeleting(true)
           try {
             const result = await deleteListing(listingId)
+            invalidateListingCaches()
             toastSuccess(
               t(result.data.outcome === 'hidden' ? 'listings.hidden' : 'listings.deleted'),
             )

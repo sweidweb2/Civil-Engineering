@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale, Thumbnail } from '@/components/kit'
-import { usePickAndUpload } from '@/hooks/usePickAndUpload'
+import { useFilePick } from '@/hooks/useFilePick'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { clearProviderLogo, uploadProviderLogo } from '@/services/providers'
 import { useToastApiError, useToastSuccess } from '@/services/toast'
@@ -24,7 +24,7 @@ export function LogoField({
   const colors = useThemeColors()
   const toastSuccess = useToastSuccess()
   const toastApiError = useToastApiError()
-  const { sheetOpen, setSheetOpen, isBusy, setIsBusy, pickAndRun } = usePickAndUpload()
+  const { sheetOpen, setSheetOpen, isBusy, setIsBusy, pickAndRun } = useFilePick()
 
   async function onRemove() {
     setSheetOpen(false)

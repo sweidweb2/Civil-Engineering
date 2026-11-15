@@ -18,7 +18,12 @@ import type {
   ListProvidersQuery,
   UpdateProviderBody,
 } from './providers.schema.js'
-import type { PaginatedProviders, Provider, ProviderOwnerCandidate } from './providers.types.js'
+import type {
+  PaginatedProviders,
+  Provider,
+  ProviderOwnerCandidate,
+  ProviderStatusCounts,
+} from './providers.types.js'
 
 export type ProviderWithLogo = {
   provider: Provider
@@ -41,6 +46,7 @@ export type ProvidersService = {
   /** Internal lookups for other modules (no actor / authorization). */
   findProviderIdByOwnerUserId: (ownerUserId: string) => Promise<string | null>
   findOwnerUserId: (providerId: string) => Promise<string | null>
+  countProvidersByStatus: () => Promise<ProviderStatusCounts>
 }
 
 export type ProvidersServiceDeps = {
@@ -153,6 +159,7 @@ export function createProvidersService(
   return {
     findProviderIdByOwnerUserId: (ownerUserId) => repository.findIdByOwnerUserId(ownerUserId),
     findOwnerUserId: (providerId) => repository.findOwnerUserIdById(providerId),
+    countProvidersByStatus: () => repository.countByStatus(),
 
     async listProviders(query, actor) {
       if (!isAdmin(actor.roles)) {
@@ -160,7 +167,9 @@ export function createProvidersService(
       }
       const [{ items, total }, statusCounts] = await Promise.all([
         repository.findMany(query),
-        repository.countByStatus(),
+        query.counts === false
+          ? Promise.resolve<ProviderStatusCounts>({ PENDING: 0, APPROVED: 0, SUSPENDED: 0 })
+          : repository.countByStatus(),
       ])
       return {
         data: items.map(toProviderDto),

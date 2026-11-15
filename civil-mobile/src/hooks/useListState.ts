@@ -1,7 +1,5 @@
 import { useState } from 'react'
 
-import type { RemoteState } from '@/hooks/useRemoteData'
-
 /** Search text, applied query, filter and page for a paged list screen. */
 export function useListState(initialFilter = '') {
   const [query, setQuery] = useState('')
@@ -24,25 +22,5 @@ export function useListState(initialFilter = '') {
       setPage(1)
       setFilter(next)
     },
-  }
-}
-
-type PagedResult<T> = { data: T[]; meta: { total: number } }
-
-/** Derives the rows and loading flags a ListScreen needs from a remote page. */
-export function listView<T>(
-  remote: RemoteState<PagedResult<T>> & { isLoading: boolean; isFetching?: boolean },
-  pageSize: number,
-) {
-  const hasData = remote.status === 'success'
-  const total = hasData ? remote.data.meta.total : 0
-  const fetching = remote.isFetching ?? remote.isLoading
-  return {
-    rows: hasData ? remote.data.data : [],
-    total,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
-    isInitialLoading: remote.isLoading && !hasData,
-    isRefreshing: hasData && fetching,
-    error: remote.status === 'error' ? remote.error : undefined,
   }
 }

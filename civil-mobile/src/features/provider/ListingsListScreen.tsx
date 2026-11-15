@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { ListCard, ListScreen, StandardListRow, Thumbnail } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { formatListingPrice, listListings } from '@/services/listings'
 
 const PAGE_SIZE = 20
@@ -35,7 +36,7 @@ export function ListingsListScreen({
       }),
     {
       pageSize: PAGE_SIZE,
-      cacheKeyPrefix: isAdmin ? 'listings:admin' : 'listings:mine',
+      cacheKeyPrefix: isAdmin ? cacheKeys.listingsAdmin : cacheKeys.listingsMine,
     },
   )
 

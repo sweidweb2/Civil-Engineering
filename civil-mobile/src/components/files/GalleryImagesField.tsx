@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { ImageIcon, Plus, Star, Trash2 } from 'lucide-react-native'
@@ -7,19 +7,11 @@ import { useTranslation } from 'react-i18next'
 import { OptionSheet } from '@/components/files/OptionSheet'
 import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale } from '@/components/kit'
-import { usePickAndUpload } from '@/hooks/usePickAndUpload'
+import { useGalleryImages } from '@/hooks/useGalleryImages'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { showBlockingAlert } from '@/services/feedback'
 import type { PickedFile } from '@/services/filePicker'
-import {
-  deleteGalleryImage,
-  type GalleryImage,
-  type GalleryKind,
-  listGalleryImages,
-  MAX_GALLERY_IMAGES,
-  setMainGalleryImage,
-  uploadGalleryImage,
-} from '@/services/galleryImages'
+import { type GalleryImage, type GalleryKind, MAX_GALLERY_IMAGES } from '@/services/galleryImages'
 
 type Tile = {
   key: string
@@ -52,31 +44,19 @@ export function GalleryImagesField({
 }: GalleryImagesFieldProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
-  const { sheetOpen, setSheetOpen, isBusy, setIsBusy, pickAndRun, toastApiError } =
-    usePickAndUpload()
-
-  const [images, setImages] = useState<GalleryImage[]>([])
-  const [queue, setQueue] = useState<PickedFile[]>([])
-  const [isLoading, setIsLoading] = useState(Boolean(ownerId))
+  const {
+    images,
+    queue,
+    isLoading,
+    isBusy,
+    sheetOpen,
+    setSheetOpen,
+    setMain,
+    removeImage,
+    removeQueued,
+    pick,
+  } = useGalleryImages({ kind, ownerId, onQueueChange })
   const [active, setActive] = useState<Tile | null>(null)
-
-  const refresh = useCallback(async () => {
-    if (!ownerId) return
-    try {
-      const result = await listGalleryImages(kind, ownerId)
-      setImages(result.data)
-    } catch (error) {
-      toastApiError(error)
-    } finally {
-      setIsLoading(false)
-    }
-    // toastApiError is recreated every render; only owner/kind should retrigger a load.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, ownerId])
-
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
 
   const tiles: Tile[] = ownerId
     ? images.map((image) => ({
@@ -94,43 +74,14 @@ export function GalleryImagesField({
   const count = tiles.length
   const canAdd = count < MAX_GALLERY_IMAGES && !disabled && !isBusy
 
-  async function setMain(image: GalleryImage) {
-    setActive(null)
-    setIsBusy(true)
-    try {
-      await setMainGalleryImage(kind, image.id)
-      await refresh()
-    } catch (error) {
-      toastApiError(error)
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
   function confirmRemove(tile: Tile) {
     setActive(null)
     showBlockingAlert(t('gallery.removeTitle'), t('gallery.removeBody'), {
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.delete'),
       onConfirm: () => {
-        void (async () => {
-          if (tile.queued) {
-            const next = queue.filter((item) => item !== tile.queued)
-            setQueue(next)
-            onQueueChange?.(next)
-            return
-          }
-          if (!tile.image) return
-          setIsBusy(true)
-          try {
-            await deleteGalleryImage(kind, tile.image.id)
-            await refresh()
-          } catch (error) {
-            toastApiError(error)
-          } finally {
-            setIsBusy(false)
-          }
-        })()
+        if (tile.queued) removeQueued(tile.queued)
+        else if (tile.image) void removeImage(tile.image)
       },
     })
   }
@@ -196,18 +147,7 @@ export function GalleryImagesField({
         visible={sheetOpen}
         title={t('gallery.add')}
         onClose={() => setSheetOpen(false)}
-        onPick={(source) =>
-          void pickAndRun(source, async (picked) => {
-            if (!ownerId) {
-              const next = [...queue, picked]
-              setQueue(next)
-              onQueueChange?.(next)
-              return
-            }
-            await uploadGalleryImage(kind, ownerId, picked, { isMain: images.length === 0 })
-            await refresh()
-          })
-        }
+        onPick={(source) => void pick(source)}
       />
 
       <OptionSheet
@@ -222,7 +162,11 @@ export function GalleryImagesField({
                   key: 'main',
                   icon: Star,
                   label: t('gallery.setMain'),
-                  onPress: () => void setMain(active.image!),
+                  onPress: () => {
+                    const image = active.image!
+                    setActive(null)
+                    void setMain(image)
+                  },
                 },
               ]
             : []),

@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import type { ListingStatus, Prisma, RentalUnit } from '../../generated/prisma/client.js'
 import type { ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
-import type { ListingSnapshot, ListingTypeCounts } from './listings.types.js'
+import type { ListingSnapshot, ListingStatusCounts, ListingTypeCounts } from './listings.types.js'
 
 const listingInclude = {
   provider: { select: { name: true } },
@@ -84,6 +84,7 @@ export type ListingPriceUpdate = {
 export type ListingsRepository = {
   findMany: (query: ListListingsQuery) => Promise<{ items: ListingRecord[]; total: number }>
   countByType: (providerId?: string) => Promise<ListingTypeCounts>
+  countByStatus: (providerId?: string) => Promise<ListingStatusCounts>
   findById: (id: string) => Promise<ListingRecord | null>
   findSnapshotById: (id: string) => Promise<ListingSnapshot | null>
   findSnapshotsByIds: (ids: string[]) => Promise<ListingSnapshot[]>
@@ -293,6 +294,19 @@ export function createListingsRepository(): ListingsRepository {
         if (kind === 'MATERIAL' || kind === 'EQUIPMENT' || kind === 'SERVICE') {
           counts[kind] += group._count._all
         }
+      }
+      return counts
+    },
+
+    async countByStatus(providerId) {
+      const groups = await prisma.listing.groupBy({
+        by: ['status'],
+        where: providerId ? { providerId } : undefined,
+        _count: { _all: true },
+      })
+      const counts: ListingStatusCounts = { ACTIVE: 0, INACTIVE: 0 }
+      for (const group of groups) {
+        counts[group.status] = group._count._all
       }
       return counts
     },

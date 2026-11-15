@@ -6,16 +6,26 @@ import { createManagerProfilesRoutes } from './users.manager-profile.routes.js'
 import { createManagerProfilesService } from './users.manager-profile.service.js'
 import { createUsersRepository } from './users.repository.js'
 import { createUsersRoutes } from './users.routes.js'
-import { createUsersService, type UsersFilesGateway } from './users.service.js'
+import {
+  createUsersService,
+  type UsersAdminOverviewGateway,
+  type UsersFilesGateway,
+} from './users.service.js'
 
 export type UsersModuleDeps = {
   /** Injected by the composition root; falls back to the files singleton for standalone use. */
   filesService?: UsersFilesGateway
+  /** Injected by the composition root; `GET /users/admin-overview` is unavailable without it. */
+  adminOverview?: UsersAdminOverviewGateway
 }
 
 export function createUsersModule(deps: UsersModuleDeps = {}) {
   const repository = createUsersRepository()
-  const service = createUsersService(repository, deps.filesService ?? getFilesService())
+  const service = createUsersService(
+    repository,
+    deps.filesService ?? getFilesService(),
+    deps.adminOverview,
+  )
   const controller = createUsersController(service)
   return createUsersRoutes(controller)
 }

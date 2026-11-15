@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next'
 
 import { IconTile, ListCard, ListScreen, StandardListRow, toneForStatus } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useResourceList } from '@/hooks/useResourceList'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { showBlockingAlert } from '@/services/feedback'
 import {
   deleteReview,
@@ -16,7 +18,7 @@ import {
   type ReviewStatus,
   updateReview,
 } from '@/services/reviews'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useToastSuccess } from '@/services/toast'
 
 const PAGE_SIZE = 20
 const STATUSES: ReviewStatus[] = ['PENDING', 'ACCEPTED', 'REJECTED']
@@ -47,8 +49,9 @@ export function AdminReviewsScreen() {
       listReviews(page, PAGE_SIZE, {
         q: query || undefined,
         status: (filter || undefined) as ReviewStatus | undefined,
+        counts: false,
       }),
-    { pageSize: PAGE_SIZE, initialFilter: 'PENDING', cacheKeyPrefix: 'reviews:list' },
+    { pageSize: PAGE_SIZE, initialFilter: 'PENDING', cacheKeyPrefix: cacheKeys.reviews },
   )
   const statusOptions = useMemo(
     () => STATUSES.map((value) => ({ value, label: enumLabel(t, 'reviewStatus', value) })),
@@ -59,6 +62,7 @@ export function AdminReviewsScreen() {
     setBusyId(review.id)
     try {
       await updateReview(review.id, { status: next })
+      invalidateAdminCaches()
       toastSuccess(t('reviews.markedAs', { status: enumLabel(t, 'reviewStatus', next) }))
       await remote.refetch()
     } catch (err) {
@@ -77,6 +81,7 @@ export function AdminReviewsScreen() {
           setBusyId(review.id)
           try {
             await deleteReview(review.id)
+            invalidateAdminCaches()
             toastSuccess(t('reviews.deleted'))
             await remote.refetch()
           } catch (err) {

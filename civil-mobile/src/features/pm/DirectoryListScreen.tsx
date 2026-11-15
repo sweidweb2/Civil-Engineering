@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { ListCard, ListScreen, StandardListRow, Thumbnail } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { formatListingPrice, type ListingType, listListings } from '@/services/listings'
 
 const PAGE_SIZE = 20
@@ -22,7 +23,7 @@ export function DirectoryListScreen() {
         status: 'ACTIVE',
         counts: false,
       }),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: 'directory:list' },
+    { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.directory },
   )
   const typeOptions = useMemo(
     () => TYPES.map((value) => ({ value, label: enumLabel(t, 'listingType', value) })),

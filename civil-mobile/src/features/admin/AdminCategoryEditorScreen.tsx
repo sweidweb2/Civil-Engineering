@@ -7,6 +7,7 @@ import { ChoiceField, FormError, FormScreen, Section, TextField, ToggleRow } fro
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumOptions } from '@/i18n/labels'
+import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import {
   CATEGORY_KIND_OPTIONS,
   type CategoryKind,
@@ -16,7 +17,8 @@ import {
   updateCategory,
 } from '@/services/categories'
 import { showBlockingAlert } from '@/services/feedback'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
+import { useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/categories'
 
@@ -77,10 +79,12 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
       }
       if (mode === 'create') {
         const created = await createCategory(payload)
+        invalidateAdminCaches()
         toastSuccess(t('categories.created'))
         router.replace(`${BASE}/${created.data.id}` as never)
       } else if (categoryId) {
         await updateCategory(categoryId, payload)
+        invalidateAdminCaches()
         toastSuccess(t('categories.saved'))
         await remote.refetch()
       }
@@ -104,6 +108,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
           setIsDeleting(true)
           try {
             await deleteCategory(categoryId)
+            invalidateAdminCaches()
             toastSuccess(t('categories.deleted'))
             router.replace(BASE as never)
           } catch (err) {

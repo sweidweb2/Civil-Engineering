@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { RefreshControl, ScrollView, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { router } from 'expo-router'
 import {
   ChevronRight,
@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Avatar,
   Card,
+  DashboardScroll,
   HeroHeader,
   IconTile,
   PressableScale,
@@ -31,57 +32,38 @@ import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
-import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
+import { cacheKeys } from '@/lib/cacheKeys'
+import { formatCount } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
-import { listListings } from '@/services/listings'
-import { listProjects, type Project } from '@/services/projects'
-import { listProviders } from '@/services/providers'
-import { listReviews } from '@/services/reviews'
-import { listApprovals, listUsers } from '@/services/users'
+import type { Project } from '@/services/projects'
+import { getAdminOverview } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 
 type Overview = {
-  users: number | null
-  providers: number | null
-  pendingProviders: number | null
-  projects: number | null
-  listings: number | null
-  pendingRequests: number | null
-  pendingReviews: number | null
+  users: number
+  providers: number
+  pendingProviders: number
+  projects: number
+  listings: number
+  pendingRequests: number
+  pendingReviews: number
   recentProjects: Project[]
 }
 
-/**
- * Prefer meta aggregates (statusCounts / counts) so we don't fire a separate
- * list-for-total request per tile. Five parallel calls instead of seven.
- */
+/** One request: backend aggregates every tile + the five most recent projects. */
 async function loadOverview(): Promise<Overview> {
-  const [users, providers, projects, listings, requests, reviews] = await Promise.allSettled([
-    listUsers(1, 1),
-    listProviders(1, 1),
-    listProjects({ page: 1, limit: 5 }),
-    listListings(1, 1, { counts: false }),
-    listApprovals({ approval: 'pending', page: 1, limit: 1 }),
-    listReviews(1, 1),
-  ])
-
+  const { data } = await getAdminOverview()
   return {
-    users: totalOf(users),
-    providers: totalOf(providers),
-    pendingProviders:
-      providers.status === 'fulfilled' ? providers.value.meta.statusCounts.PENDING : null,
-    projects: totalOf(projects),
-    listings: totalOf(listings),
-    pendingRequests:
-      requests.status === 'fulfilled'
-        ? (requests.value.meta.counts?.pending ?? requests.value.meta.total)
-        : null,
-    pendingReviews:
-      reviews.status === 'fulfilled' ? (reviews.value.meta.statusCounts?.PENDING ?? null) : null,
-    recentProjects: fulfilledRows(projects),
+    users: data.users,
+    providers: data.providers,
+    pendingProviders: data.pendingProviders,
+    projects: data.projects,
+    listings: data.listings,
+    pendingRequests: data.pendingRequests,
+    pendingReviews: data.pendingReviews,
+    recentProjects: data.recentProjects,
   }
 }
-
 function StatTile({
   icon,
   tone,
@@ -158,10 +140,9 @@ function QuickAction({ icon, label, href }: { icon: LucideIcon; label: string; h
 
 export function AdminDashboardScreen() {
   const { t } = useTranslation()
-  const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load, { cacheKey: 'dashboard:admin' })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data
@@ -204,18 +185,9 @@ export function AdminDashboardScreen() {
         }
       />
 
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-8 px-5 pb-8 pt-6"
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={remote.isFetching && Boolean(data)}
-            onRefresh={() => void remote.refetch()}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
+      <DashboardScroll
+        refreshing={remote.isFetching && Boolean(data)}
+        onRefresh={() => void remote.refetch()}
       >
         {attention.length > 0 ? (
           <View className="gap-3">
@@ -328,7 +300,7 @@ export function AdminDashboardScreen() {
             </Card>
           </View>
         ) : null}
-      </ScrollView>
+      </DashboardScroll>
     </View>
   )
 }

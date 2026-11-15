@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { countsQuerySchema } from '../_shared/counts.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 
 export const reviewStatusSchema = z.enum(['PENDING', 'ACCEPTED', 'REJECTED'])
@@ -18,6 +19,7 @@ export const listReviewsQuerySchema = paginationQuerySchema.extend({
   q: optionalQueryText,
   status: reviewStatusSchema.optional(),
   targetType: reviewTargetTypeSchema.optional(),
+  counts: countsQuerySchema,
 })
 
 export const listReviewTargetsQuerySchema = z.object({
@@ -58,6 +60,8 @@ export type ListReviewsQuery = {
   q?: string
   status?: ReviewStatus
   targetType?: ReviewTargetType
+  /** `false` skips the status groupBy; `statusCounts` is returned zeroed. */
+  counts?: boolean
 }
 
 export type CreateReviewBody = {

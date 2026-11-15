@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { Banknote, Images, Package } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -15,24 +14,8 @@ import {
   ToggleRow,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import {
-  EMPTY_LISTING_FORM,
-  formFromListing,
-  type ListingFormValues,
-} from '@/features/provider/listing.form'
-import { listingWriteFromForm } from '@/features/provider/listing.schema'
-import { useRemoteData } from '@/hooks/useRemoteData'
-import { type Category, isListingCategory, listCategories } from '@/services/categories'
-import type { PickedFile } from '@/services/filePicker'
-import { uploadQueuedImages } from '@/services/galleryImages'
-import {
-  createListing,
-  getListingById,
-  type ListingStatus,
-  updateListing,
-} from '@/services/listings'
-import { getMyProvider, listProviders, type Provider } from '@/services/providers'
-import { useHandleApiError, useToastApiError, useToastSuccess } from '@/services/toast'
+import { useListingEditor } from '@/features/provider/useListingEditor'
+import type { ListingStatus } from '@/services/listings'
 
 const RENTAL_UNITS = ['HOUR', 'DAY', 'WEEK', 'MONTH']
 
@@ -50,126 +33,25 @@ export function ProviderListingEditorScreen({
   const { id } = useLocalSearchParams<{ id?: string }>()
   const listingId = typeof id === 'string' ? id : id?.[0]
   const { t } = useTranslation()
-  const toastApiError = useToastApiError()
-  const handleApiError = useHandleApiError()
-  const toastSuccess = useToastSuccess()
   const isAdmin = scope === 'admin'
+  const {
+    form,
+    setField,
+    formError,
+    isSaving,
+    canSave,
+    save,
+    setQueuedImages,
+    selectedProviderId,
+    setSelectedProviderId,
+    categoryOptions,
+    providerOptions,
+    isBootLoading,
+    bootError,
+    retry,
+  } = useListingEditor({ mode, listingId, basePath, isAdmin })
 
-  const [form, setForm] = useState<ListingFormValues>(EMPTY_LISTING_FORM)
-  const [formError, setFormError] = useState<string | undefined>()
-  const [isSaving, setIsSaving] = useState(false)
-  const [queuedImages, setQueuedImages] = useState<PickedFile[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [providers, setProviders] = useState<Provider[]>([])
-  const [selectedProviderId, setSelectedProviderId] = useState('')
-
-  const loadMine = useCallback(() => getMyProvider(), [])
-  const mineRemote = useRemoteData(loadMine, { enabled: !isAdmin, cacheKey: 'providers:me' })
-  const mineProviderId = mineRemote.status === 'success' ? mineRemote.data.data.id : undefined
-
-  const loadListing = useCallback(() => {
-    if (!listingId) return Promise.reject(new Error('Listing id required'))
-    return getListingById(listingId)
-  }, [listingId])
-  const listingRemote = useRemoteData(loadListing, {
-    enabled: mode === 'edit' && Boolean(listingId),
-  })
-
-  useEffect(() => {
-    if (mode !== 'edit' || listingRemote.status !== 'success') return
-    const listing = listingRemote.data.data
-    setForm(formFromListing(listing))
-    if (listing.providerId) setSelectedProviderId(listing.providerId)
-  }, [listingRemote, mode])
-
-  useEffect(() => {
-    let cancelled = false
-    void listCategories(1, 100, { includeCounts: false })
-      .then((result) => {
-        if (!cancelled) setCategories(result.data.filter(isListingCategory))
-      })
-      .catch(() => {
-        if (!cancelled) setCategories([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isAdmin) return
-    let cancelled = false
-    void listProviders(1, 100)
-      .then((result) => {
-        if (!cancelled) setProviders(result.data)
-      })
-      .catch(() => {
-        if (!cancelled) setProviders([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [isAdmin])
-
-  const providerId = isAdmin ? selectedProviderId || undefined : mineProviderId
-
-  const isBootLoading =
-    (!isAdmin && mineRemote.isLoading) || (mode === 'edit' && listingRemote.isLoading)
-  const bootError =
-    !isAdmin && mineRemote.status === 'error'
-      ? mineRemote.error
-      : listingRemote.status === 'error'
-        ? listingRemote.error
-        : undefined
-
-  function setField<K extends keyof ListingFormValues>(key: K, value: ListingFormValues[K]) {
-    setForm((current) => ({ ...current, [key]: value }))
-    setFormError(undefined)
-  }
-
-  async function onSave() {
-    if (!providerId) {
-      setFormError(isAdmin ? t('listings.selectProvider') : t('listings.providerNotLoaded'))
-      return
-    }
-    const parsed = listingWriteFromForm(form, providerId)
-    if ('error' in parsed) {
-      setFormError(parsed.error)
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      if (mode === 'create') {
-        const created = await createListing(parsed.data)
-        toastSuccess(t('listings.created'))
-        if (queuedImages.length > 0) {
-          const failed = await uploadQueuedImages('listing', created.data.id, queuedImages)
-          if (failed > 0) toastApiError(new Error(t('gallery.someFailed', { count: failed })))
-        }
-        router.replace(`${basePath}/${created.data.id}` as never)
-      } else if (listingId) {
-        await updateListing(listingId, parsed.data)
-        toastSuccess(t('listings.saved'))
-        router.replace(`${basePath}/${listingId}` as never)
-      }
-    } catch (error) {
-      handleApiError(error, t(mode === 'create' ? 'listings.createFailed' : 'listings.saveFailed'))
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const categoryOptions = categories.map((category) => ({
-    value: category.id,
-    label: category.name,
-  }))
-  const providerOptions = providers.map((provider) => ({
-    value: provider.id,
-    label: provider.name,
-  }))
   const fallbackHref = mode === 'edit' && listingId ? `${basePath}/${listingId}` : basePath
-
   return (
     <FormScreen
       title={t(mode === 'create' ? 'listings.new' : 'listings.edit')}
@@ -177,15 +59,12 @@ export function ProviderListingEditorScreen({
       isLoading={isBootLoading}
       error={bootError}
       loadingLabel={t('listings.loadingOne')}
-      onRetry={() => {
-        if (!isAdmin) void mineRemote.refetch()
-        if (mode === 'edit') void listingRemote.refetch()
-      }}
+      onRetry={retry}
       footer={
         <Button
           className="flex-1"
-          onPress={() => void onSave()}
-          disabled={isSaving || !providerId}
+          onPress={() => void save()}
+          disabled={!canSave}
           accessibilityState={{ busy: isSaving }}
         >
           {isSaving ? <ButtonSpinner /> : null}

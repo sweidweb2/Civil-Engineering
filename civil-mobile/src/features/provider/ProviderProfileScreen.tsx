@@ -26,12 +26,13 @@ import {
   type ProviderCompanyValues,
 } from '@/features/provider/company.schema'
 import { LogoField } from '@/features/provider/LogoField'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys, invalidateProviderProfileCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { remoteCacheInvalidate } from '@/lib/remoteCache'
 import { getMyProvider, updateProvider } from '@/services/providers'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useToastSuccess } from '@/services/toast'
 
 type Key = keyof ProviderCompanyValues
 
@@ -45,7 +46,7 @@ export function ProviderProfileScreen() {
   const [isSaving, setIsSaving] = useState(false)
 
   const load = useCallback(() => getMyProvider(), [])
-  const remote = useRemoteData(load, { cacheKey: 'providers:me' })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.providersMe })
   const provider = remote.status === 'success' ? remote.data.data : null
   const remoteLogoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
   // Set right after an upload/remove so the new logo shows without a refetch.
@@ -80,7 +81,7 @@ export function ProviderProfileScreen() {
     setIsSaving(true)
     try {
       await updateProvider(provider.id, companyWriteFromForm(parsed.data))
-      remoteCacheInvalidate('dashboard:provider')
+      invalidateProviderProfileCaches()
       toastSuccess(t('profile.companySaved'))
       await remote.refetch({ fresh: true })
     } catch (err) {

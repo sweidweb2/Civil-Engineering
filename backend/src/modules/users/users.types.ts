@@ -1,3 +1,5 @@
+import type { ProjectListItem } from '../projects/index.js'
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING'
 
 export type UserRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
@@ -37,6 +39,19 @@ export type UserAvatarResult = {
   user: User
   /** Short-lived presigned GET for display. */
   avatarDownloadUrl: string | null
+}
+
+/** Admin dashboard aggregate: counts plus the newest projects (lean list rows). */
+export type AdminOverview = {
+  users: number
+  providers: number
+  pendingProviders: number
+  projects: number
+  listings: number
+  /** Pending registration approvals (managers, providers, workers). */
+  pendingRequests: number
+  pendingReviews: number
+  recentProjects: ProjectListItem[]
 }
 
 /** Lean row for recipient pickers. */

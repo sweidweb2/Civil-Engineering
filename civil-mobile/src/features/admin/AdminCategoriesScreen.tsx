@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { IconTile, ListCard, ListScreen, StandardListRow } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel, enumOptions } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { CATEGORY_KIND_OPTIONS, type CategoryKind, listCategories } from '@/services/categories'
 
 const PAGE_SIZE = 50
@@ -20,7 +21,7 @@ export function AdminCategoriesScreen() {
         kind: (filter || undefined) as CategoryKind | undefined,
         includeCounts: true,
       }),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: 'categories:list' },
+    { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.categories },
   )
   const kindOptions = useMemo(() => enumOptions(t, 'categoryKind', CATEGORY_KIND_OPTIONS), [t])
 

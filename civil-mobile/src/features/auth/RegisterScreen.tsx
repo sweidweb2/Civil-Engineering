@@ -12,7 +12,7 @@ import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
 import type { RegisterRole } from '@/services/auth'
-import { useHandleApiError } from '@/services/toast'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useAuthStore } from '@/stores/authStore'
 import { glow } from '@/theme/shadows'
 

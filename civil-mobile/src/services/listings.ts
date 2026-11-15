@@ -29,12 +29,25 @@ export type Listing = {
   mainImageUrl?: string | null
 }
 
+export type ListingStatusCounts = {
+  ACTIVE: number
+  INACTIVE: number
+}
+
+export type ListingTypeCounts = {
+  MATERIAL: number
+  EQUIPMENT: number
+  SERVICE: number
+}
+
 export type PaginatedListings = {
   data: Listing[]
   meta: {
     page: number
     limit: number
     total: number
+    statusCounts?: ListingStatusCounts
+    typeCounts?: ListingTypeCounts
   }
 }
 

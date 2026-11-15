@@ -18,7 +18,7 @@ import { createProjectImagesModule } from './modules/project-images/index.js'
 import { createProjectStagesModule } from './modules/project-stages/index.js'
 import { buildProjectsService, createProjectsModule } from './modules/projects/index.js'
 import { buildProvidersService, createProvidersModule } from './modules/providers/index.js'
-import { createReviewsModule } from './modules/reviews/index.js'
+import { buildReviewsService, createReviewsModule } from './modules/reviews/index.js'
 import { createManagerProfilesModule, createUsersModule } from './modules/users/index.js'
 import { getStorageService, type StorageService } from './storage/index.js'
 
@@ -65,6 +65,7 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
   const providersService = buildProvidersService(moduleDeps)
   const listingsService = buildListingsService({ ...moduleDeps, providers: providersService })
   const projectsService = buildProjectsService(moduleDeps)
+  const reviewsService = buildReviewsService({ ...moduleDeps, listingsService })
   const filesService = buildFilesService({ ...moduleDeps, projectsService })
 
   const healthService = createHealthService(createHealthRepository(deps.pool))
@@ -75,13 +76,21 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
     devices: createDevicesModule(),
     files: createFilesModule({ service: filesService }),
     logging: createLoggingModule(),
-    users: createUsersModule({ filesService }),
+    users: createUsersModule({
+      filesService,
+      adminOverview: {
+        providers: providersService,
+        listings: listingsService,
+        projects: projectsService,
+        reviews: reviewsService,
+      },
+    }),
     managerProfiles: createManagerProfilesModule(),
     providers: createProvidersModule({ service: providersService }),
     categories: createCategoriesModule(),
     listings: createListingsModule({ service: listingsService }),
     listingImages: createListingImagesModule({ ...moduleDeps, listingsService }),
-    reviews: createReviewsModule({ listingsService }),
+    reviews: createReviewsModule({ service: reviewsService }),
     projects: (() => {
       const projectsRouter = Router()
       projectsRouter.use(createProjectsModule({ service: projectsService }))

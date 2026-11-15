@@ -52,6 +52,7 @@ function setup(opts?: {
   const repository: ListingsRepository = {
     findMany: vi.fn(async () => ({ items: listing ? [listing] : [], total: listing ? 1 : 0 })),
     countByType: vi.fn(async () => ({ MATERIAL: listing ? 1 : 0, EQUIPMENT: 0, SERVICE: 0 })),
+    countByStatus: vi.fn(async () => ({ ACTIVE: listing ? 1 : 0, INACTIVE: 0 })),
     findById: vi.fn(async () => listing),
     findSnapshotById: vi.fn(async () => null),
     findSnapshotsByIds: vi.fn(async () => []),
@@ -147,6 +148,16 @@ describe('listingsService', () => {
       expect.objectContaining({ providerId: 'prv-1' }),
     )
     expect(repository.countByType).toHaveBeenCalledWith('prv-1')
+    expect(repository.countByStatus).toHaveBeenCalledWith('prv-1')
+  })
+
+  it('always returns statusCounts and skips typeCounts when counts=false', async () => {
+    const { service, repository } = setup()
+    const result = await service.listListings({ page: 1, limit: 8, counts: false }, admin)
+    expect(repository.countByType).not.toHaveBeenCalled()
+    expect(repository.countByStatus).toHaveBeenCalledTimes(1)
+    expect(result.meta.statusCounts).toEqual({ ACTIVE: 1, INACTIVE: 0 })
+    expect(result.meta.typeCounts).toEqual({ MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 })
   })
 
   it('creates a listing and stores currency in uppercase', async () => {

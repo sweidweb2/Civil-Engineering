@@ -61,7 +61,7 @@ function emptyToNull(value: string): string | null {
 
 export function listingWriteFromForm(
   form: ListingFormValues,
-  providerId: string,
+  providerId?: string,
 ): { data: ListingWriteInput } | { error: string } {
   const parsed = listingFormSchema.safeParse(form)
   if (!parsed.success) {
@@ -74,7 +74,7 @@ export function listingWriteFromForm(
   return {
     data: {
       name: value.name,
-      providerId,
+      ...(providerId ? { providerId } : {}),
       categoryId: emptyToNull(value.categoryId),
       unit: emptyToNull(value.unit),
       currency: emptyToNull(value.currency),

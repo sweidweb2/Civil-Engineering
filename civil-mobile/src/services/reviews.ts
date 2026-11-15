@@ -41,12 +41,18 @@ export function reviewStatusLabel(status: ReviewStatus): string {
 export function listReviews(
   page = 1,
   limit = 20,
-  filters?: { status?: ReviewStatus; targetType?: ReviewTargetType; q?: string },
+  filters?: {
+    status?: ReviewStatus
+    targetType?: ReviewTargetType
+    q?: string
+    counts?: boolean
+  },
 ) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters?.status) params.set('status', filters.status)
   if (filters?.targetType) params.set('targetType', filters.targetType)
   if (filters?.q) params.set('q', filters.q)
+  if (filters?.counts === false) params.set('counts', 'false')
   return apiRequest<PaginatedReviews>(`/reviews?${params.toString()}`)
 }
 

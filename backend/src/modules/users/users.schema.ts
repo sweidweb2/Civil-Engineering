@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { countsQuerySchema } from '../_shared/counts.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 import { passwordSchema } from '../auth/password.schema.js'
 
@@ -19,6 +20,7 @@ export const setAvatarBodySchema = z.object({
 
 export const listUsersQuerySchema = paginationQuerySchema.extend({
   q: optionalSearchQuery,
+  counts: countsQuerySchema,
 })
 
 export const listLookupQuerySchema = paginationQuerySchema.extend({
@@ -34,6 +36,7 @@ export const verificationStatusSchema = z.enum(['UNVERIFIED', 'REQUESTED', 'VERI
 export const listApprovalsQuerySchema = paginationQuerySchema.extend({
   approval: approvalStatusSchema.default('pending'),
   q: optionalSearchQuery,
+  counts: countsQuerySchema,
 })
 
 export const createUserBodySchema = z.object({

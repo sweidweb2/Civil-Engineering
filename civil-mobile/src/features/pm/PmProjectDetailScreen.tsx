@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { invalidateProjectCaches } from '@/lib/cacheKeys'
 import {
   ChevronRight,
   FolderKanban,
@@ -40,7 +41,8 @@ import {
   type ProjectType,
   updateProject,
 } from '@/services/projects'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
+import { useToastSuccess } from '@/services/toast'
 
 type PmProjectDetailScreenProps = {
   basePath?: string
@@ -110,6 +112,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
         endDate: endDate.trim() || null,
         notes: notes.trim() || undefined,
       })
+      invalidateProjectCaches()
       toastSuccess(t('projects.saved'))
       await remote.refetch()
     } catch (err) {
@@ -129,6 +132,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
           setIsArchiving(true)
           try {
             await archiveProject(projectId)
+            invalidateProjectCaches()
             toastSuccess(t('projects.archived'))
             router.replace(basePath as never)
           } catch (err) {

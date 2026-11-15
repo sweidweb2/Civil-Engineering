@@ -139,6 +139,66 @@ describe('usersService', () => {
     })
   })
 
+  it('skips directory and approval counts when counts=false', async () => {
+    const service = createUsersService(repository)
+    const users = await service.listUsers({ page: 1, limit: 20, counts: false }, admin)
+    expect(repository.countDirectory).not.toHaveBeenCalled()
+    expect(users.meta).toMatchObject({ total: 1, counts: { accounts: 0, active: 0 } })
+
+    const approvals = await service.listApprovals(
+      { page: 1, limit: 20, approval: 'pending', counts: false },
+      admin,
+    )
+    expect(repository.countApprovals).not.toHaveBeenCalled()
+    expect(approvals.meta).toMatchObject({
+      total: 1,
+      counts: { pending: 0, approved: 0, providersPending: 0 },
+    })
+  })
+
+  describe('getAdminOverview', () => {
+    function overviewGateway() {
+      return {
+        providers: {
+          countProvidersByStatus: vi.fn(async () => ({ PENDING: 2, APPROVED: 3, SUSPENDED: 1 })),
+        },
+        listings: {
+          countListingsByStatus: vi.fn(async () => ({ ACTIVE: 7, INACTIVE: 2 })),
+        },
+        projects: {
+          listProjects: vi.fn(async () => ({
+            data: [],
+            meta: { total: 11, page: 1, limit: 5, totalPages: 3 },
+          })),
+        },
+        reviews: {
+          countReviewsByStatus: vi.fn(async () => ({ PENDING: 4, ACCEPTED: 5, REJECTED: 1 })),
+        },
+      }
+    }
+
+    it('aggregates counts and recent projects for admins', async () => {
+      const gateway = overviewGateway()
+      const service = createUsersService(repository, undefined, gateway)
+      await expect(service.getAdminOverview(admin)).resolves.toEqual({
+        users: 4,
+        providers: 6,
+        pendingProviders: 2,
+        projects: 11,
+        listings: 9,
+        pendingRequests: 1,
+        pendingReviews: 4,
+        recentProjects: [],
+      })
+      expect(gateway.projects.listProjects).toHaveBeenCalledWith({ page: 1, limit: 5 }, admin)
+    })
+
+    it('forbids non-admins', async () => {
+      const service = createUsersService(repository, undefined, overviewGateway())
+      await expect(service.getAdminOverview(self)).rejects.toMatchObject({ status: 403 })
+    })
+  })
+
   it('creates a user when email is free', async () => {
     const service = createUsersService(repository)
     const created = await service.createUser(

@@ -14,7 +14,8 @@ type UseRemoteDataOptions = {
   enabled?: boolean
   /**
    * Stable cache key (e.g. `providers:me`, `projects:list:1::`). Matching keys
-   * reuse a fresh in-memory result for `staleTime` ms across screens.
+   * reuse a fresh in-memory result for `staleTime` ms across screens — no
+   * network until the entry expires, is invalidated, or `refetch` is called.
    */
   cacheKey?: string
   /** How long a successful result stays reusable. Default 30s. */
@@ -84,7 +85,6 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
       if (key) remoteCacheSet(key, data, staleTimeRef.current)
     } catch (error) {
       if (hadData !== undefined) {
-        // Keep last good data on background refresh failure.
         setState({ status: 'success', data: hadData })
       } else {
         setState({ status: 'error', error })
@@ -96,8 +96,10 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
 
   useEffect(() => {
     if (!enabled) return
+    // Fresh cache hit: show it and skip the network until expiry / invalidate / refetch.
+    if (cacheKey && remoteCacheGet<T>(cacheKey) !== undefined) return
     void refetch()
-  }, [enabled, refetch, load])
+  }, [enabled, refetch, load, cacheKey])
 
   const hasData = state.status === 'success'
   const isError = state.status === 'error'

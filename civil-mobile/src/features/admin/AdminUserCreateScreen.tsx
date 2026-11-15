@@ -14,8 +14,10 @@ import {
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { enumOptions } from '@/i18n/labels'
+import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import type { AuthRole } from '@/services/auth'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
+import { useToastSuccess } from '@/services/toast'
 import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 
 const BASE = '/admin/users'
@@ -53,6 +55,7 @@ export function AdminUserCreateScreen() {
         displayName: displayName.trim() || undefined,
         phone: phone.trim() || undefined,
       })
+      invalidateAdminCaches()
       toastSuccess(t('users.created'))
       router.replace(`${BASE}/${created.data.id}` as never)
     } catch (err) {

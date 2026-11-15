@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import {
   Avatar,
   Card,
@@ -22,7 +23,8 @@ import { enumLabel, enumOptions } from '@/i18n/labels'
 import { userDisplayName } from '@/lib/user'
 import type { AuthRole } from '@/services/auth'
 import { showBlockingAlert } from '@/services/feedback'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
+import { useToastSuccess } from '@/services/toast'
 import {
   AUTH_ROLE_OPTIONS,
   deactivateUser,
@@ -82,6 +84,7 @@ export function AdminUserDetailScreen() {
         displayName: displayName.trim() || undefined,
         phone: phone.trim() || undefined,
       })
+      invalidateAdminCaches()
       toastSuccess(t('users.saved'))
       await remote.refetch()
     } catch (err) {
@@ -101,6 +104,7 @@ export function AdminUserDetailScreen() {
           setIsDeactivating(true)
           try {
             await deactivateUser(userId)
+            invalidateAdminCaches()
             toastSuccess(t('users.deactivated'))
             router.replace(BASE as never)
           } catch (err) {

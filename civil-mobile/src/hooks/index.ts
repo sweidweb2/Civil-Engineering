@@ -1,4 +1,4 @@
-export { usePickAndUpload } from './usePickAndUpload'
+export { useFilePick } from './useFilePick'
 export { usePushNotifications } from './usePushNotifications'
 export type {
   RemoteError,

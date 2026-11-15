@@ -38,4 +38,5 @@ export function createProjectsModule({ service }: ProjectsRouterDeps) {
   return createProjectsRoutes(controller)
 }
 
+export type { ProjectListItem } from './projects.types.js'
 export type { ProjectsService }

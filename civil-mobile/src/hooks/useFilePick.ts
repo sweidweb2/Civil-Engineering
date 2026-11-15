@@ -8,7 +8,7 @@ import { useToastApiError } from '@/services/toast'
  * Shared pick → optional upload busy flag → toast on FilePickError / other failures.
  * Callers own what happens with the picked file (upload, queue, etc.).
  */
-export function usePickAndUpload() {
+export function useFilePick() {
   const { t } = useTranslation()
   const toastApiError = useToastApiError()
   const [sheetOpen, setSheetOpen] = useState(false)

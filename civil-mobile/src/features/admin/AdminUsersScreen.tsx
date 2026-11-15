@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Avatar, ListCard, ListScreen, StandardListRow, toneForStatus } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys } from '@/lib/cacheKeys'
 import { userDisplayName } from '@/lib/user'
 import { listUsers } from '@/services/users'
 
@@ -14,8 +15,8 @@ const BASE = '/admin/users'
 export function AdminUsersScreen() {
   const { t } = useTranslation()
   const { view, listProps } = useResourceList(
-    ({ page, query }) => listUsers(page, PAGE_SIZE, query || undefined),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: 'users:list' },
+    ({ page, query }) => listUsers(page, PAGE_SIZE, query || undefined, false),
+    { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.users },
   )
 
   return (

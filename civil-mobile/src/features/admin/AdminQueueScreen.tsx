@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next'
 
 import { Avatar, ListCard, ListScreen, StandardListRow } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
+import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { userDisplayName } from '@/lib/user'
 import { showBlockingAlert } from '@/services/feedback'
-import { useHandleApiError, useToastSuccess } from '@/services/toast'
+import { useToastSuccess } from '@/services/toast'
 import {
   type ApprovalListStatus,
   approveUser,
@@ -31,8 +33,9 @@ export function AdminQueueScreen() {
         page,
         limit: PAGE_SIZE,
         q: query || undefined,
+        counts: false,
       }),
-    { pageSize: PAGE_SIZE, initialFilter: 'pending', cacheKeyPrefix: 'queue:list' },
+    { pageSize: PAGE_SIZE, initialFilter: 'pending', cacheKeyPrefix: cacheKeys.queue },
   )
   const approval = list.filter as ApprovalListStatus
   const filterOptions = useMemo(
@@ -49,6 +52,7 @@ export function AdminQueueScreen() {
       if (action === 'approve') await approveUser(userId)
       else if (action === 'unapprove') await unapproveUser(userId)
       else await deleteApproval(userId)
+      invalidateAdminCaches()
       toastSuccess(t('queue.updated'))
       await remote.refetch()
     } catch (err) {

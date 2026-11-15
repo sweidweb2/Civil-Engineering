@@ -8,8 +8,8 @@ import {
   REFRESH_COOKIE,
   setAuthCookies,
 } from './auth.cookies.js'
-import { clientIp, clientUserAgent } from './client-meta.js'
 import type { AuthService } from './auth.service.js'
+import { clientIp, clientUserAgent } from './client-meta.js'
 
 export type AuthController = {
   register: (req: Request, res: Response, next: NextFunction) => Promise<void>

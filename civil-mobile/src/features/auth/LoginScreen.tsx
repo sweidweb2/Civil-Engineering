@@ -4,10 +4,11 @@ import { Link, Redirect, router } from 'expo-router'
 
 import { FormField } from '@/components/forms/FormField'
 import { Header } from '@/components/layout/Header'
-import { Button, ButtonText } from '@/components/ui/button'
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Input, InputField } from '@/components/ui/input'
 import { loginSchema } from '@/features/auth/login.schema'
 import { type FieldErrors, parseForm } from '@/lib/form'
+import { homePathForRole } from '@/navigation'
 import { ApiError } from '@/services/api'
 import { showApiAlert } from '@/services/feedback'
 import { useToastApiError } from '@/services/toast'
@@ -23,7 +24,7 @@ export function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (user) {
-    return <Redirect href="/home" />
+    return <Redirect href={homePathForRole(user.role) as never} />
   }
 
   async function onSubmit() {
@@ -37,7 +38,8 @@ export function LoginScreen() {
     setIsSubmitting(true)
     try {
       await login(parsed.data.email, parsed.data.password)
-      router.replace('/home')
+      const role = useAuthStore.getState().user?.role
+      router.replace(homePathForRole(role) as never)
     } catch (error) {
       // Blocking alert for auth failure; toast available for non-blocking cases
       if (error instanceof ApiError && error.status >= 500) {
@@ -89,7 +91,12 @@ export function LoginScreen() {
           </Input>
         </FormField>
 
-        <Button onPress={() => void onSubmit()} disabled={isSubmitting}>
+        <Button
+          onPress={() => void onSubmit()}
+          disabled={isSubmitting}
+          accessibilityState={{ busy: isSubmitting }}
+        >
+          {isSubmitting ? <ButtonSpinner /> : null}
           <ButtonText>{isSubmitting ? 'Signing in…' : 'Sign in'}</ButtonText>
         </Button>
 

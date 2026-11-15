@@ -21,8 +21,7 @@ type BottomNavigationProps = {
 
 /**
  * Domain-agnostic bottom tab chrome.
- * Prefer Expo Router NativeTabs for primary app navigation when available;
- * use this for secondary / feature-local bottom bars.
+ * Primary navigation for all mobile portals (via PortalShell).
  */
 export function BottomNavigation({ items, className }: BottomNavigationProps) {
   const insets = useSafeAreaInsets()

@@ -53,3 +53,14 @@ export function logout(refreshToken: string) {
     skipAuthRefresh: true,
   })
 }
+
+export function changePassword(input: {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}) {
+  return apiRequest<void>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}

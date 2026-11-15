@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { View } from 'react-native'
 import { Redirect } from 'expo-router'
 
+import { IsometricLoader } from '@/components/feedback/IsometricLoader'
+import { homePathForRole } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function Index() {
@@ -17,14 +19,14 @@ export default function Index() {
 
   if (!isHydrated) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator />
+      <View className="flex-1 bg-background">
+        <IsometricLoader label="Loading…" />
       </View>
     )
   }
 
   if (user) {
-    return <Redirect href="/home" />
+    return <Redirect href={homePathForRole(user.role) as never} />
   }
 
   return <Redirect href="/login" />

@@ -1,10 +1,10 @@
 import { Text, View } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { IsometricLoader } from '@/components/feedback/IsometricLoader'
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert'
 import { Button, ButtonText } from '@/components/ui/button'
 import { AlertCircleIcon } from '@/components/ui/icon'
-import { Skeleton, SkeletonText } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { errorMessage } from '@/services/feedback'
 
@@ -12,31 +12,27 @@ type AsyncStateProps = {
   isLoading?: boolean
   error?: unknown
   onRetry?: () => void
+  /** Defaults to the shared isometric portal loader. */
   loadingFallback?: ReactNode
+  /** Label passed to the default isometric loader. */
+  loadingLabel?: string
   children: ReactNode
 }
 
 /**
- * Per-screen inline loading / error + retry — not a global app spinner.
+ * Per-screen loading / error + retry.
+ * Default loading UI is IsometricLoader (all portal pages).
  */
 export function AsyncState({
   isLoading,
   error,
   onRetry,
   loadingFallback,
+  loadingLabel = 'Loading…',
   children,
 }: AsyncStateProps) {
   if (isLoading) {
-    return (
-      <>
-        {loadingFallback ?? (
-          <View className="gap-3 p-4" accessibilityLabel="Loading">
-            <SkeletonText _lines={2} className="h-4 w-full" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </View>
-        )}
-      </>
-    )
+    return <>{loadingFallback ?? <IsometricLoader label={loadingLabel} />}</>
   }
 
   if (error) {

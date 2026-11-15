@@ -8,6 +8,7 @@ import { Button, ButtonText } from '@/components/ui/button'
 import { Input, InputField } from '@/components/ui/input'
 import { registerSchema } from '@/features/auth/register.schema'
 import { type FieldErrors, parseForm } from '@/lib/form'
+import { homePathForRole } from '@/navigation'
 import { ApiError } from '@/services/api'
 import { showApiAlert } from '@/services/feedback'
 import { useToastApiError } from '@/services/toast'
@@ -25,7 +26,7 @@ export function RegisterScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (user) {
-    return <Redirect href="/home" />
+    return <Redirect href={homePathForRole(user.role) as never} />
   }
 
   async function onSubmit() {
@@ -49,7 +50,8 @@ export function RegisterScreen() {
         firstName: parsed.data.firstName || undefined,
         lastName: parsed.data.lastName || undefined,
       })
-      router.replace('/home')
+      const role = useAuthStore.getState().user?.role
+      router.replace(homePathForRole(role) as never)
     } catch (error) {
       if (error instanceof ApiError && error.status >= 500) {
         toastApiError(error)

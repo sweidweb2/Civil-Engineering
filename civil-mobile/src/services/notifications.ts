@@ -7,14 +7,17 @@ import { router } from 'expo-router'
 import type { DevicePlatform } from '@/services/devices'
 import * as devicesApi from '@/services/devices'
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-})
+// Native-only; calling on web throws (missing ExpoNotifications methods).
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  })
+}
 
 let registeredPushToken: string | null = null
 

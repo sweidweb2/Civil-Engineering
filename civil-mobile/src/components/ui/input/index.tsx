@@ -7,6 +7,11 @@ import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
 import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
 import { withUniwind } from 'uniwind'
 
+import { colors } from '@/theme/colors'
+
+/** RN ignores CSS `placeholder:` — TextInput needs this prop. */
+const PLACEHOLDER_COLOR = colors.light.textMuted
+
 const SCOPE = 'INPUT'
 
 const StyledUIIcon = withUniwind(UIIcon)
@@ -77,11 +82,12 @@ type IInputFieldProps = React.ComponentProps<typeof UIInput.Input> &
   VariantProps<typeof inputFieldStyle> & { className?: string }
 
 const InputField = React.forwardRef<React.ComponentRef<typeof UIInput.Input>, IInputFieldProps>(
-  function InputField({ className, ...props }, ref) {
+  function InputField({ className, placeholderTextColor, ...props }, ref) {
     return (
       <UIInput.Input
         ref={ref}
         {...props}
+        placeholderTextColor={placeholderTextColor ?? PLACEHOLDER_COLOR}
         className={inputFieldStyle({
           class: className,
         })}

@@ -1,4 +1,4 @@
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 
 import { ApiError } from '@/services/api'
 
@@ -10,6 +10,7 @@ export function errorMessage(error: unknown, fallback = 'Something went wrong'):
 
 /**
  * Blocking confirm / failure dialog (mobile equivalent of Alert Dialog).
+ * RN Web's Alert.alert is a no-op — use window.confirm / alert there.
  */
 export function showBlockingAlert(
   title: string,
@@ -21,17 +22,34 @@ export function showBlockingAlert(
     onCancel?: () => void
   },
 ) {
+  const body = `${title}\n\n${message}`
+  const hasCancel = Boolean(options?.cancelLabel || options?.onCancel)
+
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    if (hasCancel) {
+      if (window.confirm(body)) {
+        options?.onConfirm?.()
+      } else {
+        options?.onCancel?.()
+      }
+      return
+    }
+    window.alert(body)
+    options?.onConfirm?.()
+    return
+  }
+
   const buttons: {
     text: string
     style?: 'cancel' | 'destructive' | 'default'
     onPress?: () => void
   }[] = []
 
-  if (options?.cancelLabel || options?.onCancel) {
+  if (hasCancel) {
     buttons.push({
-      text: options.cancelLabel ?? 'Cancel',
+      text: options?.cancelLabel ?? 'Cancel',
       style: 'cancel',
-      onPress: options.onCancel,
+      onPress: options?.onCancel,
     })
   }
 

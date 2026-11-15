@@ -44,7 +44,9 @@ export function IconButton({
       disabled={disabled}
       hitSlop={8}
       className={`size-10 items-center justify-center rounded-full active:opacity-70 ${
-        onHero ? 'bg-hero-foreground/15' : 'border border-border/60 bg-card'
+        onHero
+          ? 'border border-hero-foreground/20 bg-hero-foreground/15'
+          : 'border border-border/40 bg-card'
       } ${disabled ? 'opacity-40' : ''}`}
       onPress={onPress}
     >
@@ -81,17 +83,25 @@ export function HeroHeader({
   useStatusBarStyle('light')
   return (
     <View
-      className="overflow-hidden rounded-b-[32px] bg-hero px-5 pb-5"
+      className="overflow-hidden rounded-b-[36px] bg-hero px-5 pb-6"
       style={{ paddingTop: insets.top + 12 }}
     >
-      {/* Decorative blueprint rings */}
+      {/* Layered glow + blueprint rings: depth without a gradient dependency */}
       <View
         pointerEvents="none"
-        className="absolute -right-16 -top-16 size-56 rounded-full border-[28px] border-hero-foreground/5"
+        className="absolute -right-20 -top-24 size-72 rounded-full bg-hero-foreground/10"
       />
       <View
         pointerEvents="none"
-        className="absolute -left-10 bottom-[-70px] size-40 rounded-full border-[20px] border-hero-foreground/5"
+        className="absolute -right-8 -top-10 size-44 rounded-full bg-hero-foreground/10"
+      />
+      <View
+        pointerEvents="none"
+        className="absolute -left-12 bottom-[-80px] size-48 rounded-full border-[22px] border-hero-foreground/10"
+      />
+      <View
+        pointerEvents="none"
+        className="absolute inset-x-0 bottom-0 h-px bg-hero-foreground/20"
       />
 
       <View className="flex-row items-center gap-3">
@@ -108,14 +118,14 @@ export function HeroHeader({
             </Text>
           ) : null}
           <Text
-            className="text-[28px] font-bold leading-9 text-hero-foreground"
+            className="text-[30px] font-bold leading-9 tracking-tight text-hero-foreground"
             numberOfLines={1}
             accessibilityRole="header"
           >
             {title}
           </Text>
           {subtitle ? (
-            <Text className="text-sm text-hero-foreground/75" numberOfLines={1}>
+            <Text className="text-sm text-hero-foreground/80" numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}
@@ -123,7 +133,7 @@ export function HeroHeader({
         {right ? <View className="flex-row items-center gap-2">{right}</View> : null}
       </View>
 
-      {children ? <View className="mt-4 gap-3">{children}</View> : null}
+      {children ? <View className="mt-5 gap-3">{children}</View> : null}
     </View>
   )
 }

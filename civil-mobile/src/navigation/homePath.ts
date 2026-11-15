@@ -10,9 +10,9 @@ export function homePathForRole(role: AuthRole | null | undefined): string {
     case 'ADMIN':
       return '/admin'
     case 'MANAGER':
-      return '/pm/projects'
+      return '/pm'
     case 'PROVIDER':
-      return '/provider/listings'
+      return '/provider'
     case 'WORKER':
       return '/worker'
     case 'CLIENT':

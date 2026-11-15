@@ -1,5 +1,5 @@
-import { Redirect } from 'expo-router'
+import { PmDashboardScreen } from '@/features/pm/PmDashboardScreen'
 
 export default function PmIndex() {
-  return <Redirect href="/pm/projects" />
+  return <PmDashboardScreen />
 }

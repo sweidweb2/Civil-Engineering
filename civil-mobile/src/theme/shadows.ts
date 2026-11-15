@@ -43,3 +43,35 @@ export const shadows = {
 } as const
 
 export type ShadowToken = keyof typeof shadows
+
+/**
+ * Soft, tinted elevation (mobile-ui skill: never pure grey/black shadows).
+ * `card` is the resting surface, `float` is for the tab bar / FAB, and
+ * `glow(color)` is a colored halo for primary actions.
+ */
+export const softShadows = {
+  card: {
+    shadowColor: '#3B2A4A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
+  } satisfies ViewStyle,
+  float: {
+    shadowColor: '#3B2A4A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    elevation: 10,
+  } satisfies ViewStyle,
+} as const
+
+export function glow(color: string, strength = 0.35): ViewStyle {
+  return {
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: strength,
+    shadowRadius: 16,
+    elevation: 8,
+  }
+}

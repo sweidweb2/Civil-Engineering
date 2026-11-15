@@ -1,7 +1,8 @@
-import { View } from 'react-native'
+import { RefreshControl, ScrollView, View } from 'react-native'
 import type { ReactElement, ReactNode } from 'react'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
+import { useThemeColors } from '@/hooks/useThemeColors'
 
 import { FormScroll, StickyFooter } from './forms'
 import { AppBar, HeroHeader } from './headers'
@@ -129,5 +130,35 @@ export function FormScreen({
         {footer ? <StickyFooter>{footer}</StickyFooter> : null}
       </AsyncState>
     </View>
+  )
+}
+
+/** Scrollable dashboard body with pull-to-refresh and consistent section rhythm. */
+export function DashboardScroll({
+  refreshing,
+  onRefresh,
+  children,
+}: {
+  refreshing: boolean
+  onRefresh: () => void
+  children: ReactNode
+}) {
+  const colors = useThemeColors()
+  return (
+    <ScrollView
+      className="flex-1"
+      contentContainerClassName="gap-8 px-5 pb-8 pt-6"
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
+    >
+      {children}
+    </ScrollView>
   )
 }

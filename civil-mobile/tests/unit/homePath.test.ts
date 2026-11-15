@@ -4,8 +4,8 @@ describe('homePathForRole', () => {
   it('routes each role to its portal home', () => {
     expect(homePathForRole('SUPER')).toBe('/super')
     expect(homePathForRole('ADMIN')).toBe('/admin')
-    expect(homePathForRole('MANAGER')).toBe('/pm/projects')
-    expect(homePathForRole('PROVIDER')).toBe('/provider/listings')
+    expect(homePathForRole('MANAGER')).toBe('/pm')
+    expect(homePathForRole('PROVIDER')).toBe('/provider')
     expect(homePathForRole('WORKER')).toBe('/worker')
     expect(homePathForRole('CLIENT')).toBe('/client')
     expect(homePathForRole(null)).toBe('/client')

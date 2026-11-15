@@ -1,5 +1,5 @@
-import { Redirect } from 'expo-router'
+import { ProviderDashboardScreen } from '@/features/provider/ProviderDashboardScreen'
 
 export default function ProviderIndex() {
-  return <Redirect href="/provider/listings" />
+  return <ProviderDashboardScreen />
 }

@@ -15,6 +15,9 @@ import { AsyncState } from '@/components/feedback/AsyncState'
 import { Button, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { glow, softShadows } from '@/theme/shadows'
+
+import { PressableScale } from './primitives'
 
 type SearchBarProps = {
   value: string
@@ -29,8 +32,11 @@ export function SearchBar({ value, onChangeText, onSubmit, placeholder }: Search
   const { t } = useTranslation()
   const colors = useThemeColors()
   return (
-    <View className="h-12 flex-row items-center gap-2 rounded-2xl bg-card px-4">
-      <Search size={18} color={colors.textMuted} />
+    <View
+      className="h-14 flex-row items-center gap-3 rounded-full bg-card px-5"
+      style={softShadows.float}
+    >
+      <Search size={20} color={colors.textMuted} />
       <TextInput
         className="h-full flex-1 text-base text-foreground"
         value={value}
@@ -89,8 +95,8 @@ export function FilterChips({ options, value, onChange, allLabel }: FilterChipsP
               key={option.value || '__all'}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              className={`h-9 items-center justify-center rounded-full border px-4 ${
-                active ? 'border-primary bg-primary' : 'border-border/60 bg-card'
+              className={`h-10 items-center justify-center rounded-full border px-4 ${
+                active ? 'border-primary bg-primary' : 'border-border/40 bg-card'
               }`}
               onPress={() => onChange(option.value)}
             >
@@ -127,10 +133,17 @@ export function EmptyState({
   const colors = useThemeColors()
   return (
     <View className="items-center gap-3 px-8 py-16">
-      <View className="size-20 items-center justify-center rounded-full bg-primary/10">
-        <Icon size={34} color={colors.primary} />
+      <View className="size-32 items-center justify-center rounded-full bg-primary/5">
+        <View className="size-24 items-center justify-center rounded-full bg-primary/10">
+          <View
+            className="size-16 items-center justify-center rounded-full bg-card"
+            style={glow(colors.primary, 0.25)}
+          >
+            <Icon size={28} color={colors.primary} />
+          </View>
+        </View>
       </View>
-      <Text className="text-center text-lg font-bold text-foreground">{title}</Text>
+      <Text className="mt-2 text-center text-xl font-bold text-foreground">{title}</Text>
       {description ? (
         <Text className="text-center text-sm leading-5 text-muted-foreground">{description}</Text>
       ) : null}
@@ -190,15 +203,17 @@ export function Pager({ page, totalPages, onChange }: PagerProps) {
 export function Fab({ label, onPress }: { label: string; onPress: () => void }) {
   const colors = useThemeColors()
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="absolute bottom-4 right-5 h-14 flex-row items-center gap-2 rounded-full bg-primary px-5 shadow-lg active:opacity-90"
+      scaleTo={0.94}
+      className="absolute bottom-4 right-5 h-14 flex-row items-center gap-2 rounded-full bg-primary px-6"
+      style={glow(colors.primary, 0.45)}
       onPress={onPress}
     >
       <Plus size={20} color={colors.onPrimary} />
       <Text className="text-base font-bold text-primary-foreground">{label}</Text>
-    </Pressable>
+    </PressableScale>
   )
 }
 
@@ -250,7 +265,7 @@ export function PagedList<T>({
         data={data}
         keyExtractor={keyExtractor}
         renderItem={({ item }) => renderItem(item)}
-        contentContainerClassName={`gap-3 px-5 pt-1 ${hasFab ? 'pb-24' : 'pb-6'}`}
+        contentContainerClassName={`gap-4 px-5 pt-1 ${hasFab ? 'pb-28' : 'pb-8'}`}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -291,16 +306,23 @@ export function ListCard({
       {onPress && showChevron ? <ChevronRight size={18} color={colors.disabled} /> : null}
     </>
   )
-  const className = 'flex-row items-center gap-3 rounded-3xl border border-border/60 bg-card p-4'
-  if (!onPress) return <View className={className}>{body}</View>
+  const className = 'flex-row items-center gap-4 rounded-3xl border border-border/40 bg-card p-4'
+  if (!onPress) {
+    return (
+      <View className={className} style={softShadows.card}>
+        {body}
+      </View>
+    )
+  }
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className={`${className} active:opacity-80`}
+      className={className}
+      style={softShadows.card}
       onPress={onPress}
     >
       {body}
-    </Pressable>
+    </PressableScale>
   )
 }

@@ -19,8 +19,10 @@ import {
   Card,
   HeroHeader,
   IconTile,
+  PressableScale,
   ProgressBar,
   SectionLabel,
+  StatCard,
   StatusPill,
   type Tone,
   toneForStatus,
@@ -96,18 +98,13 @@ function StatTile({
   href: string
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      className="min-w-[46%] flex-1 gap-3 rounded-3xl border border-border/60 bg-card p-4 active:opacity-80"
+    <StatCard
+      icon={icon}
+      tone={tone}
+      label={label}
+      value={value}
       onPress={() => router.push(href as never)}
-    >
-      <IconTile icon={icon} tone={tone} size={40} />
-      <View>
-        <Text className="text-2xl font-bold text-foreground">{value}</Text>
-        <Text className="text-sm text-muted-foreground">{label}</Text>
-      </View>
-    </Pressable>
+    />
   )
 }
 
@@ -146,17 +143,18 @@ function AttentionRow({
 
 function QuickAction({ icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="min-w-0 flex-1 items-center gap-2 active:opacity-70"
+      scaleTo={0.92}
+      className="min-w-0 flex-1 items-center gap-2"
       onPress={() => router.push(href as never)}
     >
-      <IconTile icon={icon} size={56} />
+      <IconTile icon={icon} size={60} />
       <Text className="text-center text-xs font-semibold text-foreground" numberOfLines={2}>
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   )
 }
 
@@ -210,7 +208,7 @@ export function AdminDashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-5 px-5 pb-6 pt-5"
+        contentContainerClassName="gap-8 px-5 pb-8 pt-6"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -222,7 +220,7 @@ export function AdminDashboardScreen() {
         }
       >
         {attention.length > 0 ? (
-          <View className="gap-2">
+          <View className="gap-3">
             <SectionLabel>{t('dashboard.attention')}</SectionLabel>
             <Card className="py-1">
               {attention.map((item, index) => (
@@ -232,7 +230,7 @@ export function AdminDashboardScreen() {
           </View>
         ) : null}
 
-        <View className="gap-2">
+        <View className="gap-3">
           <SectionLabel>{t('dashboard.overview')}</SectionLabel>
           <View className="flex-row flex-wrap gap-3">
             <StatTile
@@ -266,7 +264,7 @@ export function AdminDashboardScreen() {
           </View>
         </View>
 
-        <View className="gap-2">
+        <View className="gap-3">
           <SectionLabel>{t('dashboard.quickActions')}</SectionLabel>
           <Card>
             <View className="flex-row justify-between">
@@ -282,7 +280,7 @@ export function AdminDashboardScreen() {
         </View>
 
         {data && data.recentProjects.length > 0 ? (
-          <View className="gap-2">
+          <View className="gap-3">
             <SectionLabel
               action={
                 <Pressable

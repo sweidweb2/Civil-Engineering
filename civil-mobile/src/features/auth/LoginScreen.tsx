@@ -1,22 +1,25 @@
 import { useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, Text } from 'react-native'
 import { Link, Redirect, router } from 'expo-router'
+import { Lock, Mail } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { FormField } from '@/components/forms/FormField'
-import { Header } from '@/components/layout/Header'
+import { TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Input, InputField } from '@/components/ui/input'
+import { AuthShell } from '@/features/auth/AuthShell'
 import { loginSchema } from '@/features/auth/login.schema'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
 import { ApiError } from '@/services/api'
 import { showApiAlert } from '@/services/feedback'
 import { useToastApiError } from '@/services/toast'
 import { useAuthStore } from '@/stores/authStore'
+import { glow } from '@/theme/shadows'
 
 export function LoginScreen() {
   const { t } = useTranslation()
+  const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
   const toastApiError = useToastApiError()
@@ -58,61 +61,53 @@ export function LoginScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background" testID="e2e-login">
-      <Header title={t('auth.signIn')} />
-      <View className="gap-4 px-4 py-6">
-        <Text className="text-sm text-muted-foreground">{t('auth.signInSubtitle')}</Text>
+    <AuthShell testID="e2e-login" title={t('auth.signIn')} subtitle={t('auth.signInSubtitle')}>
+      <TextField
+        label={t('auth.email')}
+        required
+        icon={Mail}
+        error={fieldErrors.email}
+        placeholder={t('auth.email')}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
 
-        <FormField
-          label={t('auth.email')}
-          isRequired
-          isInvalid={Boolean(fieldErrors.email)}
-          errorText={fieldErrors.email}
-        >
-          <Input>
-            <InputField
-              placeholder={t('auth.email')}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
-          </Input>
-        </FormField>
+      <TextField
+        label={t('auth.password')}
+        required
+        icon={Lock}
+        error={fieldErrors.password}
+        placeholder={t('auth.password')}
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
 
-        <FormField
-          label={t('auth.password')}
-          isRequired
-          isInvalid={Boolean(fieldErrors.password)}
-          errorText={fieldErrors.password}
-        >
-          <Input>
-            <InputField
-              placeholder={t('auth.password')}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </Input>
-        </FormField>
+      <Button
+        size="lg"
+        className="mt-2"
+        onPress={() => void onSubmit()}
+        disabled={isSubmitting}
+        accessibilityState={{ busy: isSubmitting }}
+        style={glow(colors.primary, 0.35)}
+      >
+        {isSubmitting ? <ButtonSpinner /> : null}
+        <ButtonText className="text-base font-bold">
+          {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
+        </ButtonText>
+      </Button>
 
-        <Button
-          onPress={() => void onSubmit()}
-          disabled={isSubmitting}
-          accessibilityState={{ busy: isSubmitting }}
-        >
-          {isSubmitting ? <ButtonSpinner /> : null}
-          <ButtonText>{isSubmitting ? t('auth.signingIn') : t('auth.signIn')}</ButtonText>
-        </Button>
-
-        <Link href="/register" asChild>
-          <Pressable>
-            <Text className="text-center text-sm text-muted-foreground">
-              {t('auth.noAccount')} <Text className="text-foreground">{t('auth.register')}</Text>
-            </Text>
-          </Pressable>
-        </Link>
-      </View>
-    </View>
+      <Link href="/register" asChild>
+        <Pressable className="py-2" hitSlop={8}>
+          <Text className="text-center text-sm text-muted-foreground">
+            {t('auth.noAccount')}{' '}
+            <Text className="font-bold text-primary">{t('auth.register')}</Text>
+          </Text>
+        </Pressable>
+      </Link>
+    </AuthShell>
   )
 }

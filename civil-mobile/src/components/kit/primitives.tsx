@@ -1,16 +1,27 @@
-import { Text, View } from 'react-native'
+import { type ReactNode, useEffect } from 'react'
+import { Pressable as RNPressable, type PressableProps, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import type { LucideIcon } from 'lucide-react-native'
-import type { ReactNode } from 'react'
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated'
+import { withUniwind } from 'uniwind'
 
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { softShadows } from '@/theme/shadows'
 
 import { type Tone, TONE_BG, TONE_COLOR, TONE_DOT, TONE_TEXT } from './tones'
+
+const AnimatedPressable = withUniwind(Animated.createAnimatedComponent(RNPressable))
 
 /** Rounded status chip with a leading dot. */
 export function StatusPill({ label, tone = 'neutral' }: { label: string; tone?: Tone }) {
   return (
-    <View className={`flex-row items-center gap-1.5 rounded-full px-2.5 py-1 ${TONE_BG[tone]}`}>
+    <View className={`flex-row items-center gap-1.5 rounded-full px-3 py-1 ${TONE_BG[tone]}`}>
       <View className={`size-1.5 rounded-full ${TONE_DOT[tone]}`} />
       <Text className={`text-xs font-semibold ${TONE_TEXT[tone]}`} numberOfLines={1}>
         {label}
@@ -66,7 +77,7 @@ export function Avatar({
   return (
     <View
       className={`items-center justify-center overflow-hidden rounded-full ${
-        onHero ? 'bg-hero-foreground/20' : 'bg-primary/10'
+        onHero ? 'border-2 border-hero-foreground/30 bg-hero-foreground/20' : 'bg-primary/10'
       }`}
       style={{ width: size, height: size }}
     >
@@ -88,25 +99,108 @@ export function Avatar({
   )
 }
 
-/** White rounded surface used for every card in the app. */
+/** Soft, tint-shadowed surface used for every card in the app. */
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <View className={`rounded-3xl border border-border/60 bg-card p-4 ${className ?? ''}`}>
+    <View
+      className={`rounded-3xl border border-border/40 bg-card p-5 ${className ?? ''}`}
+      style={softShadows.card}
+    >
       {children}
     </View>
   )
 }
 
+/**
+ * Pressable with a springy scale-down. The tactile feedback is what makes a
+ * card feel like a physical object instead of a flat rectangle.
+ */
+export function PressableScale({
+  children,
+  className,
+  style,
+  scaleTo = 0.97,
+  onPressIn,
+  onPressOut,
+  ...rest
+}: PressableProps & { className?: string; scaleTo?: number; children: ReactNode }) {
+  const scale = useSharedValue(1)
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  return (
+    <AnimatedPressable
+      {...rest}
+      className={className}
+      style={[animated, style as never]}
+      onPressIn={(e) => {
+        scale.set(withSpring(scaleTo, { damping: 18, stiffness: 320 }))
+        onPressIn?.(e)
+      }}
+      onPressOut={(e) => {
+        scale.set(withSpring(1, { damping: 14, stiffness: 260 }))
+        onPressOut?.(e)
+      }}
+    >
+      {children}
+    </AnimatedPressable>
+  )
+}
+
 export function ProgressBar({ value, tone = 'primary' }: { value: number; tone?: Tone }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)))
+  const width = useSharedValue(0)
+  useEffect(() => {
+    width.value = withTiming(pct, { duration: 700, easing: Easing.out(Easing.cubic) })
+  }, [pct, width])
+  const fill = useAnimatedStyle(() => ({ width: `${width.value}%` }))
   return (
     <View
       className="h-2 overflow-hidden rounded-full bg-muted"
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: pct }}
     >
-      <View className={`h-full rounded-full ${TONE_DOT[tone]}`} style={{ width: `${pct}%` }} />
+      <Animated.View className={`h-full rounded-full ${TONE_DOT[tone]}`} style={fill} />
     </View>
+  )
+}
+
+/** Big-number metric tile: value first, label second (value carries the weight). */
+export function StatCard({
+  icon,
+  tone = 'primary',
+  label,
+  value,
+  onPress,
+}: {
+  icon: LucideIcon
+  tone?: Tone
+  label: string
+  value: string
+  onPress?: () => void
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      className="min-w-[46%] flex-1 gap-4 rounded-3xl border border-border/40 bg-card p-4"
+      style={softShadows.card}
+      onPress={onPress}
+    >
+      <View className="flex-row items-center justify-between">
+        <IconTile icon={icon} tone={tone} size={40} />
+        <View className={`size-2 rounded-full ${TONE_DOT[tone]} opacity-60`} />
+      </View>
+      <View className="gap-0.5">
+        <Text
+          className="text-[32px] font-bold leading-9 text-foreground"
+          style={{ fontVariant: ['tabular-nums'] }}
+        >
+          {value}
+        </Text>
+        <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+    </PressableScale>
   )
 }
 
@@ -178,5 +272,66 @@ export function Thumbnail({
         <Icon size={Math.round(size * 0.4)} color={colors.primary} />
       )}
     </View>
+  )
+}
+
+/** Translucent KPI tile for the inside of a HeroHeader: value first, label second. */
+export function HeroStat({
+  label,
+  value,
+  onPress,
+}: {
+  label: string
+  value: string
+  onPress?: () => void
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      disabled={!onPress}
+      scaleTo={0.95}
+      className="min-w-0 flex-1 gap-0.5 rounded-2xl border border-hero-foreground/20 bg-hero-foreground/15 px-4 py-3"
+      onPress={onPress}
+    >
+      <Text
+        className="text-2xl font-bold leading-8 text-hero-foreground"
+        style={{ fontVariant: ['tabular-nums'] }}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <Text className="text-xs font-medium text-hero-foreground/80" numberOfLines={1}>
+        {label}
+      </Text>
+    </PressableScale>
+  )
+}
+
+/** Big round icon + caption, used in "quick actions" rows. */
+export function ActionTile({
+  icon,
+  label,
+  tone = 'primary',
+  onPress,
+}: {
+  icon: LucideIcon
+  label: string
+  tone?: Tone
+  onPress: () => void
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      scaleTo={0.92}
+      className="min-w-0 flex-1 items-center gap-2"
+      onPress={onPress}
+    >
+      <IconTile icon={icon} tone={tone} size={60} />
+      <Text className="text-center text-xs font-semibold text-foreground" numberOfLines={2}>
+        {label}
+      </Text>
+    </PressableScale>
   )
 }

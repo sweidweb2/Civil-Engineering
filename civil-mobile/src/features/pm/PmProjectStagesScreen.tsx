@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { Check } from 'lucide-react-native'
+import { Check, Paperclip } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { ChoiceField, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
+import { StageFileField } from '@/features/pm/StageFileField'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel, enumOptions } from '@/i18n/labels'
@@ -165,6 +166,22 @@ function fieldsForStage(key: StageKey): { key: string; multiline?: boolean }[] {
   }
 }
 
+/** Draft keys that hold an uploaded file's storage key, per stage. */
+function fileFieldsForStage(key: StageKey): string[] {
+  switch (key) {
+    case 'geotechnical':
+      return ['reportFilePath']
+    case 'design':
+      return ['architecturalDesignPath', 'structuralDesignPath', 'mepDesignPath']
+    case 'licensing':
+      return ['permitFilePath']
+    case 'materials':
+      return ['invoiceFilePath']
+    case 'maintenance':
+      return ['reportFilePath']
+  }
+}
+
 function toNullable(value: string | undefined): string | null {
   const trimmed = value?.trim() ?? ''
   return trimmed.length > 0 ? trimmed : null
@@ -208,6 +225,7 @@ export function PmProjectStagesScreen({ basePath = '/pm/projects' }: PmProjectSt
   }, [summary, activeKey])
 
   const fields = useMemo(() => fieldsForStage(activeKey), [activeKey])
+  const fileFields = useMemo(() => fileFieldsForStage(activeKey), [activeKey])
   const activeIndex = STAGE_KEYS.indexOf(activeKey)
   const isLast = activeIndex >= STAGE_KEYS.length - 1
 
@@ -363,6 +381,20 @@ export function PmProjectStagesScreen({ basePath = '/pm/projects' }: PmProjectSt
           />
         ))}
       </Section>
+      {projectId ? (
+        <Section title={t('stages.documents')} icon={Paperclip} tone="info">
+          {fileFields.map((field) => (
+            <StageFileField
+              key={`${activeKey}-${field}`}
+              projectId={projectId}
+              label={t(`stageFileFields.${field}`)}
+              value={draft[field] ?? ''}
+              disabled={isSaving}
+              onChange={(next) => setDraft((current) => ({ ...current, [field]: next }))}
+            />
+          ))}
+        </Section>
+      ) : null}
     </FormScreen>
   )
 }

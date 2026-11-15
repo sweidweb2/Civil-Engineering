@@ -1,24 +1,24 @@
 /**
  * colors.ts - brand palette. Source of truth, mirrored by the RGB variables in
  * `civil-mobile/global.css` (which drive every Tailwind class).
- *   primary   #FF385C  actions, active states, the hero header
- *   secondary #008489  accents and info
+ *   primary   #15803D  actions, active states, the hero header (green)
+ *   secondary #FF385C  coral accent; info stays teal #008489
  *   neutral   #FFFFFF  surfaces and text on color
  * Change a color here AND in global.css (light + dark blocks).
  */
 
 export const colors = {
   light: {
-    primary: '#FF385C',
+    primary: '#15803D',
     onPrimary: '#FFFFFF',
-    secondary: '#008489',
+    secondary: '#FF385C',
     background: '#F7F7F7',
     surface: '#FFFFFF',
     muted: '#F2F2F2',
     text: '#222222',
     textMuted: '#717171',
     border: '#DDDDDD',
-    chartMint: '#008489',
+    chartMint: '#0E9AA0',
     success: '#2F9E71',
     warning: '#D97706',
     error: '#C13515',
@@ -26,9 +26,9 @@ export const colors = {
     disabled: '#B0B0B0',
   },
   dark: {
-    primary: '#FF4D6D',
+    primary: '#22A55B',
     onPrimary: '#FFFFFF',
-    secondary: '#26A6AB',
+    secondary: '#FF4D6D',
     background: '#121212',
     surface: '#1C1C1E',
     muted: '#2A2A2C',

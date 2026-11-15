@@ -3,6 +3,8 @@ import { Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
+import { useThemeColors } from '@/hooks/useThemeColors'
+import { glow, softShadows } from '@/theme/shadows'
 
 export type BottomNavItem = {
   key: string
@@ -23,6 +25,7 @@ type BottomNavigationProps = {
  */
 export function BottomNavigation({ items }: BottomNavigationProps) {
   const insets = useSafeAreaInsets()
+  const colors = useThemeColors()
 
   return (
     <View
@@ -31,7 +34,8 @@ export function BottomNavigation({ items }: BottomNavigationProps) {
     >
       <View
         accessibilityRole="tablist"
-        className="h-16 flex-row items-center justify-between rounded-full border border-border/60 bg-card px-2 shadow-lg"
+        className="h-[68px] flex-row items-center justify-between rounded-full border border-border/40 bg-card px-2"
+        style={softShadows.float}
       >
         {items.map((item) => {
           const active = Boolean(item.isActive)
@@ -41,9 +45,10 @@ export function BottomNavigation({ items }: BottomNavigationProps) {
               accessibilityRole="tab"
               accessibilityLabel={item.label}
               accessibilityState={{ selected: active }}
-              className={`h-12 flex-row items-center justify-center gap-2 rounded-full ${
-                active ? 'shrink bg-primary px-3.5' : 'flex-1'
+              className={`h-14 flex-row items-center justify-center gap-2 rounded-full ${
+                active ? 'shrink bg-primary px-4' : 'flex-1'
               }`}
+              style={active ? glow(colors.primary, 0.4) : undefined}
               onPress={item.onPress}
             >
               {item.renderIcon(active)}

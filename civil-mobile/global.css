@@ -13,10 +13,10 @@
 @layer theme {
   /* Brand RGB channels — 60-30-10 from src/theme/colors.ts (light) */
   :where(.light, .light *) {
-    --primary: 255 56 92;
+    --primary: 21 128 61;
     --primary-foreground: 255 255 255;
     --card: 255 255 255;
-    --secondary: 0 132 137;
+    --secondary: 255 56 92;
     --secondary-foreground: 255 255 255;
     --background: 247 247 247;
     --popover: 255 255 255;
@@ -27,22 +27,22 @@
     --foreground: 34 34 34;
     --border: 221 221 221;
     --input: 221 221 221;
-    --ring: 255 56 92;
+    --ring: 21 128 61;
     --success: 47 158 113;
     --warning: 217 119 6;
     --info: 0 132 137;
-    --hero: 255 56 92;
+    --hero: 21 128 61;
     --hero-foreground: 255 255 255;
-    --accent: 255 241 244;
+    --accent: 236 253 243;
     --accent-foreground: 34 34 34;
   }
 
   @media (prefers-color-scheme: light) {
     :root:not(:where(.light, .light *, .dark, .dark *)) {
-      --primary: 255 56 92;
+      --primary: 21 128 61;
       --primary-foreground: 255 255 255;
       --card: 255 255 255;
-      --secondary: 0 132 137;
+      --secondary: 255 56 92;
       --secondary-foreground: 255 255 255;
       --background: 247 247 247;
       --popover: 255 255 255;
@@ -53,22 +53,22 @@
       --foreground: 34 34 34;
       --border: 221 221 221;
       --input: 221 221 221;
-      --ring: 255 56 92;
+      --ring: 21 128 61;
       --success: 47 158 113;
       --warning: 217 119 6;
       --info: 0 132 137;
-      --hero: 255 56 92;
+      --hero: 21 128 61;
       --hero-foreground: 255 255 255;
-      --accent: 255 241 244;
+      --accent: 236 253 243;
       --accent-foreground: 34 34 34;
     }
   }
 
   :where(.dark, .dark *) {
-    --primary: 255 77 109;
+    --primary: 34 165 91;
     --primary-foreground: 255 255 255;
     --card: 28 28 30;
-    --secondary: 38 166 171;
+    --secondary: 255 77 109;
     --secondary-foreground: 255 255 255;
     --background: 18 18 18;
     --popover: 28 28 30;
@@ -79,22 +79,22 @@
     --foreground: 245 245 245;
     --border: 51 51 54;
     --input: 51 51 54;
-    --accent: 58 28 36;
+    --accent: 24 52 36;
     --accent-foreground: 245 245 245;
-    --ring: 255 77 109;
+    --ring: 34 165 91;
     --success: 52 184 133;
     --warning: 245 158 11;
     --info: 38 166 171;
-    --hero: 58 21 32;
+    --hero: 16 58 36;
     --hero-foreground: 255 255 255;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not(:where(.light, .light *, .dark, .dark *)) {
-      --primary: 255 77 109;
+      --primary: 34 165 91;
       --primary-foreground: 255 255 255;
       --card: 28 28 30;
-      --secondary: 38 166 171;
+      --secondary: 255 77 109;
       --secondary-foreground: 255 255 255;
       --background: 18 18 18;
       --popover: 28 28 30;
@@ -105,13 +105,13 @@
       --foreground: 245 245 245;
       --border: 51 51 54;
       --input: 51 51 54;
-      --accent: 58 28 36;
+      --accent: 24 52 36;
       --accent-foreground: 245 245 245;
-      --ring: 255 77 109;
+      --ring: 34 165 91;
       --success: 52 184 133;
       --warning: 245 158 11;
       --info: 38 166 171;
-      --hero: 58 21 32;
+      --hero: 16 58 36;
       --hero-foreground: 255 255 255;
     }
   }

@@ -10,13 +10,23 @@ import {
   type TextInputProps,
   View,
 } from 'react-native'
-import { AlertCircle, Check, ChevronDown, type LucideIcon, Search, X } from 'lucide-react-native'
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  type LucideIcon,
+  Search,
+  X,
+} from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
 import { Switch } from '@/components/ui/switch'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { softShadows } from '@/theme/shadows'
 
 import { IconTile } from './primitives'
 import type { Tone } from './tones'
@@ -64,7 +74,10 @@ export function Section({
   children: ReactNode
 }) {
   return (
-    <View className="gap-4 rounded-3xl border border-border/60 bg-card p-4">
+    <View
+      className="gap-5 rounded-3xl border border-border/40 bg-card p-5"
+      style={softShadows.card}
+    >
       <View className="flex-row items-center gap-3">
         {icon ? <IconTile icon={icon} tone={tone} size={40} /> : null}
         <View className="min-w-0 flex-1">
@@ -112,7 +125,10 @@ export function TextField({
   ...input
 }: TextFieldProps) {
   const colors = useThemeColors()
+  const { t } = useTranslation()
   const [focused, setFocused] = useState(false)
+  const [revealed, setRevealed] = useState(false)
+  const isSecret = Boolean(input.secureTextEntry)
   const multiline = Boolean(input.multiline)
   const borderClass = error ? 'border-destructive' : focused ? 'border-primary' : 'border-border'
 
@@ -120,13 +136,14 @@ export function TextField({
     <View className="gap-1.5">
       <FieldLabel label={label} required={required} />
       <View
-        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-2xl border bg-background px-3.5 ${borderClass} ${
-          multiline ? 'min-h-[104px] items-start py-3' : 'h-12 items-center'
+        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-2xl border-[1.5px] bg-background px-4 ${borderClass} ${
+          multiline ? 'min-h-[112px] items-start py-3.5' : 'h-14 items-center'
         }`}
       >
         {Icon ? <Icon size={18} color={focused ? colors.primary : colors.textMuted} /> : null}
         <TextInput
           {...input}
+          secureTextEntry={isSecret && !revealed}
           className={`min-w-0 flex-1 text-base text-foreground ${multiline ? '' : 'h-full'}`}
           placeholderTextColor={colors.disabled}
           textAlignVertical={multiline ? 'top' : 'center'}
@@ -140,6 +157,20 @@ export function TextField({
             input.onBlur?.(event)
           }}
         />
+        {isSecret ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? t('auth.hidePassword') : t('auth.showPassword')}
+            hitSlop={10}
+            onPress={() => setRevealed((value) => !value)}
+          >
+            {revealed ? (
+              <EyeOff size={18} color={colors.textMuted} />
+            ) : (
+              <Eye size={18} color={colors.textMuted} />
+            )}
+          </Pressable>
+        ) : null}
       </View>
       <FieldHint error={error} helper={helper} />
     </View>
@@ -254,8 +285,8 @@ export function StickyFooter({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets()
   return (
     <View
-      className="flex-row gap-3 border-t border-border/60 bg-card px-5 pt-3"
-      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      className="flex-row gap-3 rounded-t-[28px] border-t border-border/40 bg-card px-5 pt-4"
+      style={[softShadows.float, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}
     >
       {children}
     </View>
@@ -273,7 +304,7 @@ export function SegmentedControl({
   onChange: (value: string) => void
 }) {
   return (
-    <View className="flex-row rounded-2xl bg-muted p-1">
+    <View className="flex-row rounded-full bg-muted p-1">
       {options.map((option) => {
         const active = option.value === value
         return (
@@ -281,9 +312,10 @@ export function SegmentedControl({
             key={option.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            className={`h-10 flex-1 items-center justify-center rounded-xl ${
+            className={`h-11 flex-1 items-center justify-center rounded-full ${
               active ? 'bg-card' : ''
             }`}
+            style={active ? softShadows.card : undefined}
             onPress={() => onChange(option.value)}
           >
             <Text

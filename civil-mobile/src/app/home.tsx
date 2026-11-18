@@ -1,7 +1,7 @@
 import { View } from 'react-native'
 import { Redirect } from 'expo-router'
 
-import { IsometricLoader } from '@/components/feedback/IsometricLoader'
+import { PageSkeleton } from '@/components/feedback/PageSkeleton'
 import { homePathForRole } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -13,7 +13,7 @@ export default function HomeRedirect() {
   if (!isHydrated) {
     return (
       <View className="flex-1 bg-background">
-        <IsometricLoader label="Loading…" />
+        <PageSkeleton label="Loading…" withHeader />
       </View>
     )
   }

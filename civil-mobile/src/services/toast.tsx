@@ -13,15 +13,15 @@ export function useToastSuccess() {
 
   return function toastSuccess(title: string, description?: string) {
     toast.show({
-      placement: 'top',
-      duration: 2500,
+      placement: 'bottom',
+      duration: 4000,
       render: ({ id }: { id: string }) => (
         <Toast nativeID={`toast-${id}`} action="success" variant="solid">
           <View className="flex-row items-center gap-3">
-            <CircleCheck size={22} color={colors.success} />
+            <CircleCheck size={20} color={colors.accentOnInverse} strokeWidth={1.75} />
             <View className="min-w-0 flex-1 gap-1">
-              <ToastTitle>{title}</ToastTitle>
-              {description ? <ToastDescription>{description}</ToastDescription> : null}
+              <ToastTitle size="sm">{title}</ToastTitle>
+              {description ? <ToastDescription size="sm">{description}</ToastDescription> : null}
             </View>
           </View>
         </Toast>
@@ -39,20 +39,20 @@ export function useToastApiError() {
   const colors = useThemeColors()
   const { t } = useTranslation()
 
-  return function toastApiError(error: unknown, fallback = 'Something went wrong') {
+  return function toastApiError(error: unknown, fallback = 'That didn’t go through. Try again.') {
     const message =
       error instanceof ApiError ? error.message : error instanceof Error ? error.message : fallback
 
     toast.show({
-      placement: 'top',
+      placement: 'bottom',
       duration: 4000,
       render: ({ id }: { id: string }) => (
         <Toast nativeID={`toast-${id}`} action="error" variant="solid">
           <View className="flex-row items-center gap-3">
-            <CircleAlert size={22} color={colors.error} />
+            <CircleAlert size={20} color={colors.onInverse} strokeWidth={1.75} />
             <View className="min-w-0 flex-1 gap-1">
-              <ToastTitle>{t('common.error')}</ToastTitle>
-              <ToastDescription>{message}</ToastDescription>
+              <ToastTitle size="sm">{t('common.error')}</ToastTitle>
+              <ToastDescription size="sm">{message}</ToastDescription>
             </View>
           </View>
         </Toast>

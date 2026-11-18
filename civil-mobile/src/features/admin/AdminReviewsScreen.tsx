@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
-import { Star } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { IconTile, ListCard, ListScreen, StandardListRow, toneForStatus } from '@/components/kit'
+import { ListCard, ListScreen, StandardListRow, toneForStatus } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useResourceList } from '@/hooks/useResourceList'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { showBlockingAlert } from '@/services/feedback'
@@ -19,23 +17,21 @@ import {
   updateReview,
 } from '@/services/reviews'
 import { useToastSuccess } from '@/services/toast'
+import { MONO_STYLE } from '@/theme/typography'
 
 const PAGE_SIZE = 20
 const STATUSES: ReviewStatus[] = ['PENDING', 'ACCEPTED', 'REJECTED']
 
-function Stars({ rating }: { rating: number }) {
-  const colors = useThemeColors()
+/** Rating as a figure ("4 / 5"), mono — a number, not decoration. */
+function Rating({ rating }: { rating: number }) {
   return (
-    <View className="flex-row items-center gap-0.5" accessibilityLabel={`${rating}/5`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={14}
-          color={n <= rating ? colors.warning : colors.border}
-          fill={n <= rating ? colors.warning : 'transparent'}
-        />
-      ))}
-    </View>
+    <Text
+      className="text-xs font-medium text-ink-2"
+      style={MONO_STYLE}
+      accessibilityLabel={`${rating}/5`}
+    >
+      {rating} / 5
+    </Text>
   )
 }
 
@@ -106,21 +102,22 @@ export function AdminReviewsScreen() {
       renderItem={(item) => {
         const busy = busyId === item.id
         return (
-          <ListCard leading={<IconTile icon={Star} tone="warning" />}>
+          <ListCard>
             <StandardListRow
               title={item.targetName || item.targetType}
               statusLabel={enumLabel(t, 'reviewStatus', item.status)}
               statusTone={toneForStatus(item.status)}
               extra={
                 <>
-                  <Stars rating={item.rating} />
-                  <Text className="text-sm text-foreground" numberOfLines={3}>
+                  <Rating rating={item.rating} />
+                  <Text className="text-sm text-ink-2" numberOfLines={3}>
                     {item.comment?.trim() || t('reviews.noComment')}
                   </Text>
                   <View className="flex-row flex-wrap gap-2 pt-2">
                     {item.status !== 'ACCEPTED' ? (
                       <Button
                         size="sm"
+                        variant="outline"
                         disabled={busy}
                         onPress={() => void setReviewStatus(item, 'ACCEPTED')}
                       >

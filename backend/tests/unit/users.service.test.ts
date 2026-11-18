@@ -416,6 +416,15 @@ describe('usersService', () => {
     })
   })
 
+  it('returns 404 when approve races with a concurrent delete', async () => {
+    vi.mocked(repository.findById)
+      .mockResolvedValueOnce(makeUser({ role: 'WORKER', status: 'PENDING' }))
+      .mockResolvedValueOnce(null)
+    vi.mocked(repository.updateStatusIf).mockResolvedValue(null)
+    const service = createUsersService(repository)
+    await expect(service.approveUser('user-1', admin)).rejects.toMatchObject({ status: 404 })
+  })
+
   it('creates a pending worker with verification requested', async () => {
     const service = createUsersService(repository)
     await service.createVerification(

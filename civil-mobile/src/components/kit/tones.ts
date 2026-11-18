@@ -1,44 +1,48 @@
 import type { ColorToken } from '@/theme/colors'
 
-/** Semantic tone shared by pills, icon tiles and stat cards. */
+/**
+ * Semantic tone for state pills and status text. The UI is near-monochrome:
+ * `primary`/`success` resolve to the one accent, `warning`/`danger` to their
+ * meaning colors, `info`/`neutral` to ink tints. Tone never decorates.
+ */
 export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral'
 
-/** Literal class strings so Tailwind can see them at build time. */
+/** 12% tint behind a state pill. Literal strings so Tailwind sees them. */
 export const TONE_BG: Record<Tone, string> = {
-  primary: 'bg-primary/10',
-  success: 'bg-success/10',
-  warning: 'bg-warning/10',
-  danger: 'bg-destructive/10',
-  info: 'bg-info/10',
+  primary: 'bg-primary/12',
+  success: 'bg-primary/12',
+  warning: 'bg-warning/12',
+  danger: 'bg-destructive/12',
+  info: 'bg-muted',
   neutral: 'bg-muted',
 }
 
 export const TONE_TEXT: Record<Tone, string> = {
   primary: 'text-primary',
-  success: 'text-success',
+  success: 'text-primary',
   warning: 'text-warning',
   danger: 'text-destructive',
-  info: 'text-info',
+  info: 'text-ink-2',
   neutral: 'text-muted-foreground',
 }
 
 export const TONE_DOT: Record<Tone, string> = {
   primary: 'bg-primary',
-  success: 'bg-success',
+  success: 'bg-primary',
   warning: 'bg-warning',
   danger: 'bg-destructive',
-  info: 'bg-info',
-  neutral: 'bg-muted-foreground',
+  info: 'bg-data-2',
+  neutral: 'bg-data-3',
 }
 
-/** Palette token for props that need a raw color (icons). */
+/** Palette role for props that need a raw color (icons). */
 export const TONE_COLOR: Record<Tone, ColorToken> = {
-  primary: 'primary',
-  success: 'success',
+  primary: 'accent',
+  success: 'accent',
   warning: 'warning',
-  danger: 'error',
-  info: 'info',
-  neutral: 'textMuted',
+  danger: 'negative',
+  info: 'ink2',
+  neutral: 'muted',
 }
 
 const STATUS_TONES: Record<string, Tone> = {

@@ -13,17 +13,20 @@ import {
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { InlineError } from '@/components/feedback/AsyncState'
 import {
   ActionTile,
-  Card,
   DashboardScroll,
-  HeroCard,
-  IconTile,
+  EmptyState,
+  HeroMetric,
+  MenuGroup,
+  MenuRow,
+  Notice,
   ProgressBar,
+  QuickActions,
   ScreenHeader,
   SectionLabel,
-  StatusPill,
-  toneForStatus,
+  useTodayCaption,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { cvCompletenessPercent, cvSectionStatuses } from '@/features/worker/cvCompleteness'
@@ -31,6 +34,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateWorkerCaches } from '@/lib/cacheKeys'
+import { intlLocale } from '@/lib/locale'
 import { userFirstName } from '@/lib/user'
 import { useToastSuccess } from '@/services/toast'
 import {
@@ -40,6 +44,7 @@ import {
   type WorkerVerificationStatus,
 } from '@/services/workers'
 import { useAuthStore } from '@/stores/authStore'
+import { MONO_STYLE } from '@/theme/typography'
 
 type WorkerHomeData = {
   profile: WorkerProfile | null
@@ -57,6 +62,7 @@ async function loadHome(): Promise<WorkerHomeData> {
 export function WorkerDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const today = useTodayCaption()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [isRequesting, setIsRequesting] = useState(false)
@@ -83,15 +89,13 @@ export function WorkerDashboardScreen() {
     }
   }
 
-  const banner =
+  const notice =
     verification === 'VERIFIED'
       ? {
           icon: CheckCircle2,
           tone: 'success' as const,
           title: t('workerHome.verifiedTitle'),
           description: t('workerHome.verifiedDescription'),
-          boxClass: 'border-success/30 bg-success/10',
-          textClass: 'text-success',
           showRequest: false,
         }
       : verification === 'REQUESTED'
@@ -100,23 +104,20 @@ export function WorkerDashboardScreen() {
             tone: 'warning' as const,
             title: t('workerHome.requestedTitle'),
             description: t('workerHome.requestedDescription'),
-            boxClass: 'border-warning/30 bg-warning/10',
-            textClass: 'text-warning',
             showRequest: false,
           }
         : {
             icon: ShieldAlert,
-            tone: 'info' as const,
+            tone: 'neutral' as const,
             title: t('workerHome.unverifiedTitle'),
             description: t('workerHome.unverifiedDescription'),
-            boxClass: 'border-border bg-muted/40',
-            textClass: 'text-foreground',
             showRequest: true,
           }
 
   return (
     <View className="flex-1 bg-background" testID="e2e-worker-dashboard">
       <ScreenHeader
+        caption={today}
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
       />
 
@@ -124,113 +125,99 @@ export function WorkerDashboardScreen() {
         refreshing={remote.isFetching && remote.status === 'success'}
         onRefresh={() => void remote.refetch()}
       >
-        <HeroCard
-          icon={FileUser}
-          caption={t('workerHome.completeness')}
-          value={`${percent}%`}
+        {remote.status === 'error' ? (
+          <InlineError error={remote.error} onRetry={() => void remote.refetch()} />
+        ) : null}
+
+        <HeroMetric
+          label={t('workerHome.completeness')}
+          value={remote.isLoading && !profile ? '…' : `${percent}%`}
+          context={t('workerHome.sectionsDone', { done: doneCount, total: sections.length })}
           onPress={() => router.push('/worker/cv' as never)}
-          stats={[
-            {
-              label: t('workerHome.experience'),
-              value: String(profile?.experiences.length ?? 0),
-              onPress: () => router.push('/worker/cv/experience' as never),
-            },
-            {
-              label: t('workerHome.skills'),
-              value: String(profile?.skills.length ?? 0),
-              onPress: () => router.push('/worker/cv/skills' as never),
-            },
-          ]}
+        >
+          <ProgressBar value={percent} />
+        </HeroMetric>
+
+        <Notice
+          icon={notice.icon}
+          tone={notice.tone}
+          title={notice.title}
+          description={notice.description}
+          action={
+            notice.showRequest ? (
+              <Button onPress={() => void onRequestVerification()} disabled={isRequesting}>
+                {isRequesting ? <ButtonSpinner /> : null}
+                <ButtonText>
+                  {isRequesting ? t('workerHome.requesting') : t('workerHome.requestVerification')}
+                </ButtonText>
+              </Button>
+            ) : null
+          }
         />
 
-        <View className={`gap-3 rounded-2xl border p-4 ${banner.boxClass}`}>
-          <View className="flex-row items-center gap-4">
-            <IconTile icon={banner.icon} tone={banner.tone} size={44} />
-            <View className="min-w-0 flex-1 gap-1">
-              <Text className={`text-base font-bold ${banner.textClass}`}>{banner.title}</Text>
-              <Text className="text-sm leading-5 text-muted-foreground">{banner.description}</Text>
-            </View>
-          </View>
-          {banner.showRequest ? (
-            <Button onPress={() => void onRequestVerification()} disabled={isRequesting}>
-              {isRequesting ? <ButtonSpinner /> : null}
-              <ButtonText>
-                {isRequesting ? t('workerHome.requesting') : t('workerHome.requestVerification')}
-              </ButtonText>
-            </Button>
-          ) : null}
-        </View>
+        <QuickActions>
+          <ActionTile
+            icon={FileUser}
+            label={t('workerHome.openCv')}
+            onPress={() => router.push('/worker/cv' as never)}
+          />
+          <ActionTile
+            icon={Briefcase}
+            label={t('workerHome.addExperience')}
+            onPress={() => router.push('/worker/cv/experience/new' as never)}
+          />
+          <ActionTile
+            icon={Award}
+            label={t('workerHome.editSkills')}
+            onPress={() => router.push('/worker/cv/skills' as never)}
+          />
+          <ActionTile
+            icon={UserRound}
+            label={t('workerHome.account')}
+            onPress={() => router.push('/worker/account' as never)}
+          />
+        </QuickActions>
 
-        <View className="gap-3">
-          <SectionLabel>{t('workerHome.yourCv')}</SectionLabel>
-          <Card>
-            <View className="gap-4 p-1">
-              <View className="flex-row items-center justify-between gap-3">
-                <View className="min-w-0 flex-1 gap-1">
-                  <Text className="text-base font-bold text-foreground" numberOfLines={1}>
-                    {profile?.headline || profile?.primaryTrade || t('workerHome.buildCv')}
-                  </Text>
-                  <Text className="text-sm text-muted-foreground">
-                    {t('workerHome.sectionsDone', { done: doneCount, total: sections.length })}
-                  </Text>
-                </View>
-                {profile ? (
-                  <StatusPill
-                    label={enumLabel(t, 'workerAvailability', profile.availability)}
-                    tone={toneForStatus(profile.availability)}
-                  />
-                ) : null}
-              </View>
-              <ProgressBar value={percent} />
-            </View>
-          </Card>
-        </View>
-
-        <View className="gap-3">
-          <SectionLabel>{t('workerHome.quickActions')}</SectionLabel>
-          <Card>
-            <View className="flex-row justify-between">
-              <ActionTile
-                icon={FileUser}
-                label={t('workerHome.openCv')}
+        {profile ? (
+          <View className="gap-3">
+            <SectionLabel>{t('workerHome.yourCv')}</SectionLabel>
+            <MenuGroup>
+              <MenuRow
+                label={profile.headline || profile.primaryTrade || t('workerHome.buildCv')}
+                hint={enumLabel(t, 'workerAvailability', profile.availability)}
                 onPress={() => router.push('/worker/cv' as never)}
               />
-              <ActionTile
-                icon={Briefcase}
-                tone="success"
-                label={t('workerHome.addExperience')}
-                onPress={() => router.push('/worker/cv/experience/new' as never)}
+              <MenuRow
+                label={t('workerHome.experience')}
+                trailing={<Count value={profile.experiences.length} />}
+                onPress={() => router.push('/worker/cv/experience' as never)}
               />
-              <ActionTile
-                icon={Award}
-                tone="info"
-                label={t('workerHome.editSkills')}
+              <MenuRow
+                label={t('workerHome.skills')}
+                trailing={<Count value={profile.skills.length} />}
+                last
                 onPress={() => router.push('/worker/cv/skills' as never)}
               />
-              <ActionTile
-                icon={UserRound}
-                tone="neutral"
-                label={t('workerHome.account')}
-                onPress={() => router.push('/worker/account' as never)}
-              />
-            </View>
-          </Card>
-        </View>
-
-        {!profile ? (
-          <Card>
-            <View className="items-center gap-3 px-2 py-6">
-              <IconTile icon={ClipboardList} tone="primary" size={48} />
-              <Text className="text-center text-base font-bold text-foreground">
-                {t('workerHome.emptyTitle')}
-              </Text>
-              <Text className="text-center text-sm leading-5 text-muted-foreground">
-                {t('workerHome.emptyDescription')}
-              </Text>
-            </View>
-          </Card>
+            </MenuGroup>
+          </View>
+        ) : remote.status === 'success' ? (
+          <EmptyState
+            icon={ClipboardList}
+            title={t('workerHome.emptyTitle')}
+            description={t('workerHome.emptyDescription')}
+            actionLabel={t('workerHome.openCv')}
+            onAction={() => router.push('/worker/cv' as never)}
+          />
         ) : null}
       </DashboardScroll>
     </View>
+  )
+}
+
+function Count({ value }: { value: number }) {
+  return (
+    <Text className="text-base text-foreground" style={MONO_STYLE}>
+      {value.toLocaleString(intlLocale())}
+    </Text>
   )
 }

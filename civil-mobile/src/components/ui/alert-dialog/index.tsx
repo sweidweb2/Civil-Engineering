@@ -37,7 +37,7 @@ const alertDialogStyle = tva({
 })
 
 const alertDialogContentStyle = tva({
-  base: 'bg-card rounded-3xl overflow-hidden border border-border/60 p-6',
+  base: 'bg-card rounded-xl overflow-hidden border border-border p-5',
   parentVariants: {
     size: {
       xs: 'w-[60%] max-w-[360px]',
@@ -64,7 +64,7 @@ const alertDialogFooterStyle = tva({
 const alertDialogBodyStyle = tva({ base: '' })
 
 const alertDialogBackdropStyle = tva({
-  base: 'absolute left-0 top-0 right-0 bottom-0 bg-black/50 web:cursor-default',
+  base: 'absolute left-0 top-0 right-0 bottom-0 bg-black/40 web:cursor-default',
 })
 
 type IAlertDialogProps = React.ComponentPropsWithoutRef<typeof UIAccessibleAlertDialog> &

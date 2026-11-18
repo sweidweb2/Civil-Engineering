@@ -1,4 +1,3 @@
-import { Palette } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { Section, SegmentedControl } from '@/components/kit'
@@ -14,11 +13,7 @@ export function ThemePicker() {
   const setMode = useThemeStore((s) => s.setMode)
 
   return (
-    <Section
-      title={t('account.appearance')}
-      description={t('account.appearanceHint')}
-      icon={Palette}
-    >
+    <Section title={t('account.appearance')} description={t('account.appearanceHint')}>
       <SegmentedControl
         options={options}
         value={mode}

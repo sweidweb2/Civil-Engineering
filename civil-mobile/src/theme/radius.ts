@@ -1,14 +1,16 @@
 /**
- * radius.ts — border-radius scale (px). Shared with web.
+ * radius.ts — corner radius tokens (px). Mirrors `--radius-*` in global.css.
+ * Nested shapes: inner radius = outer radius − padding.
  */
 
 export const radius = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  '2xl': 20,
+  xs: 2,
+  sm: 6,
+  md: 14,
+  lg: 16,
+  xl: 20,
+  sheet: 24,
   full: 9999,
 } as const
 

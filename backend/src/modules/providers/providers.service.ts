@@ -289,7 +289,20 @@ export function createProvidersService(
           contentType: 'image/webp',
         })
       } catch (error) {
-        await repository.compareAndSetLogo(id, key, previous).catch(() => undefined)
+        try {
+          const reverted = await repository.compareAndSetLogo(id, key, previous)
+          if (!reverted) {
+            getLogger().error(
+              { providerId: id, storagePath: key },
+              'failed to revert provider logo after storage put failure (CAS miss)',
+            )
+          }
+        } catch (revertError) {
+          getLogger().error(
+            { err: revertError, providerId: id, storagePath: key },
+            'failed to revert provider logo after storage put failure',
+          )
+        }
         throw error
       }
 

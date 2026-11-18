@@ -3,10 +3,10 @@ import { Text, View } from 'react-native'
 import { Plus } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { PressableScale } from '@/components/kit/primitives'
 import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
-import { glow } from '@/theme/shadows'
+import { sizes } from '@/theme/sizes'
+import { TYPE } from '@/theme/typography'
 
 export type BottomNavItem = {
   key: string
@@ -17,7 +17,7 @@ export type BottomNavItem = {
   onPress?: () => void
 }
 
-/** Raised round "+" button shown in the middle of the bar. */
+/** The portal's main create action, shown as an equal column in the middle. */
 export type BottomNavAction = {
   label: string
   onPress: () => void
@@ -29,14 +29,14 @@ type BottomNavigationProps = {
 }
 
 /**
- * Docked tab bar: full width, hairline top border, every tab shows icon +
- * label (active in primary). An optional raised "+" sits in the middle for the
- * portal's main create action. Primary navigation for all mobile portals.
+ * Tab bar (section 6.10): docked bottom chrome in `bg` at 94% with a 1px
+ * line top rule. Equal columns of 22px line icon + tab label. Active = ink,
+ * stroke 1.9, label 600. Inactive = muted-2. No pill, no accent, no glow.
+ * The create action is an ordinary column, not a raised button.
  */
 export function BottomNavigation({ items, action }: BottomNavigationProps) {
   const insets = useSafeAreaInsets()
   const colors = useThemeColors()
-  // A centred "+" only works with an even tab count (equal tabs each side).
   const showAction = Boolean(action) && items.length % 2 === 0
   const mid = items.length / 2
 
@@ -48,14 +48,12 @@ export function BottomNavigation({ items, action }: BottomNavigationProps) {
         accessibilityRole="tab"
         accessibilityLabel={item.label}
         accessibilityState={{ selected: active }}
-        className="min-w-0 flex-1 items-center gap-1 py-1 active:opacity-70"
+        className="min-h-12 min-w-0 flex-1 items-center gap-1 active:opacity-60"
         onPress={item.onPress}
       >
         {item.renderIcon(active)}
         <Text
-          className={`text-[11px] ${
-            active ? 'font-bold text-primary' : 'font-medium text-muted-foreground'
-          }`}
+          className={`${TYPE.tab} ${active ? 'font-semibold text-foreground' : 'text-muted-2'}`}
           numberOfLines={1}
         >
           {item.label}
@@ -68,18 +66,18 @@ export function BottomNavigation({ items, action }: BottomNavigationProps) {
   items.forEach((item, index) => {
     if (action && showAction && index === mid) {
       children.push(
-        <View key="__action" className="w-16 items-center">
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={action.label}
-            scaleTo={0.9}
-            className="-mt-7 size-14 items-center justify-center rounded-full border-4 border-card bg-primary"
-            style={glow(colors.primary, 0.45)}
-            onPress={action.onPress}
-          >
-            <Plus size={26} color={colors.onPrimary} strokeWidth={2.6} />
-          </PressableScale>
-        </View>,
+        <Pressable
+          key="__action"
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          className="min-h-12 min-w-0 flex-1 items-center gap-1 active:opacity-60"
+          onPress={action.onPress}
+        >
+          <Plus size={sizes.iconTab} color={colors.muted2} strokeWidth={sizes.iconStroke} />
+          <Text className={`${TYPE.tab} text-muted-2`} numberOfLines={1}>
+            {action.label}
+          </Text>
+        </Pressable>,
       )
     }
     children.push(tab(item))
@@ -88,8 +86,8 @@ export function BottomNavigation({ items, action }: BottomNavigationProps) {
   return (
     <View
       accessibilityRole="tablist"
-      className="flex-row border-t border-border/60 bg-card px-2 pt-2"
-      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+      className="flex-row border-t border-border bg-background/95 px-3 pt-2.5"
+      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
     >
       {children}
     </View>

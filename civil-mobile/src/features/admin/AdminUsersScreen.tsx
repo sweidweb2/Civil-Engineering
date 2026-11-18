@@ -36,11 +36,7 @@ export function AdminUsersScreen() {
             statusLabel={enumLabel(t, 'userStatus', item.status)}
             statusTone={toneForStatus(item.status)}
             subtitle={ltr(item.email)}
-            extra={
-              <Text className="text-xs font-semibold text-primary">
-                {enumLabel(t, 'role', item.role)}
-              </Text>
-            }
+            extra={<Text className="text-xs text-ink-2">{enumLabel(t, 'role', item.role)}</Text>}
           />
         </ListCard>
       )}

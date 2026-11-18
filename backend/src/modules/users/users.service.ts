@@ -498,7 +498,8 @@ export function createUsersService(
       const updated = await repository.updateStatusIf(id, 'PENDING', 'ACTIVE')
       if (!updated) {
         const again = await repository.findById(id)
-        if (again?.status === 'ACTIVE') return again
+        if (!again) throw notFound('User not found')
+        if (again.status === 'ACTIVE') return again
         throw conflict('Only pending registrations can be approved', 'APPROVAL_NOT_PENDING')
       }
       invalidateAccessPrincipal(id)
@@ -511,7 +512,8 @@ export function createUsersService(
       const updated = await repository.updateStatusIf(id, 'ACTIVE', 'PENDING')
       if (!updated) {
         const again = await repository.findById(id)
-        if (again?.status === 'PENDING') return again
+        if (!again) throw notFound('User not found')
+        if (again.status === 'PENDING') return again
         throw conflict('Only active registrations can be unapproved', 'APPROVAL_NOT_ACTIVE')
       }
       invalidateAccessPrincipal(id)

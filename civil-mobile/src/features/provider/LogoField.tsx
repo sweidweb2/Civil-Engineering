@@ -52,16 +52,16 @@ export function LogoField({
         onPress={() => setSheetOpen(true)}
       >
         <Thumbnail imageUrl={logoUrl} icon={Building2} size={96} />
-        <View className="absolute -bottom-1 -end-1 size-9 items-center justify-center rounded-full border-2 border-background bg-primary">
-          <Camera size={16} color="#FFFFFF" />
+        <View className="absolute -bottom-1 -end-1 size-8 items-center justify-center rounded-full border border-border bg-card">
+          <Camera size={16} color={colors.ink} strokeWidth={1.75} />
         </View>
         {isBusy ? (
-          <View className="absolute inset-0 items-center justify-center rounded-2xl bg-background/70">
-            <ActivityIndicator color={colors.primary} />
+          <View className="absolute inset-0 items-center justify-center rounded-md bg-background/70">
+            <ActivityIndicator color={colors.muted} />
           </View>
         ) : null}
       </PressableScale>
-      <Text className="text-xs font-semibold text-primary">{t('logo.change')}</Text>
+      <Text className="text-xs font-medium text-ink-2">{t('logo.change')}</Text>
 
       <PickSourceSheet
         visible={sheetOpen}

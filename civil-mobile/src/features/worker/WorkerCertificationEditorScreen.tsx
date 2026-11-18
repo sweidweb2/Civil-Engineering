@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { router } from 'expo-router'
-import { Award } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { FormScreen, Section, TextField } from '@/components/kit'
+import { DangerZone, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import {
@@ -126,20 +125,10 @@ export function WorkerCertificationEditorScreen({ indexParam }: Props) {
             {isSaving ? <ButtonSpinner /> : null}
             <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
           </Button>
-          {!isNew ? (
-            <Button
-              variant="destructive"
-              onPress={onDelete}
-              disabled={isSaving || !isReady}
-              className="w-full"
-            >
-              <ButtonText>{t('common.delete')}</ButtonText>
-            </Button>
-          ) : null}
         </View>
       }
     >
-      <Section title={t('worker.sections.certifications')} icon={Award}>
+      <Section title={t('worker.sections.certifications')}>
         <TextField
           label={t('worker.certName')}
           required
@@ -174,6 +163,13 @@ export function WorkerCertificationEditorScreen({ indexParam }: Props) {
           error={errors.credentialId}
         />
       </Section>
+      {!isNew ? (
+        <DangerZone title={t('common.dangerZone')}>
+          <Button variant="destructive" onPress={onDelete} disabled={isSaving || !isReady}>
+            <ButtonText>{t('common.delete')}</ButtonText>
+          </Button>
+        </DangerZone>
+      ) : null}
     </FormScreen>
   )
 }

@@ -325,4 +325,22 @@ describe('auth.service', () => {
     })
     expect(repository.claimRefreshJti).not.toHaveBeenCalled()
   })
+
+  it('rejects refresh tokens that lack iat after a password change', async () => {
+    const { verifyRefreshToken } = await import('../../src/modules/auth/auth.tokens.js')
+    vi.mocked(verifyRefreshToken).mockReturnValueOnce({
+      sub: 'user-1',
+      role: 'CLIENT',
+      typ: 'refresh',
+      jti: 'jti-1',
+      exp: 9999999999,
+    })
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ refreshInvalidBefore: new Date() }))
+    const service = createAuthService(repository, config)
+
+    await expect(service.refreshTokens({ refreshToken: 'good' })).rejects.toMatchObject({
+      status: 401,
+    })
+    expect(repository.claimRefreshJti).not.toHaveBeenCalled()
+  })
 })

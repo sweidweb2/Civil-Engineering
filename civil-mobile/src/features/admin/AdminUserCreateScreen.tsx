@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { router } from 'expo-router'
-import { UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -82,7 +81,7 @@ export function AdminUserCreateScreen() {
       }
     >
       <FormError message={error} />
-      <Section title={t('users.account')} icon={UserRound}>
+      <Section title={t('users.account')}>
         <TextField
           label={t('common.email')}
           required

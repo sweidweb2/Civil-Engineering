@@ -1,36 +1,37 @@
 import { useCallback } from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { FolderKanban, FolderPlus, Library, PauseCircle } from 'lucide-react-native'
+import { FolderKanban, FolderPlus, Library } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { InlineError } from '@/components/feedback/AsyncState'
 import {
   ActionTile,
   Avatar,
-  Card,
   DashboardScroll,
   EmptyState,
+  FeatureBanner,
   HeroCard,
-  IconTile,
   MenuGroup,
-  PressableScale,
-  ProgressBar,
+  MenuRow,
   ProgressRow,
+  QuickActions,
   ScreenHeader,
   SectionLabel,
   SeeAll,
+  type Tone,
   toneForStatus,
+  useTodayCaption,
 } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { tracking } from '@/lib/rtl'
 import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
 import { userDisplayName, userFirstName } from '@/lib/user'
 import { getProjectSummary, listProjects, type Project } from '@/services/projects'
 import { useAuthStore } from '@/stores/authStore'
-import { softShadows } from '@/theme/shadows'
+import { MONO_STYLE } from '@/theme/typography'
 
 type Overview = {
   total: number | null
@@ -59,59 +60,31 @@ async function loadOverview(): Promise<Overview> {
   }
 }
 
-function ActiveProjectCard({ project }: { project: Project }) {
-  return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={project.name}
-      className="w-64 gap-4 rounded-2xl border border-border/40 bg-card p-5"
-      style={softShadows.card}
-      onPress={() => router.push(`/pm/projects/${project.id}` as never)}
-    >
-      <View className="gap-1">
-        <Text className="text-base font-bold text-foreground" numberOfLines={1}>
-          {project.name}
-        </Text>
-        <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-          {[project.code, project.city].filter(Boolean).join(' · ') || ' '}
-        </Text>
-      </View>
-      <View className="gap-2">
-        <View className="flex-row items-end justify-between">
-          <Text
-            className="text-3xl font-bold leading-9 text-primary"
-            style={{ fontVariant: ['tabular-nums'] }}
-          >
-            {Math.round(project.progress)}%
-          </Text>
-        </View>
-        <ProgressBar value={project.progress} />
-      </View>
-    </PressableScale>
-  )
-}
-
 export function PmDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const today = useTodayCaption()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardPm })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data
   const isEmpty = data?.total === 0
+  const toProjects = () => router.push('/pm/projects' as never)
 
   return (
     <View className="flex-1 bg-background" testID="e2e-pm-dashboard">
       <ScreenHeader
+        caption={today}
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
         right={
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('dashboard.openAccount')}
+            className="active:opacity-70"
             onPress={() => router.push('/pm/account' as never)}
           >
-            <Avatar name={user ? userDisplayName(user) : '?'} size={44} />
+            <Avatar name={user ? userDisplayName(user) : '?'} />
           </Pressable>
         }
       />
@@ -120,128 +93,102 @@ export function PmDashboardScreen() {
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
+        {remote.status === 'error' && !data ? (
+          <InlineError error={remote.error} onRetry={() => void remote.refetch()} />
+        ) : null}
+
         <HeroCard
-          icon={FolderKanban}
           caption={t('projects.title')}
           value={formatCount(data?.total, isFirstLoad)}
-          onPress={() => router.push('/pm/projects' as never)}
+          onPress={toProjects}
+          highlightLast
           stats={[
             {
               label: t('pmHome.active'),
               value: formatCount(data?.inProgress, isFirstLoad),
-              onPress: () => router.push('/pm/projects' as never),
+              onPress: toProjects,
             },
             {
               label: t('pmHome.onHold'),
               value: formatCount(data?.onHold, isFirstLoad),
-              onPress: () => router.push('/pm/projects' as never),
+              onPress: toProjects,
             },
             {
               label: t('pmHome.completed'),
               value: formatCount(data?.completed, isFirstLoad),
-              onPress: () => router.push('/pm/projects' as never),
+              onPress: toProjects,
             },
           ]}
         />
 
-        {isEmpty ? (
-          <Card className="items-center">
-            <EmptyState
-              icon={FolderPlus}
-              title={t('pmHome.emptyTitle')}
-              description={t('pmHome.emptyDescription')}
-              actionLabel={t('pmHome.newProject')}
-              onAction={() => router.push('/pm/projects/new' as never)}
-            />
-          </Card>
-        ) : null}
+        <QuickActions>
+          <ActionTile
+            icon={FolderPlus}
+            label={t('pmHome.newProject')}
+            onPress={() => router.push('/pm/projects/new' as never)}
+          />
+          <ActionTile icon={FolderKanban} label={t('pmHome.allProjects')} onPress={toProjects} />
+          <ActionTile
+            icon={Library}
+            label={t('pmHome.directory')}
+            onPress={() => router.push('/pm/directory' as never)}
+          />
+        </QuickActions>
 
         {data && (data.onHold ?? 0) > 0 ? (
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={`${data.onHold} ${t('pmHome.onHoldCount')}`}
-            className="flex-row items-center gap-4 rounded-2xl border border-warning/30 bg-warning/10 p-4"
-            onPress={() => router.push('/pm/projects' as never)}
-          >
-            <IconTile icon={PauseCircle} tone="warning" size={44} />
-            <View className="min-w-0 flex-1">
-              <Text className={`text-xs font-bold uppercase text-warning ${tracking('widest')}`}>
-                {t('pmHome.attention')}
-              </Text>
-              <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
-                {t('pmHome.onHoldCount')}
-              </Text>
-            </View>
-            <Text className="text-2xl font-bold text-warning">{data.onHold}</Text>
-          </PressableScale>
+          <FeatureBanner
+            eyebrow={t('pmHome.attention')}
+            title={t('pmHome.onHoldBanner', { count: data.onHold ?? 0 })}
+            onPress={toProjects}
+          />
         ) : null}
 
-        <View className="gap-3">
-          <SectionLabel>{t('pmHome.quickActions')}</SectionLabel>
-          <Card>
-            <View className="flex-row justify-between">
-              <ActionTile
-                icon={FolderPlus}
-                label={t('pmHome.newProject')}
-                onPress={() => router.push('/pm/projects/new' as never)}
-              />
-              <ActionTile
-                icon={FolderKanban}
-                tone="success"
-                label={t('pmHome.allProjects')}
-                onPress={() => router.push('/pm/projects' as never)}
-              />
-              <ActionTile
-                icon={Library}
-                tone="info"
-                label={t('pmHome.directory')}
-                onPress={() => router.push('/pm/directory' as never)}
-              />
-            </View>
-          </Card>
-        </View>
+        {isEmpty ? (
+          <EmptyState
+            icon={FolderPlus}
+            title={t('pmHome.emptyTitle')}
+            description={t('pmHome.emptyDescription')}
+            actionLabel={t('pmHome.newProject')}
+            onAction={() => router.push('/pm/projects/new' as never)}
+          />
+        ) : null}
 
         {data && data.active.length > 0 ? (
-          <View className="-mx-5 gap-3">
-            <View className="px-5">
-              <SectionLabel>{t('pmHome.active')}</SectionLabel>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-4 px-5 pb-4 pt-1"
-              snapToInterval={272}
-              decelerationRate="fast"
-            >
-              {data.active.map((project) => (
-                <ActiveProjectCard key={project.id} project={project} />
+          <View className="gap-3">
+            <SectionLabel>{t('pmHome.active')}</SectionLabel>
+            <MenuGroup>
+              {data.active.map((project, index) => (
+                <ProgressRow
+                  key={project.id}
+                  title={project.name}
+                  caption={[project.code, project.city].filter(Boolean).join(' · ') || undefined}
+                  value={project.progress}
+                  last={index === data.active.length - 1}
+                  onPress={() => router.push(`/pm/projects/${project.id}` as never)}
+                />
               ))}
-            </ScrollView>
+            </MenuGroup>
           </View>
         ) : null}
 
         {data && data.recent.length > 0 ? (
           <View className="gap-3">
-            <SectionLabel
-              action={
-                <SeeAll
-                  label={t('common.seeAll')}
-                  onPress={() => router.push('/pm/projects' as never)}
-                />
-              }
-            >
+            <SectionLabel action={<SeeAll label={t('common.seeAll')} onPress={toProjects} />}>
               {t('pmHome.recent')}
             </SectionLabel>
             <MenuGroup>
               {data.recent.map((project, index) => (
-                <ProgressRow
+                <MenuRow
                   key={project.id}
-                  icon={FolderKanban}
-                  tone={toneForStatus(project.status)}
-                  title={project.name}
-                  caption={enumLabel(t, 'projectStatus', project.status)}
-                  value={project.progress}
+                  label={project.name}
+                  hint={enumLabel(t, 'projectStatus', project.status)}
+                  hintTone={hintToneFor(project.status)}
                   last={index === data.recent.length - 1}
+                  trailing={
+                    <Text className="text-base text-foreground" style={MONO_STYLE}>
+                      {Math.round(project.progress)}%
+                    </Text>
+                  }
                   onPress={() => router.push(`/pm/projects/${project.id}` as never)}
                 />
               ))}
@@ -251,4 +198,10 @@ export function PmDashboardScreen() {
       </DashboardScroll>
     </View>
   )
+}
+
+/** Status hint color: only problems (on hold / cancelled) get a color. */
+function hintToneFor(status: Project['status']): Tone | undefined {
+  const tone = toneForStatus(status)
+  return tone === 'warning' || tone === 'danger' ? tone : undefined
 }

@@ -93,7 +93,7 @@ export function GalleryImagesField({
         <Text className="text-xs text-muted-foreground">
           {t('gallery.hint', { count, max: MAX_GALLERY_IMAGES })}
         </Text>
-        {isBusy || isLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+        {isBusy || isLoading ? <ActivityIndicator size="small" color={colors.muted} /> : null}
       </View>
 
       <View className="flex-row flex-wrap gap-3">
@@ -104,7 +104,7 @@ export function GalleryImagesField({
             accessibilityLabel={t('gallery.imageActions')}
             disabled={disabled || isBusy}
             scaleTo={0.94}
-            className="aspect-square w-[30.5%] overflow-hidden rounded-2xl bg-muted"
+            className="aspect-square w-[30.5%] overflow-hidden rounded-md border border-border bg-card"
             onPress={() => setActive(tile)}
           >
             {tile.uri ? (
@@ -116,15 +116,12 @@ export function GalleryImagesField({
               />
             ) : (
               <View className="flex-1 items-center justify-center">
-                <ImageIcon size={24} color={colors.disabled} />
+                <ImageIcon size={20} color={colors.muted} strokeWidth={1.75} />
               </View>
             )}
             {tile.isMain ? (
-              <View className="absolute start-1.5 top-1.5 flex-row items-center gap-1 rounded-full bg-primary px-2 py-0.5">
-                <Star size={10} color="#FFFFFF" fill="#FFFFFF" />
-                <Text className="text-[10px] font-bold text-primary-foreground">
-                  {t('gallery.main')}
-                </Text>
+              <View className="absolute start-1.5 top-1.5 rounded-full bg-inverse px-2 py-0.5">
+                <Text className="text-xs font-medium text-on-inverse">{t('gallery.main')}</Text>
               </View>
             ) : null}
           </PressableScale>
@@ -135,11 +132,11 @@ export function GalleryImagesField({
             accessibilityRole="button"
             accessibilityLabel={t('gallery.add')}
             scaleTo={0.94}
-            className="aspect-square w-[30.5%] items-center justify-center gap-1 rounded-2xl border-[1.5px] border-dashed border-primary/40 bg-primary/5"
+            className="aspect-square w-[30.5%] items-center justify-center gap-1 rounded-md border border-dashed border-line-strong bg-card"
             onPress={() => setSheetOpen(true)}
           >
-            <Plus size={24} color={colors.primary} />
-            <Text className="text-xs font-semibold text-primary">{t('gallery.add')}</Text>
+            <Plus size={20} color={colors.ink} strokeWidth={1.75} />
+            <Text className="text-xs font-medium text-foreground">{t('gallery.add')}</Text>
           </PressableScale>
         ) : null}
       </View>

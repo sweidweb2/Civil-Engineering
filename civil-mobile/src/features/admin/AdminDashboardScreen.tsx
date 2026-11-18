@@ -2,125 +2,81 @@ import { useCallback } from 'react'
 import { Text, View } from 'react-native'
 import { router } from 'expo-router'
 import {
-  ChevronRight,
   FolderKanban,
   type LucideIcon,
-  Package,
   Star,
   Store,
   UserCheck,
   UserPlus,
-  Users,
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { InlineError } from '@/components/feedback/AsyncState'
 import {
-  Card,
+  ActionTile,
   DashboardScroll,
-  DirectionalIcon,
-  IconTile,
+  HeroMetric,
   MenuGroup,
-  PressableScale,
+  MenuRow,
   ProgressRow,
+  QuickActions,
   ScreenHeader,
   SectionLabel,
   SeeAll,
-  StatCard,
-  type Tone,
-  toneForStatus,
+  useTodayCaption,
 } from '@/components/kit'
-import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { formatCount } from '@/lib/stats'
 import { userFirstName } from '@/lib/user'
 import { type AdminOverview, getAdminOverview } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
+import { MONO_STYLE } from '@/theme/typography'
 
 /** One request: backend aggregates every tile + the five most recent projects. */
 async function loadOverview(): Promise<AdminOverview> {
   const { data } = await getAdminOverview()
   return data
 }
-function StatTile({
-  icon,
-  tone,
-  label,
-  value,
-  href,
-}: {
-  icon: LucideIcon
-  tone: Tone
-  label: string
-  value: string
-  href: string
-}) {
-  return (
-    <StatCard
-      icon={icon}
-      tone={tone}
-      label={label}
-      value={value}
-      onPress={() => router.push(href as never)}
-    />
-  )
-}
-
-function AttentionRow({
+/** Grouped-list row with a mono count as its one trailing element. */
+function CountRow({
   icon,
   label,
   count,
   href,
+  attention = false,
   last = false,
 }: {
-  icon: LucideIcon
+  icon?: LucideIcon
   label: string
-  count: number
+  count: string
   href: string
+  attention?: boolean
   last?: boolean
 }) {
-  const colors = useThemeColors()
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${count} ${label}`}
-      className={`flex-row items-center gap-3 py-3 active:opacity-70 ${
-        last ? '' : 'border-b border-border/60'
-      }`}
+    <MenuRow
+      icon={icon}
+      label={label}
+      last={last}
+      trailing={
+        <Text
+          className={`text-base ${attention ? 'font-medium text-warning' : 'text-foreground'}`}
+          style={MONO_STYLE}
+        >
+          {count}
+        </Text>
+      }
       onPress={() => router.push(href as never)}
-    >
-      <IconTile icon={icon} tone="warning" size={40} />
-      <Text className="flex-1 text-base font-medium text-foreground">{label}</Text>
-      <View className="min-w-7 items-center rounded-full bg-warning px-2 py-0.5">
-        <Text className="text-sm font-bold text-white">{count}</Text>
-      </View>
-      <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
-    </Pressable>
-  )
-}
-
-function QuickAction({ icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
-  return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      scaleTo={0.92}
-      className="min-w-0 flex-1 items-center gap-2"
-      onPress={() => router.push(href as never)}
-    >
-      <IconTile icon={icon} size={56} round />
-      <Text className="text-center text-xs font-semibold text-foreground" numberOfLines={2}>
-        {label}
-      </Text>
-    </PressableScale>
+    />
   )
 }
 
 export function AdminDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const today = useTodayCaption()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin })
 
@@ -146,11 +102,21 @@ export function AdminDashboardScreen() {
       count: data?.pendingReviews ?? 0,
       href: '/admin/reviews',
     },
-  ].filter((item) => item.count > 0)
+  ]
+  const waiting = data ? attention.reduce((sum, item) => sum + item.count, 0) : null
+  const open = attention.filter((item) => item.count > 0)
+
+  const overview = [
+    { label: t('users.title'), value: data?.users, href: '/admin/users' },
+    { label: t('providers.title'), value: data?.providers, href: '/admin/providers' },
+    { label: t('projects.title'), value: data?.projects, href: '/admin/projects' },
+    { label: t('listings.title'), value: data?.listings, href: '/admin/listings' },
+  ]
 
   return (
     <View className="flex-1 bg-background" testID="e2e-root">
       <ScreenHeader
+        caption={today}
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
       />
 
@@ -158,64 +124,63 @@ export function AdminDashboardScreen() {
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
-        {attention.length > 0 ? (
-          <View className="gap-3">
-            <SectionLabel>{t('dashboard.attention')}</SectionLabel>
-            <Card className="py-1">
-              {attention.map((item, index) => (
-                <AttentionRow key={item.href} {...item} last={index === attention.length - 1} />
-              ))}
-            </Card>
-          </View>
+        {remote.status === 'error' && !data ? (
+          <InlineError error={remote.error} onRetry={() => void remote.refetch()} />
         ) : null}
+
+        <HeroMetric
+          label={t('dashboard.toReview')}
+          value={formatCount(waiting, isFirstLoad)}
+          context={waiting === 0 ? t('dashboard.allClear') : undefined}
+        />
+
+        {open.length > 0 ? (
+          <MenuGroup>
+            {open.map((item, index) => (
+              <CountRow
+                key={item.href}
+                icon={item.icon}
+                label={item.label}
+                count={formatCount(item.count, false)}
+                href={item.href}
+                attention
+                last={index === open.length - 1}
+              />
+            ))}
+          </MenuGroup>
+        ) : null}
+
+        <QuickActions>
+          <ActionTile
+            icon={UserPlus}
+            label={t('users.new')}
+            onPress={() => router.push('/admin/users/new' as never)}
+          />
+          <ActionTile
+            icon={Store}
+            label={t('providers.new')}
+            onPress={() => router.push('/admin/providers/new' as never)}
+          />
+          <ActionTile
+            icon={FolderKanban}
+            label={t('projects.new')}
+            onPress={() => router.push('/admin/projects/new' as never)}
+          />
+        </QuickActions>
 
         <View className="gap-3">
           <SectionLabel>{t('dashboard.overview')}</SectionLabel>
-          <View className="flex-row flex-wrap gap-3">
-            <StatTile
-              icon={Users}
-              tone="primary"
-              label={t('users.title')}
-              value={formatCount(data?.users, isFirstLoad)}
-              href="/admin/users"
-            />
-            <StatTile
-              icon={Store}
-              tone="info"
-              label={t('providers.title')}
-              value={formatCount(data?.providers, isFirstLoad)}
-              href="/admin/providers"
-            />
-            <StatTile
-              icon={FolderKanban}
-              tone="success"
-              label={t('projects.title')}
-              value={formatCount(data?.projects, isFirstLoad)}
-              href="/admin/projects"
-            />
-            <StatTile
-              icon={Package}
-              tone="warning"
-              label={t('listings.title')}
-              value={formatCount(data?.listings, isFirstLoad)}
-              href="/admin/listings"
-            />
-          </View>
-        </View>
-
-        <View className="gap-3">
-          <SectionLabel>{t('dashboard.quickActions')}</SectionLabel>
-          <Card>
-            <View className="flex-row justify-between">
-              <QuickAction icon={UserPlus} label={t('users.new')} href="/admin/users/new" />
-              <QuickAction icon={Store} label={t('providers.new')} href="/admin/providers/new" />
-              <QuickAction
-                icon={FolderKanban}
-                label={t('projects.new')}
-                href="/admin/projects/new"
+          <MenuGroup>
+            {overview.map((item, index) => (
+              <CountRow
+                key={item.href}
+                label={item.label}
+                count={formatCount(item.value, isFirstLoad)}
+                href={item.href}
+                last={index === overview.length - 1}
               />
-            </View>
-          </Card>
+            ))}
+          </MenuGroup>
         </View>
 
         {data && data.recentProjects.length > 0 ? (
@@ -234,8 +199,6 @@ export function AdminDashboardScreen() {
               {data.recentProjects.map((project, index) => (
                 <ProgressRow
                   key={project.id}
-                  icon={FolderKanban}
-                  tone={toneForStatus(project.status)}
                   title={project.name}
                   caption={enumLabel(t, 'projectStatus', project.status)}
                   value={project.progress}

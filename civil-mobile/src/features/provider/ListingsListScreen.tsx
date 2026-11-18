@@ -8,6 +8,7 @@ import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { formatListingPrice, listListings } from '@/services/listings'
+import { MONO_STYLE } from '@/theme/typography'
 
 const PAGE_SIZE = 20
 
@@ -55,8 +56,8 @@ export function ListingsListScreen({
           >
             <StandardListRow
               title={item.name}
-              statusLabel={item.status === 'ACTIVE' ? t('common.active') : t('common.inactive')}
-              statusTone={item.status === 'ACTIVE' ? 'success' : 'neutral'}
+              statusLabel={item.status === 'ACTIVE' ? undefined : t('common.inactive')}
+              statusTone="neutral"
               subtitle={
                 [
                   item.type ? enumLabel(t, 'listingType', item.type) : null,
@@ -67,7 +68,9 @@ export function ListingsListScreen({
                   .join(' · ') || '—'
               }
               extra={
-                <Text className="text-sm font-bold text-primary">{formatListingPrice(item)}</Text>
+                <Text className="text-xs text-ink-2" style={MONO_STYLE}>
+                  {formatListingPrice(item)}
+                </Text>
               }
             />
           </ListCard>

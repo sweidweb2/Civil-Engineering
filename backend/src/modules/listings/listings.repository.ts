@@ -126,7 +126,7 @@ export type ListingsRepository = {
   hide: (id: string) => Promise<ListingRecord>
   delete: (id: string) => Promise<void>
   /** FOR UPDATE + review count → hide or hard-delete without review race. */
-  deleteOrHide: (id: string) => Promise<'hidden' | 'deleted'>
+  deleteOrHide: (id: string) => Promise<'hidden' | 'deleted' | 'missing'>
 }
 
 export function decimalToString(value: { toString(): string } | null): string | null {
@@ -533,7 +533,11 @@ export function createListingsRepository(): ListingsRepository {
 
     async deleteOrHide(id) {
       return prisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT id FROM listings WHERE id = ${id} FOR UPDATE`
+        const locked = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM listings WHERE id = ${id} FOR UPDATE
+        `
+        if (locked.length === 0) return 'missing' as const
+
         const reviewCount = await tx.review.count({
           where: { targetType: 'LISTING', targetId: id },
         })

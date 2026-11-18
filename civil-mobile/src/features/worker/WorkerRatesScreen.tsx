@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { router } from 'expo-router'
-import { BadgeDollarSign, Eye } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { ChoiceField, FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
@@ -65,7 +64,7 @@ export function WorkerRatesScreen() {
         </Button>
       }
     >
-      <Section title={t('worker.pay')} icon={BadgeDollarSign}>
+      <Section title={t('worker.pay')}>
         <TextField
           label={t('worker.hourlyRate')}
           value={form.hourlyRate ?? ''}
@@ -103,7 +102,7 @@ export function WorkerRatesScreen() {
         />
       </Section>
 
-      <Section title={t('worker.visibility')} icon={Eye}>
+      <Section title={t('worker.visibility')}>
         <ToggleRow
           label={t('worker.isPublic')}
           description={t('worker.isPublicHint')}

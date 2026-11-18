@@ -445,6 +445,9 @@ export function createListingsService(
       const listing = await loadOrThrow(id)
       await assertCanManageListingProvider(actor, listing.providerId)
       const outcome = await repository.deleteOrHide(id)
+      if (outcome === 'missing') {
+        throw notFound('Listing not found', 'LISTING_NOT_FOUND')
+      }
       return { outcome }
     },
 

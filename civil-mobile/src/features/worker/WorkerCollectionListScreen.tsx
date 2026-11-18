@@ -8,6 +8,7 @@ import {
   Fab,
   FormScroll,
   ListCard,
+  ListGroup,
   ScreenHeader,
   StandardListRow,
 } from '@/components/kit'
@@ -65,7 +66,7 @@ export function WorkerCollectionListScreen({ kind }: WorkerCollectionListScreenP
       >
         <View className="flex-1">
           {rows.length === 0 ? (
-            <View className="flex-1 px-5 pt-8">
+            <View className="flex-1 px-5">
               <EmptyState
                 title={t(`worker.${kind}Empty`)}
                 description={t(`worker.${kind}EmptyHint`)}
@@ -73,21 +74,23 @@ export function WorkerCollectionListScreen({ kind }: WorkerCollectionListScreenP
             </View>
           ) : (
             <FormScroll>
-              <View className="gap-3 pb-16">
-                {rows.map((row) => (
-                  <ListCard
-                    key={row.key}
-                    accessibilityLabel={row.title}
-                    onPress={() => router.push(hrefFor(kind, row.key) as never)}
-                  >
-                    <StandardListRow
-                      title={row.title}
-                      subtitle={row.subtitle}
-                      statusLabel={row.statusLabel}
-                      statusTone="success"
-                    />
-                  </ListCard>
-                ))}
+              <View className="pb-16">
+                <ListGroup>
+                  {rows.map((row) => (
+                    <ListCard
+                      key={row.key}
+                      accessibilityLabel={row.title}
+                      onPress={() => router.push(hrefFor(kind, row.key) as never)}
+                    >
+                      <StandardListRow
+                        title={row.title}
+                        subtitle={row.subtitle}
+                        statusLabel={row.statusLabel}
+                        statusTone="success"
+                      />
+                    </ListCard>
+                  ))}
+                </ListGroup>
               </View>
             </FormScroll>
           )}

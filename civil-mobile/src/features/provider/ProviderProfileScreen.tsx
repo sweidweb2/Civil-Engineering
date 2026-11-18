@@ -33,7 +33,6 @@ import { cacheKeys, invalidateProviderProfileCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { getMyProvider, updateProvider } from '@/services/providers'
 import { useToastSuccess } from '@/services/toast'
-import { softShadows } from '@/theme/shadows'
 
 type Key = keyof ProviderCompanyValues
 
@@ -100,27 +99,7 @@ export function ProviderProfileScreen() {
 
   return (
     <View className="flex-1 bg-background" testID="e2e-provider-profile">
-      <ScreenHeader title={t('profile.title')}>
-        <View
-          className="flex-row items-center gap-3 rounded-2xl border border-border/40 bg-card p-4"
-          style={softShadows.card}
-        >
-          <Thumbnail imageUrl={logoUrl} icon={Building2} size={56} />
-          <View className="min-w-0 flex-1 gap-1">
-            <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
-              {provider?.name ?? t('profile.yourCompany')}
-            </Text>
-            {provider ? (
-              <View className="flex-row">
-                <StatusPill
-                  label={enumLabel(t, 'providerStatus', provider.status)}
-                  tone={toneForStatus(provider.status)}
-                />
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </ScreenHeader>
+      <ScreenHeader title={t('profile.title')} />
 
       <AsyncState
         isLoading={remote.isLoading}
@@ -129,12 +108,24 @@ export function ProviderProfileScreen() {
         onRetry={() => void remote.refetch()}
       >
         <FormScroll>
-          <View className="pt-2">
-            <SegmentedControl options={tabs} value={tab} onChange={setTab} />
+          <View className="flex-row items-center gap-4">
+            <Thumbnail imageUrl={logoUrl} icon={Building2} size={64} />
+            <View className="min-w-0 flex-1 items-start gap-1">
+              <Text className="text-xl font-semibold text-foreground" numberOfLines={1}>
+                {provider?.name ?? t('profile.yourCompany')}
+              </Text>
+              {provider ? (
+                <StatusPill
+                  label={enumLabel(t, 'providerStatus', provider.status)}
+                  tone={toneForStatus(provider.status)}
+                />
+              ) : null}
+            </View>
           </View>
+          <SegmentedControl options={tabs} value={tab} onChange={setTab} />
 
           {tab === 'company' ? (
-            <Section title={t('profile.companyInfo')} icon={Building2}>
+            <Section title={t('profile.companyInfo')}>
               {provider ? (
                 <LogoField providerId={provider.id} logoUrl={logoUrl} onChanged={setLogoOverride} />
               ) : null}

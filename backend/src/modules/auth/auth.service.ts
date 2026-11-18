@@ -207,13 +207,13 @@ export function createAuthService(
         throw unauthorized('Invalid or expired refresh token')
       }
 
-      // Password change stamps refreshInvalidBefore; reject older refresh JWTs.
-      if (
-        user.refreshInvalidBefore &&
-        typeof payload.iat === 'number' &&
-        payload.iat * 1000 < user.refreshInvalidBefore.getTime()
-      ) {
-        throw unauthorized('Invalid or expired refresh token')
+      // Password change stamps refreshInvalidBefore; reject older (or iat-less) refresh JWTs.
+      if (user.refreshInvalidBefore) {
+        const issuedAtMs =
+          typeof payload.iat === 'number' ? payload.iat * 1000 : Number.NEGATIVE_INFINITY
+        if (issuedAtMs < user.refreshInvalidBefore.getTime()) {
+          throw unauthorized('Invalid or expired refresh token')
+        }
       }
 
       // Atomic single-use claim — concurrent refreshes of the same jti cannot both win.

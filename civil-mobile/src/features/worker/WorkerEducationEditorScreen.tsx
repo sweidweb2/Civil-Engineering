@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { router } from 'expo-router'
-import { GraduationCap } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { FormScreen, Section, TextField } from '@/components/kit'
+import { DangerZone, FormScreen, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerEducationSchema, type WorkerEducationValues } from '@/features/worker/worker.schema'
@@ -115,20 +114,10 @@ export function WorkerEducationEditorScreen({ indexParam }: Props) {
             {isSaving ? <ButtonSpinner /> : null}
             <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
           </Button>
-          {!isNew ? (
-            <Button
-              variant="destructive"
-              onPress={onDelete}
-              disabled={isSaving || !isReady}
-              className="w-full"
-            >
-              <ButtonText>{t('common.delete')}</ButtonText>
-            </Button>
-          ) : null}
         </View>
       }
     >
-      <Section title={t('worker.sections.education')} icon={GraduationCap}>
+      <Section title={t('worker.sections.education')}>
         <TextField
           label={t('worker.school')}
           required
@@ -185,6 +174,13 @@ export function WorkerEducationEditorScreen({ indexParam }: Props) {
           error={errors.endYear}
         />
       </Section>
+      {!isNew ? (
+        <DangerZone title={t('common.dangerZone')}>
+          <Button variant="destructive" onPress={onDelete} disabled={isSaving || !isReady}>
+            <ButtonText>{t('common.delete')}</ButtonText>
+          </Button>
+        </DangerZone>
+      ) : null}
     </FormScreen>
   )
 }

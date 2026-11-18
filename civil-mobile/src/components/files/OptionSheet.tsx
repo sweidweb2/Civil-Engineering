@@ -30,24 +30,24 @@ export function OptionSheet({
   const colors = useThemeColors()
   return (
     <BottomSheet visible={visible} onClose={onClose} title={title}>
-      <View className="gap-3 pb-2">
-        {options.map(({ key, icon: Icon, label, onPress, destructive }) => (
+      <View className="mb-2 overflow-hidden rounded-lg border border-border bg-card">
+        {options.map(({ key, icon: Icon, label, onPress, destructive }, index) => (
           <Pressable
             key={key}
             accessibilityRole="button"
             accessibilityLabel={label}
-            className="h-16 flex-row items-center gap-4 rounded-2xl bg-muted px-4 active:opacity-70"
+            className={`min-h-[56px] flex-row items-center gap-3 px-4 active:bg-background ${
+              index < options.length - 1 ? 'border-b border-line-subtle' : ''
+            }`}
             onPress={onPress}
           >
-            <View
-              className={`size-10 items-center justify-center rounded-xl ${
-                destructive ? 'bg-destructive/10' : 'bg-primary/10'
-              }`}
-            >
-              <Icon size={20} color={destructive ? colors.error : colors.primary} />
-            </View>
+            <Icon
+              size={20}
+              color={destructive ? colors.negative : colors.ink2}
+              strokeWidth={1.75}
+            />
             <Text
-              className={`flex-1 text-base font-semibold ${
+              className={`flex-1 text-base font-medium ${
                 destructive ? 'text-destructive' : 'text-foreground'
               }`}
             >

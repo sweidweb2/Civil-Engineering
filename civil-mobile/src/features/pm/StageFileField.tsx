@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import * as WebBrowser from 'expo-web-browser'
-import { FileText, ImageIcon, Trash2, Upload } from 'lucide-react-native'
+import { FileText, ImageIcon, Upload } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { PickSourceSheet } from '@/components/files/PickSourceSheet'
@@ -13,7 +13,7 @@ import { useThemeColors } from '@/hooks/useThemeColors'
 import { fileIdFromStorageKey } from '@/lib/fileKey'
 import { getDownloadUrl, uploadFile } from '@/services/files'
 import { useToastSuccess } from '@/services/toast'
-import { softShadows } from '@/theme/shadows'
+import { sizes } from '@/theme/sizes'
 
 type Preview = { url: string; mime: string; name: string }
 
@@ -82,7 +82,7 @@ export function StageFileField({
 
   return (
     <View className="gap-3">
-      <Text className="text-sm font-semibold text-foreground">{label}</Text>
+      <Text className="text-caption text-ink-2">{label}</Text>
 
       <PressableScale
         accessibilityRole="button"
@@ -90,8 +90,8 @@ export function StageFileField({
         accessibilityState={{ busy: isBusy, disabled: busy }}
         disabled={busy}
         scaleTo={0.98}
-        className={`h-40 overflow-hidden rounded-2xl border-[1.5px] ${
-          hasFile ? 'border-border/40 bg-muted' : 'border-dashed border-primary/40 bg-primary/5'
+        className={`h-40 overflow-hidden rounded-md border bg-card ${
+          hasFile ? 'border-border' : 'border-dashed border-line-strong'
         }`}
         onPress={() => setSheetOpen(true)}
       >
@@ -104,34 +104,27 @@ export function StageFileField({
           />
         ) : hasFile ? (
           <View className="flex-1 items-center justify-center gap-2 px-6">
-            <View className="size-14 items-center justify-center rounded-2xl bg-card">
-              {preview?.mime.startsWith('image/') ? (
-                <ImageIcon size={26} color={colors.primary} />
-              ) : (
-                <FileText size={26} color={colors.primary} />
-              )}
-            </View>
-            <Text className="text-center text-sm font-semibold text-foreground" numberOfLines={2}>
+            {preview?.mime.startsWith('image/') ? (
+              <ImageIcon size={sizes.icon} color={colors.muted} strokeWidth={sizes.iconStroke} />
+            ) : (
+              <FileText size={sizes.icon} color={colors.muted} strokeWidth={sizes.iconStroke} />
+            )}
+            <Text className="text-center text-sm font-medium text-foreground" numberOfLines={2}>
               {preview?.name || t('files.attached')}
             </Text>
           </View>
         ) : (
           <View className="flex-1 items-center justify-center gap-2">
-            <View
-              className="size-14 items-center justify-center rounded-full bg-card"
-              style={softShadows.card}
-            >
-              <Upload size={24} color={colors.primary} />
-            </View>
-            <Text className="text-sm font-semibold text-primary">{t('files.add')}</Text>
+            <Upload size={sizes.icon} color={colors.ink} strokeWidth={sizes.iconStroke} />
+            <Text className="text-sm font-medium text-foreground">{t('files.add')}</Text>
             <Text className="text-xs text-muted-foreground">{t('files.empty')}</Text>
           </View>
         )}
 
         {isBusy ? (
           <View className="absolute inset-0 items-center justify-center gap-2 bg-background/80">
-            <ActivityIndicator color={colors.primary} />
-            <Text className="text-sm font-semibold text-foreground">{t('files.uploading')}</Text>
+            <ActivityIndicator color={colors.muted} />
+            <Text className="text-sm font-medium text-foreground">{t('files.uploading')}</Text>
           </View>
         ) : null}
       </PressableScale>
@@ -141,20 +134,19 @@ export function StageFileField({
           {preview && !isImage && preview.url ? (
             <Pressable
               accessibilityRole="button"
-              className="h-11 flex-1 items-center justify-center rounded-full border border-border/60 bg-card active:opacity-70"
+              className="h-11 flex-1 items-center justify-center rounded-md border border-border bg-card active:bg-background"
               onPress={() => void WebBrowser.openBrowserAsync(preview.url)}
             >
-              <Text className="text-sm font-semibold text-foreground">{t('files.open')}</Text>
+              <Text className="text-sm font-medium text-foreground">{t('files.open')}</Text>
             </Pressable>
           ) : null}
           <Pressable
             accessibilityRole="button"
             disabled={disabled}
-            className="h-11 flex-row items-center justify-center gap-2 rounded-full bg-destructive/10 px-5 active:opacity-70"
+            className="h-11 items-center justify-center rounded-md px-4 active:bg-muted"
             onPress={() => onChange('')}
           >
-            <Trash2 size={16} color={colors.error} />
-            <Text className="text-sm font-semibold text-destructive">{t('files.remove')}</Text>
+            <Text className="text-sm font-medium text-destructive">{t('files.remove')}</Text>
           </Pressable>
         </View>
       ) : null}

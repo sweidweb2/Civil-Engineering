@@ -2,6 +2,7 @@ import type { Messages } from './en'
 
 export const ar: Messages = {
   common: {
+    dangerZone: 'منطقة الخطر',
     all: 'الكل',
     active: 'نشط',
     inactive: 'غير نشط',
@@ -192,6 +193,8 @@ export const ar: Messages = {
     restartBody: 'أغلق التطبيق وافتحه من جديد لتطبيق اتجاه الواجهة الجديد.',
   },
   dashboard: {
+    toReview: 'بانتظار مراجعتك',
+    allClear: 'لا شيء يحتاجك الآن.',
     eyebrow: 'لوحة الإدارة',
     greeting: 'مرحبًا، {{name}}',
     there: 'بك',
@@ -221,6 +224,7 @@ export const ar: Messages = {
     },
   },
   projects: {
+    progress: 'التقدّم',
     title: 'المشاريع',
     project: 'مشروع',
     search: 'ابحث في المشاريع',
@@ -510,6 +514,7 @@ export const ar: Messages = {
     invoiceFilePath: 'فاتورة المورّد',
   },
   pmHome: {
+    onHoldBanner: 'مشاريع متوقفة مؤقتًا: {{count}}',
     eyebrow: 'مدير المشروع',
     subtitle: 'مشاريعك في لمحة',
     active: 'قيد التنفيذ',

@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Text } from 'react-native'
-import { KeyRound, LogOut, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { FieldRow, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Pressable } from '@/components/ui/pressable'
 import { useLogout } from '@/features/portals/LogoutButton'
 import {
   providerPasswordSchema,
@@ -15,7 +12,6 @@ import {
 } from '@/features/provider/profile.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { ltr } from '@/lib/rtl'
 import { changePassword } from '@/services/auth'
@@ -101,11 +97,7 @@ export function AccountDetailsForm() {
   }
 
   return (
-    <Section
-      title={t('account.details')}
-      description={user?.email ? ltr(user.email) : undefined}
-      icon={UserRound}
-    >
+    <Section title={t('account.details')} description={user?.email ? ltr(user.email) : undefined}>
       <FieldRow>
         <TextField
           label={t('common.firstName')}
@@ -178,12 +170,7 @@ export function PasswordForm() {
   }
 
   return (
-    <Section
-      title={t('account.password')}
-      description={t('account.passwordHint')}
-      icon={KeyRound}
-      tone="info"
-    >
+    <Section title={t('account.password')} description={t('account.passwordHint')}>
       <TextField
         label={t('account.currentPassword')}
         required
@@ -221,23 +208,22 @@ export function PasswordForm() {
   )
 }
 
-/** Full-width red "Log out" row. */
+/** "Log out": a text button in `negative`, last on the screen. */
 export function LogoutRow() {
   const { t } = useTranslation()
-  const colors = useThemeColors()
   const { isLoggingOut, requestLogout } = useLogout()
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ busy: isLoggingOut }}
-      disabled={isLoggingOut}
-      className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 active:opacity-80"
+    <Button
+      variant="ghost"
+      className="self-start px-0"
       onPress={requestLogout}
+      disabled={isLoggingOut}
+      accessibilityState={{ busy: isLoggingOut }}
     >
-      <LogOut size={18} color={colors.error} />
-      <Text className="text-base font-bold text-destructive">
+      {isLoggingOut ? <ButtonSpinner /> : null}
+      <ButtonText className="text-destructive">
         {isLoggingOut ? t('account.loggingOut') : t('account.logout')}
-      </Text>
-    </Pressable>
+      </ButtonText>
+    </Button>
   )
 }

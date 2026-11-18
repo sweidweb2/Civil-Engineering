@@ -22,9 +22,14 @@ import { scheduleOnRN } from 'react-native-worklets'
 
 import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { radius } from '@/theme/radius'
+import { sizes } from '@/theme/sizes'
+import { motion } from '@/theme/spacing'
+import { TYPE } from '@/theme/typography'
 
-const OPEN_MS = 300
-const CLOSE_MS = 220
+const OPEN_MS = motion.base + 40
+const CLOSE_MS = motion.base
+const EASE = Easing.bezier(...motion.standard)
 /** Drag further than this, or flick faster than DISMISS_VELOCITY, to dismiss. */
 const DISMISS_DISTANCE = 110
 const DISMISS_VELOCITY = 900
@@ -63,7 +68,7 @@ export function BottomSheet({
   useEffect(() => {
     if (visible) {
       setMounted(true)
-      translateY.set(withTiming(0, { duration: OPEN_MS, easing: Easing.out(Easing.cubic) }))
+      translateY.set(withTiming(0, { duration: OPEN_MS, easing: EASE }))
     } else if (mounted) {
       translateY.set(
         withTiming(
@@ -89,7 +94,7 @@ export function BottomSheet({
       if (event.translationY > DISMISS_DISTANCE || event.velocityY > DISMISS_VELOCITY) {
         scheduleOnRN(requestClose)
       } else {
-        translateY.set(withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) }))
+        translateY.set(withTiming(0, { duration: motion.base, easing: EASE }))
       }
     })
 
@@ -103,7 +108,7 @@ export function BottomSheet({
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <GestureHandlerRootView className="flex-1">
-        <Animated.View className="absolute inset-0 bg-black/50" style={backdropStyle}>
+        <Animated.View className="absolute inset-0 bg-black/40" style={backdropStyle}>
           <Pressable accessibilityLabel={t('common.close')} className="flex-1" onPress={onClose} />
         </Animated.View>
         <KeyboardAvoidingView
@@ -112,22 +117,24 @@ export function BottomSheet({
           pointerEvents="box-none"
         >
           <Animated.View
-            className="rounded-t-[32px] bg-card px-5"
+            className="bg-card px-5"
             style={[
               {
                 maxHeight: screenHeight * maxHeightRatio,
+                borderTopLeftRadius: radius.sheet,
+                borderTopRightRadius: radius.sheet,
                 paddingBottom: Math.max(insets.bottom, 16),
               },
               sheetStyle,
             ]}
           >
             <GestureDetector gesture={pan}>
-              <View collapsable={false} className="pt-3">
-                <View className="mb-3 h-1.5 w-10 self-center rounded-full bg-border" />
+              <View collapsable={false} className="pt-2">
+                <View className="mb-4 h-1 w-9 self-center rounded-full bg-border" />
                 {title ? (
-                  <View className="mb-3 flex-row items-center justify-between">
+                  <View className="mb-4 flex-row items-center justify-between gap-3">
                     <Text
-                      className="min-w-0 flex-1 text-lg font-bold text-foreground"
+                      className={`${TYPE.title} min-w-0 flex-1 text-foreground`}
                       accessibilityRole="header"
                     >
                       {title}
@@ -135,11 +142,11 @@ export function BottomSheet({
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={t('common.close')}
-                      hitSlop={8}
-                      className="size-9 items-center justify-center rounded-full bg-muted"
+                      className="items-center justify-center rounded-full border border-border bg-card active:bg-background"
+                      style={{ width: sizes.iconButton, height: sizes.iconButton }}
                       onPress={onClose}
                     >
-                      <X size={18} color={colors.text} />
+                      <X size={sizes.iconSm} color={colors.ink} strokeWidth={sizes.iconStroke} />
                     </Pressable>
                   </View>
                 ) : null}

@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Text, View } from 'react-native'
 
 import { Button, ButtonText } from '@/components/ui/button'
+import { TYPE } from '@/theme/typography'
 
 type Props = {
   children: ReactNode
@@ -32,16 +33,14 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
-          <Text className="text-center text-xl font-semibold text-foreground">
-            Something went wrong
+        <View className="flex-1 justify-center gap-3 bg-background px-5">
+          <Text className={`${TYPE.headline} text-foreground`}>This screen stopped working.</Text>
+          <Text className={`${TYPE.body} text-muted-foreground`}>
+            Your data is safe. Reload the screen to carry on. If it keeps happening, sign out and
+            back in.
           </Text>
-          <Text className="text-center text-sm text-muted-foreground">
-            The screen crashed unexpectedly. You can try again, or go back to sign in if the problem
-            continues.
-          </Text>
-          <Button onPress={this.handleReset}>
-            <ButtonText>Try again</ButtonText>
+          <Button className="mt-4" onPress={this.handleReset}>
+            <ButtonText>Reload screen</ButtonText>
           </Button>
         </View>
       )

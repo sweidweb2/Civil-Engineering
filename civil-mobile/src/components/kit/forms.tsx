@@ -24,9 +24,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Pressable } from '@/components/ui/pressable'
 import { Switch } from '@/components/ui/switch'
 import { useThemeColors } from '@/hooks/useThemeColors'
-import { softShadows } from '@/theme/shadows'
+import { sizes } from '@/theme/sizes'
+import { TYPE } from '@/theme/typography'
 
-import { IconTile } from './primitives'
 import { BottomSheet } from './sheet'
 import type { Tone } from './tones'
 
@@ -47,7 +47,7 @@ export function FormScroll({
     >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
+        contentContainerClassName="gap-7 px-5 pb-8 pt-3"
         contentContainerStyle={insetBottom ? { paddingBottom: 32 + insets.bottom } : undefined}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -58,51 +58,56 @@ export function FormScroll({
   )
 }
 
-/** Titled card grouping related fields. */
+/**
+ * A short group of related fields: section title (+ caption) on `bg`, the
+ * fields below. No card: hierarchy comes from type and space.
+ */
 export function Section({
   title,
   description,
-  icon,
-  tone = 'primary',
   children,
 }: {
   title: string
   description?: string
+  /** Kept for API compatibility; sections carry no decorative icon. */
   icon?: LucideIcon
   tone?: Tone
   children: ReactNode
 }) {
   return (
-    <View
-      className="gap-4 rounded-2xl border border-border/40 bg-card p-4"
-      style={softShadows.card}
-    >
-      <View className="flex-row items-center gap-3">
-        {icon ? <IconTile icon={icon} tone={tone} size={40} /> : null}
-        <View className="min-w-0 flex-1">
-          <Text className="text-base font-bold text-foreground">{title}</Text>
-          {description ? (
-            <Text className="text-xs text-muted-foreground">{description}</Text>
-          ) : null}
-        </View>
+    <View className="gap-3">
+      <View className="gap-0.5">
+        <Text accessibilityRole="header" className={`${TYPE.section} text-foreground`}>
+          {title}
+        </Text>
+        {description ? (
+          <Text className={`${TYPE.caption} text-muted-foreground`}>{description}</Text>
+        ) : null}
       </View>
-      {children}
+      <View className="gap-4">{children}</View>
     </View>
   )
 }
 
 function FieldLabel({ label, required }: { label: string; required?: boolean }) {
   return (
-    <Text className="text-sm font-semibold text-foreground">
+    <Text className={`${TYPE.caption} text-ink-2`}>
       {label}
-      {required ? <Text className="text-destructive"> *</Text> : null}
+      {required ? <Text className="text-muted-foreground"> *</Text> : null}
     </Text>
   )
 }
 
 function FieldHint({ error, helper }: { error?: string; helper?: string }) {
-  if (error) return <Text className="text-xs font-medium text-destructive">{error}</Text>
-  if (helper) return <Text className="text-xs text-muted-foreground">{helper}</Text>
+  const colors = useThemeColors()
+  if (error)
+    return (
+      <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
+        <AlertCircle size={14} color={colors.negative} strokeWidth={sizes.iconStroke} />
+        <Text className={`${TYPE.micro} min-w-0 flex-1 text-destructive`}>{error}</Text>
+      </View>
+    )
+  if (helper) return <Text className={`${TYPE.micro} text-muted-foreground`}>{helper}</Text>
   return null
 }
 
@@ -140,22 +145,29 @@ export function TextField({
   const isSecret = Boolean(input.secureTextEntry)
   const multiline = Boolean(input.multiline)
   const isLtrContent = LTR_KEYBOARDS.has(input.keyboardType)
-  const borderClass = error ? 'border-destructive' : focused ? 'border-primary' : 'border-border'
+  const borderClass = error
+    ? 'border-[1.5px] border-destructive'
+    : focused
+      ? 'border-[1.5px] border-foreground'
+      : 'border border-border'
 
   return (
     <View className="gap-1.5">
       <FieldLabel label={label} required={required} />
       <View
-        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-xl border-[1.5px] bg-background px-3.5 ${borderClass} ${
-          multiline ? 'min-h-[112px] items-start py-3' : 'h-12 items-center'
+        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-md bg-card px-4 ${borderClass} ${
+          multiline ? 'min-h-[112px] items-start py-3' : 'items-center'
         }`}
+        style={multiline ? undefined : { height: sizes.inputHeight }}
       >
-        {Icon ? <Icon size={18} color={focused ? colors.primary : colors.textMuted} /> : null}
+        {Icon ? (
+          <Icon size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
+        ) : null}
         <TextInput
           {...input}
           secureTextEntry={isSecret && !revealed}
-          className={`min-w-0 flex-1 text-base text-foreground ${multiline ? '' : 'h-full'}`}
-          placeholderTextColor={colors.disabled}
+          className={`${TYPE.body} min-w-0 flex-1 text-foreground ${multiline ? '' : 'h-full'}`}
+          placeholderTextColor={colors.muted2}
           textAlignVertical={multiline ? 'top' : 'center'}
           style={isLtrContent ? { textAlign: 'left', writingDirection: 'ltr' } : undefined}
           accessibilityLabel={label}
@@ -172,13 +184,14 @@ export function TextField({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={revealed ? t('auth.hidePassword') : t('auth.showPassword')}
-            hitSlop={10}
+            className="-me-3 items-center justify-center"
+            style={{ width: sizes.touch, height: sizes.touch }}
             onPress={() => setRevealed((value) => !value)}
           >
             {revealed ? (
-              <EyeOff size={18} color={colors.textMuted} />
+              <EyeOff size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
             ) : (
-              <Eye size={18} color={colors.textMuted} />
+              <Eye size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
             )}
           </Pressable>
         ) : null}
@@ -231,14 +244,14 @@ export function ChoiceField({
               key={option.value}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              className={`h-10 flex-row items-center gap-1.5 rounded-full border px-4 ${
-                active ? 'border-primary bg-primary/10' : 'border-border bg-background'
+              className={`h-11 flex-row items-center gap-1.5 rounded-md border px-4 ${
+                active ? 'border-foreground bg-foreground' : 'border-border bg-card active:bg-muted'
               }`}
               onPress={() => onChange(active && allowClear ? '' : option.value)}
             >
               {active ? <ActiveCheck /> : null}
               <Text
-                className={`text-sm font-semibold ${active ? 'text-primary' : 'text-foreground'}`}
+                className={`${TYPE.caption} font-medium ${active ? 'text-background' : 'text-ink-2'}`}
               >
                 {option.label}
               </Text>
@@ -253,7 +266,7 @@ export function ChoiceField({
 
 function ActiveCheck() {
   const colors = useThemeColors()
-  return <Check size={14} color={colors.primary} />
+  return <Check size={14} color={colors.bg} strokeWidth={sizes.iconStrokeActive} />
 }
 
 /** Labeled switch row. */
@@ -271,10 +284,10 @@ export function ToggleRow({
   disabled?: boolean
 }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-xl border border-border bg-background px-3.5 py-3">
-      <View className="min-w-0 flex-1">
-        <Text className="text-sm font-semibold text-foreground">{label}</Text>
-        {description ? <Text className="text-xs text-muted-foreground">{description}</Text> : null}
+    <View className="min-h-[60px] flex-row items-center gap-3 rounded-md border border-border bg-card px-4 py-3.5">
+      <View className="min-w-0 flex-1 gap-0.5">
+        <Text className={`${TYPE.bodyStrong} text-foreground`}>{label}</Text>
+        {description ? <Text className={`${TYPE.micro} text-muted-2`}>{description}</Text> : null}
       </View>
       <Switch
         value={value}
@@ -291,9 +304,12 @@ export function FormError({ message }: { message?: string }) {
   const colors = useThemeColors()
   if (!message) return null
   return (
-    <View className="flex-row items-center gap-2 rounded-2xl bg-destructive/10 px-4 py-3">
-      <AlertCircle size={18} color={colors.error} />
-      <Text className="flex-1 text-sm font-medium text-destructive">{message}</Text>
+    <View
+      className="flex-row items-start gap-2.5 rounded-md border-[1.5px] border-destructive bg-card px-4 py-3.5"
+      accessibilityRole="alert"
+    >
+      <AlertCircle size={sizes.icon} color={colors.negative} strokeWidth={sizes.iconStroke} />
+      <Text className={`${TYPE.bodyStrong} min-w-0 flex-1 text-foreground`}>{message}</Text>
     </View>
   )
 }
@@ -303,8 +319,8 @@ export function StickyFooter({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets()
   return (
     <View
-      className="flex-row gap-3 border-t border-border/60 bg-card px-5 pt-3"
-      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      className="flex-row gap-3 bg-background px-5 pt-4"
+      style={{ paddingBottom: Math.max(insets.bottom + 8, 20) }}
     >
       {children}
     </View>
@@ -322,7 +338,7 @@ export function SegmentedControl({
   onChange: (value: string) => void
 }) {
   return (
-    <View className="flex-row rounded-full bg-muted p-1" accessibilityRole="tablist">
+    <View className="flex-row rounded-md bg-muted p-1" accessibilityRole="tablist">
       {options.map((option) => {
         const active = option.value === value
         return (
@@ -330,14 +346,14 @@ export function SegmentedControl({
             key={option.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            className={`h-10 flex-1 items-center justify-center rounded-full ${
-              active ? 'bg-primary' : ''
+            className={`h-11 flex-1 items-center justify-center rounded-[10px] ${
+              active ? 'border border-border bg-card' : ''
             }`}
             onPress={() => onChange(option.value)}
           >
             <Text
-              className={`text-sm font-semibold ${
-                active ? 'text-primary-foreground' : 'text-muted-foreground'
+              className={`${TYPE.caption} ${
+                active ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'
               }`}
             >
               {option.label}
@@ -395,16 +411,17 @@ export function SelectField({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${selected?.label ?? placeholder ?? t('common.select')}`}
-        className="h-12 flex-row items-center gap-2 rounded-xl border-[1.5px] border-border bg-background px-3.5"
+        className="flex-row items-center gap-2 rounded-md border border-border bg-card px-4 active:bg-background"
+        style={{ height: sizes.inputHeight }}
         onPress={() => setOpen(true)}
       >
         <Text
-          className={`flex-1 text-base ${selected ? 'text-foreground' : 'text-muted-foreground'}`}
+          className={`${TYPE.body} flex-1 ${selected ? 'text-foreground' : 'text-muted-2'}`}
           numberOfLines={1}
         >
           {selected?.label ?? placeholder ?? t('common.select')}
         </Text>
-        <ChevronDown size={18} color={colors.textMuted} />
+        <ChevronDown size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
       </Pressable>
       <FieldHint helper={helper} />
 
@@ -418,14 +435,17 @@ export function SelectField({
         maxHeightRatio={0.75}
       >
         {options.length > 8 ? (
-          <View className="mb-2 h-11 flex-row items-center gap-2 rounded-2xl bg-muted px-3.5">
-            <Search size={16} color={colors.textMuted} />
+          <View
+            className="mb-3 flex-row items-center gap-3 rounded-md border border-border bg-background px-4"
+            style={{ height: sizes.inputHeight }}
+          >
+            <Search size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
             <TextInput
-              className="h-full flex-1 text-base text-foreground"
+              className={`${TYPE.body} h-full flex-1 text-foreground`}
               value={query}
               onChangeText={setQuery}
               placeholder={t('common.search')}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={colors.muted2}
               autoCorrect={false}
             />
           </View>
@@ -445,7 +465,7 @@ export function SelectField({
             ) : null
           }
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-muted-foreground">
+            <Text className={`${TYPE.bodySm} py-6 text-muted-foreground`}>
               {t('common.nothingMatches')}
             </Text>
           }
@@ -476,18 +496,45 @@ function SheetOption({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      className={`min-h-12 flex-row items-center gap-3 rounded-2xl px-3 ${
-        active ? 'bg-primary/10' : ''
-      }`}
+      className="min-h-[52px] flex-row items-center gap-3 border-b border-line-subtle px-1 active:bg-background"
       onPress={onPress}
     >
       <Text
-        className={`flex-1 text-base ${active ? 'font-semibold text-primary' : 'text-foreground'}`}
+        className={`${TYPE.body} flex-1 text-foreground ${active ? 'font-medium' : ''}`}
         numberOfLines={1}
       >
         {label}
       </Text>
-      {active ? <Check size={18} color={colors.primary} /> : null}
+      {active ? (
+        <Check size={sizes.iconSm} color={colors.accent} strokeWidth={sizes.iconStrokeActive} />
+      ) : null}
     </Pressable>
+  )
+}
+
+/**
+ * Destructive action, last on a detail screen and separated from the rest
+ * (archetype C): a section title, one line on the consequence, then the
+ * destructive button. Confirmation happens in a dialog.
+ */
+export function DangerZone({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <View className="gap-3 border-t border-border pt-7">
+      <View className="gap-0.5">
+        <Text accessibilityRole="header" className={`${TYPE.section} text-foreground`}>
+          {title}
+        </Text>
+        {hint ? <Text className={`${TYPE.caption} text-muted-foreground`}>{hint}</Text> : null}
+      </View>
+      {children}
+    </View>
   )
 }

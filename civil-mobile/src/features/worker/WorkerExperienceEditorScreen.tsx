@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { router } from 'expo-router'
-import { Briefcase } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
+import { DangerZone, FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import {
@@ -136,20 +135,10 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
             {isSaving ? <ButtonSpinner /> : null}
             <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
           </Button>
-          {!isNew ? (
-            <Button
-              variant="destructive"
-              onPress={onDelete}
-              disabled={isSaving || !isReady}
-              className="w-full"
-            >
-              <ButtonText>{t('common.delete')}</ButtonText>
-            </Button>
-          ) : null}
         </View>
       }
     >
-      <Section title={t('worker.sections.experience')} icon={Briefcase}>
+      <Section title={t('worker.sections.experience')}>
         <TextField
           label={t('worker.roleTitle')}
           required
@@ -209,6 +198,13 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
           multiline
         />
       </Section>
+      {!isNew ? (
+        <DangerZone title={t('common.dangerZone')}>
+          <Button variant="destructive" onPress={onDelete} disabled={isSaving || !isReady}>
+            <ButtonText>{t('common.delete')}</ButtonText>
+          </Button>
+        </DangerZone>
+      ) : null}
     </FormScreen>
   )
 }

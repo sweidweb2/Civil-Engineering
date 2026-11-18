@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import {
-  ChevronRight,
-  FolderKanban,
-  Images,
-  ListChecks,
-  MapPin,
-  StickyNote,
-} from 'lucide-react-native'
+import { FolderKanban, ListChecks } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { GalleryImagesField } from '@/components/files/GalleryImagesField'
 import {
-  Card,
   ChoiceField,
-  DirectionalIcon,
+  DangerZone,
   FieldRow,
   FormScreen,
-  IconTile,
+  MenuGroup,
+  MenuRow,
   ProgressBar,
   Section,
   StatusPill,
@@ -27,10 +20,8 @@ import {
   toneForStatus,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { Pressable } from '@/components/ui/pressable'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { invalidateProjectCaches } from '@/lib/cacheKeys'
 import { showApiAlert, showBlockingAlert } from '@/services/feedback'
@@ -44,6 +35,7 @@ import {
   updateProject,
 } from '@/services/projects'
 import { useToastSuccess } from '@/services/toast'
+import { MONO_STYLE, TYPE } from '@/theme/typography'
 
 type PmProjectDetailScreenProps = {
   basePath?: string
@@ -51,7 +43,6 @@ type PmProjectDetailScreenProps = {
 
 export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDetailScreenProps) {
   const { t } = useTranslation()
-  const colors = useThemeColors()
   const { id } = useLocalSearchParams<{ id: string }>()
   const projectId = typeof id === 'string' ? id : id?.[0]
   const handleApiError = useHandleApiError()
@@ -170,44 +161,47 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
     >
       {project ? (
         <>
-          <Card className="gap-3">
+          <View className="gap-3.5">
             <View className="flex-row items-center gap-3">
-              <Thumbnail imageUrl={project.mainImageUrl} icon={FolderKanban} size={72} />
-              <View className="min-w-0 flex-1 gap-2">
+              <Thumbnail imageUrl={project.mainImageUrl} icon={FolderKanban} size={56} />
+              <View className="min-w-0 flex-1 items-start gap-1">
+                <Text className={`${TYPE.title} text-foreground`} numberOfLines={2}>
+                  {project.name}
+                </Text>
                 <StatusPill
                   label={enumLabel(t, 'projectStatus', project.status)}
                   tone={toneForStatus(project.status)}
                 />
-                <View className="flex-row items-center gap-3">
-                  <View className="flex-1">
-                    <ProgressBar value={project.progress} />
-                  </View>
-                  <Text className="text-sm font-bold text-foreground">
-                    {Math.round(project.progress)}%
-                  </Text>
-                </View>
               </View>
             </View>
-          </Card>
-
-          <Pressable
-            accessibilityRole="button"
-            className="flex-row items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 active:opacity-80"
-            onPress={() => router.push(`${basePath}/${project.id}/stages` as never)}
-          >
-            <IconTile icon={ListChecks} />
-            <View className="min-w-0 flex-1">
-              <Text className="text-base font-bold text-foreground">{t('projects.stages')}</Text>
-              <Text className="text-sm text-muted-foreground">{t('projects.stagesHint')}</Text>
+            <View className="gap-2">
+              <View className="flex-row items-baseline justify-between">
+                <Text className={`${TYPE.caption} text-muted-foreground`}>
+                  {t('projects.progress')}
+                </Text>
+                <Text className="text-base text-foreground" style={MONO_STYLE}>
+                  {Math.round(project.progress)}%
+                </Text>
+              </View>
+              <ProgressBar value={project.progress} />
             </View>
-            <DirectionalIcon icon={ChevronRight} size={18} color={colors.primary} />
-          </Pressable>
+          </View>
 
-          <Section title={t('gallery.title')} icon={Images} tone="info">
+          <MenuGroup>
+            <MenuRow
+              icon={ListChecks}
+              label={t('projects.stages')}
+              hint={t('projects.stagesHint')}
+              last
+              onPress={() => router.push(`${basePath}/${project.id}/stages` as never)}
+            />
+          </MenuGroup>
+
+          <Section title={t('gallery.title')}>
             <GalleryImagesField kind="project" ownerId={project.id} />
           </Section>
 
-          <Section title={t('projects.basics')} icon={FolderKanban}>
+          <Section title={t('projects.basics')}>
             <TextField label={t('projects.name')} required value={name} onChangeText={setName} />
             <TextField label={t('projects.code')} value={code} onChangeText={setCode} />
             <ChoiceField
@@ -231,7 +225,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
             />
           </Section>
 
-          <Section title={t('projects.location')} icon={MapPin} tone="info">
+          <Section title={t('projects.location')}>
             <TextField label={t('common.address')} value={address} onChangeText={setAddress} />
             <FieldRow>
               <TextField label={t('common.city')} value={city} onChangeText={setCity} />
@@ -255,7 +249,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
             </FieldRow>
           </Section>
 
-          <Section title={t('projects.notes')} icon={StickyNote} tone="warning">
+          <Section title={t('projects.notes')}>
             <TextField
               label={t('projects.notes')}
               multiline
@@ -264,13 +258,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
             />
           </Section>
 
-          <View className="gap-3 rounded-2xl border border-destructive/30 p-5">
-            <View className="gap-0.5">
-              <Text className="text-base font-bold text-destructive">
-                {t('projects.dangerZone')}
-              </Text>
-              <Text className="text-xs text-muted-foreground">{t('projects.dangerHint')}</Text>
-            </View>
+          <DangerZone title={t('projects.dangerZone')} hint={t('projects.dangerHint')}>
             <Button
               variant="destructive"
               onPress={onArchive}
@@ -280,7 +268,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
               {isArchiving ? <ButtonSpinner /> : null}
               <ButtonText>{t('projects.archive')}</ButtonText>
             </Button>
-          </View>
+          </DangerZone>
         </>
       ) : null}
     </FormScreen>

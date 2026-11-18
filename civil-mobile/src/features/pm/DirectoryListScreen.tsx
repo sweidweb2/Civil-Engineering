@@ -8,6 +8,7 @@ import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { formatListingPrice, type ListingType, listListings } from '@/services/listings'
+import { MONO_STYLE } from '@/theme/typography'
 
 const PAGE_SIZE = 20
 const TYPES: ListingType[] = ['MATERIAL', 'EQUIPMENT', 'SERVICE']
@@ -50,7 +51,9 @@ export function DirectoryListScreen() {
               [item.providerName, item.categoryName, item.brand].filter(Boolean).join(' · ') || '—'
             }
             extra={
-              <Text className="text-sm font-bold text-primary">{formatListingPrice(item)}</Text>
+              <Text className="text-xs text-ink-2" style={MONO_STYLE}>
+                {formatListingPrice(item)}
+              </Text>
             }
           />
         </ListCard>

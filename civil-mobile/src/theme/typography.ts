@@ -1,108 +1,57 @@
 /**
- * typography.ts — type ramp + semantic text styles (mobile).
- * Uses system UI fonts for native feel.
+ * typography.ts — the type scale (design system section 4.2).
+ *
+ * `type` holds the numeric spec (for style props). `TYPE` holds the matching
+ * Tailwind class strings (sizes come from the `--text-*` theme in global.css),
+ * so components can write `className={TYPE.caption}`.
+ *
+ * Only three weights: 400, 500, 600. Sentence case everywhere; only the
+ * eyebrow is uppercase. Numbers always use tabular figures.
  */
 
-const fontFamily = {
-  sans: 'System',
-  display: 'System',
+export const fontFamily = {
+  sans: undefined as string | undefined, // platform UI font
   mono: 'monospace',
 } as const
 
-const fontSize = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 30,
-  '4xl': 34,
+export const type = {
+  display: { fontSize: 56, lineHeight: 56, fontWeight: '600', letterSpacing: -1.96 },
+  displaySub: { fontSize: 26, lineHeight: 26, fontWeight: '500', letterSpacing: -0.52 },
+  headline: { fontSize: 36, lineHeight: 40, fontWeight: '500', letterSpacing: -0.9 },
+  title: { fontSize: 20, lineHeight: 26, fontWeight: '600', letterSpacing: -0.2 },
+  section: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
+  bodyStrong: { fontSize: 15, lineHeight: 22, fontWeight: '500' },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: '400' },
+  bodySm: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
+  caption: { fontSize: 13, lineHeight: 18, fontWeight: '400' },
+  micro: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
+  tab: { fontSize: 11, lineHeight: 14, fontWeight: '500' },
+  eyebrow: { fontSize: 12, lineHeight: 16, fontWeight: '400', letterSpacing: 0.96 },
 } as const
 
-const fontWeight = {
-  regular: '400' as const,
-  medium: '500' as const,
-  semibold: '600' as const,
-  bold: '700' as const,
-}
+export type TypeToken = keyof typeof type
 
-const lineHeight = {
-  tight: 1.25,
-  normal: 1.5,
-  relaxed: 1.65,
-} as const
+/** Tailwind class strings per type token (color is added by the caller). */
+export const TYPE = {
+  display: 'text-4xl font-semibold',
+  displaySub: 'text-2xl font-medium',
+  headline: 'text-3xl font-medium',
+  title: 'text-xl font-semibold',
+  section: 'text-lg font-semibold',
+  bodyStrong: 'text-base font-medium',
+  body: 'text-base font-normal',
+  bodySm: 'text-sm font-normal',
+  caption: 'text-caption font-normal',
+  micro: 'text-xs font-normal',
+  tab: 'text-tab font-medium',
+  eyebrow: 'text-xs font-normal uppercase',
+} as const satisfies Record<TypeToken, string>
 
-const letterSpacing = {
-  tight: -0.3,
-  normal: 0,
-  wide: 0.3,
-} as const
+/** Tabular figures for every number. */
+export const NUM_STYLE = { fontVariant: ['tabular-nums' as const] }
 
-export const typography = {
-  fontFamily,
-  fontSize,
-  fontWeight,
-  lineHeight,
-  letterSpacing,
-  styles: {
-    heading1: {
-      fontFamily: fontFamily.display,
-      fontSize: fontSize['4xl'],
-      fontWeight: fontWeight.bold,
-      lineHeight: Math.round(fontSize['4xl'] * lineHeight.tight),
-      letterSpacing: letterSpacing.tight,
-    },
-    heading2: {
-      fontFamily: fontFamily.display,
-      fontSize: fontSize['3xl'],
-      fontWeight: fontWeight.semibold,
-      lineHeight: Math.round(fontSize['3xl'] * lineHeight.tight),
-      letterSpacing: letterSpacing.tight,
-    },
-    heading3: {
-      fontFamily: fontFamily.display,
-      fontSize: fontSize['2xl'],
-      fontWeight: fontWeight.semibold,
-      lineHeight: Math.round(fontSize['2xl'] * lineHeight.tight),
-      letterSpacing: letterSpacing.normal,
-    },
-    body: {
-      fontFamily: fontFamily.sans,
-      fontSize: fontSize.md,
-      fontWeight: fontWeight.regular,
-      lineHeight: Math.round(fontSize.md * lineHeight.normal),
-      letterSpacing: letterSpacing.normal,
-    },
-    bodySmall: {
-      fontFamily: fontFamily.sans,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.regular,
-      lineHeight: Math.round(fontSize.sm * lineHeight.normal),
-      letterSpacing: letterSpacing.normal,
-    },
-    caption: {
-      fontFamily: fontFamily.sans,
-      fontSize: fontSize.xs,
-      fontWeight: fontWeight.regular,
-      lineHeight: Math.round(fontSize.xs * lineHeight.normal),
-      letterSpacing: letterSpacing.wide,
-    },
-    label: {
-      fontFamily: fontFamily.sans,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.medium,
-      lineHeight: Math.round(fontSize.sm * lineHeight.tight),
-      letterSpacing: letterSpacing.normal,
-    },
-    button: {
-      fontFamily: fontFamily.sans,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.semibold,
-      lineHeight: Math.round(fontSize.sm * lineHeight.tight),
-      letterSpacing: letterSpacing.normal,
-    },
-  },
-} as const
+/** Monospace + tabular figures: amounts in rows, codes, eyebrows, chart labels. */
+export const MONO_STYLE = { fontFamily: fontFamily.mono, fontVariant: ['tabular-nums' as const] }
 
-export type TypographyToken = keyof typeof typography
+/** Back-compat export (older imports used `typography`). */
+export const typography = { fontFamily, type } as const

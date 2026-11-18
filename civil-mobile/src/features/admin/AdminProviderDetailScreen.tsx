@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { MapPin, Phone, Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import {
-  Card,
   ChoiceField,
   FieldRow,
   FormError,
@@ -144,10 +142,10 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
     >
       <FormError message={error} />
       {provider ? (
-        <Card className="flex-row items-center gap-5">
+        <View className="flex-row items-center gap-4">
           <LogoField providerId={provider.id} logoUrl={logoUrl} onChanged={setLogoOverride} />
           <View className="min-w-0 flex-1 gap-1.5">
-            <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+            <Text className="text-xl font-semibold text-foreground" numberOfLines={1}>
               {provider.name}
             </Text>
             <View className="flex-row">
@@ -157,10 +155,10 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
               />
             </View>
           </View>
-        </Card>
+        </View>
       ) : null}
 
-      <Section title={t('providers.company')} icon={Store}>
+      <Section title={t('providers.company')}>
         <TextField label={t('common.name')} required value={name} onChangeText={setName} />
         <ChoiceField
           label={t('providers.status')}
@@ -176,7 +174,7 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
         />
       </Section>
 
-      <Section title={t('providers.contact')} icon={Phone} tone="info">
+      <Section title={t('providers.contact')}>
         <TextField
           label={t('common.email')}
           value={email}
@@ -206,7 +204,7 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
         />
       </Section>
 
-      <Section title={t('providers.location')} icon={MapPin} tone="success">
+      <Section title={t('providers.location')}>
         <TextField label={t('common.address')} value={address} onChangeText={setAddress} />
         <FieldRow>
           <TextField label={t('common.city')} value={city} onChangeText={setCity} />

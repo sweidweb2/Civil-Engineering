@@ -9,16 +9,13 @@ import { Button, ButtonText } from '@/components/ui/button'
 import { AuthShell } from '@/features/auth/AuthShell'
 import { registerSchema } from '@/features/auth/register.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
 import type { RegisterRole } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
-import { glow } from '@/theme/shadows'
 
 export function RegisterScreen() {
   const { t } = useTranslation()
-  const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const register = useAuthStore((s) => s.register)
   const handleApiError = useHandleApiError()
@@ -85,6 +82,26 @@ export function RegisterScreen() {
       testID="e2e-register"
       title={t('auth.createAccount')}
       subtitle={t('auth.registerRoleNote')}
+
+      footer={
+        <>
+          <Button onPress={() => void onSubmit()} disabled={isSubmitting}>
+            <ButtonText>{isSubmitting ? t('auth.creating') : t('auth.register')}</ButtonText>
+          </Button>
+
+          <Link href="/login" asChild>
+            <Pressable
+              accessibilityRole="link"
+              className="min-h-11 items-center justify-center active:opacity-60"
+            >
+              <Text className="text-center text-base text-muted-foreground">
+                {t('auth.haveAccount')}{' '}
+                <Text className="font-medium text-foreground">{t('auth.signIn')}</Text>
+              </Text>
+            </Pressable>
+          </Link>
+        </>
+      }
     >
       <ChoiceField
         label={t('auth.role')}
@@ -135,27 +152,6 @@ export function RegisterScreen() {
         value={password}
         onChangeText={setPassword}
       />
-
-      <Button
-        size="lg"
-        className="mt-2"
-        onPress={() => void onSubmit()}
-        disabled={isSubmitting}
-        style={glow(colors.primary, 0.35)}
-      >
-        <ButtonText className="text-base font-bold">
-          {isSubmitting ? t('auth.creating') : t('auth.register')}
-        </ButtonText>
-      </Button>
-
-      <Link href="/login" asChild>
-        <Pressable className="py-2" hitSlop={8}>
-          <Text className="text-center text-sm text-muted-foreground">
-            {t('auth.haveAccount')}{' '}
-            <Text className="font-bold text-primary">{t('auth.signIn')}</Text>
-          </Text>
-        </Pressable>
-      </Link>
     </AuthShell>
   )
 }

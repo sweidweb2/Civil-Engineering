@@ -37,7 +37,7 @@ type ListScreenProps<T> = {
   emptyDescription?: string
 }
 
-/** Standard list page: hero header + search, filter chips, paged cards, add button. */
+/** List / feed page (archetype B): header + search, filter chips, grouped rows, add button. */
 export function ListScreen<T>(props: ListScreenProps<T>) {
   const hasSearch = props.onSearch && props.onQueryChange
   return (
@@ -60,9 +60,7 @@ export function ListScreen<T>(props: ListScreenProps<T>) {
           onChange={props.onFilterChange}
           allLabel={props.allLabel}
         />
-      ) : (
-        <View className="h-3" />
-      )}
+      ) : null}
 
       <View className="flex-1">
         <PagedList
@@ -140,14 +138,14 @@ export function DashboardScroll({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="gap-6 px-5 pb-8 pt-2"
+      contentContainerClassName="gap-7 px-5 pb-10 pt-3"
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
+          tintColor={colors.muted}
+          colors={[colors.ink]}
         />
       }
     >

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { router } from 'expo-router'
-import { BriefcaseBusiness, Languages, MapPinned } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { FormScreen, Section, TextField } from '@/components/kit'
@@ -65,7 +64,7 @@ export function WorkerBasicsScreen() {
         </Button>
       }
     >
-      <Section title={t('worker.aboutYou')} icon={BriefcaseBusiness}>
+      <Section title={t('worker.aboutYou')}>
         <TextField
           label={t('worker.headline')}
           value={form.headline ?? ''}
@@ -108,7 +107,7 @@ export function WorkerBasicsScreen() {
         />
       </Section>
 
-      <Section title={t('worker.location')} icon={MapPinned}>
+      <Section title={t('worker.location')}>
         <TextField
           label={t('common.city')}
           value={form.city ?? ''}
@@ -123,7 +122,7 @@ export function WorkerBasicsScreen() {
         />
       </Section>
 
-      <Section title={t('worker.languages')} icon={Languages}>
+      <Section title={t('worker.languages')}>
         <TextField
           label={t('worker.languages')}
           value={form.languages ?? ''}

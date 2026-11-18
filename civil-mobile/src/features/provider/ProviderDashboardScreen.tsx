@@ -12,20 +12,23 @@ import {
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { InlineError } from '@/components/feedback/AsyncState'
 import {
   ActionTile,
-  Card,
   DashboardScroll,
   EmptyState,
   HeroCard,
-  IconTile,
   ListCard,
+  ListGroup,
+  Notice,
+  QuickActions,
   ScreenHeader,
   SectionLabel,
   SeeAll,
-  StatusPill,
+  StandardListRow,
   Thumbnail,
   type Tone,
+  useTodayCaption,
 } from '@/components/kit'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
@@ -34,6 +37,7 @@ import { userFirstName } from '@/lib/user'
 import { formatListingPrice, type Listing, listListings } from '@/services/listings'
 import { getMyProvider, type Provider } from '@/services/providers'
 import { useAuthStore } from '@/stores/authStore'
+import { MONO_STYLE } from '@/theme/typography'
 
 type Overview = {
   provider: Provider | null
@@ -63,57 +67,47 @@ async function loadOverview(): Promise<Overview> {
     recent: fulfilledRows(listings),
   }
 }
-const STATUS_BANNER: Record<
+const STATUS_NOTICE: Record<
   Provider['status'],
-  {
-    tone: Tone
-    icon: LucideIcon
-    title: string
-    description: string
-    textClass: string
-    boxClass: string
-  }
+  { tone: Tone; icon: LucideIcon; title: string; description: string }
 > = {
   PENDING: {
     tone: 'warning',
     icon: Clock,
     title: 'providerHome.pendingTitle',
     description: 'providerHome.pendingDescription',
-    textClass: 'text-warning',
-    boxClass: 'border-warning/30 bg-warning/10',
   },
   APPROVED: {
     tone: 'success',
     icon: CheckCircle2,
     title: 'providerHome.approvedTitle',
     description: 'providerHome.approvedDescription',
-    textClass: 'text-success',
-    boxClass: 'border-success/30 bg-success/10',
   },
   SUSPENDED: {
     tone: 'danger',
     icon: ShieldAlert,
     title: 'providerHome.suspendedTitle',
     description: 'providerHome.suspendedDescription',
-    textClass: 'text-destructive',
-    boxClass: 'border-destructive/30 bg-destructive/10',
   },
 }
 
 export function ProviderDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const today = useTodayCaption()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardProvider })
 
   const data = remote.status === 'success' ? remote.data : null
   const isFirstLoad = remote.isLoading && !data
-  const banner = data?.provider ? STATUS_BANNER[data.provider.status] : null
+  const notice = data?.provider ? STATUS_NOTICE[data.provider.status] : null
   const isEmpty = data?.total === 0
+  const toListings = () => router.push('/provider/listings' as never)
 
   return (
     <View className="flex-1 bg-background" testID="e2e-provider-dashboard">
       <ScreenHeader
+        caption={today}
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
       />
 
@@ -121,110 +115,87 @@ export function ProviderDashboardScreen() {
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
+        {remote.status === 'error' && !data ? (
+          <InlineError error={remote.error} onRetry={() => void remote.refetch()} />
+        ) : null}
+
         <HeroCard
-          icon={Package}
           caption={t('providerHome.listings')}
           value={formatCount(data?.total, isFirstLoad)}
-          onPress={() => router.push('/provider/listings' as never)}
+          onPress={toListings}
           stats={[
             {
               label: t('providerHome.live'),
               value: formatCount(data?.live, isFirstLoad),
-              onPress: () => router.push('/provider/listings' as never),
+              onPress: toListings,
             },
             {
               label: t('providerHome.hidden'),
               value: formatCount(data?.hidden, isFirstLoad),
-              onPress: () => router.push('/provider/listings' as never),
+              onPress: toListings,
             },
           ]}
         />
 
-        {banner ? (
-          <View className={`flex-row items-center gap-4 rounded-2xl border p-4 ${banner.boxClass}`}>
-            <IconTile icon={banner.icon} tone={banner.tone} size={44} />
-            <View className="min-w-0 flex-1 gap-0.5">
-              <Text className={`text-base font-bold ${banner.textClass}`}>{t(banner.title)}</Text>
-              <Text className="text-sm leading-5 text-muted-foreground">
-                {t(banner.description)}
-              </Text>
-            </View>
-          </View>
+        {notice ? (
+          <Notice
+            icon={notice.icon}
+            tone={notice.tone}
+            title={t(notice.title)}
+            description={t(notice.description)}
+          />
         ) : null}
 
-        <View className="gap-3">
-          <SectionLabel>{t('providerHome.quickActions')}</SectionLabel>
-          <Card>
-            <View className="flex-row justify-between">
-              <ActionTile
-                icon={PackagePlus}
-                label={t('providerHome.newListing')}
-                onPress={() => router.push('/provider/listings/new' as never)}
-              />
-              <ActionTile
-                icon={Package}
-                tone="success"
-                label={t('providerHome.myListings')}
-                onPress={() => router.push('/provider/listings' as never)}
-              />
-              <ActionTile
-                icon={UserRound}
-                tone="info"
-                label={t('providerHome.editProfile')}
-                onPress={() => router.push('/provider/profile' as never)}
-              />
-            </View>
-          </Card>
-        </View>
+        <QuickActions>
+          <ActionTile
+            icon={PackagePlus}
+            label={t('providerHome.newListing')}
+            onPress={() => router.push('/provider/listings/new' as never)}
+          />
+          <ActionTile icon={Package} label={t('providerHome.myListings')} onPress={toListings} />
+          <ActionTile
+            icon={UserRound}
+            label={t('providerHome.editProfile')}
+            onPress={() => router.push('/provider/profile' as never)}
+          />
+        </QuickActions>
 
         {isEmpty ? (
-          <Card>
-            <EmptyState
-              icon={PackagePlus}
-              title={t('providerHome.emptyTitle')}
-              description={t('providerHome.emptyDescription')}
-              actionLabel={t('providerHome.newListing')}
-              onAction={() => router.push('/provider/listings/new' as never)}
-            />
-          </Card>
+          <EmptyState
+            icon={PackagePlus}
+            title={t('providerHome.emptyTitle')}
+            description={t('providerHome.emptyDescription')}
+            actionLabel={t('providerHome.newListing')}
+            onAction={() => router.push('/provider/listings/new' as never)}
+          />
         ) : null}
 
         {data && data.recent.length > 0 ? (
           <View className="gap-3">
-            <SectionLabel
-              action={
-                <SeeAll
-                  label={t('common.seeAll')}
-                  onPress={() => router.push('/provider/listings' as never)}
-                />
-              }
-            >
+            <SectionLabel action={<SeeAll label={t('common.seeAll')} onPress={toListings} />}>
               {t('providerHome.recent')}
             </SectionLabel>
-            <View className="gap-4">
+            <ListGroup>
               {data.recent.map((item) => (
                 <ListCard
                   key={item.id}
                   accessibilityLabel={item.name}
-                  leading={<Thumbnail imageUrl={item.mainImageUrl} icon={Package} />}
+                  leading={<Thumbnail imageUrl={item.mainImageUrl} icon={Package} size={40} />}
                   onPress={() => router.push(`/provider/listings/${item.id}` as never)}
                 >
-                  <View className="flex-row items-start justify-between gap-2">
-                    <Text
-                      className="min-w-0 flex-1 text-base font-bold text-foreground"
-                      numberOfLines={1}
-                    >
-                      {item.name}
-                    </Text>
-                    <StatusPill
-                      label={item.status === 'ACTIVE' ? t('common.active') : t('common.inactive')}
-                      tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}
-                    />
-                  </View>
-                  <Text className="text-sm font-bold text-primary">{formatListingPrice(item)}</Text>
+                  <StandardListRow
+                    title={item.name}
+                    statusLabel={item.status === 'ACTIVE' ? undefined : t('common.inactive')}
+                    statusTone="neutral"
+                    extra={
+                      <Text className="text-xs text-ink-2" style={MONO_STYLE}>
+                        {formatListingPrice(item)}
+                      </Text>
+                    }
+                  />
                 </ListCard>
               ))}
-            </View>
+            </ListGroup>
           </View>
         ) : null}
       </DashboardScroll>

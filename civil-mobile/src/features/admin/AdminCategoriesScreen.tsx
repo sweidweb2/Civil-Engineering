@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 import { router } from 'expo-router'
-import { FolderTree } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { IconTile, ListCard, ListScreen, StandardListRow } from '@/components/kit'
+import { ListCard, ListScreen, StandardListRow } from '@/components/kit'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
@@ -38,7 +37,6 @@ export function AdminCategoriesScreen() {
       renderItem={(item) => (
         <ListCard
           accessibilityLabel={item.name}
-          leading={<IconTile icon={FolderTree} tone={item.isActive ? 'primary' : 'neutral'} />}
           onPress={() => router.push(`${BASE}/${item.id}` as never)}
         >
           <StandardListRow

@@ -20,48 +20,59 @@ const UIButton = createButton({
   Spinner: ActivityIndicator,
   Icon: StyledUIIcon,
 })
+/*
+ * Design-system buttons (section 6.11):
+ *   default     = Primary: accent fill, 54 tall, radius 16. Max one per screen.
+ *   outline     = Secondary: surface + 1px line, ink text.
+ *   secondary   = alias of Secondary.
+ *   destructive = Secondary anatomy with negative text (confirm in a sheet).
+ *   ghost/link  = Text button: 44 tall, no fill, ink text.
+ * Pressed: accent darkens / surface takes the `bg` tone. Disabled: 40%.
+ */
 const buttonStyle = tva({
-  base: 'rounded-xl flex-row items-center justify-center data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 data-[disabled=true]:opacity-40 gap-2 h-fit',
+  base: 'flex-row items-center justify-center gap-2 data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 data-[focus-visible=true]:web:ring-ring data-[disabled=true]:opacity-40',
   variants: {
     variant: {
-      default: 'bg-primary data-[hover=true]:bg-primary/90 data-[active=true]:bg-primary/90',
-      destructive:
-        'bg-destructive data-[hover=true]:bg-destructive/90 data-[active=true]:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
-      outline:
-        'border border-border bg-background shadow-xs data-[hover=true]:bg-accent data-[active=true]:bg-accent dark:bg-input/[0.045] dark:border-border/90 dark:data-[hover=true]:bg-input/[0.075] dark:data-[active=true]:bg-input/[0.075]',
-      secondary:
-        'bg-secondary text-secondary-foreground data-[hover=true]:bg-secondary/80 data-[active=true]:bg-secondary/80',
-      ghost:
-        'data-[hover=true]:bg-accent data-[active=true]:bg-accent dark:data-[hover=true]:bg-accent/50 dark:data-[active=true]:bg-accent/50',
-      link: 'text-primary underline-offset-4 data-[hover=true]:underline data-[active=true]:underline',
+      default: 'rounded-lg bg-primary data-[active=true]:opacity-90',
+      destructive: 'rounded-lg border border-border bg-card data-[active=true]:bg-background',
+      outline: 'rounded-lg border border-border bg-card data-[active=true]:bg-background',
+      secondary: 'rounded-lg border border-border bg-card data-[active=true]:bg-background',
+      ghost: 'rounded-md data-[active=true]:bg-muted',
+      link: 'rounded-md data-[active=true]:opacity-60',
     },
     size: {
-      default: 'min-h-12 px-5',
-      sm: 'min-h-9 rounded-lg px-3 text-xs',
-      lg: 'min-h-14 rounded-2xl px-8',
-      icon: 'min-h-9 min-w-9',
+      default: 'min-h-[54px] px-5',
+      sm: 'min-h-11 rounded-md px-4',
+      lg: 'min-h-[54px] px-6',
+      icon: 'min-h-11 min-w-11 rounded-full',
     },
   },
 })
 const buttonTextStyle = tva({
-  base: 'web:select-none font-sans',
+  base: 'web:select-none text-center',
   parentVariants: {
     variant: {
       default: 'text-primary-foreground',
-      destructive: 'text-white',
-      outline:
-        'text-foreground data-[hover=true]:text-accent-foreground data-[active=true]:text-accent-foreground',
-      secondary: 'text-secondary-foreground',
-      ghost: 'text-foreground ',
-      link: 'text-primary data-[hover=true]:underline data-[active=true]:underline',
+      destructive: 'text-destructive',
+      outline: 'text-foreground',
+      secondary: 'text-foreground',
+      ghost: 'text-foreground',
+      link: 'text-foreground',
     },
     size: {
-      default: 'text-base font-semibold',
+      default: 'text-lg font-semibold',
       sm: 'text-sm font-medium',
-      lg: 'text-sm',
-      icon: 'text-sm',
+      lg: 'text-lg font-semibold',
+      icon: 'text-sm font-medium',
     },
   },
+  parentCompoundVariants: [
+    { variant: 'outline', size: 'default', class: 'font-medium' },
+    { variant: 'secondary', size: 'default', class: 'font-medium' },
+    { variant: 'destructive', size: 'default', class: 'font-medium' },
+    { variant: 'ghost', size: 'default', class: 'text-base font-medium' },
+    { variant: 'link', size: 'default', class: 'text-base font-medium' },
+  ],
 })
 
 const buttonSpinnerStyle = tva({
@@ -81,19 +92,17 @@ const buttonIconStyle = tva({
   parentVariants: {
     variant: {
       default: 'text-primary-foreground',
-      destructive: 'text-white',
-      outline:
-        'text-foreground data-[hover=true]:text-accent-foreground data-[active=true]:text-accent-foreground',
-      secondary: 'text-secondary-foreground',
-      ghost:
-        'text-foreground data-[hover=true]:text-accent-foreground data-[active=true]:text-accent-foreground',
-      link: 'text-primary',
+      destructive: 'text-destructive',
+      outline: 'text-foreground',
+      secondary: 'text-foreground',
+      ghost: 'text-foreground',
+      link: 'text-foreground',
     },
     size: {
-      default: 'h-4 w-4',
-      sm: 'h-3 w-3',
+      default: 'h-5 w-5',
+      sm: 'h-[18px] w-[18px]',
       lg: 'h-5 w-5',
-      icon: 'h-4 w-4',
+      icon: 'h-5 w-5',
     },
   },
 })

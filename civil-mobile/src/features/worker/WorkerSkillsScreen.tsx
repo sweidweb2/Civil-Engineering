@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Trash2, Wrench } from 'lucide-react-native'
+import { X } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import {
   ChoiceField,
   EmptyState,
   FormScreen,
+  MenuGroup,
+  MenuRow,
   Section,
   SelectField,
-  StatusPill,
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
@@ -25,7 +25,6 @@ import {
   type WorkerSkillLevel,
   type WorkerSkillWrite,
 } from '@/services/workers'
-import { softShadows } from '@/theme/shadows'
 
 export function WorkerSkillsScreen() {
   const { t, i18n } = useTranslation()
@@ -106,7 +105,7 @@ export function WorkerSkillsScreen() {
         </Button>
       }
     >
-      <Section title={t('worker.addSkill')} icon={Wrench} description={t('worker.addSkillHint')}>
+      <Section title={t('worker.addSkill')} description={t('worker.addSkillHint')}>
         <SelectField
           label={t('worker.trade')}
           placeholder={t('worker.pickTrade')}
@@ -128,37 +127,28 @@ export function WorkerSkillsScreen() {
       {skills.length === 0 ? (
         <EmptyState title={t('worker.skillsEmpty')} description={t('worker.skillsEmptyHint')} />
       ) : (
-        <View className="gap-3">
-          {skills.map((skill) => (
-            <View
+        <MenuGroup>
+          {skills.map((skill, index) => (
+            <MenuRow
               key={skill.categoryId}
-              className="flex-row items-center gap-3 rounded-2xl border border-border/40 bg-card p-4"
-              style={softShadows.card}
-            >
-              <View className="min-w-0 flex-1 gap-1">
-                <Text className="text-base font-bold text-foreground" numberOfLines={1}>
-                  {nameById.get(skill.categoryId) ?? skill.categoryId}
-                </Text>
-                <View className="flex-row">
-                  <StatusPill
-                    label={enumLabel(t, 'workerSkillLevel', skill.level)}
-                    tone="primary"
-                  />
-                </View>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('common.remove')}
-                onPress={() =>
-                  setSkills((current) => current.filter((s) => s.categoryId !== skill.categoryId))
-                }
-                className="rounded-full p-2"
-              >
-                <Trash2 size={18} color={colors.error} />
-              </Pressable>
-            </View>
+              label={nameById.get(skill.categoryId) ?? skill.categoryId}
+              hint={enumLabel(t, 'workerSkillLevel', skill.level)}
+              last={index === skills.length - 1}
+              trailing={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('common.remove')} ${nameById.get(skill.categoryId) ?? ''}`}
+                  onPress={() =>
+                    setSkills((current) => current.filter((s) => s.categoryId !== skill.categoryId))
+                  }
+                  className="-me-3 size-11 items-center justify-center rounded-full active:bg-muted"
+                >
+                  <X size={18} color={colors.muted} strokeWidth={1.75} />
+                </Pressable>
+              }
+            />
           ))}
-        </View>
+        </MenuGroup>
       )}
     </FormScreen>
   )

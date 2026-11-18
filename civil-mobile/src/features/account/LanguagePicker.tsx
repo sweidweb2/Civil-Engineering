@@ -1,4 +1,3 @@
-import { Languages } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { Section, SegmentedControl } from '@/components/kit'
@@ -26,12 +25,7 @@ export function LanguagePicker() {
   }
 
   return (
-    <Section
-      title={t('account.language')}
-      description={t('account.languageHint')}
-      icon={Languages}
-      tone="info"
-    >
+    <Section title={t('account.language')} description={t('account.languageHint')}>
       <SegmentedControl options={OPTIONS} value={language} onChange={onChange} />
     </Section>
   )

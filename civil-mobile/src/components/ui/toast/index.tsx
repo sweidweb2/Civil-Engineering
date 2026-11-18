@@ -3,33 +3,24 @@ import React from 'react'
 import { AccessibilityInfo, Text, View } from 'react-native'
 import { createToastHook } from '@gluestack-ui/core/toast/creator'
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils'
-import { tva, useStyleContext, withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
-import Animated, { SlideInUp } from 'react-native-reanimated'
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils'
+import Animated, { FadeInDown } from 'react-native-reanimated'
 import { withUniwind } from 'uniwind'
 const useToast = createToastHook(View)
 const SCOPE = 'TOAST'
 const AnimatedView = Animated.createAnimatedComponent(View)
 const StyledAnimatedView = withUniwind(AnimatedView)
+/* Toast (section 6.17): inverse surface, radius 14, no shadow, above the tab bar. */
 const toastStyle = tva({
-  base: 'p-4 mx-4 mt-12 rounded-2xl gap-1 web:pointer-events-auto border-border',
+  base: 'mx-5 mb-24 gap-0.5 rounded-md bg-inverse px-4 py-3.5 web:pointer-events-auto',
   variants: {
-    action: {
-      error: 'bg-popover text-popover-foreground',
-      warning: 'bg-popover text-popover-foreground',
-      success: 'bg-popover text-popover-foreground',
-      info: 'bg-popover text-popover-foreground',
-      muted: 'bg-popover text-popover-foreground',
-    },
-
-    variant: {
-      solid: 'border border-border bg-popover shadow-soft-4',
-      outline: 'border border-border bg-popover',
-    },
+    action: { error: '', warning: '', success: '', info: '', muted: '' },
+    variant: { solid: '', outline: '' },
   },
 })
 
 const toastTitleStyle = tva({
-  base: 'font-medium font-body tracking-md',
+  base: 'font-medium text-on-inverse',
   variants: {
     isTruncated: {
       true: '',
@@ -57,75 +48,10 @@ const toastTitleStyle = tva({
       '6xl': 'text-6xl',
     },
   },
-  parentVariants: {
-    variant: {
-      solid: '',
-      outline: 'text-foreground',
-    },
-    action: {
-      error: '',
-      warning: '',
-      success: '',
-      info: '',
-      muted: '',
-    },
-  },
-  parentCompoundVariants: [
-    {
-      variant: 'solid',
-      action: 'error',
-      class: 'text-destructive-foreground',
-    },
-    {
-      variant: 'solid',
-      action: 'warning',
-      class: 'text-accent-foreground',
-    },
-    {
-      variant: 'solid',
-      action: 'success',
-      class: 'text-secondary-foreground',
-    },
-    {
-      variant: 'solid',
-      action: 'info',
-      class: 'text-popover-foreground',
-    },
-    {
-      variant: 'solid',
-      action: 'muted',
-      class: 'text-muted-foreground',
-    },
-    {
-      variant: 'outline',
-      action: 'error',
-      class: 'text-destructive',
-    },
-    {
-      variant: 'outline',
-      action: 'warning',
-      class: 'text-accent-foreground',
-    },
-    {
-      variant: 'outline',
-      action: 'success',
-      class: 'text-secondary-foreground',
-    },
-    {
-      variant: 'outline',
-      action: 'info',
-      class: 'text-popover-foreground',
-    },
-    {
-      variant: 'outline',
-      action: 'muted',
-      class: 'text-muted-foreground',
-    },
-  ],
 })
 
 const toastDescriptionStyle = tva({
-  base: 'font-normal font-body tracking-md',
+  base: 'font-normal text-on-inverse-muted',
   variants: {
     isTruncated: {
       true: '',
@@ -151,12 +77,6 @@ const toastDescriptionStyle = tva({
       '4xl': 'text-4xl',
       '5xl': 'text-5xl',
       '6xl': 'text-6xl',
-    },
-  },
-  parentVariants: {
-    variant: {
-      solid: 'text-muted-foreground',
-      outline: 'text-muted-foreground',
     },
   },
 })
@@ -173,7 +93,7 @@ const Toast = React.forwardRef<React.ComponentRef<typeof Root>, IToastProps>(fun
   return (
     <Root
       ref={ref}
-      entering={SlideInUp}
+      entering={FadeInDown.duration(220)}
       className={toastStyle({ variant, action, class: className })}
       context={{ variant, action }}
       {...props}
@@ -187,7 +107,6 @@ type IToastTitleProps = React.ComponentProps<typeof Text> & {
 
 const ToastTitle = React.forwardRef<React.ComponentRef<typeof Text>, IToastTitleProps>(
   function ToastTitle({ className, size = 'md', children, ...props }, ref) {
-    const { variant: parentVariant, action: parentAction } = useStyleContext(SCOPE)
     React.useEffect(() => {
       // Issue from react-native side
       // Hack for now, will fix this later
@@ -201,14 +120,7 @@ const ToastTitle = React.forwardRef<React.ComponentRef<typeof Text>, IToastTitle
         aria-live="assertive"
         aria-atomic="true"
         role="alert"
-        className={toastTitleStyle({
-          size,
-          class: className,
-          parentVariants: {
-            variant: parentVariant,
-            action: parentAction,
-          },
-        })}
+        className={toastTitleStyle({ size, class: className })}
       >
         {children}
       </Text>
@@ -222,19 +134,8 @@ type IToastDescriptionProps = React.ComponentProps<typeof Text> & {
 
 const ToastDescription = React.forwardRef<React.ComponentRef<typeof Text>, IToastDescriptionProps>(
   function ToastDescription({ className, size = 'md', ...props }, ref) {
-    const { variant: parentVariant } = useStyleContext(SCOPE)
     return (
-      <Text
-        ref={ref}
-        {...props}
-        className={toastDescriptionStyle({
-          size,
-          class: className,
-          parentVariants: {
-            variant: parentVariant,
-          },
-        })}
-      />
+      <Text ref={ref} {...props} className={toastDescriptionStyle({ size, class: className })} />
     )
   },
 )

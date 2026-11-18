@@ -19,6 +19,7 @@ import {
   type PortalId,
   type PortalNavItem,
 } from '@/navigation'
+import { sizes } from '@/theme/sizes'
 
 type PortalShellProps = {
   portal: PortalId
@@ -77,9 +78,9 @@ export function PortalShell({ portal, children }: PortalShellProps) {
           isActive: tabIsActive(portal, pathname, item),
           renderIcon: (active: boolean) => (
             <Icon
-              size={24}
-              strokeWidth={active ? 2.4 : 1.8}
-              color={active ? themeColors.primary : themeColors.textMuted}
+              size={sizes.iconTab}
+              strokeWidth={active ? sizes.iconStrokeActive : sizes.iconStroke}
+              color={active ? themeColors.ink : themeColors.muted2}
             />
           ),
           onPress: () => {

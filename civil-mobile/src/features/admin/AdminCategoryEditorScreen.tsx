@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { router, useLocalSearchParams } from 'expo-router'
-import { FolderTree } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { ChoiceField, FormError, FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
+import {
+  ChoiceField,
+  DangerZone,
+  FormError,
+  FormScreen,
+  Section,
+  TextField,
+  ToggleRow,
+} from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -132,20 +139,8 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
       loadingLabel={t('categories.loadingOne')}
       footer={
         <>
-          {mode === 'edit' ? (
-            <Button
-              className="flex-1"
-              variant="destructive"
-              onPress={onDelete}
-              disabled={isDeleting}
-              accessibilityState={{ busy: isDeleting }}
-            >
-              {isDeleting ? <ButtonSpinner /> : null}
-              <ButtonText>{t('common.delete')}</ButtonText>
-            </Button>
-          ) : null}
           <Button
-            className="flex-[2]"
+            className="flex-1"
             onPress={() => void onSave()}
             disabled={isSaving}
             accessibilityState={{ busy: isSaving }}
@@ -163,7 +158,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
       }
     >
       <FormError message={error} />
-      <Section title={t('categories.details')} icon={FolderTree}>
+      <Section title={t('categories.details')}>
         <TextField label={t('common.name')} required value={name} onChangeText={setName} />
         <TextField label={t('categories.arabicName')} value={nameAr} onChangeText={setNameAr} />
         <ChoiceField
@@ -180,6 +175,19 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
         />
         <ToggleRow label={t('common.active')} value={isActive} onValueChange={setIsActive} />
       </Section>
+      {mode === 'edit' ? (
+        <DangerZone title={t('common.dangerZone')} hint={t('categories.deleteBody')}>
+          <Button
+            variant="destructive"
+            onPress={onDelete}
+            disabled={isDeleting}
+            accessibilityState={{ busy: isDeleting }}
+          >
+            {isDeleting ? <ButtonSpinner /> : null}
+            <ButtonText>{t('common.delete')}</ButtonText>
+          </Button>
+        </DangerZone>
+      ) : null}
     </FormScreen>
   )
 }

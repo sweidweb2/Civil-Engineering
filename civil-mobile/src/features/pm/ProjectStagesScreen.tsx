@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { Check, Paperclip } from 'lucide-react-native'
+import { Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { ChoiceField, FormScreen, Section, TextField } from '@/components/kit'
@@ -23,6 +23,8 @@ import {
 } from '@/services/project-stages'
 import { getProjectById } from '@/services/projects'
 import { useToastSuccess } from '@/services/toast'
+import { sizes } from '@/theme/sizes'
+import { MONO_STYLE } from '@/theme/typography'
 
 function emptyDraft(status: ProjectStageStatus = 'NOT_STARTED'): StageDraft {
   return { status }
@@ -54,7 +56,7 @@ function StageStepper({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-3 px-5 py-3"
+        contentContainerClassName="gap-2 px-5 pb-3 pt-1"
         style={{ flexGrow: 0 }}
       >
         {STAGE_KEYS.map((key, index) => {
@@ -66,25 +68,24 @@ function StageStepper({
               key={key}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
-              className={`w-32 gap-1 rounded-2xl border p-3 ${
-                isActive ? 'border-primary bg-primary/10' : 'border-border/60 bg-card'
+              className={`w-32 gap-1 rounded-md bg-card px-3.5 py-3 ${
+                isActive ? 'border-[1.5px] border-foreground' : 'border border-border'
               }`}
               onPress={() => onSelect(key)}
             >
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs font-bold uppercase text-muted-foreground">
-                  {index + 1}
+                <Text className="text-xs text-muted-foreground" style={MONO_STYLE}>
+                  {String(index + 1).padStart(2, '0')}
                 </Text>
-                {complete ? <Check size={16} color={colors.success} /> : null}
+                {complete ? (
+                  <Check size={16} color={colors.accent} strokeWidth={sizes.iconStrokeActive} />
+                ) : null}
               </View>
-              <Text
-                className={`text-sm font-bold ${isActive ? 'text-primary' : 'text-foreground'}`}
-                numberOfLines={1}
-              >
+              <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
                 {enumLabel(t, 'stage', key)}
               </Text>
               <Text
-                className={`text-xs ${complete ? 'text-success' : 'text-muted-foreground'}`}
+                className={`text-xs ${complete ? 'text-primary' : 'text-muted-2'}`}
                 numberOfLines={1}
               >
                 {complete
@@ -298,7 +299,7 @@ export function ProjectStagesScreen({ basePath = '/pm/projects' }: ProjectStages
         ))}
       </Section>
       {projectId ? (
-        <Section title={t('stages.documents')} icon={Paperclip} tone="info">
+        <Section title={t('stages.documents')}>
           {fileFields.map((field) => (
             <StageFileField
               key={`${activeKey}-${field}`}

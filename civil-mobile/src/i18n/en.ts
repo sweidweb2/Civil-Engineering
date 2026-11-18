@@ -1,5 +1,6 @@
 export const en = {
   common: {
+    dangerZone: 'Danger zone',
     all: 'All',
     active: 'Active',
     inactive: 'Inactive',
@@ -195,6 +196,8 @@ export const en = {
     restartBody: 'Close and reopen the app to apply the new layout direction.',
   },
   dashboard: {
+    toReview: 'Waiting for your review',
+    allClear: 'Nothing needs you right now.',
     eyebrow: 'Admin panel',
     greeting: 'Hi, {{name}}',
     there: 'there',
@@ -227,6 +230,7 @@ export const en = {
     },
   },
   projects: {
+    progress: 'Progress',
     title: 'Projects',
     project: 'Project',
     search: 'Search projects',
@@ -517,6 +521,7 @@ export const en = {
     invoiceFilePath: 'Supplier invoice',
   },
   pmHome: {
+    onHoldBanner: '{{count}} projects are on hold',
     eyebrow: 'Project manager',
     subtitle: 'Your projects at a glance',
     active: 'In progress',

@@ -267,6 +267,15 @@ describe('listingsService', () => {
     expect(repository.deleteOrHide).toHaveBeenCalledWith('lst-1')
   })
 
+  it('returns 404 when the listing disappears during delete', async () => {
+    const { service, repository } = setup()
+    vi.mocked(repository.deleteOrHide).mockResolvedValue('missing')
+    await expect(service.deleteListing('lst-1', admin)).rejects.toMatchObject({
+      status: 404,
+      code: 'LISTING_NOT_FOUND',
+    })
+  })
+
   it('bulk-increases prices by percentage for a provider', async () => {
     const { service, repository } = setup({
       listing: record({ price: '100', rentalPrice: '50' }),

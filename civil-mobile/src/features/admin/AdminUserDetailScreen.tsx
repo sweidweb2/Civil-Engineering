@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import {
   Avatar,
-  Card,
   ChoiceField,
+  DangerZone,
   FieldRow,
   FormScreen,
   Section,
@@ -177,16 +176,6 @@ export function AdminUserDetailScreen() {
         <>
           <Button
             className="flex-1"
-            variant="destructive"
-            onPress={onDeactivate}
-            disabled={isDeactivating || user?.status === 'INACTIVE'}
-            accessibilityState={{ busy: isDeactivating }}
-          >
-            {isDeactivating ? <ButtonSpinner /> : null}
-            <ButtonText>{t('users.deactivate')}</ButtonText>
-          </Button>
-          <Button
-            className="flex-[2]"
             onPress={() => void onSave()}
             disabled={isSaving}
             accessibilityState={{ busy: isSaving }}
@@ -199,10 +188,10 @@ export function AdminUserDetailScreen() {
     >
       {user ? (
         <>
-          <Card className="flex-row items-center gap-4">
+          <View className="flex-row items-center gap-4">
             <Avatar name={userDisplayName(user)} imageUrl={user.profile?.avatarUrl} size={64} />
             <View className="min-w-0 flex-1 gap-1.5">
-              <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+              <Text className="text-xl font-semibold text-foreground" numberOfLines={1}>
                 {userDisplayName(user)}
               </Text>
               <View className="flex-row flex-wrap gap-2">
@@ -210,12 +199,12 @@ export function AdminUserDetailScreen() {
                   label={enumLabel(t, 'userStatus', user.status)}
                   tone={toneForStatus(user.status)}
                 />
-                <StatusPill label={enumLabel(t, 'role', user.role)} tone="info" />
+                <StatusPill label={enumLabel(t, 'role', user.role)} tone="neutral" />
               </View>
             </View>
-          </Card>
+          </View>
 
-          <Section title={t('users.access')} icon={UserRound}>
+          <Section title={t('users.access')}>
             <ChoiceField
               label={t('users.role')}
               options={enumOptions(t, 'role', AUTH_ROLE_OPTIONS)}
@@ -273,6 +262,19 @@ export function AdminUserDetailScreen() {
             />
           </Section>
         </>
+      ) : null}
+      {user ? (
+        <DangerZone title={t('common.dangerZone')}>
+          <Button
+            variant="destructive"
+            onPress={onDeactivate}
+            disabled={isDeactivating || user?.status === 'INACTIVE'}
+            accessibilityState={{ busy: isDeactivating }}
+          >
+            {isDeactivating ? <ButtonSpinner /> : null}
+            <ButtonText>{t('users.deactivate')}</ButtonText>
+          </Button>
+        </DangerZone>
       ) : null}
     </FormScreen>
   )

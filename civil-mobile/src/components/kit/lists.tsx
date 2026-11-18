@@ -1,3 +1,4 @@
+import { Children, createContext, Fragment, useContext } from 'react'
 import { FlatList, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native'
 import {
   ChevronLeft,
@@ -10,16 +11,21 @@ import {
 } from 'lucide-react-native'
 import type { ReactElement, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import Animated, { FadeInDown } from 'react-native-reanimated'
+import Animated, { FadeIn } from 'react-native-reanimated'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
 import { Button, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
-import { glow, softShadows } from '@/theme/shadows'
+import { sizes } from '@/theme/sizes'
+import { motion } from '@/theme/spacing'
+import { TYPE } from '@/theme/typography'
 
-import { DirectionalIcon, PressableScale, SkeletonBlock, StatusPill } from './primitives'
+import { DirectionalIcon, SkeletonBlock, StatusPill } from './primitives'
 import type { Tone } from './tones'
+
+/** True inside a grouped list: rows render flat and the group draws the surface. */
+const GroupedContext = createContext(false)
 
 type SearchBarProps = {
   value: string
@@ -29,20 +35,23 @@ type SearchBarProps = {
   placeholder?: string
 }
 
-/** Pill search field, designed to sit inside the hero header. */
+/** Search field: 52 tall, radius 14, surface + 1px line. */
 export function SearchBar({ value, onChangeText, onSubmit, placeholder }: SearchBarProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
   return (
-    <View className="h-12 flex-row items-center gap-3 rounded-2xl border border-border/60 bg-card px-4">
-      <Search size={20} color={colors.textMuted} />
+    <View
+      className="flex-row items-center gap-3 rounded-md border border-border bg-card ps-4 pe-1"
+      style={{ height: sizes.inputHeight }}
+    >
+      <Search size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
       <TextInput
-        className="h-full flex-1 text-base text-foreground"
+        className={`${TYPE.body} h-full min-w-0 flex-1 text-foreground`}
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={() => onSubmit(value.trim())}
         placeholder={placeholder ?? t('common.search')}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.muted2}
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}
@@ -52,14 +61,14 @@ export function SearchBar({ value, onChangeText, onSubmit, placeholder }: Search
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.clearSearch')}
-          hitSlop={10}
-          className="size-6 items-center justify-center rounded-full bg-muted"
+          className="items-center justify-center rounded-full active:bg-muted"
+          style={{ width: sizes.touch, height: sizes.touch }}
           onPress={() => {
             onChangeText('')
             onSubmit('')
           }}
         >
-          <X size={14} color={colors.textMuted} />
+          <X size={sizes.iconSm} color={colors.muted} strokeWidth={sizes.iconStroke} />
         </Pressable>
       ) : null}
     </View>
@@ -76,7 +85,7 @@ type FilterChipsProps = {
   allLabel?: string
 }
 
-/** Horizontally scrolling single-select filter pills. */
+/** Horizontally scrolling single-select filter chips (rectangular, radius 14). */
 export function FilterChips({ options, value, onChange, allLabel }: FilterChipsProps) {
   const all: ChipOption[] = allLabel ? [{ value: '', label: allLabel }, ...options] : options
   return (
@@ -84,7 +93,7 @@ export function FilterChips({ options, value, onChange, allLabel }: FilterChipsP
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 px-5 py-2"
+        contentContainerClassName="gap-2 px-5 pb-3"
         style={{ flexGrow: 0 }}
       >
         {all.map((option) => {
@@ -94,14 +103,14 @@ export function FilterChips({ options, value, onChange, allLabel }: FilterChipsP
               key={option.value || '__all'}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              className={`h-9 items-center justify-center rounded-full border px-4 ${
-                active ? 'border-primary bg-primary' : 'border-border/60 bg-card'
+              className={`h-11 items-center justify-center rounded-md border px-4 ${
+                active ? 'border-foreground bg-foreground' : 'border-border bg-card active:bg-muted'
               }`}
               onPress={() => onChange(option.value)}
             >
               <Text
-                className={`text-sm font-semibold ${
-                  active ? 'text-primary-foreground' : 'text-muted-foreground'
+                className={`${TYPE.caption} font-medium ${
+                  active ? 'text-background' : 'text-ink-2'
                 }`}
               >
                 {option.label}
@@ -122,6 +131,10 @@ type EmptyStateProps = {
   onAction?: () => void
 }
 
+/**
+ * Empty state (section 8): left-aligned in the content's place. Line icon,
+ * a sentence on what will appear here, how to get there, optional action.
+ */
 export function EmptyState({
   icon: Icon = SearchX,
   title,
@@ -131,23 +144,14 @@ export function EmptyState({
 }: EmptyStateProps) {
   const colors = useThemeColors()
   return (
-    <View className="items-center gap-3 px-8 py-16">
-      <View className="size-32 items-center justify-center rounded-full bg-primary/5">
-        <View className="size-24 items-center justify-center rounded-full bg-primary/10">
-          <View
-            className="size-16 items-center justify-center rounded-full bg-card"
-            style={glow(colors.primary, 0.25)}
-          >
-            <Icon size={28} color={colors.primary} />
-          </View>
-        </View>
-      </View>
-      <Text className="mt-2 text-center text-xl font-bold text-foreground">{title}</Text>
+    <View className="items-start gap-2 py-6">
+      <Icon size={sizes.icon} color={colors.muted} strokeWidth={sizes.iconStroke} />
+      <Text className={`${TYPE.bodyStrong} text-foreground`}>{title}</Text>
       {description ? (
-        <Text className="text-center text-sm leading-5 text-muted-foreground">{description}</Text>
+        <Text className={`${TYPE.bodySm} text-muted-foreground`}>{description}</Text>
       ) : null}
       {actionLabel && onAction ? (
-        <Button size="sm" className="mt-2" onPress={onAction}>
+        <Button variant="outline" className="mt-2 self-stretch" onPress={onAction}>
           <ButtonText>{actionLabel}</ButtonText>
         </Button>
       ) : null}
@@ -167,77 +171,98 @@ export function Pager({ page, totalPages, onChange }: PagerProps) {
   if (totalPages <= 1) return null
   const atStart = page <= 1
   const atEnd = page >= totalPages
+  const btn =
+    'items-center justify-center rounded-full border border-border bg-card active:bg-muted'
   return (
-    <View className="flex-row items-center justify-center gap-4 py-4">
+    <View className="flex-row items-center justify-center gap-4 py-5">
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('common.previousPage')}
         disabled={atStart}
-        className={`size-10 items-center justify-center rounded-full border border-border/60 bg-card ${
-          atStart ? 'opacity-40' : ''
-        }`}
+        className={`${btn} ${atStart ? 'opacity-40' : ''}`}
+        style={{ width: sizes.iconButton, height: sizes.iconButton }}
         onPress={() => onChange(page - 1)}
       >
-        <DirectionalIcon icon={ChevronLeft} size={18} color={colors.text} />
+        <DirectionalIcon icon={ChevronLeft} size={sizes.iconSm} color={colors.ink} />
       </Pressable>
-      <Text className="text-sm font-semibold text-muted-foreground">
+      <Text
+        className={`${TYPE.caption} text-muted-foreground`}
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
         {t('common.pageOf', { page, total: totalPages })}
       </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('common.nextPage')}
         disabled={atEnd}
-        className={`size-10 items-center justify-center rounded-full border border-border/60 bg-card ${
-          atEnd ? 'opacity-40' : ''
-        }`}
+        className={`${btn} ${atEnd ? 'opacity-40' : ''}`}
+        style={{ width: sizes.iconButton, height: sizes.iconButton }}
         onPress={() => onChange(page + 1)}
       >
-        <DirectionalIcon icon={ChevronRight} size={18} color={colors.text} />
+        <DirectionalIcon icon={ChevronRight} size={sizes.iconSm} color={colors.ink} />
       </Pressable>
     </View>
   )
 }
 
-/** Floating "create" button, anchored bottom-right of its parent. */
+/** Primary "create" action floating at the bottom-end of its parent. No shadow. */
 export function Fab({ label, onPress }: { label: string; onPress: () => void }) {
   const colors = useThemeColors()
   return (
-    <PressableScale
+    <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      scaleTo={0.94}
-      className="absolute bottom-4 end-5 h-14 flex-row items-center gap-2 rounded-full bg-primary px-6"
-      style={glow(colors.primary, 0.45)}
+      className="absolute bottom-4 end-5 flex-row items-center gap-2 rounded-full bg-primary px-5 active:opacity-90"
+      style={{ height: sizes.buttonHeight }}
       onPress={onPress}
     >
-      <Plus size={20} color={colors.onPrimary} />
-      <Text className="text-base font-bold text-primary-foreground">{label}</Text>
-    </PressableScale>
+      <Plus size={sizes.icon} color={colors.onAccent} strokeWidth={sizes.iconStrokeActive} />
+      <Text className="text-lg font-semibold text-primary-foreground">{label}</Text>
+    </Pressable>
   )
 }
 
-/** Placeholder cards shown while a list loads for the first time. */
+/** Skeleton rows matching the grouped list layout. */
 export function ListSkeleton({ label, count = 6 }: { label?: string; count?: number }) {
   return (
-    <View
-      className="flex-1 gap-4 px-5 pt-1"
-      accessibilityRole="progressbar"
-      accessibilityLabel={label}
-    >
-      {Array.from({ length: count }, (_, index) => (
-        <View
-          key={index}
-          className="flex-row items-center gap-3.5 rounded-2xl border border-border/40 bg-card p-3.5"
-          style={softShadows.card}
-        >
-          <SkeletonBlock className="size-16 rounded-xl" />
-          <View className="flex-1 gap-2.5">
-            <SkeletonBlock className="h-4 w-3/5 rounded-full" />
-            <SkeletonBlock className="h-3 w-4/5 rounded-full" />
+    <View className="flex-1 px-5 pt-1" accessibilityRole="progressbar" accessibilityLabel={label}>
+      <View className="overflow-hidden rounded-lg border border-border bg-card">
+        {Array.from({ length: count }, (_, index) => (
+          <View
+            key={index}
+            className={`flex-row items-center gap-3 px-4 py-3.5 ${
+              index < count - 1 ? 'border-b border-line-subtle' : ''
+            }`}
+          >
+            <SkeletonBlock className="size-10 rounded-full" />
+            <View className="flex-1 gap-2">
+              <SkeletonBlock className="h-3.5 w-3/5 rounded-sm" />
+              <SkeletonBlock className="h-3 w-2/5 rounded-sm" />
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
+      </View>
     </View>
+  )
+}
+
+/**
+ * Grouped list container: one surface, rows split by `line-subtle` hairlines
+ * (none after the last). Rows inside (ListCard) render flat.
+ */
+export function ListGroup({ children }: { children: ReactNode }) {
+  const items = Children.toArray(children).filter(Boolean)
+  return (
+    <GroupedContext.Provider value>
+      <View className="overflow-hidden rounded-lg border border-border bg-card">
+        {items.map((child, index) => (
+          <Fragment key={index}>
+            {child}
+            {index < items.length - 1 ? <View className="h-px bg-line-subtle" /> : null}
+          </Fragment>
+        ))}
+      </View>
+    </GroupedContext.Provider>
   )
 }
 
@@ -259,7 +284,7 @@ type PagedListProps<T> = {
   header?: ReactNode
 }
 
-/** Card list with loading, error, empty, pull-to-refresh and paging built in. */
+/** Grouped list with loading, error, empty, pull-to-refresh and paging built in. */
 export function PagedList<T>({
   data,
   keyExtractor,
@@ -277,6 +302,7 @@ export function PagedList<T>({
   header,
 }: PagedListProps<T>) {
   const colors = useThemeColors()
+  const last = data.length - 1
   return (
     <AsyncState
       isLoading={isInitialLoading}
@@ -285,36 +311,48 @@ export function PagedList<T>({
       loadingLabel={loadingLabel}
       loadingFallback={<ListSkeleton label={loadingLabel} />}
     >
-      <FlatList
-        className="flex-1"
-        data={data}
-        keyExtractor={keyExtractor}
-        renderItem={({ item, index }) => (
-          // Short stagger for the first rows only; later rows (paging) just fade.
-          <Animated.View entering={FadeInDown.duration(260).delay(Math.min(index, 6) * 40)}>
-            {renderItem(item)}
-          </Animated.View>
-        )}
-        contentContainerClassName={`gap-3 px-5 pt-2 ${hasFab ? 'pb-28' : 'pb-8'}`}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        ListHeaderComponent={header ? <>{header}</> : null}
-        ListEmptyComponent={<EmptyState {...empty} />}
-        ListFooterComponent={<Pager page={page} totalPages={totalPages} onChange={onPageChange} />}
-      />
+      <GroupedContext.Provider value>
+        <FlatList
+          className="flex-1"
+          data={data}
+          keyExtractor={keyExtractor}
+          renderItem={({ item, index }) => (
+            <Animated.View
+              entering={FadeIn.duration(motion.base)}
+              className={`border-x border-border bg-card ${
+                index === 0 ? 'rounded-t-lg border-t' : ''
+              } ${index === last ? 'rounded-b-lg border-b' : 'border-b-0'}`}
+            >
+              {renderItem(item)}
+              {index < last ? <View className="mx-4 h-px bg-line-subtle" /> : null}
+            </Animated.View>
+          )}
+          contentContainerClassName={`px-5 pt-1 ${hasFab ? 'pb-28' : 'pb-8'}`}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.muted}
+              colors={[colors.ink]}
+            />
+          }
+          ListHeaderComponent={header ? <>{header}</> : null}
+          ListEmptyComponent={<EmptyState {...empty} />}
+          ListFooterComponent={
+            <Pager page={page} totalPages={totalPages} onChange={onPageChange} />
+          }
+        />
+      </GroupedContext.Provider>
     </AsyncState>
   )
 }
 
-/** Pressable card row: leading visual, body, trailing chevron. */
+/**
+ * List row: optional leading mark, body, trailing chevron. Flat inside a
+ * grouped list (PagedList / ListGroup); its own surface when standalone.
+ */
 export function ListCard({
   leading,
   children,
@@ -329,38 +367,33 @@ export function ListCard({
   showChevron?: boolean
 }) {
   const colors = useThemeColors()
+  const grouped = useContext(GroupedContext)
   const body = (
     <>
       {leading}
-      <View className="min-w-0 flex-1 gap-1">{children}</View>
+      <View className="min-w-0 flex-1 gap-0.5">{children}</View>
       {onPress && showChevron ? (
-        <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
+        <DirectionalIcon icon={ChevronRight} size={sizes.iconSm} color={colors.deEmphasis} />
       ) : null}
     </>
   )
-  const className =
-    'flex-row items-center gap-3.5 rounded-2xl border border-border/40 bg-card p-3.5'
-  if (!onPress) {
-    return (
-      <View className={className} style={softShadows.card}>
-        {body}
-      </View>
-    )
-  }
+  const className = `min-h-[60px] flex-row items-center gap-3 px-4 py-3.5 ${
+    grouped ? '' : 'rounded-lg border border-border bg-card'
+  }`
+  if (!onPress) return <View className={className}>{body}</View>
   return (
-    <PressableScale
+    <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className={className}
-      style={softShadows.card}
+      className={`${className} active:bg-background`}
       onPress={onPress}
     >
       {body}
-    </PressableScale>
+    </Pressable>
   )
 }
 
-/** Title + optional status pill + muted subtitle (+ optional trailing block). */
+/** Primary label + optional state pill + muted metadata (+ optional block). */
 export function StandardListRow({
   title,
   subtitle,
@@ -376,14 +409,14 @@ export function StandardListRow({
 }) {
   return (
     <>
-      <View className="flex-row items-start justify-between gap-2">
-        <Text className="min-w-0 flex-1 text-base font-bold text-foreground" numberOfLines={1}>
+      <View className="flex-row items-center justify-between gap-2">
+        <Text className={`${TYPE.bodyStrong} min-w-0 flex-1 text-foreground`} numberOfLines={1}>
           {title}
         </Text>
         {statusLabel ? <StatusPill label={statusLabel} tone={statusTone} /> : null}
       </View>
       {subtitle ? (
-        <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+        <Text className={`${TYPE.micro} text-muted-2`} numberOfLines={1}>
           {subtitle}
         </Text>
       ) : null}

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar, FormScroll, ScreenHeader, SegmentedControl } from '@/components/kit'
+import { FormScroll, IdentityBlock, ScreenHeader, SegmentedControl } from '@/components/kit'
 import { AccountDetailsForm, LogoutRow, PasswordForm } from '@/features/account/AccountForms'
 import { LanguagePicker } from '@/features/account/LanguagePicker'
 import { ThemePicker } from '@/features/account/ThemePicker'
@@ -29,24 +29,14 @@ export function AccountScreen({ backHref }: AccountScreenProps) {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title={t('account.title')} backHref={backHref}>
-        <View className="items-center gap-3 pb-1 pt-2">
-          <Avatar name={name} size={84} />
-          <View className="items-center">
-            <Text className="text-xl font-bold text-foreground" numberOfLines={1}>
-              {name}
-            </Text>
-            <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-              {user ? `${enumLabel(t, 'role', user.role)} · ${ltr(user.email)}` : ''}
-            </Text>
-          </View>
-        </View>
-      </ScreenHeader>
+      <ScreenHeader title={t('account.title')} backHref={backHref} />
 
       <FormScroll>
-        <View className="pt-2">
-          <SegmentedControl options={TABS} value={tab} onChange={setTab} />
-        </View>
+        <IdentityBlock
+          name={name}
+          detail={user ? `${enumLabel(t, 'role', user.role)} · ${ltr(user.email)}` : undefined}
+        />
+        <SegmentedControl options={TABS} value={tab} onChange={setTab} />
         {tab === 'details' ? <AccountDetailsForm /> : <PasswordForm />}
         <ThemePicker />
         <LanguagePicker />

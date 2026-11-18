@@ -86,6 +86,7 @@ export function AdminQueueScreen() {
                   {approval === 'pending' ? (
                     <Button
                       size="sm"
+                      variant="outline"
                       disabled={busy}
                       onPress={() => void runAction(item.id, 'approve')}
                     >

@@ -9,16 +9,13 @@ import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { AuthShell } from '@/features/auth/AuthShell'
 import { loginSchema } from '@/features/auth/login.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
-import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
 import { ApiError } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
-import { glow } from '@/theme/shadows'
 
 export function LoginScreen() {
   const { t } = useTranslation()
-  const colors = useThemeColors()
   const user = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
   const handleApiError = useHandleApiError()
@@ -56,7 +53,35 @@ export function LoginScreen() {
   }
 
   return (
-    <AuthShell testID="e2e-login" title={t('auth.signIn')} subtitle={t('auth.signInSubtitle')}>
+    <AuthShell
+      testID="e2e-login"
+      title={t('auth.signIn')}
+      subtitle={t('auth.signInSubtitle')}
+      footer={
+        <>
+          <Button
+            onPress={() => void onSubmit()}
+            disabled={isSubmitting}
+            accessibilityState={{ busy: isSubmitting }}
+          >
+            {isSubmitting ? <ButtonSpinner /> : null}
+            <ButtonText>{isSubmitting ? t('auth.signingIn') : t('auth.signIn')}</ButtonText>
+          </Button>
+
+          <Link href="/register" asChild>
+            <Pressable
+              accessibilityRole="link"
+              className="min-h-11 items-center justify-center active:opacity-60"
+            >
+              <Text className="text-center text-base text-muted-foreground">
+                {t('auth.noAccount')}{' '}
+                <Text className="font-medium text-foreground">{t('auth.register')}</Text>
+              </Text>
+            </Pressable>
+          </Link>
+        </>
+      }
+    >
       <TextField
         label={t('auth.email')}
         required
@@ -80,29 +105,6 @@ export function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
-
-      <Button
-        size="lg"
-        className="mt-2"
-        onPress={() => void onSubmit()}
-        disabled={isSubmitting}
-        accessibilityState={{ busy: isSubmitting }}
-        style={glow(colors.primary, 0.35)}
-      >
-        {isSubmitting ? <ButtonSpinner /> : null}
-        <ButtonText className="text-base font-bold">
-          {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
-        </ButtonText>
-      </Button>
-
-      <Link href="/register" asChild>
-        <Pressable className="py-2" hitSlop={8}>
-          <Text className="text-center text-sm text-muted-foreground">
-            {t('auth.noAccount')}{' '}
-            <Text className="font-bold text-primary">{t('auth.register')}</Text>
-          </Text>
-        </Pressable>
-      </Link>
     </AuthShell>
   )
 }

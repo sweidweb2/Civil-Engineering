@@ -1,7 +1,7 @@
 import { View } from 'react-native'
 import { Redirect } from 'expo-router'
 
-import { IsometricLoader } from '@/components/feedback/IsometricLoader'
+import { PageSkeleton } from '@/components/feedback/PageSkeleton'
 import { homePathForRole, type PortalId, portalIdForRole } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -20,7 +20,7 @@ export function RequireAuth({ portal, children }: RequireAuthProps) {
   if (!isHydrated) {
     return (
       <View className="flex-1 bg-background">
-        <IsometricLoader label="Loading…" />
+        <PageSkeleton label="Loading…" withHeader />
       </View>
     )
   }

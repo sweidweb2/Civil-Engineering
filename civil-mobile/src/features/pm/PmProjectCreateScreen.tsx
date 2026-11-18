@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { router } from 'expo-router'
-import { FolderKanban, Images } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { GalleryImagesField } from '@/components/files/GalleryImagesField'
@@ -80,7 +79,7 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
       }
     >
       <FormError message={error} />
-      <Section title={t('projects.basics')} icon={FolderKanban}>
+      <Section title={t('projects.basics')}>
         <TextField
           label={t('projects.name')}
           required
@@ -128,7 +127,7 @@ export function PmProjectCreateScreen({ basePath = '/pm/projects' }: PmProjectCr
           />
         </FieldRow>
       </Section>
-      <Section title={t('gallery.title')} icon={Images} tone="info">
+      <Section title={t('gallery.title')}>
         <GalleryImagesField kind="project" onQueueChange={setQueuedImages} disabled={isSaving} />
       </Section>
     </FormScreen>

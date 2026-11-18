@@ -11,12 +11,14 @@ import {
 import { Button, ButtonText } from '@/components/ui/button'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { useAlertStore } from '@/stores/alertStore'
+import { sizes } from '@/theme/sizes'
+import { TYPE } from '@/theme/typography'
 
 const DESTRUCTIVE_LABEL = /^(delete|remove|deactivate|archive|log out)/i
 
 /**
  * Global in-app alert/confirm host. Mount once at the app root.
- * Confirms whose action label is destructive get a red icon and button.
+ * Confirms whose action label is destructive get a negative icon and label.
  */
 export function AppAlertHost() {
   const colors = useThemeColors()
@@ -39,18 +41,14 @@ export function AppAlertHost() {
       <AlertDialogBackdrop />
       <AlertDialogContent>
         <AlertDialogBody>
-          <View className="items-center gap-3">
-            <View
-              className={`size-14 items-center justify-center rounded-full ${
-                isDestructive ? 'bg-destructive/10' : 'bg-primary/10'
-              }`}
-            >
-              <Icon size={26} color={isDestructive ? colors.error : colors.primary} />
-            </View>
-            <Text className="text-center text-lg font-bold text-foreground">{current?.title}</Text>
-            <Text className="text-center text-sm leading-5 text-muted-foreground">
-              {current?.message}
-            </Text>
+          <View className="items-start gap-2">
+            <Icon
+              size={sizes.icon}
+              color={isDestructive ? colors.negative : colors.muted}
+              strokeWidth={sizes.iconStroke}
+            />
+            <Text className={`${TYPE.title} text-foreground`}>{current?.title}</Text>
+            <Text className={`${TYPE.bodySm} text-muted-foreground`}>{current?.message}</Text>
           </View>
         </AlertDialogBody>
         <AlertDialogFooter className="mt-6">

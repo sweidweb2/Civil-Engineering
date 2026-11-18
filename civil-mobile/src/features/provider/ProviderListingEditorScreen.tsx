@@ -1,5 +1,4 @@
 import { useLocalSearchParams } from 'expo-router'
-import { Banknote, Images, Package } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { GalleryImagesField } from '@/components/files/GalleryImagesField'
@@ -80,7 +79,7 @@ export function ProviderListingEditorScreen({
     >
       <FormError message={formError} />
 
-      <Section title={t('listings.details')} icon={Package}>
+      <Section title={t('listings.details')}>
         {isAdmin ? (
           <SelectField
             label={t('listings.provider')}
@@ -127,7 +126,7 @@ export function ProviderListingEditorScreen({
         />
       </Section>
 
-      <Section title={t('listings.pricing')} icon={Banknote} tone="success">
+      <Section title={t('listings.pricing')}>
         <TextField
           label={t('listings.price')}
           value={form.price}
@@ -183,7 +182,7 @@ export function ProviderListingEditorScreen({
         ) : null}
       </Section>
 
-      <Section title={t('gallery.title')} icon={Images} tone="info">
+      <Section title={t('gallery.title')}>
         <GalleryImagesField
           kind="listing"
           ownerId={mode === 'edit' ? listingId : undefined}

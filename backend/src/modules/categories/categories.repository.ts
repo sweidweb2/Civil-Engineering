@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import type { CategoryKind, Prisma } from '../../generated/prisma/client.js'
 import type { ListCategoriesQuery, UpdateCategoryBody } from './categories.schema.js'
 import type { CategoryKindCounts } from './categories.types.js'
@@ -193,37 +194,41 @@ export function createCategoriesRepository(): CategoriesRepository {
     },
 
     async create(input) {
-      const row = await prisma.category.create({
-        data: {
-          scope: 'PLATFORM',
-          providerId: null,
-          kind: input.kind,
-          name: input.name,
-          nameAr: input.nameAr,
-          slug: input.slug,
-          parentId: input.parentId,
-          isActive: input.isActive,
-          sortOrder: input.sortOrder,
-        },
-        include: categoryInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.category.create({
+          data: {
+            scope: 'PLATFORM',
+            providerId: null,
+            kind: input.kind,
+            name: input.name,
+            nameAr: input.nameAr,
+            slug: input.slug,
+            parentId: input.parentId,
+            isActive: input.isActive,
+            sortOrder: input.sortOrder,
+          },
+          include: categoryInclude,
+        }),
+      )
       return toRecord(row)
     },
 
     async update(id, input) {
-      const row = await prisma.category.update({
-        where: { id },
-        data: {
-          name: input.name,
-          nameAr: input.nameAr,
-          slug: input.slug,
-          kind: input.kind,
-          parentId: input.parentId,
-          isActive: input.isActive,
-          sortOrder: input.sortOrder,
-        },
-        include: categoryInclude,
-      })
+      const row = await translateUniqueConflict(() =>
+        prisma.category.update({
+          where: { id },
+          data: {
+            name: input.name,
+            nameAr: input.nameAr,
+            slug: input.slug,
+            kind: input.kind,
+            parentId: input.parentId,
+            isActive: input.isActive,
+            sortOrder: input.sortOrder,
+          },
+          include: categoryInclude,
+        }),
+      )
       return toRecord(row)
     },
 

@@ -274,24 +274,42 @@ export function HeroCard({
   value,
   stats,
   onPress,
+  icon: HeroIcon,
 }: {
   caption: string
   value: string
   stats?: { label: string; value: string; onPress?: () => void }[]
   onPress?: () => void
+  icon?: LucideIcon
 }) {
   const colors = useThemeColors()
+  // The card is a plain View: the headline and each stat are separate
+  // pressables (nesting buttons is invalid on web).
   return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={`${caption}: ${value}`}
-      disabled={!onPress}
-      scaleTo={0.98}
-      className="gap-4 rounded-3xl bg-primary p-5"
+    <View
+      className="gap-4 overflow-hidden rounded-3xl bg-primary p-5"
       style={glow(colors.primary, 0.3)}
-      onPress={onPress}
     >
-      <View className="gap-1">
+      <View
+        pointerEvents="none"
+        className="absolute -end-10 -top-12 size-44 rounded-full bg-primary-foreground/10"
+      />
+      {HeroIcon ? (
+        <View
+          pointerEvents="none"
+          className="absolute end-5 top-5 size-12 items-center justify-center rounded-2xl bg-primary-foreground/20"
+        >
+          <HeroIcon size={24} color={colors.onPrimary} />
+        </View>
+      ) : null}
+      <PressableScale
+        accessibilityRole="button"
+        accessibilityLabel={`${caption}: ${value}`}
+        disabled={!onPress}
+        scaleTo={0.98}
+        className="gap-1"
+        onPress={onPress}
+      >
         <Text className="text-sm font-medium text-primary-foreground/80">{caption}</Text>
         <AnimatedNumber
           value={value}
@@ -300,7 +318,7 @@ export function HeroCard({
           lineHeight={46}
           numberOfLines={1}
         />
-      </View>
+      </PressableScale>
       {stats && stats.length > 0 ? (
         <View className="flex-row border-t border-primary-foreground/20 pt-4">
           {stats.map((stat, index) => (
@@ -328,7 +346,65 @@ export function HeroCard({
           ))}
         </View>
       ) : null}
-    </PressableScale>
+    </View>
+  )
+}
+
+/** Budget-style row: icon tile, title + % on one line, thin bar, caption below. */
+export function ProgressRow({
+  icon,
+  tone = 'primary',
+  title,
+  caption,
+  value,
+  barTone,
+  onPress,
+  last = false,
+}: {
+  icon: LucideIcon
+  tone?: Tone
+  title: string
+  caption?: string
+  value: number
+  barTone?: Tone
+  onPress?: () => void
+  last?: boolean
+}) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)))
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}: ${pct}%`}
+      disabled={!onPress}
+      className={`flex-row items-center gap-3 px-4 py-3 active:bg-muted ${
+        last ? '' : 'border-b border-border/50'
+      }`}
+      onPress={onPress}
+    >
+      <IconTile icon={icon} tone={tone} size={44} />
+      <View className="min-w-0 flex-1 gap-1.5">
+        <View className="flex-row items-center justify-between gap-3">
+          <Text
+            className="min-w-0 flex-1 text-base font-semibold text-foreground"
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <Text
+            className="text-sm font-bold text-foreground"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {pct}%
+          </Text>
+        </View>
+        <ProgressBar value={pct} tone={barTone ?? tone} />
+        {caption ? (
+          <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+            {caption}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
   )
 }
 

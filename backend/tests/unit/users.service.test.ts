@@ -79,6 +79,7 @@ describe('usersService', () => {
         }),
       ),
       updateStatus: vi.fn(async (id, status) => makeUser({ id, status })),
+      updateStatusIf: vi.fn(async (id, _from, toStatus) => makeUser({ id, status: toStatus })),
       setAvatarFileId: vi.fn(async (userId, fileId) =>
         makeUser({
           id: userId,
@@ -116,6 +117,7 @@ describe('usersService', () => {
       ),
       deleteWorkerProfileByUserId: vi.fn(async () => undefined),
       delete: vi.fn(async () => 'deleted' as const),
+      deleteIfStatus: vi.fn(async () => 'deleted' as const),
     }
   })
 
@@ -275,6 +277,7 @@ describe('usersService', () => {
     expect(repository.update).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ role: 'MANAGER', status: 'INACTIVE' }),
+      { deleteWorkerProfile: false },
     )
   })
 
@@ -282,7 +285,27 @@ describe('usersService', () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER' }))
     const service = createUsersService(repository)
     await service.updateUser('user-1', { role: 'CLIENT' }, admin)
-    expect(repository.deleteWorkerProfileByUserId).toHaveBeenCalledWith('user-1')
+    expect(repository.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ role: 'CLIENT' }),
+      { deleteWorkerProfile: true },
+    )
+  })
+
+  it('preserves REQUESTED verification when isVerified is set false', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ role: 'WORKER', verificationStatus: 'REQUESTED', isVerified: false }),
+    )
+    const service = createUsersService(repository)
+    await service.updateUser('user-1', { isVerified: false }, admin)
+    expect(repository.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        isVerified: false,
+        verificationStatus: 'REQUESTED',
+      }),
+      expect.anything(),
+    )
   })
 
   it('only a super admin can create, change, or deactivate a super account', async () => {
@@ -321,7 +344,7 @@ describe('usersService', () => {
     )
     const service = createUsersService(repository)
     await expect(service.approveUser('user-1', admin)).resolves.toMatchObject({ status: 'ACTIVE' })
-    expect(repository.updateStatus).toHaveBeenCalledWith('user-1', 'ACTIVE')
+    expect(repository.updateStatusIf).toHaveBeenCalledWith('user-1', 'PENDING', 'ACTIVE')
 
     vi.mocked(repository.findById).mockResolvedValue(
       makeUser({ role: 'CLIENT', status: 'PENDING' }),
@@ -363,7 +386,7 @@ describe('usersService', () => {
     await expect(service.unapproveUser('user-1', admin)).resolves.toMatchObject({
       status: 'PENDING',
     })
-    expect(repository.updateStatus).toHaveBeenCalledWith('user-1', 'PENDING')
+    expect(repository.updateStatusIf).toHaveBeenCalledWith('user-1', 'ACTIVE', 'PENDING')
   })
 
   it('deletes only pending registrations', async () => {
@@ -372,9 +395,21 @@ describe('usersService', () => {
     )
     const service = createUsersService(repository)
     await expect(service.deleteApproval('user-1', admin)).resolves.toBeUndefined()
-    expect(repository.delete).toHaveBeenCalledWith('user-1')
+    expect(repository.deleteIfStatus).toHaveBeenCalledWith('user-1', 'PENDING')
 
     vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER', status: 'ACTIVE' }))
+    await expect(service.deleteApproval('user-1', admin)).rejects.toMatchObject({
+      status: 409,
+      code: 'APPROVAL_NOT_PENDING',
+    })
+  })
+
+  it('rejects deleteApproval when status flips concurrently', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ role: 'WORKER', status: 'PENDING' }),
+    )
+    vi.mocked(repository.deleteIfStatus).mockResolvedValue('status_mismatch')
+    const service = createUsersService(repository)
     await expect(service.deleteApproval('user-1', admin)).rejects.toMatchObject({
       status: 409,
       code: 'APPROVAL_NOT_PENDING',

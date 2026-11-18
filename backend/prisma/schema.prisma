@@ -49,6 +49,8 @@ model User {
   /// Worker marketplace visibility. isVerified stays true only when this is VERIFIED.
   verificationStatus   VerificationStatus @default(UNVERIFIED)
   isVerified           Boolean        @default(false)
+  /// When set, refresh tokens with iat earlier than this instant are rejected (password change).
+  refreshInvalidBefore DateTime?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   profile              Profile?
@@ -182,6 +184,7 @@ model WorkerExperience {
   workerProfile   WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
 
   @@index([workerProfileId, sortOrder])
+  /// Partial unique: at most one isCurrent=true per profile (see migration SQL).
   @@map("worker_experiences")
 }
 

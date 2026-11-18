@@ -8,12 +8,16 @@ export type AuthUserRecord = {
   role: Role
   status: UserStatus
   isVerified: boolean
+  refreshInvalidBefore: Date | null
   profile: {
     firstName: string | null
     lastName: string | null
     displayName: string | null
   } | null
 }
+
+export type RegisterWithDeviceCapResult =
+  { outcome: 'created'; user: AuthUserRecord } | { outcome: 'device_limit' }
 
 export type CreateAuthUserInput = {
   email: string
@@ -44,9 +48,29 @@ export type AuthRepository = {
   /** Lean row for request auth — never select password or profile. */
   findPrincipalById: (id: string) => Promise<AuthPrincipalRecord | null>
   createUserWithProfile: (input: CreateAuthUserInput) => Promise<AuthUserRecord>
+  /**
+   * Atomically enforce the per-device registration cap (advisory lock + count +
+   * user create + attempt row in one transaction).
+   */
+  createUserWithDeviceCap: (
+    input: CreateAuthUserInput & {
+      deviceId: string
+      ipAddress: string | null
+      userAgent: string | null
+      maxRegistrations: number
+    },
+  ) => Promise<RegisterWithDeviceCapResult>
   countRegistrationsByDevice: (deviceId: string) => Promise<number>
   recordRegistrationAttempt: (input: RecordRegistrationAttemptInput) => Promise<void>
   updatePasswordHash: (userId: string, passwordHash: string) => Promise<void>
+  /**
+   * Update password and stamp refreshInvalidBefore so existing refresh JWTs fail.
+   */
+  updatePasswordHashAndInvalidateRefresh: (
+    userId: string,
+    passwordHash: string,
+    invalidBefore?: Date,
+  ) => Promise<void>
   /** Persist a denied refresh jti until expiresAt (idempotent). */
   denyRefreshJti: (jti: string, expiresAt: Date) => Promise<void>
   /**
@@ -59,28 +83,54 @@ export type AuthRepository = {
   purgeExpiredDeniedRefreshTokens: (now?: Date) => Promise<number>
 }
 
+const authUserInclude = {
+  profile: {
+    select: { firstName: true, lastName: true, displayName: true },
+  },
+} as const
+
+function mapAuthUser(row: {
+  id: string
+  email: string
+  passwordHash: string
+  role: Role
+  status: UserStatus
+  isVerified: boolean
+  refreshInvalidBefore: Date | null
+  profile: {
+    firstName: string | null
+    lastName: string | null
+    displayName: string | null
+  } | null
+}): AuthUserRecord {
+  return {
+    id: row.id,
+    email: row.email,
+    passwordHash: row.passwordHash,
+    role: row.role,
+    status: row.status,
+    isVerified: row.isVerified,
+    refreshInvalidBefore: row.refreshInvalidBefore,
+    profile: row.profile,
+  }
+}
+
 export function createAuthRepository(): AuthRepository {
   return {
     async findByEmail(email) {
-      return prisma.user.findUnique({
+      const row = await prisma.user.findUnique({
         where: { email },
-        include: {
-          profile: {
-            select: { firstName: true, lastName: true, displayName: true },
-          },
-        },
+        include: authUserInclude,
       })
+      return row ? mapAuthUser(row) : null
     },
 
     async findById(id) {
-      return prisma.user.findUnique({
+      const row = await prisma.user.findUnique({
         where: { id },
-        include: {
-          profile: {
-            select: { firstName: true, lastName: true, displayName: true },
-          },
-        },
+        include: authUserInclude,
       })
+      return row ? mapAuthUser(row) : null
     },
 
     async findPrincipalById(id) {
@@ -93,7 +143,7 @@ export function createAuthRepository(): AuthRepository {
     async createUserWithProfile(input) {
       const displayName = [input.firstName, input.lastName].filter(Boolean).join(' ') || null
 
-      return prisma.user.create({
+      const row = await prisma.user.create({
         data: {
           email: input.email,
           passwordHash: input.passwordHash,
@@ -107,11 +157,52 @@ export function createAuthRepository(): AuthRepository {
             },
           },
         },
-        include: {
-          profile: {
-            select: { firstName: true, lastName: true, displayName: true },
+        include: authUserInclude,
+      })
+      return mapAuthUser(row)
+    },
+
+    async createUserWithDeviceCap(input) {
+      return prisma.$transaction(async (tx) => {
+        // Serialize registrations for this device fingerprint across concurrent requests.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.deviceId}))`
+
+        const deviceCount = await tx.registrationAttempt.count({
+          where: { deviceId: input.deviceId },
+        })
+        if (deviceCount >= input.maxRegistrations) {
+          return { outcome: 'device_limit' as const }
+        }
+
+        const displayName = [input.firstName, input.lastName].filter(Boolean).join(' ') || null
+        const row = await tx.user.create({
+          data: {
+            email: input.email,
+            passwordHash: input.passwordHash,
+            role: input.role,
+            status: input.status,
+            profile: {
+              create: {
+                firstName: input.firstName ?? null,
+                lastName: input.lastName ?? null,
+                displayName,
+              },
+            },
           },
-        },
+          include: authUserInclude,
+        })
+
+        await tx.registrationAttempt.create({
+          data: {
+            deviceId: input.deviceId,
+            ipAddress: input.ipAddress,
+            userAgent: input.userAgent,
+            userId: row.id,
+            role: input.role,
+          },
+        })
+
+        return { outcome: 'created' as const, user: mapAuthUser(row) }
       })
     },
 
@@ -135,6 +226,14 @@ export function createAuthRepository(): AuthRepository {
       await prisma.user.update({
         where: { id: userId },
         data: { passwordHash },
+        select: { id: true },
+      })
+    },
+
+    async updatePasswordHashAndInvalidateRefresh(userId, passwordHash, invalidBefore = new Date()) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash, refreshInvalidBefore: invalidBefore },
         select: { id: true },
       })
     },

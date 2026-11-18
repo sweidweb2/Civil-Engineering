@@ -1,5 +1,6 @@
 import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { invalidateAccessPrincipal } from '../../middleware/access-principal.js'
 import { hashPassword } from '../auth/auth.tokens.js'
 import {
   assertAllowedImageUpload,
@@ -333,25 +334,41 @@ export function createUsersService(
         throw forbidden('Only admins can change role, status, or verification')
       }
 
-      const updated = await repository.update(id, {
-        role: input.role,
-        status: input.status,
-        isVerified: input.isVerified,
-        verificationStatus:
-          input.isVerified === undefined ? undefined : input.isVerified ? 'VERIFIED' : 'UNVERIFIED',
-        profile: {
-          firstName: input.firstName,
-          lastName: input.lastName,
-          displayName: input.displayName,
-          phone: input.phone,
-        },
-      })
+      let nextIsVerified = input.isVerified
+      let nextVerificationStatus: 'UNVERIFIED' | 'REQUESTED' | 'VERIFIED' | undefined
 
-      // Avoid orphan marketplace CVs when the account leaves the WORKER role.
-      if (user.role === 'WORKER' && input.role !== undefined && input.role !== 'WORKER') {
-        await repository.deleteWorkerProfileByUserId(id)
+      if (input.isVerified === true) {
+        nextIsVerified = true
+        nextVerificationStatus = 'VERIFIED'
+      } else if (input.isVerified === false) {
+        nextIsVerified = false
+        // Do not clear an in-flight verification request via the boolean toggle.
+        nextVerificationStatus =
+          user.verificationStatus === 'REQUESTED' ? 'REQUESTED' : 'UNVERIFIED'
       }
 
+      const leavingWorkerRole =
+        user.role === 'WORKER' && input.role !== undefined && input.role !== 'WORKER'
+
+      const updated = await repository.update(
+        id,
+        {
+          role: input.role,
+          status: input.status,
+          isVerified: nextIsVerified,
+          verificationStatus: nextVerificationStatus,
+          profile: {
+            firstName: input.firstName,
+            lastName: input.lastName,
+            displayName: input.displayName,
+            phone: input.phone,
+          },
+        },
+        { deleteWorkerProfile: leavingWorkerRole },
+      )
+      if (input.role !== undefined || input.status !== undefined) {
+        invalidateAccessPrincipal(id)
+      }
       return updated
     },
 
@@ -427,7 +444,9 @@ export function createUsersService(
       }
       const user = await loadOrThrow(id)
       assertSuperBoundary(actor, user.role)
-      return repository.updateStatus(id, 'INACTIVE')
+      const updated = await repository.updateStatus(id, 'INACTIVE')
+      invalidateAccessPrincipal(id)
+      return updated
     },
 
     async listApprovals(query, actor) {
@@ -476,13 +495,27 @@ export function createUsersService(
     async approveUser(id, actor) {
       const user = await loadApprovalTarget(id, actor)
       if (user.status === 'ACTIVE') return user
-      return repository.updateStatus(id, 'ACTIVE')
+      const updated = await repository.updateStatusIf(id, 'PENDING', 'ACTIVE')
+      if (!updated) {
+        const again = await repository.findById(id)
+        if (again?.status === 'ACTIVE') return again
+        throw conflict('Only pending registrations can be approved', 'APPROVAL_NOT_PENDING')
+      }
+      invalidateAccessPrincipal(id)
+      return updated
     },
 
     async unapproveUser(id, actor) {
       const user = await loadApprovalTarget(id, actor)
       if (user.status === 'PENDING') return user
-      return repository.updateStatus(id, 'PENDING')
+      const updated = await repository.updateStatusIf(id, 'ACTIVE', 'PENDING')
+      if (!updated) {
+        const again = await repository.findById(id)
+        if (again?.status === 'PENDING') return again
+        throw conflict('Only active registrations can be unapproved', 'APPROVAL_NOT_ACTIVE')
+      }
+      invalidateAccessPrincipal(id)
+      return updated
     },
 
     async deleteApproval(id, actor) {
@@ -490,13 +523,17 @@ export function createUsersService(
       if (user.status !== 'PENDING') {
         throw conflict('Only pending registrations can be deleted', 'APPROVAL_NOT_PENDING')
       }
-      const result = await repository.delete(id)
+      const result = await repository.deleteIfStatus(id, 'PENDING')
+      if (result === 'status_mismatch') {
+        throw conflict('Only pending registrations can be deleted', 'APPROVAL_NOT_PENDING')
+      }
       if (result === 'in_use') {
         throw conflict(
           'This registration is linked to other records and cannot be deleted',
           'APPROVAL_IN_USE',
         )
       }
+      invalidateAccessPrincipal(id)
     },
 
     async listVerifications(query, actor) {

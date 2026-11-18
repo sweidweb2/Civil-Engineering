@@ -46,13 +46,13 @@ export const SUPER_NAV: PortalNavItem[] = [
 export const ADMIN_NAV: PortalNavItem[] = [
   { key: 'dashboard', label: 'Home', href: '/admin', icon: LayoutDashboard, end: true },
   { key: 'users', label: 'Users', href: '/admin/users', icon: Users },
-  { key: 'providers', label: 'Providers', href: '/admin/providers', icon: Store },
   { key: 'projects', label: 'Projects', href: '/admin/projects', icon: FolderKanban },
   { key: 'more', label: 'More', href: '/admin/more', icon: MoreHorizontal },
 ]
 
 /** Destinations listed on Admin → More (not in the bottom bar). */
 export const ADMIN_MORE_LINKS: PortalNavItem[] = [
+  { key: 'providers', label: 'Providers', href: '/admin/providers', icon: Store },
   { key: 'queue', label: 'Registration requests', href: '/admin/queue', icon: UserCheck },
   { key: 'directory', label: 'Directory', href: '/admin/directory', icon: Library },
   { key: 'listings', label: 'Listings', href: '/admin/listings', icon: Package },

@@ -1,9 +1,16 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { View } from 'react-native'
 import { router, usePathname } from 'expo-router'
+import { FolderKanban, Store, UserPlus } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { BottomNavigation, type BottomNavItem } from '@/components/layout/BottomNavigation'
+import { MenuGroup, MenuRow } from '@/components/kit/primitives'
+import { BottomSheet } from '@/components/kit/sheet'
+import {
+  type BottomNavAction,
+  BottomNavigation,
+  type BottomNavItem,
+} from '@/components/layout/BottomNavigation'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import {
   ADMIN_MORE_LINKS,
@@ -37,6 +44,23 @@ export function PortalShell({ portal, children }: PortalShellProps) {
   const themeColors = useThemeColors()
   const pathname = usePathname()
   const nav = navForPortal(portal)
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const action: BottomNavAction | undefined = useMemo(() => {
+    const go = (href: string) => () => router.push(href as never)
+    switch (portal) {
+      case 'admin':
+        return { label: t('common.create'), onPress: () => setCreateOpen(true) }
+      case 'pm':
+        return { label: t('pmHome.newProject'), onPress: go('/pm/projects/new') }
+      case 'provider':
+        return { label: t('providerHome.newListing'), onPress: go('/provider/listings/new') }
+      case 'worker':
+        return { label: t('workerHome.addExperience'), onPress: go('/worker/cv/experience/new') }
+      default:
+        return undefined
+    }
+  }, [portal, t])
 
   const isTopLevel = useMemo(() => {
     const roots = portal === 'admin' ? [...nav, ...ADMIN_MORE_LINKS] : nav
@@ -73,7 +97,33 @@ export function PortalShell({ portal, children }: PortalShellProps) {
     <View className="flex-1 bg-background">
       <View className="min-h-0 w-full max-w-[720px] flex-1 self-center">
         <View className="min-h-0 flex-1">{children}</View>
-        {isTopLevel ? <BottomNavigation items={items} /> : null}
+        {isTopLevel ? <BottomNavigation items={items} action={action} /> : null}
+        {portal === 'admin' ? (
+          <BottomSheet
+            visible={createOpen}
+            onClose={() => setCreateOpen(false)}
+            title={t('common.create')}
+          >
+            <MenuGroup>
+              {[
+                { icon: UserPlus, label: t('users.new'), href: '/admin/users/new' },
+                { icon: Store, label: t('providers.new'), href: '/admin/providers/new' },
+                { icon: FolderKanban, label: t('projects.new'), href: '/admin/projects/new' },
+              ].map((item, index, all) => (
+                <MenuRow
+                  key={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  last={index === all.length - 1}
+                  onPress={() => {
+                    setCreateOpen(false)
+                    router.push(item.href as never)
+                  }}
+                />
+              ))}
+            </MenuGroup>
+          </BottomSheet>
+        ) : null}
       </View>
     </View>
   )

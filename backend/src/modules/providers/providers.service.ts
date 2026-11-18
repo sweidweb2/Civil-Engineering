@@ -3,7 +3,13 @@ import { randomUUID } from 'node:crypto'
 import type { AuthActor } from '../../authz/index.js'
 import { assertOwnerOrAdmin, isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import {
+  conflict,
+  forbidden,
+  isUniqueConflictError,
+  notFound,
+  validationError,
+} from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
 import type { StorageService } from '../../storage/storage.service.js'
@@ -212,8 +218,15 @@ export function createProvidersService(
       }
 
       const ownerUserId = await resolveAssignableOwnerUserId(repository, input.ownerUserId ?? null)
-      const created = await repository.create({ ...input, ownerUserId })
-      return toProviderDto(created)
+      try {
+        const created = await repository.create({ ...input, ownerUserId })
+        return toProviderDto(created)
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('This owner already has a provider', 'PROVIDER_OWNER_TAKEN')
+        }
+        throw error
+      }
     },
 
     async updateProvider(id, input, actor) {
@@ -224,21 +237,28 @@ export function createProvidersService(
         throw forbidden('Only admins can change provider status')
       }
 
-      if (input.ownerUserId !== undefined) {
-        if (!isAdmin(actor.roles)) {
-          throw forbidden('Only admins can change provider owner')
+      try {
+        if (input.ownerUserId !== undefined) {
+          if (!isAdmin(actor.roles)) {
+            throw forbidden('Only admins can change provider owner')
+          }
+          const nextOwnerUserId = await resolveAssignableOwnerUserId(
+            repository,
+            input.ownerUserId,
+            provider.id,
+          )
+          const updated = await repository.update(id, { ...input, ownerUserId: nextOwnerUserId })
+          return toProviderDto(updated)
         }
-        const nextOwnerUserId = await resolveAssignableOwnerUserId(
-          repository,
-          input.ownerUserId,
-          provider.id,
-        )
-        const updated = await repository.update(id, { ...input, ownerUserId: nextOwnerUserId })
-        return toProviderDto(updated)
-      }
 
-      const updated = await repository.update(id, input)
-      return toProviderDto(updated)
+        const updated = await repository.update(id, input)
+        return toProviderDto(updated)
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('This owner already has a provider', 'PROVIDER_OWNER_TAKEN')
+        }
+        throw error
+      }
     },
 
     async uploadLogo(id, file, actor) {
@@ -256,8 +276,11 @@ export function createProvidersService(
       const key = `providers/${id}/logo/${objectId}.webp`
       const previous = provider.logoUrl
 
-      // DB first (like gallery): point at the new key, then put; compensate on R2 failure.
-      const updated = await repository.update(id, { logoUrl: key })
+      // CAS DB pointer first so concurrent uploads cannot both win; then put to R2.
+      const updated = await repository.compareAndSetLogo(id, previous, key)
+      if (!updated) {
+        throw conflict('Provider logo was changed by another request', 'PROVIDER_LOGO_CONFLICT')
+      }
 
       try {
         await storage.putObject({
@@ -266,7 +289,7 @@ export function createProvidersService(
           contentType: 'image/webp',
         })
       } catch (error) {
-        await repository.update(id, { logoUrl: previous }).catch(() => undefined)
+        await repository.compareAndSetLogo(id, key, previous).catch(() => undefined)
         throw error
       }
 
@@ -289,7 +312,10 @@ export function createProvidersService(
       assertProviderAccess(actor, provider.ownerUserId)
 
       const previous = provider.logoUrl
-      const updated = await repository.update(id, { logoUrl: null })
+      const updated = await repository.compareAndSetLogo(id, previous, null)
+      if (!updated) {
+        throw conflict('Provider logo was changed by another request', 'PROVIDER_LOGO_CONFLICT')
+      }
 
       if (previous && !/^https?:\/\//i.test(previous) && storage) {
         try {

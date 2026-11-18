@@ -44,8 +44,6 @@ export function ProjectsListScreen({ basePath = '/pm/projects' }: ProjectsListSc
       searchPlaceholder={t('projects.search')}
       filterOptions={statusOptions}
       allLabel={t('common.all')}
-      addLabel={t('projects.add')}
-      onAdd={() => router.push(`${basePath}/new` as never)}
       keyExtractor={(item) => item.id}
       renderItem={(item) => (
         <ListCard

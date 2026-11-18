@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
+import { conflict, validationError } from '../../errors/app-error.js'
 import type { Prisma, WorkerAvailability } from '../../generated/prisma/client.js'
 import type { ListWorkersQuery, UpsertWorkerProfileBody } from './workers.schema.js'
 import type {
@@ -243,26 +244,30 @@ export function createWorkersRepository(): WorkersRepository {
     },
 
     async updateVisibility(userId, isPublic) {
-      await prisma.workerProfile.update({
-        where: { userId },
-        data: { isPublic },
-      })
-      const row = await prisma.workerProfile.findUniqueOrThrow({
-        where: { userId },
-        include: profileInclude,
+      const row = await prisma.$transaction(async (tx) => {
+        await tx.workerProfile.update({
+          where: { userId },
+          data: { isPublic },
+        })
+        return tx.workerProfile.findUniqueOrThrow({
+          where: { userId },
+          include: profileInclude,
+        })
       })
       return mapProfile(row)
     },
 
     async ensureProfileWithVisibility(userId, isPublic) {
-      await prisma.workerProfile.upsert({
-        where: { userId },
-        create: { userId, isPublic },
-        update: { isPublic },
-      })
-      const row = await prisma.workerProfile.findUniqueOrThrow({
-        where: { userId },
-        include: profileInclude,
+      const row = await prisma.$transaction(async (tx) => {
+        await tx.workerProfile.upsert({
+          where: { userId },
+          create: { userId, isPublic },
+          update: { isPublic },
+        })
+        return tx.workerProfile.findUniqueOrThrow({
+          where: { userId },
+          include: profileInclude,
+        })
       })
       return mapProfile(row)
     },
@@ -280,39 +285,106 @@ export function createWorkersRepository(): WorkersRepository {
     },
 
     async upsertWithChildren(userId, input) {
+      const { expectedUpdatedAt, ...document } = input
       const scalars = {
-        headline: input.headline,
-        bio: input.bio,
-        primaryTrade: input.primaryTrade,
-        yearsExperience: input.yearsExperience,
-        languages: input.languages,
-        city: input.city,
-        country: input.country,
-        hourlyRate: input.hourlyRate,
-        dailyRate: input.dailyRate,
-        currency: input.currency,
-        availability: input.availability,
-        isPublic: input.isPublic,
-        cvUrl: input.cvUrl,
+        headline: document.headline,
+        bio: document.bio,
+        primaryTrade: document.primaryTrade,
+        yearsExperience: document.yearsExperience,
+        languages: document.languages,
+        city: document.city,
+        country: document.country,
+        hourlyRate: document.hourlyRate,
+        dailyRate: document.dailyRate,
+        currency: document.currency,
+        availability: document.availability,
+        isPublic: document.isPublic,
+        cvUrl: document.cvUrl,
       }
 
       const row = await translateUniqueConflict(() =>
         prisma.$transaction(async (tx) => {
-          const profile = await tx.workerProfile.upsert({
-            where: { userId },
-            create: { userId, ...scalars },
-            update: scalars,
-          })
+          const categoryIds = document.skills.map((s) => s.categoryId)
+          if (categoryIds.length > 0) {
+            const found = await tx.category.count({
+              where: {
+                id: { in: categoryIds },
+                kind: 'WORKER',
+                isActive: true,
+                scope: 'PLATFORM',
+              },
+            })
+            if (found !== categoryIds.length) {
+              throw validationError('One or more skill categories are invalid', {
+                code: 'WORKER_SKILL_CATEGORY_INVALID',
+              })
+            }
+          }
 
-          await tx.workerExperience.deleteMany({ where: { workerProfileId: profile.id } })
-          await tx.workerEducation.deleteMany({ where: { workerProfileId: profile.id } })
-          await tx.workerCertification.deleteMany({ where: { workerProfileId: profile.id } })
-          await tx.workerSkill.deleteMany({ where: { workerProfileId: profile.id } })
+          let profileId: string
 
-          if (input.experiences.length > 0) {
+          if (expectedUpdatedAt == null) {
+            // First create only. If a row already exists, require a version token.
+            const existing = await tx.workerProfile.findUnique({
+              where: { userId },
+              select: { id: true },
+            })
+            if (existing) {
+              throw conflict(
+                'expectedUpdatedAt is required to update an existing CV',
+                'WORKER_CV_VERSION_REQUIRED',
+              )
+            }
+            const created = await tx.workerProfile.create({
+              data: { userId, ...scalars },
+              select: { id: true },
+            })
+            profileId = created.id
+          } else {
+            // Compare-and-swap on updatedAt so concurrent writers cannot both commit.
+            const expected = new Date(expectedUpdatedAt)
+            if (Number.isNaN(expected.getTime())) {
+              throw conflict(
+                'expectedUpdatedAt must be a valid timestamp',
+                'WORKER_CV_VERSION_INVALID',
+              )
+            }
+            const cas = await tx.workerProfile.updateMany({
+              where: { userId, updatedAt: expected },
+              data: scalars,
+            })
+            if (cas.count !== 1) {
+              const stillThere = await tx.workerProfile.findUnique({
+                where: { userId },
+                select: { id: true },
+              })
+              if (!stillThere) {
+                throw conflict(
+                  'expectedUpdatedAt must be null when creating a CV',
+                  'WORKER_CV_VERSION_INVALID',
+                )
+              }
+              throw conflict(
+                'CV was modified elsewhere; reload and try again',
+                'WORKER_CV_VERSION_CONFLICT',
+              )
+            }
+            const locked = await tx.workerProfile.findUniqueOrThrow({
+              where: { userId },
+              select: { id: true },
+            })
+            profileId = locked.id
+          }
+
+          await tx.workerExperience.deleteMany({ where: { workerProfileId: profileId } })
+          await tx.workerEducation.deleteMany({ where: { workerProfileId: profileId } })
+          await tx.workerCertification.deleteMany({ where: { workerProfileId: profileId } })
+          await tx.workerSkill.deleteMany({ where: { workerProfileId: profileId } })
+
+          if (document.experiences.length > 0) {
             await tx.workerExperience.createMany({
-              data: input.experiences.map((item, index) => ({
-                workerProfileId: profile.id,
+              data: document.experiences.map((item, index) => ({
+                workerProfileId: profileId,
                 company: item.company,
                 roleTitle: item.roleTitle,
                 projectType: item.projectType,
@@ -326,10 +398,10 @@ export function createWorkersRepository(): WorkersRepository {
             })
           }
 
-          if (input.education.length > 0) {
+          if (document.education.length > 0) {
             await tx.workerEducation.createMany({
-              data: input.education.map((item, index) => ({
-                workerProfileId: profile.id,
+              data: document.education.map((item, index) => ({
+                workerProfileId: profileId,
                 school: item.school,
                 degree: item.degree,
                 field: item.field,
@@ -340,10 +412,10 @@ export function createWorkersRepository(): WorkersRepository {
             })
           }
 
-          if (input.certifications.length > 0) {
+          if (document.certifications.length > 0) {
             await tx.workerCertification.createMany({
-              data: input.certifications.map((item, index) => ({
-                workerProfileId: profile.id,
+              data: document.certifications.map((item, index) => ({
+                workerProfileId: profileId,
                 name: item.name,
                 issuer: item.issuer,
                 issuedAt: parseDate(item.issuedAt),
@@ -354,10 +426,10 @@ export function createWorkersRepository(): WorkersRepository {
             })
           }
 
-          if (input.skills.length > 0) {
+          if (document.skills.length > 0) {
             await tx.workerSkill.createMany({
-              data: input.skills.map((item) => ({
-                workerProfileId: profile.id,
+              data: document.skills.map((item) => ({
+                workerProfileId: profileId,
                 categoryId: item.categoryId,
                 level: item.level,
               })),
@@ -365,7 +437,7 @@ export function createWorkersRepository(): WorkersRepository {
           }
 
           return tx.workerProfile.findUniqueOrThrow({
-            where: { id: profile.id },
+            where: { id: profileId },
             include: profileInclude,
           })
         }),

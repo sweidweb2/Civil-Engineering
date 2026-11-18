@@ -20,6 +20,8 @@ export type RefreshTokenPayload = {
   role: RoleName
   typ: 'refresh'
   jti: string
+  /** Present after jwt.verify — used to reject tokens issued before a password change. */
+  iat?: number
   /** Present after jwt.verify */
   exp?: number
 }

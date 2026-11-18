@@ -6,17 +6,19 @@ import { useTranslation } from 'react-i18next'
 
 import {
   ActionTile,
+  Avatar,
   Card,
   DashboardScroll,
   EmptyState,
+  HeroCard,
   IconTile,
+  MenuGroup,
   PressableScale,
   ProgressBar,
+  ProgressRow,
   ScreenHeader,
   SectionLabel,
-  HeroCard,
   SeeAll,
-  StatusPill,
   toneForStatus,
 } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
@@ -25,7 +27,7 @@ import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { tracking } from '@/lib/rtl'
 import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
-import { userFirstName } from '@/lib/user'
+import { userDisplayName, userFirstName } from '@/lib/user'
 import { getProjectSummary, listProjects, type Project } from '@/services/projects'
 import { useAuthStore } from '@/stores/authStore'
 import { softShadows } from '@/theme/shadows'
@@ -103,13 +105,23 @@ export function PmDashboardScreen() {
     <View className="flex-1 bg-background" testID="e2e-pm-dashboard">
       <ScreenHeader
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-      ></ScreenHeader>
+        right={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('dashboard.openAccount')}
+            onPress={() => router.push('/pm/account' as never)}
+          >
+            <Avatar name={user ? userDisplayName(user) : '?'} size={44} />
+          </Pressable>
+        }
+      />
 
       <DashboardScroll
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
         <HeroCard
+          icon={FolderKanban}
           caption={t('projects.title')}
           value={formatCount(data?.total, isFirstLoad)}
           onPress={() => router.push('/pm/projects' as never)}
@@ -220,43 +232,20 @@ export function PmDashboardScreen() {
             >
               {t('pmHome.recent')}
             </SectionLabel>
-            <Card className="py-1">
+            <MenuGroup>
               {data.recent.map((project, index) => (
-                <Pressable
+                <ProgressRow
                   key={project.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={project.name}
-                  className={`gap-3 py-4 active:opacity-70 ${
-                    index === data.recent.length - 1 ? '' : 'border-b border-border/40'
-                  }`}
+                  icon={FolderKanban}
+                  tone={toneForStatus(project.status)}
+                  title={project.name}
+                  caption={enumLabel(t, 'projectStatus', project.status)}
+                  value={project.progress}
+                  last={index === data.recent.length - 1}
                   onPress={() => router.push(`/pm/projects/${project.id}` as never)}
-                >
-                  <View className="flex-row items-center justify-between gap-3">
-                    <Text
-                      className="min-w-0 flex-1 text-base font-semibold text-foreground"
-                      numberOfLines={1}
-                    >
-                      {project.name}
-                    </Text>
-                    <StatusPill
-                      label={enumLabel(t, 'projectStatus', project.status)}
-                      tone={toneForStatus(project.status)}
-                    />
-                  </View>
-                  <View className="flex-row items-center gap-3">
-                    <View className="flex-1">
-                      <ProgressBar value={project.progress} />
-                    </View>
-                    <Text
-                      className="w-10 text-end text-xs font-semibold text-muted-foreground"
-                      style={{ fontVariant: ['tabular-nums'] }}
-                    >
-                      {Math.round(project.progress)}%
-                    </Text>
-                  </View>
-                </Pressable>
+                />
               ))}
-            </Card>
+            </MenuGroup>
           </View>
         ) : null}
       </DashboardScroll>

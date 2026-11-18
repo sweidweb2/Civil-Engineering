@@ -18,6 +18,19 @@ type CacheEntry = {
   expiresAt: number
 }
 
+/** Process-wide principal cache (one Map for all resolver instances). */
+const principalCache = new Map<string, CacheEntry>()
+
+/** Drop a cached principal so the next request reloads role/status from the DB. */
+export function invalidateAccessPrincipal(userId: string): void {
+  principalCache.delete(userId)
+}
+
+/** Test helper — clears the shared cache. */
+export function clearAccessPrincipalCache(): void {
+  principalCache.clear()
+}
+
 /**
  * Production resolver: loads role/status from the DB so changes apply before access TTL.
  * Uses a lean select + short in-process cache (per instance; fine without Redis).
@@ -27,11 +40,10 @@ export function createDbAccessPrincipalResolver(
 ): ResolveAccessPrincipal {
   const repository = createAuthRepository()
   const cacheTtlMs = options.cacheTtlMs ?? PRINCIPAL_CACHE_TTL_MS
-  const cache = new Map<string, CacheEntry>()
 
   return async (userId) => {
     const now = Date.now()
-    const hit = cache.get(userId)
+    const hit = principalCache.get(userId)
     if (hit && hit.expiresAt > now) {
       logPerf('auth', 'principal cache hit', { userId, cache: 'hit', ms: 0 })
       return hit.principal
@@ -48,7 +60,7 @@ export function createDbAccessPrincipalResolver(
         }
       : null
 
-    cache.set(userId, { principal, expiresAt: now + cacheTtlMs })
+    principalCache.set(userId, { principal, expiresAt: now + cacheTtlMs })
     logPerf('auth', `principal cache miss ${ms}ms`, { userId, cache: 'miss', ms })
     return principal
   }

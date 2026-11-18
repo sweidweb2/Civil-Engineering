@@ -101,14 +101,6 @@ export function createAuthService(
 ): AuthService {
   return {
     async register(input, context) {
-      const deviceCount = await repository.countRegistrationsByDevice(input.deviceId)
-      if (deviceCount >= MAX_REGISTRATIONS_PER_DEVICE) {
-        throw conflict(
-          'This device has reached the maximum number of registrations',
-          ErrorCodes.REGISTRATION_DEVICE_LIMIT,
-        )
-      }
-
       const existing = await repository.findByEmail(input.email)
       if (existing) {
         throw conflict('Email already registered')
@@ -119,33 +111,32 @@ export function createAuthService(
       const passwordHash = await hashPassword(input.password)
       let user: AuthUserRecord
       try {
-        user = await translateUniqueConflict(() =>
-          repository.createUserWithProfile({
+        const result = await translateUniqueConflict(() =>
+          repository.createUserWithDeviceCap({
             email: input.email,
             passwordHash,
             role,
             status,
             firstName: input.firstName,
             lastName: input.lastName,
+            deviceId: input.deviceId,
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent,
+            maxRegistrations: MAX_REGISTRATIONS_PER_DEVICE,
           }),
         )
+        if (result.outcome === 'device_limit') {
+          throw conflict(
+            'This device has reached the maximum number of registrations',
+            ErrorCodes.REGISTRATION_DEVICE_LIMIT,
+          )
+        }
+        user = result.user
       } catch (error) {
         if (isUniqueConflictError(error)) {
           throw conflict('Email already registered')
         }
         throw error
-      }
-
-      try {
-        await repository.recordRegistrationAttempt({
-          deviceId: input.deviceId,
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent,
-          userId: user.id,
-          role,
-        })
-      } catch (error) {
-        getLogger().error({ err: error }, 'failed to record registration attempt')
       }
 
       try {
@@ -216,6 +207,15 @@ export function createAuthService(
         throw unauthorized('Invalid or expired refresh token')
       }
 
+      // Password change stamps refreshInvalidBefore; reject older refresh JWTs.
+      if (
+        user.refreshInvalidBefore &&
+        typeof payload.iat === 'number' &&
+        payload.iat * 1000 < user.refreshInvalidBefore.getTime()
+      ) {
+        throw unauthorized('Invalid or expired refresh token')
+      }
+
       // Atomic single-use claim — concurrent refreshes of the same jti cannot both win.
       const claim = await claimRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
       if (claim === 'reuse') {
@@ -262,7 +262,7 @@ export function createAuthService(
       }
 
       const passwordHash = await hashPassword(input.newPassword)
-      await repository.updatePasswordHash(userId, passwordHash)
+      await repository.updatePasswordHashAndInvalidateRefresh(userId, passwordHash)
 
       try {
         await logging?.recordActivity({

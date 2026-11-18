@@ -17,11 +17,11 @@ import {
   Card,
   DashboardScroll,
   EmptyState,
+  HeroCard,
   IconTile,
   ListCard,
   ScreenHeader,
   SectionLabel,
-  HeroCard,
   SeeAll,
   StatusPill,
   Thumbnail,
@@ -115,13 +115,14 @@ export function ProviderDashboardScreen() {
     <View className="flex-1 bg-background" testID="e2e-provider-dashboard">
       <ScreenHeader
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-      ></ScreenHeader>
+      />
 
       <DashboardScroll
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
         <HeroCard
+          icon={Package}
           caption={t('providerHome.listings')}
           value={formatCount(data?.total, isFirstLoad)}
           onPress={() => router.push('/provider/listings' as never)}

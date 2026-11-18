@@ -24,8 +24,6 @@ export function AdminUsersScreen() {
     <ListScreen
       title={t('users.title')}
       searchPlaceholder={t('users.search')}
-      addLabel={t('users.add')}
-      onAdd={() => router.push(`${BASE}/new` as never)}
       keyExtractor={(item) => item.id}
       renderItem={(item) => (
         <ListCard

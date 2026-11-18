@@ -102,16 +102,7 @@ export function createWorkersService(repository: WorkersRepository): WorkersServ
         throw forbidden('Only workers can manage a worker CV', 'WORKER_PROFILE_ROLE_REQUIRED')
       }
 
-      const categoryIds = input.skills.map((s) => s.categoryId)
-      if (categoryIds.length > 0) {
-        const found = await repository.countActiveWorkerCategories(categoryIds)
-        if (found !== categoryIds.length) {
-          throw validationError('One or more skill categories are invalid', {
-            code: 'WORKER_SKILL_CATEGORY_INVALID',
-          })
-        }
-      }
-
+      // Skill category validity + optimistic concurrency are enforced inside the write transaction.
       return repository.upsertWithChildren(userId, input)
     },
 

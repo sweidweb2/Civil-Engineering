@@ -46,8 +46,6 @@ export function ListingsListScreen({
         title={t('listings.title')}
         backHref={isAdmin ? '/admin/more' : undefined}
         searchPlaceholder={t('listings.search')}
-        addLabel={t('listings.add')}
-        onAdd={() => router.push(`${basePath}/new` as never)}
         keyExtractor={(item) => item.id}
         renderItem={(item) => (
           <ListCard

@@ -63,6 +63,7 @@ function fullPut(overrides: Partial<UpsertWorkerProfileBody> = {}): UpsertWorker
     education: [],
     certifications: [],
     skills: [],
+    expectedUpdatedAt: null,
     ...overrides,
   }
 }
@@ -98,9 +99,8 @@ describe('workersService', () => {
     })
   })
 
-  it('upserts only for WORKER role and valid skill categories', async () => {
+  it('upserts only for WORKER role', async () => {
     vi.mocked(repository.findUserRole).mockResolvedValue('WORKER')
-    vi.mocked(repository.countActiveWorkerCategories).mockResolvedValue(1)
     vi.mocked(repository.upsertWithChildren).mockResolvedValue(makeProfile())
     const service = createWorkersService(repository)
 
@@ -117,15 +117,6 @@ describe('workersService', () => {
     await expect(service.upsertMine('u-1', fullPut())).rejects.toMatchObject({
       code: 'WORKER_PROFILE_ROLE_REQUIRED',
     })
-  })
-
-  it('rejects invalid skill categories', async () => {
-    vi.mocked(repository.findUserRole).mockResolvedValue('WORKER')
-    vi.mocked(repository.countActiveWorkerCategories).mockResolvedValue(0)
-    const service = createWorkersService(repository)
-    await expect(
-      service.upsertMine('worker-1', fullPut({ skills: [{ categoryId: 'bad', level: 'BASIC' }] })),
-    ).rejects.toMatchObject({ status: 400 })
   })
 
   it('hides non-public profiles from non-owners', async () => {

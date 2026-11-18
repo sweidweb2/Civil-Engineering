@@ -19,13 +19,13 @@ import {
   DashboardScroll,
   DirectionalIcon,
   IconTile,
+  MenuGroup,
   PressableScale,
-  ProgressBar,
+  ProgressRow,
   ScreenHeader,
   SectionLabel,
   SeeAll,
   StatCard,
-  StatusPill,
   type Tone,
   toneForStatus,
 } from '@/components/kit'
@@ -230,40 +230,20 @@ export function AdminDashboardScreen() {
             >
               {t('dashboard.recentProjects')}
             </SectionLabel>
-            <Card className="py-1">
+            <MenuGroup>
               {data.recentProjects.map((project, index) => (
-                <Pressable
+                <ProgressRow
                   key={project.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${project.name}`}
-                  className={`gap-2 py-3 active:opacity-70 ${
-                    index === data.recentProjects.length - 1 ? '' : 'border-b border-border/60'
-                  }`}
+                  icon={FolderKanban}
+                  tone={toneForStatus(project.status)}
+                  title={project.name}
+                  caption={enumLabel(t, 'projectStatus', project.status)}
+                  value={project.progress}
+                  last={index === data.recentProjects.length - 1}
                   onPress={() => router.push(`/admin/projects/${project.id}` as never)}
-                >
-                  <View className="flex-row items-center justify-between gap-3">
-                    <Text
-                      className="min-w-0 flex-1 text-base font-semibold text-foreground"
-                      numberOfLines={1}
-                    >
-                      {project.name}
-                    </Text>
-                    <StatusPill
-                      label={enumLabel(t, 'projectStatus', project.status)}
-                      tone={toneForStatus(project.status)}
-                    />
-                  </View>
-                  <View className="flex-row items-center gap-3">
-                    <View className="flex-1">
-                      <ProgressBar value={project.progress} />
-                    </View>
-                    <Text className="w-10 text-end text-xs font-semibold text-muted-foreground">
-                      {Math.round(project.progress)}%
-                    </Text>
-                  </View>
-                </Pressable>
+                />
               ))}
-            </Card>
+            </MenuGroup>
           </View>
         ) : null}
       </DashboardScroll>

@@ -1,6 +1,12 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
-import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import {
+  conflict,
+  forbidden,
+  isUniqueConflictError,
+  notFound,
+  validationError,
+} from '../../errors/app-error.js'
 import type { CategoriesRepository, CategoryRecord } from './categories.repository.js'
 import type {
   CategoryKind,
@@ -138,16 +144,23 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
       const slug = categorySlug(input.name)
       if (parentId) await assertParent(parentId, input.kind)
       await assertUnique(input.kind, parentId, slug, input.name)
-      const created = await repository.create({
-        name: input.name,
-        nameAr: input.nameAr ?? null,
-        slug,
-        kind: input.kind,
-        parentId,
-        isActive: input.isActive ?? true,
-        sortOrder: input.sortOrder ?? 0,
-      })
-      return toCategoryDto(created)
+      try {
+        const created = await repository.create({
+          name: input.name,
+          nameAr: input.nameAr ?? null,
+          slug,
+          kind: input.kind,
+          parentId,
+          isActive: input.isActive ?? true,
+          sortOrder: input.sortOrder ?? 0,
+        })
+        return toCategoryDto(created)
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('A category with this name already exists here', 'CATEGORY_NAME_TAKEN')
+        }
+        throw error
+      }
     },
 
     async updateCategory(id, input, actor) {
@@ -176,14 +189,21 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
         await assertUnique(nextKind, nextParentId, nextSlug, nextName, category.id)
       }
 
-      const updated = await repository.update(id, {
-        ...input,
-        name: input.name,
-        slug: input.name ? nextSlug : undefined,
-        kind: input.kind,
-        parentId: input.parentId,
-      })
-      return toCategoryDto(updated)
+      try {
+        const updated = await repository.update(id, {
+          ...input,
+          name: input.name,
+          slug: input.name ? nextSlug : undefined,
+          kind: input.kind,
+          parentId: input.parentId,
+        })
+        return toCategoryDto(updated)
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('A category with this name already exists here', 'CATEGORY_NAME_TAKEN')
+        }
+        throw error
+      }
     },
 
     async deleteCategory(id, actor) {

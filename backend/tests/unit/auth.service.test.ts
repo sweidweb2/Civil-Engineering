@@ -14,7 +14,14 @@ vi.mock('../../src/modules/auth/auth.tokens.js', () => ({
   refreshTtlSeconds: vi.fn(() => 3600),
   verifyRefreshToken: vi.fn((_config: unknown, token: string) => {
     if (token === 'bad') throw new Error('invalid')
-    return { sub: 'user-1', role: 'CLIENT', typ: 'refresh' as const, jti: 'jti-1', exp: 9999999999 }
+    return {
+      sub: 'user-1',
+      role: 'CLIENT',
+      typ: 'refresh' as const,
+      jti: 'jti-1',
+      iat: Math.floor(Date.now() / 1000),
+      exp: 9999999999,
+    }
   }),
 }))
 
@@ -26,6 +33,7 @@ function makeUser(overrides: Partial<AuthUserRecord> = {}): AuthUserRecord {
     role: 'CLIENT',
     status: 'ACTIVE',
     isVerified: false,
+    refreshInvalidBefore: null,
     profile: {
       firstName: 'Ada',
       lastName: 'Lovelace',
@@ -47,9 +55,14 @@ describe('auth.service', () => {
       findById: vi.fn(),
       findPrincipalById: vi.fn(),
       createUserWithProfile: vi.fn(),
+      createUserWithDeviceCap: vi.fn(async () => ({
+        outcome: 'created' as const,
+        user: makeUser(),
+      })),
       countRegistrationsByDevice: vi.fn(async () => 0),
       recordRegistrationAttempt: vi.fn(async () => undefined),
       updatePasswordHash: vi.fn(),
+      updatePasswordHashAndInvalidateRefresh: vi.fn(),
       denyRefreshJti: vi.fn(async () => undefined),
       claimRefreshJti: vi.fn(async () => 'claimed' as const),
       isRefreshJtiDenied: vi.fn(async () => false),
@@ -59,7 +72,10 @@ describe('auth.service', () => {
 
   it('registers a client as active and returns tokens', async () => {
     vi.mocked(repository.findByEmail).mockResolvedValue(null)
-    vi.mocked(repository.createUserWithProfile).mockResolvedValue(makeUser())
+    vi.mocked(repository.createUserWithDeviceCap).mockResolvedValue({
+      outcome: 'created',
+      user: makeUser(),
+    })
 
     const service = createAuthService(repository, config)
     const result = await service.register(
@@ -82,27 +98,24 @@ describe('auth.service', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     })
-    expect(repository.createUserWithProfile).toHaveBeenCalledWith(
+    expect(repository.createUserWithDeviceCap).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'user@example.com',
         role: 'CLIENT',
         status: 'ACTIVE',
-      }),
-    )
-    expect(repository.recordRegistrationAttempt).toHaveBeenCalledWith(
-      expect.objectContaining({
         deviceId: 'device-test-1',
         ipAddress: '127.0.0.1',
-        role: 'CLIENT',
+        maxRegistrations: 5,
       }),
     )
   })
 
   it('registers a worker as pending without tokens', async () => {
     vi.mocked(repository.findByEmail).mockResolvedValue(null)
-    vi.mocked(repository.createUserWithProfile).mockResolvedValue(
-      makeUser({ role: 'WORKER', status: 'PENDING' }),
-    )
+    vi.mocked(repository.createUserWithDeviceCap).mockResolvedValue({
+      outcome: 'created',
+      user: makeUser({ role: 'WORKER', status: 'PENDING' }),
+    })
 
     const service = createAuthService(repository, config)
     const result = await service.register(
@@ -118,16 +131,17 @@ describe('auth.service', () => {
     expect(result.pendingApproval).toBe(true)
     expect(result.tokens).toBeNull()
     expect(result.user.status).toBe('PENDING')
-    expect(repository.createUserWithProfile).toHaveBeenCalledWith(
+    expect(repository.createUserWithDeviceCap).toHaveBeenCalledWith(
       expect.objectContaining({ role: 'WORKER', status: 'PENDING' }),
     )
   })
 
   it('registers a manager as pending without tokens', async () => {
     vi.mocked(repository.findByEmail).mockResolvedValue(null)
-    vi.mocked(repository.createUserWithProfile).mockResolvedValue(
-      makeUser({ role: 'MANAGER', status: 'PENDING' }),
-    )
+    vi.mocked(repository.createUserWithDeviceCap).mockResolvedValue({
+      outcome: 'created',
+      user: makeUser({ role: 'MANAGER', status: 'PENDING' }),
+    })
 
     const service = createAuthService(repository, config)
     const result = await service.register(
@@ -142,13 +156,14 @@ describe('auth.service', () => {
 
     expect(result.pendingApproval).toBe(true)
     expect(result.tokens).toBeNull()
-    expect(repository.createUserWithProfile).toHaveBeenCalledWith(
+    expect(repository.createUserWithDeviceCap).toHaveBeenCalledWith(
       expect.objectContaining({ role: 'MANAGER', status: 'PENDING' }),
     )
   })
 
   it('rejects register when device already has 5 registrations', async () => {
-    vi.mocked(repository.countRegistrationsByDevice).mockResolvedValue(5)
+    vi.mocked(repository.findByEmail).mockResolvedValue(null)
+    vi.mocked(repository.createUserWithDeviceCap).mockResolvedValue({ outcome: 'device_limit' })
     const service = createAuthService(repository, config)
 
     await expect(
@@ -162,7 +177,6 @@ describe('auth.service', () => {
         registerContext,
       ),
     ).rejects.toMatchObject({ status: 409, code: 'REGISTRATION_DEVICE_LIMIT' })
-    expect(repository.createUserWithProfile).not.toHaveBeenCalled()
   })
 
   it('rejects duplicate email on register', async () => {
@@ -269,7 +283,7 @@ describe('auth.service', () => {
 
   it('changes password when current password is correct', async () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser())
-    vi.mocked(repository.updatePasswordHash).mockResolvedValue(undefined)
+    vi.mocked(repository.updatePasswordHashAndInvalidateRefresh).mockResolvedValue(undefined)
     const service = createAuthService(repository, config)
 
     await expect(
@@ -280,7 +294,10 @@ describe('auth.service', () => {
       }),
     ).resolves.toBeUndefined()
 
-    expect(repository.updatePasswordHash).toHaveBeenCalledWith('user-1', 'hash:newsecret1')
+    expect(repository.updatePasswordHashAndInvalidateRefresh).toHaveBeenCalledWith(
+      'user-1',
+      'hash:newsecret1',
+    )
   })
 
   it('rejects change password when current password is wrong', async () => {
@@ -294,6 +311,18 @@ describe('auth.service', () => {
         confirmPassword: 'newsecret1',
       }),
     ).rejects.toMatchObject({ status: 401 })
-    expect(repository.updatePasswordHash).not.toHaveBeenCalled()
+    expect(repository.updatePasswordHashAndInvalidateRefresh).not.toHaveBeenCalled()
+  })
+
+  it('rejects refresh tokens issued before a password change', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ refreshInvalidBefore: new Date(Date.now() + 60_000) }),
+    )
+    const service = createAuthService(repository, config)
+
+    await expect(service.refreshTokens({ refreshToken: 'good' })).rejects.toMatchObject({
+      status: 401,
+    })
+    expect(repository.claimRefreshJti).not.toHaveBeenCalled()
   })
 })

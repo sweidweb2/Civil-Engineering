@@ -37,8 +37,6 @@ export function AdminProvidersScreen() {
       searchPlaceholder={t('providers.search')}
       filterOptions={statusOptions}
       allLabel={t('common.all')}
-      addLabel={t('providers.add')}
-      onAdd={() => router.push(`${BASE}/new` as never)}
       keyExtractor={(item) => item.id}
       renderItem={(item) => (
         <ListCard

@@ -89,6 +89,20 @@ function setup(opts?: {
         : [],
     ),
     updatePrices: vi.fn(async () => undefined),
+    lockAndUpdatePrices: vi.fn(async (_providerId, buildUpdates) => {
+      const rows = listing
+        ? [
+            {
+              id: listing.id,
+              price: listing.price,
+              priceMin: listing.priceMin,
+              priceMax: listing.priceMax,
+              rentalPrice: listing.rentalPrice,
+            },
+          ]
+        : []
+      return buildUpdates(rows).length
+    }),
     createMany: vi.fn(async (inputs) => inputs.length),
     create: vi.fn(async (input) =>
       record({
@@ -105,6 +119,7 @@ function setup(opts?: {
     countListingReviews: vi.fn(async () => 0),
     hide: vi.fn(async () => record({ status: 'INACTIVE' })),
     delete: vi.fn(async () => undefined),
+    deleteOrHide: vi.fn(async () => 'deleted' as const),
   }
   const providers = {
     findProviderIdByOwnerUserId: vi.fn(async () => 'prv-1' as string | null),
@@ -242,16 +257,14 @@ describe('listingsService', () => {
   it('deletes a listing that has no reviews', async () => {
     const { service, repository } = setup()
     await expect(service.deleteListing('lst-1', admin)).resolves.toEqual({ outcome: 'deleted' })
-    expect(repository.delete).toHaveBeenCalledWith('lst-1')
-    expect(repository.hide).not.toHaveBeenCalled()
+    expect(repository.deleteOrHide).toHaveBeenCalledWith('lst-1')
   })
 
   it('hides a listing that reviews still reference', async () => {
     const { service, repository } = setup()
-    vi.mocked(repository.countListingReviews).mockResolvedValue(2)
+    vi.mocked(repository.deleteOrHide).mockResolvedValue('hidden')
     await expect(service.deleteListing('lst-1', admin)).resolves.toEqual({ outcome: 'hidden' })
-    expect(repository.hide).toHaveBeenCalledWith('lst-1')
-    expect(repository.delete).not.toHaveBeenCalled()
+    expect(repository.deleteOrHide).toHaveBeenCalledWith('lst-1')
   })
 
   it('bulk-increases prices by percentage for a provider', async () => {
@@ -264,7 +277,19 @@ describe('listingsService', () => {
         admin,
       ),
     ).resolves.toEqual({ updated: 1, skipped: 0 })
-    expect(repository.updatePrices).toHaveBeenCalledWith([
+    expect(repository.lockAndUpdatePrices).toHaveBeenCalledWith('prv-1', expect.any(Function))
+    const buildUpdates = vi.mocked(repository.lockAndUpdatePrices).mock.calls[0]![1]
+    expect(
+      buildUpdates([
+        {
+          id: 'lst-1',
+          price: '100',
+          priceMin: null,
+          priceMax: null,
+          rentalPrice: '50',
+        },
+      ]),
+    ).toEqual([
       expect.objectContaining({
         id: 'lst-1',
         price: '110.0000',

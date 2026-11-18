@@ -444,37 +444,34 @@ export function createListingsService(
     async deleteListing(id, actor) {
       const listing = await loadOrThrow(id)
       await assertCanManageListingProvider(actor, listing.providerId)
-      const reviewCount = await repository.countListingReviews(id)
-      if (reviewCount > 0) {
-        await repository.hide(id)
-        return { outcome: 'hidden' as const }
-      }
-      await repository.delete(id)
-      return { outcome: 'deleted' as const }
+      const outcome = await repository.deleteOrHide(id)
+      return { outcome }
     },
 
     async bulkAdjustPrices(input, actor) {
       const providerId = await resolveManageProviderId(actor, input.providerId)
 
       const delta = Number(input.value)
-      const rows = await repository.findPriceFieldsByProviderId(providerId)
-      const updates: ListingPriceUpdate[] = []
       let skipped = 0
-      for (const row of rows) {
-        if (!listingHasAnyPrice(row)) {
-          skipped += 1
-          continue
+      const updated = await repository.lockAndUpdatePrices(providerId, (rows) => {
+        const updates: ListingPriceUpdate[] = []
+        skipped = 0
+        for (const row of rows) {
+          if (!listingHasAnyPrice(row)) {
+            skipped += 1
+            continue
+          }
+          updates.push({
+            id: row.id,
+            price: adjustAmount(row.price, input.direction, input.mode, delta),
+            priceMin: adjustAmount(row.priceMin, input.direction, input.mode, delta),
+            priceMax: adjustAmount(row.priceMax, input.direction, input.mode, delta),
+            rentalPrice: adjustAmount(row.rentalPrice, input.direction, input.mode, delta),
+          })
         }
-        updates.push({
-          id: row.id,
-          price: adjustAmount(row.price, input.direction, input.mode, delta),
-          priceMin: adjustAmount(row.priceMin, input.direction, input.mode, delta),
-          priceMax: adjustAmount(row.priceMax, input.direction, input.mode, delta),
-          rentalPrice: adjustAmount(row.rentalPrice, input.direction, input.mode, delta),
-        })
-      }
-      await repository.updatePrices(updates)
-      return { updated: updates.length, skipped }
+        return updates
+      })
+      return { updated, skipped }
     },
 
     async importListings(input, actor) {

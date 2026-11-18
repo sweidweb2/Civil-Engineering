@@ -111,12 +111,22 @@ export type ListingsRepository = {
   >
   findPriceFieldsByProviderId: (providerId: string) => Promise<ListingPriceFields[]>
   updatePrices: (updates: ListingPriceUpdate[]) => Promise<void>
+  /**
+   * Lock all provider listings, re-read prices, apply updates in one transaction
+   * so concurrent bulk adjusts / edits cannot interleave mid-batch.
+   */
+  lockAndUpdatePrices: (
+    providerId: string,
+    buildUpdates: (rows: ListingPriceFields[]) => ListingPriceUpdate[],
+  ) => Promise<number>
   create: (input: CreateListingRecordInput) => Promise<ListingRecord>
   createMany: (inputs: CreateListingRecordInput[]) => Promise<number>
   update: (id: string, input: UpdateListingBody) => Promise<ListingRecord>
   countListingReviews: (id: string) => Promise<number>
   hide: (id: string) => Promise<ListingRecord>
   delete: (id: string) => Promise<void>
+  /** FOR UPDATE + review count → hide or hard-delete without review race. */
+  deleteOrHide: (id: string) => Promise<'hidden' | 'deleted'>
 }
 
 export function decimalToString(value: { toString(): string } | null): string | null {
@@ -428,6 +438,44 @@ export function createListingsRepository(): ListingsRepository {
       )
     },
 
+    async lockAndUpdatePrices(providerId, buildUpdates) {
+      return prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`
+          SELECT id FROM listings WHERE "providerId" = ${providerId} FOR UPDATE
+        `
+        const rows = await tx.listing.findMany({
+          where: { providerId },
+          select: {
+            id: true,
+            price: true,
+            priceMin: true,
+            priceMax: true,
+            rentalPrice: true,
+          },
+        })
+        const fields: ListingPriceFields[] = rows.map((row) => ({
+          id: row.id,
+          price: decimalToString(row.price),
+          priceMin: decimalToString(row.priceMin),
+          priceMax: decimalToString(row.priceMax),
+          rentalPrice: decimalToString(row.rentalPrice),
+        }))
+        const updates = buildUpdates(fields)
+        for (const update of updates) {
+          await tx.listing.update({
+            where: { id: update.id },
+            data: {
+              price: update.price,
+              priceMin: update.priceMin,
+              priceMax: update.priceMax,
+              rentalPrice: update.rentalPrice,
+            },
+          })
+        }
+        return updates.length
+      })
+    },
+
     async create(input) {
       const row = await prisma.listing.create({
         data: input,
@@ -481,6 +529,24 @@ export function createListingsRepository(): ListingsRepository {
 
     async delete(id) {
       await prisma.listing.delete({ where: { id } })
+    },
+
+    async deleteOrHide(id) {
+      return prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT id FROM listings WHERE id = ${id} FOR UPDATE`
+        const reviewCount = await tx.review.count({
+          where: { targetType: 'LISTING', targetId: id },
+        })
+        if (reviewCount > 0) {
+          await tx.listing.update({
+            where: { id },
+            data: { status: 'INACTIVE' },
+          })
+          return 'hidden' as const
+        }
+        await tx.listing.delete({ where: { id } })
+        return 'deleted' as const
+      })
     },
   }
 }

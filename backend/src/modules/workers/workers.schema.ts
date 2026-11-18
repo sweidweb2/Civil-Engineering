@@ -151,94 +151,68 @@ const skillItemSchema = z.object({
   level: workerSkillLevelSchema.default('INTERMEDIATE'),
 })
 
-const EMPTY_WORKER_PUT = {
-  headline: null,
-  bio: null,
-  primaryTrade: null,
-  yearsExperience: null,
-  languages: null,
-  city: null,
-  country: null,
-  hourlyRate: null,
-  dailyRate: null,
-  currency: null,
-  availability: 'AVAILABLE' as const,
-  /** Opt-in publish — unverified workers stay out of the directory either way. */
-  isPublic: false,
-  cvUrl: null,
-  experiences: [] as unknown[],
-  education: [] as unknown[],
-  certifications: [] as unknown[],
-  skills: [] as unknown[],
-}
-
 /**
  * Full replace body for PUT /workers/me.
- * Missing keys default so a PUT cannot leave stale scalar fields or children behind.
+ * All document keys are required so a partial PUT cannot silently wipe children.
+ * `expectedUpdatedAt` is the optimistic-concurrency token (`null` only for first create).
  */
-export const upsertWorkerProfileBodySchema = z.preprocess(
-  (raw) => {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-      return { ...EMPTY_WORKER_PUT }
-    }
-    return { ...EMPTY_WORKER_PUT, ...(raw as Record<string, unknown>) }
-  },
-  z
-    .object({
-      headline: putText(160),
-      bio: putText(4000),
-      primaryTrade: putText(120),
-      yearsExperience: putYears(),
-      languages: putText(500),
-      city: putText(80),
-      country: putText(80),
-      hourlyRate: putMoney(),
-      dailyRate: putMoney(),
-      currency: putText(8),
-      availability: workerAvailabilitySchema,
-      isPublic: z.boolean(),
-      cvUrl: putUrl,
-      experiences: z.array(experienceItemSchema).max(30),
-      education: z.array(educationItemSchema).max(20),
-      certifications: z.array(certificationItemSchema).max(30),
-      skills: z
-        .array(skillItemSchema)
-        .max(40)
-        .superRefine((items, ctx) => {
-          const seen = new Set<string>()
-          for (const [index, item] of items.entries()) {
-            if (seen.has(item.categoryId)) {
-              ctx.addIssue({
-                code: 'custom',
-                message: 'Duplicate skill category',
-                path: [index, 'categoryId'],
-              })
-            }
-            seen.add(item.categoryId)
+export const upsertWorkerProfileBodySchema = z
+  .object({
+    headline: putText(160),
+    bio: putText(4000),
+    primaryTrade: putText(120),
+    yearsExperience: putYears(),
+    languages: putText(500),
+    city: putText(80),
+    country: putText(80),
+    hourlyRate: putMoney(),
+    dailyRate: putMoney(),
+    currency: putText(8),
+    availability: workerAvailabilitySchema,
+    isPublic: z.boolean(),
+    cvUrl: putUrl,
+    experiences: z.array(experienceItemSchema).max(30),
+    education: z.array(educationItemSchema).max(20),
+    certifications: z.array(certificationItemSchema).max(30),
+    skills: z
+      .array(skillItemSchema)
+      .max(40)
+      .superRefine((items, ctx) => {
+        const seen = new Set<string>()
+        for (const [index, item] of items.entries()) {
+          if (seen.has(item.categoryId)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Duplicate skill category',
+              path: [index, 'categoryId'],
+            })
           }
-        }),
-    })
-    .superRefine((value, ctx) => {
-      if (value.hourlyRate == null && value.dailyRate == null) return
-      if (!value.currency) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'currency is required when a rate is set',
-          path: ['currency'],
-        })
-      }
-    })
-    .superRefine((value, ctx) => {
-      const currentCount = value.experiences.filter((item) => item.isCurrent).length
-      if (currentCount > 1) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Only one experience can be marked as current',
-          path: ['experiences'],
-        })
-      }
-    }),
-)
+          seen.add(item.categoryId)
+        }
+      }),
+    /** ISO timestamp of the CV the client loaded; null only when creating the first profile. */
+    expectedUpdatedAt: z.preprocess(blankToNull, z.string().datetime({ offset: true }).nullable()),
+  })
+  .superRefine((value, ctx) => {
+    if (value.hourlyRate == null && value.dailyRate == null) return
+    if (!value.currency) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'currency is required when a rate is set',
+        path: ['currency'],
+      })
+    }
+  })
+  .superRefine((value, ctx) => {
+    const currentCount = value.experiences.filter((item) => item.isCurrent).length
+    if (currentCount > 1) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Only one experience can be marked as current',
+        path: ['experiences'],
+      })
+    }
+  })
 
 export const setWorkerVisibilityBodySchema = z.object({
   isPublic: z.boolean(),

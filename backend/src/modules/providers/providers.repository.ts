@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import type { Prisma, ProviderStatus } from '../../generated/prisma/client.js'
 import type {
   CreateProviderBody,
@@ -60,6 +61,15 @@ export type ProvidersRepository = {
   findEligibleOwners: (includeUserId?: string | null) => Promise<ProviderOwnerCandidate[]>
   create: (input: CreateProviderBody) => Promise<ProviderRecord>
   update: (id: string, input: UpdateProviderBody) => Promise<ProviderRecord>
+  /**
+   * CAS logo pointer — only succeeds when logoUrl still equals `expected`.
+   * Returns null when a concurrent upload/clear won the race.
+   */
+  compareAndSetLogo: (
+    id: string,
+    expected: string | null,
+    next: string | null,
+  ) => Promise<ProviderRecord | null>
 }
 
 function ownerDisplayName(
@@ -172,46 +182,62 @@ export function createProvidersRepository(): ProvidersRepository {
     },
 
     async create(input) {
-      return prisma.provider.create({
-        data: {
-          ownerUserId: input.ownerUserId ?? null,
-          name: input.name,
-          description: input.description ?? null,
-          logoUrl: input.logoUrl ?? null,
-          phone: input.phone ?? null,
-          whatsapp: input.whatsapp ?? null,
-          email: input.email ?? null,
-          website: input.website ?? null,
-          address: input.address ?? null,
-          city: input.city ?? null,
-          country: input.country ?? null,
-          lat: input.lat ?? null,
-          lng: input.lng ?? null,
-          status: input.status ?? 'PENDING',
-        },
-        include: { owner: { select: ownerSelect } },
-      })
+      return translateUniqueConflict(() =>
+        prisma.provider.create({
+          data: {
+            ownerUserId: input.ownerUserId ?? null,
+            name: input.name,
+            description: input.description ?? null,
+            logoUrl: input.logoUrl ?? null,
+            phone: input.phone ?? null,
+            whatsapp: input.whatsapp ?? null,
+            email: input.email ?? null,
+            website: input.website ?? null,
+            address: input.address ?? null,
+            city: input.city ?? null,
+            country: input.country ?? null,
+            lat: input.lat ?? null,
+            lng: input.lng ?? null,
+            status: input.status ?? 'PENDING',
+          },
+          include: { owner: { select: ownerSelect } },
+        }),
+      )
     },
 
     async update(id, input) {
-      return prisma.provider.update({
+      return translateUniqueConflict(() =>
+        prisma.provider.update({
+          where: { id },
+          data: {
+            ownerUserId: input.ownerUserId,
+            name: input.name,
+            description: input.description,
+            logoUrl: input.logoUrl,
+            phone: input.phone,
+            whatsapp: input.whatsapp,
+            email: input.email,
+            website: input.website,
+            address: input.address,
+            city: input.city,
+            country: input.country,
+            lat: input.lat,
+            lng: input.lng,
+            status: input.status,
+          },
+          include: { owner: { select: ownerSelect } },
+        }),
+      )
+    },
+
+    async compareAndSetLogo(id, expected, next) {
+      const result = await prisma.provider.updateMany({
+        where: { id, logoUrl: expected },
+        data: { logoUrl: next },
+      })
+      if (result.count === 0) return null
+      return prisma.provider.findUnique({
         where: { id },
-        data: {
-          ownerUserId: input.ownerUserId,
-          name: input.name,
-          description: input.description,
-          logoUrl: input.logoUrl,
-          phone: input.phone,
-          whatsapp: input.whatsapp,
-          email: input.email,
-          website: input.website,
-          address: input.address,
-          city: input.city,
-          country: input.country,
-          lat: input.lat,
-          lng: input.lng,
-          status: input.status,
-        },
         include: { owner: { select: ownerSelect } },
       })
     },

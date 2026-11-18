@@ -120,6 +120,11 @@ CREATE INDEX "worker_skills_categoryId_idx" ON "worker_skills"("categoryId");
 -- CreateIndex
 CREATE UNIQUE INDEX "worker_skills_workerProfileId_categoryId_key" ON "worker_skills"("workerProfileId", "categoryId");
 
+-- At most one current role per worker CV (partial unique index).
+CREATE UNIQUE INDEX "worker_experiences_one_current_per_profile_idx"
+  ON "worker_experiences" ("workerProfileId")
+  WHERE "isCurrent" = true;
+
 -- AddForeignKey
 ALTER TABLE "worker_profiles" ADD CONSTRAINT "worker_profiles_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

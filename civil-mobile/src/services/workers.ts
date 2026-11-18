@@ -140,6 +140,8 @@ export type WorkerProfileWriteInput = {
   education: WorkerEducationWrite[]
   certifications: WorkerCertificationWrite[]
   skills: WorkerSkillWrite[]
+  /** Optimistic concurrency token; null only for first create. */
+  expectedUpdatedAt: string | null
 }
 
 export const WORKER_AVAILABILITY_OPTIONS: { value: WorkerAvailability; label: string }[] = [
@@ -172,6 +174,7 @@ export const EMPTY_WORKER_WRITE: WorkerProfileWriteInput = {
   education: [],
   certifications: [],
   skills: [],
+  expectedUpdatedAt: null,
 }
 
 /** Map a loaded profile into a full PUT body (children without server ids). */
@@ -221,6 +224,7 @@ export function profileToWrite(profile: WorkerProfile): WorkerProfileWriteInput 
       categoryId: item.categoryId,
       level: item.level,
     })),
+    expectedUpdatedAt: profile.updatedAt,
   }
 }
 

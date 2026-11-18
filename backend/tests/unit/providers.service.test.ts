@@ -63,6 +63,9 @@ function setup(opts?: {
       }),
     ),
     update: vi.fn(async (id, input) => record({ id, ...input, status: input.status ?? 'PENDING' })),
+    compareAndSetLogo: vi.fn(async (id, _expected, next) =>
+      record({ id, logoUrl: next, status: existing?.status ?? 'PENDING' }),
+    ),
   }
   return { repository, service: createProvidersService(repository) }
 }

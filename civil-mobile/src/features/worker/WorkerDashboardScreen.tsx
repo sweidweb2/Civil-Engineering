@@ -17,11 +17,11 @@ import {
   ActionTile,
   Card,
   DashboardScroll,
+  HeroCard,
   IconTile,
   ProgressBar,
   ScreenHeader,
   SectionLabel,
-  HeroCard,
   StatusPill,
   toneForStatus,
 } from '@/components/kit'
@@ -118,13 +118,14 @@ export function WorkerDashboardScreen() {
     <View className="flex-1 bg-background" testID="e2e-worker-dashboard">
       <ScreenHeader
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-      ></ScreenHeader>
+      />
 
       <DashboardScroll
         refreshing={remote.isFetching && remote.status === 'success'}
         onRefresh={() => void remote.refetch()}
       >
         <HeroCard
+          icon={FileUser}
           caption={t('workerHome.completeness')}
           value={`${percent}%`}
           onPress={() => router.push('/worker/cv' as never)}

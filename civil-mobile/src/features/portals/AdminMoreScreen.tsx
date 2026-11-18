@@ -22,6 +22,7 @@ import { ADMIN_MORE_LINKS } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
 
 const LINK_TONES: Record<string, Tone> = {
+  providers: 'info',
   queue: 'warning',
   directory: 'info',
   listings: 'primary',

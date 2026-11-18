@@ -109,13 +109,27 @@ export type UsersRepository = {
   findById: (id: string) => Promise<User | null>
   findByEmail: (email: string) => Promise<User | null>
   create: (input: CreateUserInput) => Promise<User>
-  update: (id: string, input: UpdateUserInput) => Promise<User>
+  update: (
+    id: string,
+    input: UpdateUserInput,
+    options?: { deleteWorkerProfile?: boolean },
+  ) => Promise<User>
   updateStatus: (id: string, status: UserStatus) => Promise<User>
+  /**
+   * CAS status flip — only updates when the row still has `fromStatus`.
+   * Returns null when another writer won the race.
+   */
+  updateStatusIf: (id: string, fromStatus: UserStatus, toStatus: UserStatus) => Promise<User | null>
   /** Stores File.id in Profile.avatarUrl (private R2 object; resolve via files download URL). */
   setAvatarFileId: (userId: string, fileId: string | null) => Promise<User>
   /** Drops marketplace CV when the account is no longer a worker. */
   deleteWorkerProfileByUserId: (userId: string) => Promise<void>
   delete: (id: string) => Promise<'deleted' | 'in_use'>
+  /** Delete only when status still matches (approve↔delete race safety). */
+  deleteIfStatus: (
+    id: string,
+    status: UserStatus,
+  ) => Promise<'deleted' | 'status_mismatch' | 'in_use'>
 }
 
 const approvalRoles: Role[] = [...APPROVAL_ROLES]
@@ -448,7 +462,7 @@ export function createUsersRepository(): UsersRepository {
       return mapToUser(user)
     },
 
-    async update(id, input) {
+    async update(id, input, options) {
       const profileData = {
         firstName: optionalProfileText(input.profile?.firstName),
         lastName: optionalProfileText(input.profile?.lastName),
@@ -457,25 +471,35 @@ export function createUsersRepository(): UsersRepository {
       }
 
       const hasProfileData = Object.values(profileData).some((val) => val !== undefined)
+      const deleteWorkerProfile = options?.deleteWorkerProfile === true
 
-      const user = await prisma.user.update({
-        where: { id },
-        data: {
-          role: input.role,
-          status: input.status,
-          verificationStatus: input.verificationStatus,
-          isVerified: input.isVerified,
-          profile: hasProfileData
-            ? {
-                upsert: {
-                  create: profileData,
-                  update: profileData,
-                },
-              }
-            : undefined,
-        },
-        include: { profile: true },
+      const user = await prisma.$transaction(async (tx) => {
+        const updated = await tx.user.update({
+          where: { id },
+          data: {
+            role: input.role,
+            status: input.status,
+            verificationStatus: input.verificationStatus,
+            isVerified: input.isVerified,
+            profile: hasProfileData
+              ? {
+                  upsert: {
+                    create: profileData,
+                    update: profileData,
+                  },
+                }
+              : undefined,
+          },
+          include: { profile: true },
+        })
+
+        if (deleteWorkerProfile) {
+          await tx.workerProfile.deleteMany({ where: { userId: id } })
+        }
+
+        return updated
       })
+
       return mapToUser(user)
     },
 
@@ -486,6 +510,19 @@ export function createUsersRepository(): UsersRepository {
         include: { profile: true },
       })
       return mapToUser(user)
+    },
+
+    async updateStatusIf(id, fromStatus, toStatus) {
+      const result = await prisma.user.updateMany({
+        where: { id, status: fromStatus },
+        data: { status: toStatus },
+      })
+      if (result.count === 0) return null
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: { profile: true },
+      })
+      return user ? mapToUser(user) : null
     },
 
     async setAvatarFileId(userId, fileId) {
@@ -511,6 +548,21 @@ export function createUsersRepository(): UsersRepository {
     async delete(id) {
       try {
         await prisma.user.delete({ where: { id } })
+        return 'deleted'
+      } catch (error) {
+        if (isPrismaCode(error, 'P2003') || isPrismaCode(error, 'P2014')) {
+          return 'in_use'
+        }
+        throw error
+      }
+    },
+
+    async deleteIfStatus(id, status) {
+      try {
+        const result = await prisma.user.deleteMany({
+          where: { id, status },
+        })
+        if (result.count === 0) return 'status_mismatch'
         return 'deleted'
       } catch (error) {
         if (isPrismaCode(error, 'P2003') || isPrismaCode(error, 'P2014')) {

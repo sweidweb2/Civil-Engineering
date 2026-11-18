@@ -15,7 +15,7 @@ const TYPES: ListingType[] = ['MATERIAL', 'EQUIPMENT', 'SERVICE']
 /** Browse active directory listings (PM + Admin). */
 export function DirectoryListScreen() {
   const { t } = useTranslation()
-  const { view, listProps } = useResourceList(
+  const { listProps } = useResourceList(
     ({ page, query, filter }) =>
       listListings(page, PAGE_SIZE, {
         q: query || undefined,
@@ -33,7 +33,6 @@ export function DirectoryListScreen() {
   return (
     <ListScreen
       title={t('directory.title')}
-      subtitle={view.total ? t('directory.active', { count: view.total }) : t('directory.browse')}
       searchPlaceholder={t('directory.search')}
       filterOptions={typeOptions}
       allLabel={t('common.all')}

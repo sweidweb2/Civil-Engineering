@@ -90,7 +90,7 @@ export function StageFileField({
         accessibilityState={{ busy: isBusy, disabled: busy }}
         disabled={busy}
         scaleTo={0.98}
-        className={`h-40 overflow-hidden rounded-3xl border-[1.5px] ${
+        className={`h-40 overflow-hidden rounded-2xl border-[1.5px] ${
           hasFile ? 'border-border/40 bg-muted' : 'border-dashed border-primary/40 bg-primary/5'
         }`}
         onPress={() => setSheetOpen(true)}

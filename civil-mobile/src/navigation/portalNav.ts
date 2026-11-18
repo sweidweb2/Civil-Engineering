@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react-native'
 import {
   Activity,
   AlertTriangle,
+  FileUser,
   FolderKanban,
   FolderTree,
   Home,
@@ -78,6 +79,8 @@ export const CLIENT_NAV: PortalNavItem[] = [
 
 export const WORKER_NAV: PortalNavItem[] = [
   { key: 'home', label: 'Home', href: '/worker', icon: Home, end: true },
+  { key: 'cv', label: 'My CV', href: '/worker/cv', icon: FileUser },
+  { key: 'account', label: 'Account', href: '/worker/account', icon: UserRound },
 ]
 
 export function navForPortal(portal: PortalId): PortalNavItem[] {

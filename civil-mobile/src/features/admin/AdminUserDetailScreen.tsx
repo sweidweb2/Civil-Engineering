@@ -21,6 +21,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'
+import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'
 import type { AuthRole } from '@/services/auth'
 import { showBlockingAlert } from '@/services/feedback'
@@ -32,6 +33,7 @@ import {
   updateUser,
   type UserStatus,
 } from '@/services/users'
+import { getWorkerByUserId, setWorkerVisibility } from '@/services/workers'
 
 const BASE = '/admin/users'
 const STATUS_OPTIONS = [{ value: 'ACTIVE' }, { value: 'INACTIVE' }, { value: 'PENDING' }]
@@ -57,7 +59,10 @@ export function AdminUserDetailScreen() {
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
   const [isVerified, setIsVerified] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
+  const [hasWorkerProfile, setHasWorkerProfile] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false)
   const [isDeactivating, setIsDeactivating] = useState(false)
 
   useEffect(() => {
@@ -70,6 +75,47 @@ export function AdminUserDetailScreen() {
     setPhone(user.profile?.phone ?? '')
     setIsVerified(user.isVerified)
   }, [user])
+
+  useEffect(() => {
+    if (!userId || user?.role !== 'WORKER') {
+      setHasWorkerProfile(false)
+      setIsPublic(false)
+      return
+    }
+    let cancelled = false
+    void getWorkerByUserId(userId)
+      .then((response) => {
+        if (cancelled) return
+        setHasWorkerProfile(true)
+        setIsPublic(response.data.isPublic)
+      })
+      .catch(() => {
+        if (cancelled) return
+        // No CV yet — admin can still create one by toggling visibility.
+        setHasWorkerProfile(false)
+        setIsPublic(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.role, userId])
+
+  async function onToggleWorkerVisibility(next: boolean) {
+    if (!userId || isSavingVisibility) return
+    setIsSavingVisibility(true)
+    const previous = isPublic
+    setIsPublic(next)
+    try {
+      await setWorkerVisibility(userId, next)
+      setHasWorkerProfile(true)
+      toastSuccess(t('users.workerVisibilitySaved'))
+    } catch (err) {
+      setIsPublic(previous)
+      handleApiError(err, t('users.workerVisibilityFailed'))
+    } finally {
+      setIsSavingVisibility(false)
+    }
+  }
 
   async function onSave() {
     if (!userId) return
@@ -121,7 +167,7 @@ export function AdminUserDetailScreen() {
   return (
     <FormScreen
       title={user ? userDisplayName(user) : t('users.user')}
-      subtitle={user?.email}
+      subtitle={user?.email ? ltr(user.email) : undefined}
       backHref={BASE}
       isLoading={remote.isLoading}
       error={remote.status === 'error' ? remote.error : undefined}
@@ -188,6 +234,22 @@ export function AdminUserDetailScreen() {
               onValueChange={setIsVerified}
             />
           </Section>
+
+          {user.role === 'WORKER' ? (
+            <Section title={t('users.workerDirectory')}>
+              <ToggleRow
+                label={t('users.workerVisible')}
+                description={
+                  hasWorkerProfile
+                    ? t('users.workerVisibleHint')
+                    : t('users.workerVisibleCreateHint')
+                }
+                value={isPublic}
+                onValueChange={(value) => void onToggleWorkerVisibility(value)}
+                disabled={isSavingVisibility}
+              />
+            </Section>
+          ) : null}
 
           <Section title={t('users.profile')}>
             <FieldRow>

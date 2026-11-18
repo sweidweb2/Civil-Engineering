@@ -34,10 +34,7 @@ export function SearchBar({ value, onChangeText, onSubmit, placeholder }: Search
   const { t } = useTranslation()
   const colors = useThemeColors()
   return (
-    <View
-      className="h-14 flex-row items-center gap-3 rounded-full bg-card px-5"
-      style={softShadows.float}
-    >
+    <View className="h-12 flex-row items-center gap-3 rounded-2xl border border-border/60 bg-card px-4">
       <Search size={20} color={colors.textMuted} />
       <TextInput
         className="h-full flex-1 text-base text-foreground"
@@ -87,7 +84,7 @@ export function FilterChips({ options, value, onChange, allLabel }: FilterChipsP
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 px-5 py-3"
+        contentContainerClassName="gap-2 px-5 py-2"
         style={{ flexGrow: 0 }}
       >
         {all.map((option) => {
@@ -97,8 +94,8 @@ export function FilterChips({ options, value, onChange, allLabel }: FilterChipsP
               key={option.value || '__all'}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              className={`h-10 items-center justify-center rounded-full border px-4 ${
-                active ? 'border-primary bg-primary' : 'border-border/40 bg-card'
+              className={`h-9 items-center justify-center rounded-full border px-4 ${
+                active ? 'border-primary bg-primary' : 'border-border/60 bg-card'
               }`}
               onPress={() => onChange(option.value)}
             >
@@ -230,10 +227,10 @@ export function ListSkeleton({ label, count = 6 }: { label?: string; count?: num
       {Array.from({ length: count }, (_, index) => (
         <View
           key={index}
-          className="flex-row items-center gap-4 rounded-3xl border border-border/40 bg-card p-4"
+          className="flex-row items-center gap-3.5 rounded-2xl border border-border/40 bg-card p-3.5"
           style={softShadows.card}
         >
-          <SkeletonBlock className="size-16 rounded-2xl" />
+          <SkeletonBlock className="size-16 rounded-xl" />
           <View className="flex-1 gap-2.5">
             <SkeletonBlock className="h-4 w-3/5 rounded-full" />
             <SkeletonBlock className="h-3 w-4/5 rounded-full" />
@@ -298,7 +295,7 @@ export function PagedList<T>({
             {renderItem(item)}
           </Animated.View>
         )}
-        contentContainerClassName={`gap-4 px-5 pt-1 ${hasFab ? 'pb-28' : 'pb-8'}`}
+        contentContainerClassName={`gap-3 px-5 pt-2 ${hasFab ? 'pb-28' : 'pb-8'}`}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -341,7 +338,8 @@ export function ListCard({
       ) : null}
     </>
   )
-  const className = 'flex-row items-center gap-4 rounded-3xl border border-border/40 bg-card p-4'
+  const className =
+    'flex-row items-center gap-3.5 rounded-2xl border border-border/40 bg-card p-3.5'
   if (!onPress) {
     return (
       <View className={className} style={softShadows.card}>

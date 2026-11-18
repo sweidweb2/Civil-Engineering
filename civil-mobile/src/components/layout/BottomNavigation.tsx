@@ -3,8 +3,6 @@ import { Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
-import { useThemeColors } from '@/hooks/useThemeColors'
-import { glow, softShadows } from '@/theme/shadows'
 
 export type BottomNavItem = {
   key: string
@@ -20,47 +18,42 @@ type BottomNavigationProps = {
 }
 
 /**
- * Floating pill tab bar. The active tab expands into a filled pill with its label.
- * Primary navigation for all mobile portals (via PortalShell).
+ * Docked tab bar: full width, hairline top border, every tab shows icon +
+ * label, the active one in the primary color. Primary navigation for all
+ * mobile portals (via PortalShell).
  */
 export function BottomNavigation({ items }: BottomNavigationProps) {
   const insets = useSafeAreaInsets()
-  const colors = useThemeColors()
 
   return (
     <View
-      className="bg-background px-5 pt-2"
-      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      accessibilityRole="tablist"
+      className="flex-row border-t border-border/60 bg-card px-2 pt-2"
+      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
     >
-      <View
-        accessibilityRole="tablist"
-        className="h-[68px] flex-row items-center justify-between rounded-full border border-border/40 bg-card px-2"
-        style={softShadows.float}
-      >
-        {items.map((item) => {
-          const active = Boolean(item.isActive)
-          return (
-            <Pressable
-              key={item.key}
-              accessibilityRole="tab"
-              accessibilityLabel={item.label}
-              accessibilityState={{ selected: active }}
-              className={`h-14 flex-row items-center justify-center gap-2 rounded-full ${
-                active ? 'shrink bg-primary px-4' : 'flex-1'
+      {items.map((item) => {
+        const active = Boolean(item.isActive)
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="tab"
+            accessibilityLabel={item.label}
+            accessibilityState={{ selected: active }}
+            className="min-w-0 flex-1 items-center gap-1 py-1 active:opacity-70"
+            onPress={item.onPress}
+          >
+            {item.renderIcon(active)}
+            <Text
+              className={`text-[11px] ${
+                active ? 'font-bold text-primary' : 'font-medium text-muted-foreground'
               }`}
-              style={active ? glow(colors.primary, 0.4) : undefined}
-              onPress={item.onPress}
+              numberOfLines={1}
             >
-              {item.renderIcon(active)}
-              {active ? (
-                <Text className="text-sm font-bold text-primary-foreground" numberOfLines={1}>
-                  {item.label}
-                </Text>
-              ) : null}
-            </Pressable>
-          )
-        })}
-      </View>
+              {item.label}
+            </Text>
+          </Pressable>
+        )
+      })}
     </View>
   )
 }

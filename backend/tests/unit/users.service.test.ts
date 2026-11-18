@@ -114,6 +114,7 @@ describe('usersService', () => {
           isVerified: verificationStatus === 'VERIFIED',
         }),
       ),
+      deleteWorkerProfileByUserId: vi.fn(async () => undefined),
       delete: vi.fn(async () => 'deleted' as const),
     }
   })
@@ -275,6 +276,13 @@ describe('usersService', () => {
       'user-1',
       expect.objectContaining({ role: 'MANAGER', status: 'INACTIVE' }),
     )
+  })
+
+  it('deletes the worker CV when the account leaves the WORKER role', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER' }))
+    const service = createUsersService(repository)
+    await service.updateUser('user-1', { role: 'CLIENT' }, admin)
+    expect(repository.deleteWorkerProfileByUserId).toHaveBeenCalledWith('user-1')
   })
 
   it('only a super admin can create, change, or deactivate a super account', async () => {

@@ -1,3 +1,5 @@
+import { formatDateTimeInAppLocale } from '@/lib/locale'
+
 export const CELL_CHAR_LIMIT = 28
 
 export function ellipsis(value: string | null | undefined, max = CELL_CHAR_LIMIT): string {
@@ -8,7 +10,7 @@ export function ellipsis(value: string | null | undefined, max = CELL_CHAR_LIMIT
 
 export function formatWhen(iso: string): string {
   try {
-    return new Date(iso).toLocaleString()
+    return formatDateTimeInAppLocale(iso)
   } catch {
     return iso
   }

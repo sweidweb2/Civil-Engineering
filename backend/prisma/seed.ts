@@ -130,6 +130,13 @@ const SEED_USERS: SeedUser[] = [
     phone: '+961 08 800 330',
   },
   {
+    email: 'worker@example.com',
+    role: 'WORKER',
+    firstName: 'Worker',
+    lastName: 'User',
+    phone: '+961 71 300 000',
+  },
+  {
     email: 'pending.worker@example.com',
     role: 'WORKER',
     firstName: 'Pending',

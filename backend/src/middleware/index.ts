@@ -1,4 +1,9 @@
-export { authenticate, createAuthenticate } from './authenticate.js'
+export {
+  authenticate,
+  createAuthenticate,
+  createOptionalAuthenticate,
+  optionalAuthenticate,
+} from './authenticate.js'
 export { authorize } from './authorize.js'
 export { perfTiming, pushServerTiming } from './perf-timing.js'
 export {

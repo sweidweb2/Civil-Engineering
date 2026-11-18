@@ -52,7 +52,7 @@ export function LogoField({
         onPress={() => setSheetOpen(true)}
       >
         <Thumbnail imageUrl={logoUrl} icon={Building2} size={96} />
-        <View className="absolute -bottom-1 -right-1 size-9 items-center justify-center rounded-full border-2 border-background bg-primary">
+        <View className="absolute -bottom-1 -end-1 size-9 items-center justify-center rounded-full border-2 border-background bg-primary">
           <Camera size={16} color="#FFFFFF" />
         </View>
         {isBusy ? (

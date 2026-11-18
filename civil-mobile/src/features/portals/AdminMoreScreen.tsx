@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next'
 
 import {
   Avatar,
-  Card,
   DirectionalIcon,
-  HeroHeader,
-  IconTile,
+  MenuGroup,
+  MenuRow,
+  ScreenHeader,
   SectionLabel,
   type Tone,
 } from '@/components/kit'
@@ -16,6 +16,7 @@ import { Pressable } from '@/components/ui/pressable'
 import { LogoutRow } from '@/features/account/AccountForms'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
+import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'
 import { ADMIN_MORE_LINKS } from '@/navigation'
 import { useAuthStore } from '@/stores/authStore'
@@ -36,7 +37,7 @@ export function AdminMoreScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <HeroHeader title={t('nav.more')} subtitle={t('more.subtitle')} />
+      <ScreenHeader title={t('nav.more')} />
 
       <ScrollView
         className="flex-1"
@@ -46,7 +47,7 @@ export function AdminMoreScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open your account"
-          className="flex-row items-center gap-3 rounded-3xl border border-border/60 bg-card p-4 active:opacity-80"
+          className="flex-row items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 active:opacity-80"
           onPress={() => router.push('/admin/account' as never)}
         >
           <Avatar name={name} size={52} />
@@ -55,40 +56,27 @@ export function AdminMoreScreen() {
               {name}
             </Text>
             <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-              {user ? `${enumLabel(t, 'role', user.role)} · ${user.email}` : ''}
+              {user ? `${enumLabel(t, 'role', user.role)} · ${ltr(user.email)}` : ''}
             </Text>
           </View>
           <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
         </Pressable>
 
-        <View className="gap-2">
+        <View className="gap-3">
           <SectionLabel>{t('more.manage')}</SectionLabel>
-          <Card className="py-1">
-            {ADMIN_MORE_LINKS.map((item, index) => {
-              return (
-                <Pressable
-                  key={item.key}
-                  accessibilityRole="button"
-                  accessibilityLabel={t(`more.links.${item.key}.title`)}
-                  className={`flex-row items-center gap-3 py-3 active:opacity-70 ${
-                    index === ADMIN_MORE_LINKS.length - 1 ? '' : 'border-b border-border/60'
-                  }`}
-                  onPress={() => router.push(item.href as never)}
-                >
-                  <IconTile icon={item.icon} tone={LINK_TONES[item.key] ?? 'primary'} />
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-base font-semibold text-foreground">
-                      {t(`more.links.${item.key}.title`)}
-                    </Text>
-                    <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-                      {t(`more.links.${item.key}.description`)}
-                    </Text>
-                  </View>
-                  <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
-                </Pressable>
-              )
-            })}
-          </Card>
+          <MenuGroup>
+            {ADMIN_MORE_LINKS.map((item, index) => (
+              <MenuRow
+                key={item.key}
+                icon={item.icon}
+                tone={LINK_TONES[item.key] ?? 'primary'}
+                label={t(`more.links.${item.key}.title`)}
+                hint={t(`more.links.${item.key}.description`)}
+                last={index === ADMIN_MORE_LINKS.length - 1}
+                onPress={() => router.push(item.href as never)}
+              />
+            ))}
+          </MenuGroup>
         </View>
 
         <LogoutRow />

@@ -26,7 +26,7 @@ type ProjectsListScreenProps = {
 /** Shared projects list for PM and Admin portals. */
 export function ProjectsListScreen({ basePath = '/pm/projects' }: ProjectsListScreenProps) {
   const { t } = useTranslation()
-  const { view, listProps } = useResourceList(
+  const { listProps } = useResourceList(
     ({ page, query, filter }) =>
       listProjects({
         page,
@@ -41,7 +41,6 @@ export function ProjectsListScreen({ basePath = '/pm/projects' }: ProjectsListSc
   return (
     <ListScreen
       title={t('projects.title')}
-      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
       searchPlaceholder={t('projects.search')}
       filterOptions={statusOptions}
       allLabel={t('common.all')}

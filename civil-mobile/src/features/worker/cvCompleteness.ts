@@ -1,0 +1,52 @@
+import type { WorkerProfile } from '@/services/workers'
+
+export type CvSectionKey =
+  'basics' | 'experience' | 'education' | 'certifications' | 'skills' | 'rates'
+
+export type CvSectionStatus = {
+  key: CvSectionKey
+  done: boolean
+  count?: number
+}
+
+/** Lightweight completeness for the worker home / CV hub. */
+export function cvSectionStatuses(profile: WorkerProfile | null): CvSectionStatus[] {
+  const hasBasics = Boolean(
+    profile?.headline ||
+    profile?.primaryTrade ||
+    profile?.city ||
+    (profile?.yearsExperience != null && profile.yearsExperience > 0),
+  )
+  const hasRates = Boolean(profile?.hourlyRate || profile?.dailyRate)
+
+  return [
+    { key: 'basics', done: hasBasics },
+    {
+      key: 'experience',
+      done: (profile?.experiences.length ?? 0) > 0,
+      count: profile?.experiences.length ?? 0,
+    },
+    {
+      key: 'education',
+      done: (profile?.education.length ?? 0) > 0,
+      count: profile?.education.length ?? 0,
+    },
+    {
+      key: 'certifications',
+      done: (profile?.certifications.length ?? 0) > 0,
+      count: profile?.certifications.length ?? 0,
+    },
+    {
+      key: 'skills',
+      done: (profile?.skills.length ?? 0) > 0,
+      count: profile?.skills.length ?? 0,
+    },
+    { key: 'rates', done: hasRates },
+  ]
+}
+
+export function cvCompletenessPercent(profile: WorkerProfile | null): number {
+  const sections = cvSectionStatuses(profile)
+  const done = sections.filter((s) => s.done).length
+  return Math.round((done / sections.length) * 100)
+}

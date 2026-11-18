@@ -44,7 +44,7 @@ export function AdminReviewsScreen() {
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [busyId, setBusyId] = useState<string | null>(null)
-  const { view, remote, listProps } = useResourceList(
+  const { remote, listProps } = useResourceList(
     ({ page, query, filter }) =>
       listReviews(page, PAGE_SIZE, {
         q: query || undefined,
@@ -98,7 +98,6 @@ export function AdminReviewsScreen() {
   return (
     <ListScreen
       title={t('reviews.title')}
-      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
       backHref="/admin/more"
       searchPlaceholder={t('reviews.search')}
       filterOptions={statusOptions}

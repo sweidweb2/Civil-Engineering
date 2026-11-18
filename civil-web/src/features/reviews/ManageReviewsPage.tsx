@@ -41,6 +41,7 @@ import { useAdminCrudPage } from '@/features/admin/hooks/useAdminCrudPage'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagedQuery } from '@/hooks/usePagedQuery'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { formatDateTimeInAppLocale } from '@/lib/locale'
 import { ellipsis, PAGE_SIZE, pageCount } from '@/lib/text'
 import {
   deleteReview,
@@ -59,7 +60,7 @@ const EMPTY_COUNTS: ReviewStatusCounts = { PENDING: 0, ACCEPTED: 0, REJECTED: 0 
 
 function formatWhen(iso: string) {
   const date = new Date(iso)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString()
+  return Number.isNaN(date.getTime()) ? '—' : formatDateTimeInAppLocale(date)
 }
 
 function ReadOnlyField({

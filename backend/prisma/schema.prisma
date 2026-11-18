@@ -53,6 +53,7 @@ model User {
   updatedAt            DateTime       @updatedAt
   profile              Profile?
   managerProfile       ManagerProfile?
+  workerProfile        WorkerProfile?
   activityLogs         ActivityLog[]
   deviceTokens         DeviceToken[]
   files                File[]
@@ -113,6 +114,125 @@ model ManagerProfile {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("manager_profiles")
+}
+
+/// Worker marketplace availability shown on the public directory.
+enum WorkerAvailability {
+  AVAILABLE
+  BUSY
+  UNAVAILABLE
+}
+
+/// Relative strength of a worker trade/skill category.
+enum WorkerSkillLevel {
+  BASIC
+  INTERMEDIATE
+  EXPERT
+}
+
+/// Structured CV for workers (marketplace directory + admin preview).
+model WorkerProfile {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  headline        String?
+  bio             String?
+  /// Primary trade label (free text); structured trades live in WorkerSkill → Category.
+  primaryTrade    String?
+  yearsExperience Int?
+  languages       String?
+  city            String?
+  country         String?
+  hourlyRate      Decimal?           @db.Decimal(18, 4)
+  dailyRate       Decimal?           @db.Decimal(18, 4)
+  currency        String?
+  availability    WorkerAvailability @default(AVAILABLE)
+  /// Opt-in publish; when false, hidden from the public directory even if verified.
+  isPublic        Boolean            @default(false)
+  /// Optional external CV URL; uploaded CV files use File (entityType=WORKER).
+  cvUrl           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences     WorkerExperience[]
+  education       WorkerEducation[]
+  certifications  WorkerCertification[]
+  skills          WorkerSkill[]
+
+  @@index([city, country])
+  @@index([availability, isPublic])
+  @@index([primaryTrade(ops: raw("gin_trgm_ops"))], map: "worker_profiles_primaryTrade_trgm_idx", type: Gin)
+  @@index([city(ops: raw("gin_trgm_ops"))], map: "worker_profiles_city_trgm_idx", type: Gin)
+  @@map("worker_profiles")
+}
+
+model WorkerExperience {
+  id              String    @id @default(cuid())
+  workerProfileId String
+  company         String
+  roleTitle       String
+  projectType     String?
+  location        String?
+  startDate       DateTime? @db.Date
+  endDate         DateTime? @db.Date
+  isCurrent       Boolean   @default(false)
+  description     String?
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  workerProfile   WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([workerProfileId, sortOrder])
+  @@map("worker_experiences")
+}
+
+model WorkerEducation {
+  id              String   @id @default(cuid())
+  workerProfileId String
+  school          String
+  degree          String?
+  field           String?
+  startYear       Int?
+  endYear         Int?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  workerProfile   WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([workerProfileId, sortOrder])
+  @@map("worker_education")
+}
+
+model WorkerCertification {
+  id              String    @id @default(cuid())
+  workerProfileId String
+  name            String
+  issuer          String?
+  issuedAt        DateTime? @db.Date
+  expiresAt       DateTime? @db.Date
+  credentialId    String?
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  workerProfile   WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([workerProfileId, sortOrder])
+  @@map("worker_certifications")
+}
+
+/// Join worker profile ↔ platform WORKER categories (trades/skills).
+model WorkerSkill {
+  id              String          @id @default(cuid())
+  workerProfileId String
+  categoryId      String
+  level           WorkerSkillLevel @default(INTERMEDIATE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  workerProfile   WorkerProfile   @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  category        Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([workerProfileId, categoryId])
+  @@index([categoryId])
+  @@map("worker_skills")
 }
 
 /// Self-serve registration fingerprint (device id + IP). Caps abuse per device.
@@ -316,8 +436,9 @@ model Category {
   updatedAt  DateTime      @updatedAt
   provider   Provider?     @relation(fields: [providerId], references: [id], onDelete: Restrict)
   parent     Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children   Category[]    @relation("CategoryTree")
-  listings   Listing[]
+  children     Category[]    @relation("CategoryTree")
+  listings     Listing[]
+  workerSkills WorkerSkill[]
 
   @@index([scope, kind])
   @@index([providerId])

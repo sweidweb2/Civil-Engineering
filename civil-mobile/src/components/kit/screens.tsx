@@ -5,13 +5,11 @@ import { AsyncState } from '@/components/feedback/AsyncState'
 import { useThemeColors } from '@/hooks/useThemeColors'
 
 import { FormScroll, StickyFooter } from './forms'
-import { AppBar, HeroHeader } from './headers'
+import { AppBar, ScreenHeader } from './headers'
 import { type ChipOption, Fab, FilterChips, PagedList, SearchBar } from './lists'
 
 type ListScreenProps<T> = {
   title: string
-  subtitle?: string
-  eyebrow?: string
   /** Shows a back button (pushed screens). */
   backHref?: string
   searchPlaceholder?: string
@@ -44,12 +42,7 @@ export function ListScreen<T>(props: ListScreenProps<T>) {
   const hasSearch = props.onSearch && props.onQueryChange
   return (
     <View className="flex-1 bg-background">
-      <HeroHeader
-        eyebrow={props.eyebrow}
-        title={props.title}
-        subtitle={props.subtitle}
-        backHref={props.backHref}
-      >
+      <ScreenHeader title={props.title} backHref={props.backHref}>
         {hasSearch ? (
           <SearchBar
             value={props.query ?? ''}
@@ -58,7 +51,7 @@ export function ListScreen<T>(props: ListScreenProps<T>) {
             placeholder={props.searchPlaceholder}
           />
         ) : null}
-      </HeroHeader>
+      </ScreenHeader>
 
       {props.filterOptions && props.onFilterChange ? (
         <FilterChips
@@ -147,7 +140,7 @@ export function DashboardScroll({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="gap-8 px-5 pb-8 pt-6"
+      contentContainerClassName="gap-6 px-5 pb-8 pt-2"
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl

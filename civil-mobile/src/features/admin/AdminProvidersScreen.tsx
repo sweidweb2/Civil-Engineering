@@ -7,6 +7,7 @@ import { ListCard, ListScreen, StandardListRow, Thumbnail, toneForStatus } from 
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { ltr } from '@/lib/rtl'
 import { listProviders, PROVIDER_STATUS_OPTIONS, type ProviderStatus } from '@/services/providers'
 
 const PAGE_SIZE = 20
@@ -14,7 +15,7 @@ const BASE = '/admin/providers'
 
 export function AdminProvidersScreen() {
   const { t } = useTranslation()
-  const { view, listProps } = useResourceList(
+  const { listProps } = useResourceList(
     ({ page, query, filter }) =>
       listProviders(
         page,
@@ -33,7 +34,6 @@ export function AdminProvidersScreen() {
   return (
     <ListScreen
       title={t('providers.title')}
-      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
       searchPlaceholder={t('providers.search')}
       filterOptions={statusOptions}
       allLabel={t('common.all')}
@@ -50,7 +50,9 @@ export function AdminProvidersScreen() {
             title={item.name}
             statusLabel={enumLabel(t, 'providerStatus', item.status)}
             statusTone={toneForStatus(item.status)}
-            subtitle={[item.city, item.email, item.phone].filter(Boolean).join(' · ') || '—'}
+            subtitle={
+              [item.city, ltr(item.email), ltr(item.phone)].filter(Boolean).join(' · ') || '—'
+            }
           />
         </ListCard>
       )}

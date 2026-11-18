@@ -20,6 +20,7 @@ import { buildProjectsService, createProjectsModule } from './modules/projects/i
 import { buildProvidersService, createProvidersModule } from './modules/providers/index.js'
 import { buildReviewsService, createReviewsModule } from './modules/reviews/index.js'
 import { createManagerProfilesModule, createUsersModule } from './modules/users/index.js'
+import { createWorkersModule } from './modules/workers/index.js'
 import { getStorageService, type StorageService } from './storage/index.js'
 
 export type CompositionRootDeps = {
@@ -36,6 +37,7 @@ export type CompositionRoot = {
   logging: ExpressRouter
   users: ExpressRouter
   managerProfiles: ExpressRouter
+  workers: ExpressRouter
   providers: ExpressRouter
   categories: ExpressRouter
   listings: ExpressRouter
@@ -86,6 +88,7 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       },
     }),
     managerProfiles: createManagerProfilesModule(),
+    workers: createWorkersModule(),
     providers: createProvidersModule({ service: providersService }),
     categories: createCategoriesModule(),
     listings: createListingsModule({ service: listingsService }),

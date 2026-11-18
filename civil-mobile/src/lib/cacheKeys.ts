@@ -3,9 +3,11 @@ import { remoteCacheInvalidate } from '@/lib/remoteCache'
 /** Shared remote-cache key prefixes used across features. */
 export const cacheKeys = {
   providersMe: 'providers:me',
+  workersMe: 'workers:me',
   dashboardAdmin: 'dashboard:admin',
   dashboardPm: 'dashboard:pm',
   dashboardProvider: 'dashboard:provider',
+  dashboardWorker: 'dashboard:worker',
   categoriesPicker: 'categories:picker',
   providersPicker: 'providers:picker',
   listingsMine: 'listings:mine',
@@ -61,4 +63,10 @@ export function invalidateProviderProfileCaches() {
   remoteCacheInvalidate(cacheKeys.dashboardProvider)
   remoteCacheInvalidate(cacheKeys.providers)
   remoteCacheInvalidate(cacheKeys.dashboardAdmin)
+}
+
+/** After worker CV create/update/delete. */
+export function invalidateWorkerCaches() {
+  remoteCacheInvalidate(cacheKeys.workersMe)
+  remoteCacheInvalidate(cacheKeys.dashboardWorker)
 }

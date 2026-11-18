@@ -66,7 +66,7 @@ function StageStepper({
               key={key}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
-              className={`w-32 gap-1 rounded-3xl border p-3 ${
+              className={`w-32 gap-1 rounded-2xl border p-3 ${
                 isActive ? 'border-primary bg-primary/10' : 'border-border/60 bg-card'
               }`}
               onPress={() => onSelect(key)}

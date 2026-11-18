@@ -52,7 +52,11 @@ export function PortalShell({ portal, children }: PortalShellProps) {
           label: t(`nav.${item.key}`, { defaultValue: item.label }),
           isActive: tabIsActive(portal, pathname, item),
           renderIcon: (active: boolean) => (
-            <Icon size={22} color={active ? themeColors.onPrimary : themeColors.textMuted} />
+            <Icon
+              size={24}
+              strokeWidth={active ? 2.4 : 1.8}
+              color={active ? themeColors.primary : themeColors.textMuted}
+            />
           ),
           onPress: () => {
             if (pathname !== item.href) {

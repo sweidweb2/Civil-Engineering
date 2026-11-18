@@ -1,5 +1,5 @@
-import { PortalHomeScreen } from '@/features/portals/PortalHomeScreen'
+import { WorkerDashboardScreen } from '@/features/worker/WorkerDashboardScreen'
 
 export default function WorkerHome() {
-  return <PortalHomeScreen title="Home" portalLabel="Worker home" />
+  return <WorkerDashboardScreen />
 }

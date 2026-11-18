@@ -23,6 +23,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use(modules.logging)
   router.use('/users', modules.users)
   router.use('/manager-profiles', modules.managerProfiles)
+  router.use('/workers', modules.workers)
   router.use('/providers', modules.providers)
   router.use('/categories', modules.categories)
   router.use('/listings', modules.listings)

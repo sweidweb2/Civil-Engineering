@@ -15,13 +15,14 @@ import {
 } from '@/components/ui/table'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { formatDateTimeInAppLocale } from '@/lib/locale'
 import { type ErrorLogItem, listErrorLogs } from '@/services/logging'
 
 const PAGE_LIMIT = 20
 
 function formatWhen(iso: string) {
   try {
-    return new Date(iso).toLocaleString()
+    return formatDateTimeInAppLocale(iso)
   } catch {
     return iso
   }

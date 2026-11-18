@@ -13,6 +13,9 @@ export type EnumGroup =
   | 'role'
   | 'stageStatus'
   | 'stage'
+  | 'workerAvailability'
+  | 'workerSkillLevel'
+  | 'verificationStatus'
 
 /** Translated label for a backend enum value (falls back to the raw value). */
 export function enumLabel(

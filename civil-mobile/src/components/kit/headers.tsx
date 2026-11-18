@@ -25,18 +25,16 @@ function goBack(fallbackHref: string) {
   else router.replace(fallbackHref as never)
 }
 
-/** Round icon button. `onHero` renders light-on-teal for the hero header. */
+/** Plain icon button (reference style: no outline, soft press state). */
 export function IconButton({
   icon: Icon,
   label,
   onPress,
-  onHero = false,
   disabled = false,
 }: {
   icon: LucideIcon
   label: string
   onPress: () => void
-  onHero?: boolean
   disabled?: boolean
 }) {
   const colors = useThemeColors()
@@ -46,108 +44,65 @@ export function IconButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
-      hitSlop={8}
-      className={`size-10 items-center justify-center rounded-full active:opacity-70 ${
-        onHero
-          ? 'border border-hero-foreground/20 bg-hero-foreground/15'
-          : 'border border-border/40 bg-card'
-      } ${disabled ? 'opacity-40' : ''}`}
+      hitSlop={6}
+      className={`size-10 items-center justify-center rounded-full active:bg-muted ${
+        disabled ? 'opacity-40' : ''
+      }`}
       onPress={onPress}
     >
       {mirrored ? (
-        <DirectionalIcon icon={Icon} size={20} color={onHero ? '#FFFFFF' : colors.text} />
+        <DirectionalIcon icon={Icon} size={24} color={colors.text} />
       ) : (
-        <Icon size={20} color={onHero ? '#FFFFFF' : colors.text} />
+        <Icon size={22} color={colors.text} />
       )}
     </Pressable>
   )
 }
 
-type HeroHeaderProps = {
+type ScreenHeaderProps = {
+  /** Never drawn on screen (the bottom tab bar shows where you are); read by screen readers. */
   title: string
-  /** Small caption above the title. */
-  eyebrow?: string
-  subtitle?: string
   /** When set, shows a back button (for screens reached by push). */
   backHref?: string
   right?: ReactNode
-  /** Extra content inside the hero (search bar, stats…). */
+  /** Content under the bar (search field, stats, profile card…). */
   children?: ReactNode
 }
 
 /**
- * Large teal header for top-level screens.
- * Handles the status-bar inset itself.
+ * Title-less top-level header: only the safe-area gap, plus a back button and
+ * actions when a screen has them, and whatever the screen puts underneath.
  */
-export function HeroHeader({
-  title,
-  eyebrow,
-  subtitle,
-  backHref,
-  right,
-  children,
-}: HeroHeaderProps) {
+export function ScreenHeader({ title, backHref, right, children }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  useStatusBarStyle('light')
+  const isDark = useIsDark()
+  useStatusBarStyle(isDark ? 'light' : 'dark')
+  const hasBar = Boolean(backHref || right)
   return (
-    <View
-      className="overflow-hidden rounded-b-[36px] bg-hero px-5 pb-6"
-      style={{ paddingTop: insets.top + 12 }}
-    >
-      {/* Layered glow + blueprint rings: depth without a gradient dependency */}
-      <View
-        pointerEvents="none"
-        className="absolute -right-20 -top-24 size-72 rounded-full bg-hero-foreground/10"
-      />
-      <View
-        pointerEvents="none"
-        className="absolute -right-8 -top-10 size-44 rounded-full bg-hero-foreground/10"
-      />
-      <View
-        pointerEvents="none"
-        className="absolute -left-12 bottom-[-80px] size-48 rounded-full border-[22px] border-hero-foreground/10"
-      />
-      <View
-        pointerEvents="none"
-        className="absolute inset-x-0 bottom-0 h-px bg-hero-foreground/20"
-      />
-
-      <View className="flex-row items-center gap-3">
-        {backHref ? (
-          <IconButton
-            icon={ChevronLeft}
-            label={t('common.goBack')}
-            onHero
-            onPress={() => goBack(backHref)}
-          />
-        ) : null}
-        <View className="min-w-0 flex-1">
-          {eyebrow ? (
-            <Text
-              className="text-xs font-semibold uppercase tracking-widest text-hero-foreground/70"
-              numberOfLines={1}
-            >
-              {eyebrow}
-            </Text>
+    <View className="bg-background px-5 pb-3" style={{ paddingTop: insets.top + 8 }}>
+      {hasBar ? (
+        <View className="min-h-11 flex-row items-center gap-2">
+          {backHref ? (
+            <View className="-ms-2">
+              <IconButton
+                icon={ChevronLeft}
+                label={t('common.goBack')}
+                onPress={() => goBack(backHref)}
+              />
+            </View>
           ) : null}
-          <Text
-            className="text-[30px] font-bold leading-9 tracking-tight text-hero-foreground"
-            numberOfLines={1}
-            accessibilityRole="header"
-          >
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text className="text-sm text-hero-foreground/80" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
+          <View className="min-w-0 flex-1" />
+          {right ? <View className="flex-row items-center gap-2">{right}</View> : null}
         </View>
-        {right ? <View className="flex-row items-center gap-2">{right}</View> : null}
-      </View>
-
-      {children ? <View className="mt-5 gap-3">{children}</View> : null}
+      ) : null}
+      <Text
+        accessibilityRole="header"
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
+      >
+        {title}
+      </Text>
+      {children ? <View className={`gap-3 ${hasBar ? 'mt-3' : ''}`}>{children}</View> : null}
     </View>
   )
 }
@@ -159,7 +114,7 @@ type AppBarProps = {
   right?: ReactNode
 }
 
-/** Compact bar for detail and form screens. */
+/** Compact bar for detail and form screens: ← Title ........ [actions]. */
 export function AppBar({ title, subtitle, backHref, right }: AppBarProps) {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
@@ -167,11 +122,11 @@ export function AppBar({ title, subtitle, backHref, right }: AppBarProps) {
   useStatusBarStyle(isDark ? 'light' : 'dark')
   return (
     <View
-      className="flex-row items-center gap-3 bg-background px-4 pb-3"
-      style={{ paddingTop: insets.top + 8 }}
+      className="min-h-14 flex-row items-center gap-1 border-b border-border/50 bg-background px-3 pb-2"
+      style={{ paddingTop: insets.top + 6 }}
     >
       <IconButton icon={ChevronLeft} label={t('common.goBack')} onPress={() => goBack(backHref)} />
-      <View className="min-w-0 flex-1">
+      <View className="min-w-0 flex-1 ps-1">
         <Text
           className="text-lg font-bold text-foreground"
           numberOfLines={1}
@@ -185,7 +140,7 @@ export function AppBar({ title, subtitle, backHref, right }: AppBarProps) {
           </Text>
         ) : null}
       </View>
-      {right ? <View className="flex-row items-center gap-2">{right}</View> : null}
+      {right ? <View className="flex-row items-center gap-1">{right}</View> : null}
     </View>
   )
 }

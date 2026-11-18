@@ -3,6 +3,7 @@ import type { RequestHandler } from 'express'
 import { loadConfig } from '../config/index.js'
 import { unauthorized } from '../errors/app-error.js'
 import { logPerf } from '../logging/perf.js'
+import type { RoleName } from '../modules/auth/auth.schema.js'
 import { ACCESS_COOKIE, parseCookieHeader } from '../modules/auth/auth.cookies.js'
 import { verifyAccessToken } from '../modules/auth/auth.tokens.js'
 import { createDbAccessPrincipalResolver, type ResolveAccessPrincipal } from './access-principal.js'
@@ -24,6 +25,40 @@ function extractAccessToken(req: {
   const cookies = parseCookieHeader(req.headers.cookie)
   const fromCookie = cookies[ACCESS_COOKIE]?.trim()
   return fromCookie || null
+}
+
+async function resolveActiveUser(
+  token: string,
+  resolvePrincipal: ResolveAccessPrincipal,
+): Promise<{ id: string; role: RoleName; jwtMs: number; principalMs: number }> {
+  const jwtStarted = performance.now()
+  const payload = verifyAccessToken(loadConfig(), token)
+  const jwtMs = Math.round(performance.now() - jwtStarted)
+
+  const principalStarted = performance.now()
+  const principal = await resolvePrincipal(payload.sub)
+  const principalMs = Math.round(performance.now() - principalStarted)
+
+  if (!principal || principal.status !== 'ACTIVE') {
+    throw unauthorized('Invalid or expired access token')
+  }
+
+  return { id: principal.id, role: principal.role, jwtMs, principalMs }
+}
+
+function failAuth(
+  next: Parameters<RequestHandler>[2],
+  authStarted: number,
+  label: string,
+  error: unknown,
+) {
+  const authMs = Math.round(performance.now() - authStarted)
+  logPerf('auth', `${label} failed ${authMs}ms`, { ms: authMs, failed: true })
+  if (error && typeof error === 'object' && 'status' in error) {
+    next(error)
+    return
+  }
+  next(unauthorized('Invalid or expired access token'))
 }
 
 /**
@@ -49,25 +84,10 @@ export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler 
         throw unauthorized()
       }
 
-      // Resolve config per request so tests can `resetConfigCache()` after setting JWT secrets.
-      // `loadConfig()` is memoized — production still pays once per process until reset.
-      const jwtStarted = performance.now()
-      const payload = verifyAccessToken(loadConfig(), token)
-      const jwtMs = Math.round(performance.now() - jwtStarted)
-
       resolvePrincipal ??= createDbAccessPrincipalResolver()
-      const principalStarted = performance.now()
-      const principal = await resolvePrincipal(payload.sub)
-      const principalMs = Math.round(performance.now() - principalStarted)
+      const { id, role, jwtMs, principalMs } = await resolveActiveUser(token, resolvePrincipal)
 
-      if (!principal || principal.status !== 'ACTIVE') {
-        throw unauthorized('Invalid or expired access token')
-      }
-
-      req.user = {
-        id: principal.id,
-        roles: [principal.role],
-      }
+      req.user = { id, roles: [role] }
 
       const authMs = Math.round(performance.now() - authStarted)
       pushServerTiming(res, 'auth', authMs)
@@ -75,20 +95,58 @@ export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler 
         ms: authMs,
         jwtMs,
         principalMs,
-        userId: principal.id,
+        userId: id,
       })
       next()
     } catch (error) {
+      failAuth(next, authStarted, 'authenticate', error)
+    }
+  }
+}
+
+/**
+ * Same credential rules as `authenticate`, but missing credentials become a guest
+ * (`req.user` unset) so public marketplace reads can proceed. Invalid/expired tokens
+ * still fail closed with 401.
+ */
+export function createOptionalAuthenticate(deps: AuthenticateDeps = {}): RequestHandler {
+  let resolvePrincipal = deps.resolvePrincipal
+
+  return async (req, res, next) => {
+    const authStarted = performance.now()
+    const token = extractAccessToken(req)
+    if (!token) {
+      next()
+      return
+    }
+
+    try {
+      resolvePrincipal ??= createDbAccessPrincipalResolver()
+      const { id, role, jwtMs, principalMs } = await resolveActiveUser(token, resolvePrincipal)
+
+      req.user = { id, roles: [role] }
+
       const authMs = Math.round(performance.now() - authStarted)
-      logPerf('auth', `authenticate failed ${authMs}ms`, { ms: authMs, failed: true })
-      if (error && typeof error === 'object' && 'status' in error) {
-        next(error)
-        return
-      }
-      next(unauthorized('Invalid or expired access token'))
+      pushServerTiming(res, 'auth', authMs)
+      logPerf(
+        'auth',
+        `optionalAuthenticate ${authMs}ms (jwt=${jwtMs}ms principal=${principalMs}ms)`,
+        {
+          ms: authMs,
+          jwtMs,
+          principalMs,
+          userId: id,
+        },
+      )
+      next()
+    } catch (error) {
+      failAuth(next, authStarted, 'optionalAuthenticate', error)
     }
   }
 }
 
 /** Production guard (DB-backed principal resolver). */
 export const authenticate: RequestHandler = createAuthenticate()
+
+/** Production optional guard for public marketplace reads. */
+export const optionalAuthenticate: RequestHandler = createOptionalAuthenticate()

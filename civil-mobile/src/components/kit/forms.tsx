@@ -74,7 +74,7 @@ export function Section({
 }) {
   return (
     <View
-      className="gap-5 rounded-3xl border border-border/40 bg-card p-5"
+      className="gap-4 rounded-2xl border border-border/40 bg-card p-4"
       style={softShadows.card}
     >
       <View className="flex-row items-center gap-3">
@@ -114,6 +114,16 @@ type TextFieldProps = Omit<TextInputProps, 'className' | 'style'> & {
   icon?: LucideIcon
 }
 
+/** Keyboard types whose content is an LTR token (email, phone, URL) even in Arabic. */
+const LTR_KEYBOARDS = new Set<TextInputProps['keyboardType']>([
+  'email-address',
+  'phone-pad',
+  'url',
+  'number-pad',
+  'decimal-pad',
+  'numeric',
+])
+
 /** Labeled text input. Pass `multiline` for a text area. */
 export function TextField({
   label,
@@ -129,14 +139,15 @@ export function TextField({
   const [revealed, setRevealed] = useState(false)
   const isSecret = Boolean(input.secureTextEntry)
   const multiline = Boolean(input.multiline)
+  const isLtrContent = LTR_KEYBOARDS.has(input.keyboardType)
   const borderClass = error ? 'border-destructive' : focused ? 'border-primary' : 'border-border'
 
   return (
     <View className="gap-1.5">
       <FieldLabel label={label} required={required} />
       <View
-        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-2xl border-[1.5px] bg-background px-4 ${borderClass} ${
-          multiline ? 'min-h-[112px] items-start py-3.5' : 'h-14 items-center'
+        className={`w-full min-w-0 flex-row gap-2 overflow-hidden rounded-xl border-[1.5px] bg-background px-3.5 ${borderClass} ${
+          multiline ? 'min-h-[112px] items-start py-3' : 'h-12 items-center'
         }`}
       >
         {Icon ? <Icon size={18} color={focused ? colors.primary : colors.textMuted} /> : null}
@@ -146,6 +157,7 @@ export function TextField({
           className={`min-w-0 flex-1 text-base text-foreground ${multiline ? '' : 'h-full'}`}
           placeholderTextColor={colors.disabled}
           textAlignVertical={multiline ? 'top' : 'center'}
+          style={isLtrContent ? { textAlign: 'left', writingDirection: 'ltr' } : undefined}
           accessibilityLabel={label}
           onFocus={(event) => {
             setFocused(true)
@@ -250,19 +262,26 @@ export function ToggleRow({
   description,
   value,
   onValueChange,
+  disabled = false,
 }: {
   label: string
   description?: string
   value: boolean
   onValueChange: (value: boolean) => void
+  disabled?: boolean
 }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-background px-3.5 py-3">
+    <View className="flex-row items-center gap-3 rounded-xl border border-border bg-background px-3.5 py-3">
       <View className="min-w-0 flex-1">
         <Text className="text-sm font-semibold text-foreground">{label}</Text>
         {description ? <Text className="text-xs text-muted-foreground">{description}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onValueChange} accessibilityLabel={label} />
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        accessibilityLabel={label}
+      />
     </View>
   )
 }
@@ -284,8 +303,8 @@ export function StickyFooter({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets()
   return (
     <View
-      className="flex-row gap-3 rounded-t-[28px] border-t border-border/40 bg-card px-5 pt-4"
-      style={[softShadows.float, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}
+      className="flex-row gap-3 border-t border-border/60 bg-card px-5 pt-3"
+      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
     >
       {children}
     </View>
@@ -303,7 +322,7 @@ export function SegmentedControl({
   onChange: (value: string) => void
 }) {
   return (
-    <View className="flex-row rounded-full bg-muted p-1">
+    <View className="flex-row rounded-full bg-muted p-1" accessibilityRole="tablist">
       {options.map((option) => {
         const active = option.value === value
         return (
@@ -311,15 +330,14 @@ export function SegmentedControl({
             key={option.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            className={`h-11 flex-1 items-center justify-center rounded-full ${
-              active ? 'bg-card' : ''
+            className={`h-10 flex-1 items-center justify-center rounded-full ${
+              active ? 'bg-primary' : ''
             }`}
-            style={active ? softShadows.card : undefined}
             onPress={() => onChange(option.value)}
           >
             <Text
               className={`text-sm font-semibold ${
-                active ? 'text-primary' : 'text-muted-foreground'
+                active ? 'text-primary-foreground' : 'text-muted-foreground'
               }`}
             >
               {option.label}
@@ -377,7 +395,7 @@ export function SelectField({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${selected?.label ?? placeholder ?? t('common.select')}`}
-        className="h-12 flex-row items-center gap-2 rounded-2xl border border-border bg-background px-3.5"
+        className="h-12 flex-row items-center gap-2 rounded-xl border-[1.5px] border-border bg-background px-3.5"
         onPress={() => setOpen(true)}
       >
         <Text

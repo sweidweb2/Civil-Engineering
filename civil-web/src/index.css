@@ -214,6 +214,22 @@
     --font-heading: var(--font-sans);
     line-height: 1.65;
   }
+
+  /*
+   * Arabic typography, kept in one place instead of per-component overrides:
+   * - Letter-spacing breaks Arabic letter joining, so tracking-* is neutralised.
+   * - Tight line heights clip ascenders and diacritics.
+   * - Noto Arabic reads smaller than Latin at the same size, so the smallest sizes get a bump.
+   */
+  html[lang='ar'] [class*='tracking-'] {
+    letter-spacing: normal;
+  }
+  html[lang='ar'] :is(.leading-none, .leading-tight, .leading-3, .leading-4) {
+    line-height: 1.5;
+  }
+  html[lang='ar'] :is(.text-xs, .text-\[10px\], .text-\[11px\]) {
+    font-size: 0.8125rem;
+  }
 }
 
 @layer components {

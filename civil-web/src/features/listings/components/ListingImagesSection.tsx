@@ -19,6 +19,7 @@ import {
   type GalleryMessages,
   useGalleryImages,
 } from '@/hooks/useGalleryImages'
+import { formatDateTimeInAppLocale } from '@/lib/locale'
 import { type ListingImage, listingImagesApi } from '@/services/listingImages'
 
 type Props = {
@@ -184,7 +185,7 @@ export function ListingImagesSection({ listingId, canManage = true, onChanged }:
                     )}
                   </TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
-                    {new Date(image.createdAt).toLocaleString()}
+                    {formatDateTimeInAppLocale(image.createdAt)}
                   </TableCell>
                   {canManage ? (
                     <TableCell className="text-end">

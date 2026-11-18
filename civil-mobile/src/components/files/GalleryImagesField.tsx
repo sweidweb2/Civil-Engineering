@@ -120,7 +120,7 @@ export function GalleryImagesField({
               </View>
             )}
             {tile.isMain ? (
-              <View className="absolute left-1.5 top-1.5 flex-row items-center gap-1 rounded-full bg-primary px-2 py-0.5">
+              <View className="absolute start-1.5 top-1.5 flex-row items-center gap-1 rounded-full bg-primary px-2 py-0.5">
                 <Star size={10} color="#FFFFFF" fill="#FFFFFF" />
                 <Text className="text-[10px] font-bold text-primary-foreground">
                   {t('gallery.main')}

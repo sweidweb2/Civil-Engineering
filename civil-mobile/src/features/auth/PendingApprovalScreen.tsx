@@ -22,7 +22,7 @@ export function PendingApprovalScreen() {
       subtitle={t('auth.pendingDescription')}
     >
       <View
-        className="items-center gap-4 rounded-3xl border border-border/40 bg-card p-6"
+        className="items-center gap-4 rounded-2xl border border-border/40 bg-card p-6"
         accessibilityRole="progressbar"
         accessibilityLabel={t('auth.pendingWaiting')}
       >

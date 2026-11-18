@@ -101,7 +101,7 @@ export function ProviderListingDetailsScreen({
     >
       {listing ? (
         <View testID="e2e-provider-listing-detail" className="gap-4">
-          <View className="aspect-[4/3] w-full overflow-hidden rounded-3xl bg-primary/10">
+          <View className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-primary/10">
             {listing.mainImageUrl ? (
               <Image
                 source={{ uri: listing.mainImageUrl }}

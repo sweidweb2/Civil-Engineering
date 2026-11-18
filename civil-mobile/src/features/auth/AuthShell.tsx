@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
+import { tracking } from '@/lib/rtl'
 import { softShadows } from '@/theme/shadows'
 
 /**
@@ -45,12 +46,14 @@ export function AuthShell({
           <HardHat size={28} color="#FFFFFF" />
         </View>
         {compact ? null : (
-          <Text className="mb-1 text-xs font-bold uppercase tracking-widest text-hero-foreground/70">
+          <Text
+            className={`mb-1 text-xs font-bold uppercase text-hero-foreground/70 ${tracking('widest')}`}
+          >
             {t('auth.tagline')}
           </Text>
         )}
         <Text
-          className="text-[34px] font-bold leading-10 tracking-tight text-hero-foreground"
+          className={`text-[34px] font-bold leading-10 text-hero-foreground ${tracking('tight')}`}
           accessibilityRole="header"
         >
           {title}

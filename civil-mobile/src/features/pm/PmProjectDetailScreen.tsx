@@ -192,7 +192,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
 
           <Pressable
             accessibilityRole="button"
-            className="flex-row items-center gap-3 rounded-3xl border border-primary/30 bg-primary/10 p-4 active:opacity-80"
+            className="flex-row items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 active:opacity-80"
             onPress={() => router.push(`${basePath}/${project.id}/stages` as never)}
           >
             <IconTile icon={ListChecks} />
@@ -264,7 +264,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
             />
           </Section>
 
-          <View className="gap-3 rounded-3xl border border-destructive/30 p-5">
+          <View className="gap-3 rounded-2xl border border-destructive/30 p-5">
             <View className="gap-0.5">
               <Text className="text-base font-bold text-destructive">
                 {t('projects.dangerZone')}

@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { toIntlLocale } from '@/lib/locale'
 import { cn } from '@/lib/utils'
 import {
   listNotifications,
@@ -92,7 +93,7 @@ function formatDate(iso: string, t: TFunction, locale: string): string {
     if (diffMins < 60) return t('notifications:time.minutesAgo', { count: diffMins })
     if (diffHours < 24) return t('notifications:time.hoursAgo', { count: diffHours })
     if (diffDays < 7) return t('notifications:time.daysAgo', { count: diffDays })
-    return date.toLocaleDateString(locale)
+    return date.toLocaleDateString(toIntlLocale(locale === 'ar' ? 'ar' : 'en'))
   } catch {
     return iso
   }

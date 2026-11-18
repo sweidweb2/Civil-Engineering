@@ -8,6 +8,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
+import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'
 import { showBlockingAlert } from '@/services/feedback'
 import { useToastSuccess } from '@/services/toast'
@@ -26,7 +27,7 @@ export function AdminQueueScreen() {
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [busyId, setBusyId] = useState<string | null>(null)
-  const { view, remote, list, listProps } = useResourceList(
+  const { remote, list, listProps } = useResourceList(
     ({ page, query, filter }) =>
       listApprovals({
         approval: filter as ApprovalListStatus,
@@ -65,7 +66,6 @@ export function AdminQueueScreen() {
   return (
     <ListScreen
       title={t('queue.title')}
-      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
       backHref="/admin/more"
       searchPlaceholder={t('queue.search')}
       filterOptions={filterOptions}
@@ -80,7 +80,7 @@ export function AdminQueueScreen() {
               title={userDisplayName(item)}
               statusLabel={enumLabel(t, 'role', item.role)}
               statusTone="info"
-              subtitle={item.email}
+              subtitle={ltr(item.email)}
               extra={
                 <View className="flex-row flex-wrap gap-2 pt-2">
                   {approval === 'pending' ? (

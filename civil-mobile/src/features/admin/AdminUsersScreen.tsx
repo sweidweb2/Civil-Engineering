@@ -6,6 +6,7 @@ import { Avatar, ListCard, ListScreen, StandardListRow, toneForStatus } from '@/
 import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'
 import { listUsers } from '@/services/users'
 
@@ -14,7 +15,7 @@ const BASE = '/admin/users'
 
 export function AdminUsersScreen() {
   const { t } = useTranslation()
-  const { view, listProps } = useResourceList(
+  const { listProps } = useResourceList(
     ({ page, query }) => listUsers(page, PAGE_SIZE, query || undefined, false),
     { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.users },
   )
@@ -22,7 +23,6 @@ export function AdminUsersScreen() {
   return (
     <ListScreen
       title={t('users.title')}
-      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
       searchPlaceholder={t('users.search')}
       addLabel={t('users.add')}
       onAdd={() => router.push(`${BASE}/new` as never)}
@@ -37,7 +37,7 @@ export function AdminUsersScreen() {
             title={userDisplayName(item)}
             statusLabel={enumLabel(t, 'userStatus', item.status)}
             statusTone={toneForStatus(item.status)}
-            subtitle={item.email}
+            subtitle={ltr(item.email)}
             extra={
               <Text className="text-xs font-semibold text-primary">
                 {enumLabel(t, 'role', item.role)}

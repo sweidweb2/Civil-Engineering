@@ -14,24 +14,23 @@ import { useTranslation } from 'react-i18next'
 
 import {
   ActionTile,
-  Avatar,
   Card,
   DashboardScroll,
   EmptyState,
-  HeroHeader,
-  HeroStat,
   IconTile,
   ListCard,
+  ScreenHeader,
   SectionLabel,
+  HeroCard,
+  SeeAll,
   StatusPill,
   Thumbnail,
   type Tone,
 } from '@/components/kit'
-import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { formatCount, fulfilledRows } from '@/lib/stats'
-import { userDisplayName, userFirstName } from '@/lib/user'
+import { userFirstName } from '@/lib/user'
 import { formatListingPrice, type Listing, listListings } from '@/services/listings'
 import { getMyProvider, type Provider } from '@/services/providers'
 import { useAuthStore } from '@/stores/authStore'
@@ -114,45 +113,34 @@ export function ProviderDashboardScreen() {
 
   return (
     <View className="flex-1 bg-background" testID="e2e-provider-dashboard">
-      <HeroHeader
-        eyebrow={data?.provider?.name ?? t('providerHome.eyebrow')}
+      <ScreenHeader
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-        subtitle={t('providerHome.subtitle')}
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('dashboard.openAccount')}
-            onPress={() => router.push('/provider/profile' as never)}
-          >
-            <Avatar name={user ? userDisplayName(user) : '?'} size={44} onHero />
-          </Pressable>
-        }
-      >
-        <View className="flex-row gap-3">
-          <HeroStat
-            label={t('providerHome.listings')}
-            value={formatCount(data?.total, isFirstLoad)}
-            onPress={() => router.push('/provider/listings' as never)}
-          />
-          <HeroStat
-            label={t('providerHome.live')}
-            value={formatCount(data?.live, isFirstLoad)}
-            onPress={() => router.push('/provider/listings' as never)}
-          />
-          <HeroStat
-            label={t('providerHome.hidden')}
-            value={formatCount(data?.hidden, isFirstLoad)}
-            onPress={() => router.push('/provider/listings' as never)}
-          />
-        </View>
-      </HeroHeader>
+      ></ScreenHeader>
 
       <DashboardScroll
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
+        <HeroCard
+          caption={t('providerHome.listings')}
+          value={formatCount(data?.total, isFirstLoad)}
+          onPress={() => router.push('/provider/listings' as never)}
+          stats={[
+            {
+              label: t('providerHome.live'),
+              value: formatCount(data?.live, isFirstLoad),
+              onPress: () => router.push('/provider/listings' as never),
+            },
+            {
+              label: t('providerHome.hidden'),
+              value: formatCount(data?.hidden, isFirstLoad),
+              onPress: () => router.push('/provider/listings' as never),
+            },
+          ]}
+        />
+
         {banner ? (
-          <View className={`flex-row items-center gap-4 rounded-3xl border p-4 ${banner.boxClass}`}>
+          <View className={`flex-row items-center gap-4 rounded-2xl border p-4 ${banner.boxClass}`}>
             <IconTile icon={banner.icon} tone={banner.tone} size={44} />
             <View className="min-w-0 flex-1 gap-0.5">
               <Text className={`text-base font-bold ${banner.textClass}`}>{t(banner.title)}</Text>
@@ -204,13 +192,10 @@ export function ProviderDashboardScreen() {
           <View className="gap-3">
             <SectionLabel
               action={
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={8}
+                <SeeAll
+                  label={t('common.seeAll')}
                   onPress={() => router.push('/provider/listings' as never)}
-                >
-                  <Text className="text-sm font-semibold text-primary">{t('common.seeAll')}</Text>
-                </Pressable>
+                />
               }
             >
               {t('providerHome.recent')}

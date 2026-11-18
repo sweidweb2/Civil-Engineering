@@ -7,7 +7,7 @@ import { AsyncState } from '@/components/feedback/AsyncState'
 import {
   FieldRow,
   FormScroll,
-  HeroHeader,
+  ScreenHeader,
   Section,
   SegmentedControl,
   StatusPill,
@@ -33,6 +33,7 @@ import { cacheKeys, invalidateProviderProfileCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { getMyProvider, updateProvider } from '@/services/providers'
 import { useToastSuccess } from '@/services/toast'
+import { softShadows } from '@/theme/shadows'
 
 type Key = keyof ProviderCompanyValues
 
@@ -99,11 +100,14 @@ export function ProviderProfileScreen() {
 
   return (
     <View className="flex-1 bg-background" testID="e2e-provider-profile">
-      <HeroHeader eyebrow={t('profile.eyebrow')} title={t('profile.title')}>
-        <View className="flex-row items-center gap-3">
+      <ScreenHeader title={t('profile.title')}>
+        <View
+          className="flex-row items-center gap-3 rounded-2xl border border-border/40 bg-card p-4"
+          style={softShadows.card}
+        >
           <Thumbnail imageUrl={logoUrl} icon={Building2} size={56} />
           <View className="min-w-0 flex-1 gap-1">
-            <Text className="text-lg font-bold text-hero-foreground" numberOfLines={1}>
+            <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
               {provider?.name ?? t('profile.yourCompany')}
             </Text>
             {provider ? (
@@ -116,7 +120,7 @@ export function ProviderProfileScreen() {
             ) : null}
           </View>
         </View>
-      </HeroHeader>
+      </ScreenHeader>
 
       <AsyncState
         isLoading={remote.isLoading}

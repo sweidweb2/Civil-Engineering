@@ -28,7 +28,7 @@ export function ListingsListScreen({
   const { t } = useTranslation()
   const isAdmin = scope === 'admin'
 
-  const { view, listProps } = useResourceList(
+  const { listProps } = useResourceList(
     ({ page, query }) =>
       listListings(page, PAGE_SIZE, {
         q: query || undefined,
@@ -44,7 +44,6 @@ export function ListingsListScreen({
     <View className="flex-1" testID="e2e-provider-listings">
       <ListScreen
         title={t('listings.title')}
-        subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
         backHref={isAdmin ? '/admin/more' : undefined}
         searchPlaceholder={t('listings.search')}
         addLabel={t('listings.add')}

@@ -6,16 +6,16 @@ import { useTranslation } from 'react-i18next'
 
 import {
   ActionTile,
-  Avatar,
   Card,
   DashboardScroll,
   EmptyState,
-  HeroHeader,
-  HeroStat,
   IconTile,
   PressableScale,
   ProgressBar,
+  ScreenHeader,
   SectionLabel,
+  HeroCard,
+  SeeAll,
   StatusPill,
   toneForStatus,
 } from '@/components/kit'
@@ -23,8 +23,9 @@ import { Pressable } from '@/components/ui/pressable'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { tracking } from '@/lib/rtl'
 import { formatCount, fulfilledRows, totalOf } from '@/lib/stats'
-import { userDisplayName, userFirstName } from '@/lib/user'
+import { userFirstName } from '@/lib/user'
 import { getProjectSummary, listProjects, type Project } from '@/services/projects'
 import { useAuthStore } from '@/stores/authStore'
 import { softShadows } from '@/theme/shadows'
@@ -61,7 +62,7 @@ function ActiveProjectCard({ project }: { project: Project }) {
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={project.name}
-      className="w-64 gap-4 rounded-3xl border border-border/40 bg-card p-5"
+      className="w-64 gap-4 rounded-2xl border border-border/40 bg-card p-5"
       style={softShadows.card}
       onPress={() => router.push(`/pm/projects/${project.id}` as never)}
     >
@@ -100,43 +101,37 @@ export function PmDashboardScreen() {
 
   return (
     <View className="flex-1 bg-background" testID="e2e-pm-dashboard">
-      <HeroHeader
-        eyebrow={t('pmHome.eyebrow')}
+      <ScreenHeader
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-        subtitle={t('pmHome.subtitle')}
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('dashboard.openAccount')}
-            onPress={() => router.push('/pm/account' as never)}
-          >
-            <Avatar name={user ? userDisplayName(user) : '?'} size={44} onHero />
-          </Pressable>
-        }
-      >
-        <View className="flex-row gap-3">
-          <HeroStat
-            label={t('pmHome.active')}
-            value={formatCount(data?.inProgress, isFirstLoad)}
-            onPress={() => router.push('/pm/projects' as never)}
-          />
-          <HeroStat
-            label={t('pmHome.onHold')}
-            value={formatCount(data?.onHold, isFirstLoad)}
-            onPress={() => router.push('/pm/projects' as never)}
-          />
-          <HeroStat
-            label={t('pmHome.completed')}
-            value={formatCount(data?.completed, isFirstLoad)}
-            onPress={() => router.push('/pm/projects' as never)}
-          />
-        </View>
-      </HeroHeader>
+      ></ScreenHeader>
 
       <DashboardScroll
         refreshing={remote.isFetching && Boolean(data)}
         onRefresh={() => void remote.refetch()}
       >
+        <HeroCard
+          caption={t('projects.title')}
+          value={formatCount(data?.total, isFirstLoad)}
+          onPress={() => router.push('/pm/projects' as never)}
+          stats={[
+            {
+              label: t('pmHome.active'),
+              value: formatCount(data?.inProgress, isFirstLoad),
+              onPress: () => router.push('/pm/projects' as never),
+            },
+            {
+              label: t('pmHome.onHold'),
+              value: formatCount(data?.onHold, isFirstLoad),
+              onPress: () => router.push('/pm/projects' as never),
+            },
+            {
+              label: t('pmHome.completed'),
+              value: formatCount(data?.completed, isFirstLoad),
+              onPress: () => router.push('/pm/projects' as never),
+            },
+          ]}
+        />
+
         {isEmpty ? (
           <Card className="items-center">
             <EmptyState
@@ -153,12 +148,12 @@ export function PmDashboardScreen() {
           <PressableScale
             accessibilityRole="button"
             accessibilityLabel={`${data.onHold} ${t('pmHome.onHoldCount')}`}
-            className="flex-row items-center gap-4 rounded-3xl border border-warning/30 bg-warning/10 p-4"
+            className="flex-row items-center gap-4 rounded-2xl border border-warning/30 bg-warning/10 p-4"
             onPress={() => router.push('/pm/projects' as never)}
           >
             <IconTile icon={PauseCircle} tone="warning" size={44} />
             <View className="min-w-0 flex-1">
-              <Text className="text-xs font-bold uppercase tracking-widest text-warning">
+              <Text className={`text-xs font-bold uppercase text-warning ${tracking('widest')}`}>
                 {t('pmHome.attention')}
               </Text>
               <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
@@ -217,13 +212,10 @@ export function PmDashboardScreen() {
           <View className="gap-3">
             <SectionLabel
               action={
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={8}
+                <SeeAll
+                  label={t('common.seeAll')}
                   onPress={() => router.push('/pm/projects' as never)}
-                >
-                  <Text className="text-sm font-semibold text-primary">{t('common.seeAll')}</Text>
-                </Pressable>
+                />
               }
             >
               {t('pmHome.recent')}

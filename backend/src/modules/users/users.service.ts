@@ -333,7 +333,7 @@ export function createUsersService(
         throw forbidden('Only admins can change role, status, or verification')
       }
 
-      return repository.update(id, {
+      const updated = await repository.update(id, {
         role: input.role,
         status: input.status,
         isVerified: input.isVerified,
@@ -346,6 +346,13 @@ export function createUsersService(
           phone: input.phone,
         },
       })
+
+      // Avoid orphan marketplace CVs when the account leaves the WORKER role.
+      if (user.role === 'WORKER' && input.role !== undefined && input.role !== 'WORKER') {
+        await repository.deleteWorkerProfileByUserId(id)
+      }
+
+      return updated
     },
 
     async setAvatar(id, input, actor) {

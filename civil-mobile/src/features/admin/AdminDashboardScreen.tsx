@@ -15,14 +15,15 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import {
-  Avatar,
   Card,
   DashboardScroll,
-  HeroHeader,
+  DirectionalIcon,
   IconTile,
   PressableScale,
   ProgressBar,
+  ScreenHeader,
   SectionLabel,
+  SeeAll,
   StatCard,
   StatusPill,
   type Tone,
@@ -34,7 +35,7 @@ import { useThemeColors } from '@/hooks/useThemeColors'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { formatCount } from '@/lib/stats'
-import { userDisplayName, userFirstName } from '@/lib/user'
+import { userFirstName } from '@/lib/user'
 import { type AdminOverview, getAdminOverview } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -95,7 +96,7 @@ function AttentionRow({
       <View className="min-w-7 items-center rounded-full bg-warning px-2 py-0.5">
         <Text className="text-sm font-bold text-white">{count}</Text>
       </View>
-      <ChevronRight size={18} color={colors.disabled} />
+      <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
     </Pressable>
   )
 }
@@ -109,7 +110,7 @@ function QuickAction({ icon, label, href }: { icon: LucideIcon; label: string; h
       className="min-w-0 flex-1 items-center gap-2"
       onPress={() => router.push(href as never)}
     >
-      <IconTile icon={icon} size={60} />
+      <IconTile icon={icon} size={56} round />
       <Text className="text-center text-xs font-semibold text-foreground" numberOfLines={2}>
         {label}
       </Text>
@@ -149,19 +150,8 @@ export function AdminDashboardScreen() {
 
   return (
     <View className="flex-1 bg-background" testID="e2e-root">
-      <HeroHeader
-        eyebrow={t('dashboard.eyebrow')}
+      <ScreenHeader
         title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-        subtitle={t('dashboard.subtitle')}
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('dashboard.openAccount')}
-            onPress={() => router.push('/admin/account' as never)}
-          >
-            <Avatar name={user ? userDisplayName(user) : '?'} size={44} onHero />
-          </Pressable>
-        }
       />
 
       <DashboardScroll
@@ -232,13 +222,10 @@ export function AdminDashboardScreen() {
           <View className="gap-3">
             <SectionLabel
               action={
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={8}
+                <SeeAll
+                  label={t('common.seeAll')}
                   onPress={() => router.push('/admin/projects' as never)}
-                >
-                  <Text className="text-sm font-semibold text-primary">{t('common.seeAll')}</Text>
-                </Pressable>
+                />
               }
             >
               {t('dashboard.recentProjects')}

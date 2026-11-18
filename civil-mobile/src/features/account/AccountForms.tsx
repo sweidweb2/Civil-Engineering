@@ -17,6 +17,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { type FieldErrors, parseForm } from '@/lib/form'
+import { ltr } from '@/lib/rtl'
 import { changePassword } from '@/services/auth'
 import { useToastSuccess } from '@/services/toast'
 import { getUser, updateUser } from '@/services/users'
@@ -100,7 +101,11 @@ export function AccountDetailsForm() {
   }
 
   return (
-    <Section title={t('account.details')} description={user?.email} icon={UserRound}>
+    <Section
+      title={t('account.details')}
+      description={user?.email ? ltr(user.email) : undefined}
+      icon={UserRound}
+    >
       <FieldRow>
         <TextField
           label={t('common.firstName')}
@@ -226,7 +231,7 @@ export function LogoutRow() {
       accessibilityRole="button"
       accessibilityState={{ busy: isLoggingOut }}
       disabled={isLoggingOut}
-      className="h-14 flex-row items-center justify-center gap-2 rounded-3xl border border-destructive/30 bg-destructive/10 active:opacity-80"
+      className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 active:opacity-80"
       onPress={requestLogout}
     >
       <LogOut size={18} color={colors.error} />

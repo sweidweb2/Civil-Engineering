@@ -113,6 +113,8 @@ export type UsersRepository = {
   updateStatus: (id: string, status: UserStatus) => Promise<User>
   /** Stores File.id in Profile.avatarUrl (private R2 object; resolve via files download URL). */
   setAvatarFileId: (userId: string, fileId: string | null) => Promise<User>
+  /** Drops marketplace CV when the account is no longer a worker. */
+  deleteWorkerProfileByUserId: (userId: string) => Promise<void>
   delete: (id: string) => Promise<'deleted' | 'in_use'>
 }
 
@@ -500,6 +502,10 @@ export function createUsersRepository(): UsersRepository {
         include: { profile: true },
       })
       return mapToUser(user)
+    },
+
+    async deleteWorkerProfileByUserId(userId) {
+      await prisma.workerProfile.deleteMany({ where: { userId } })
     },
 
     async delete(id) {

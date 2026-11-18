@@ -11,7 +11,7 @@ function FlowRow({
 }) {
   const radius = 7
   return (
-    <svg viewBox={`0 0 280 ${height}`} className="mt-2 h-auto w-full rtl:-scale-x-100" aria-hidden>
+    <svg viewBox={`0 0 280 ${height}`} className="mt-2 h-auto w-full" aria-hidden>
       {links.map(([from, to]) => {
         const start = nodes[from]
         const end = nodes[to]

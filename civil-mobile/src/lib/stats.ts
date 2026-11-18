@@ -1,3 +1,5 @@
+import { intlLocale } from '@/lib/locale'
+
 /** Extract a list `meta.total` from a settled count/list promise. */
 export function totalOf(result: PromiseSettledResult<{ meta: { total: number } }>): number | null {
   return result.status === 'fulfilled' ? result.value.meta.total : null
@@ -11,5 +13,5 @@ export function fulfilledRows<T>(result: PromiseSettledResult<{ data: T[] }>): T
 /** Dashboard tile display: loading ellipsis, dash on failure, locale number otherwise. */
 export function formatCount(value: number | null | undefined, isLoading: boolean): string {
   if (isLoading) return '…'
-  return value == null ? '—' : value.toLocaleString()
+  return value == null ? '—' : value.toLocaleString(intlLocale())
 }

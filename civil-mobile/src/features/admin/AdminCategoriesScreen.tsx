@@ -14,7 +14,7 @@ const BASE = '/admin/categories'
 
 export function AdminCategoriesScreen() {
   const { t } = useTranslation()
-  const { view, listProps } = useResourceList(
+  const { listProps } = useResourceList(
     ({ page, query, filter }) =>
       listCategories(page, PAGE_SIZE, {
         q: query || undefined,
@@ -28,7 +28,6 @@ export function AdminCategoriesScreen() {
   return (
     <ListScreen
       title={t('categories.title')}
-      subtitle={view.total ? t('common.total', { count: view.total }) : undefined}
       backHref="/admin/more"
       searchPlaceholder={t('categories.search')}
       filterOptions={kindOptions}

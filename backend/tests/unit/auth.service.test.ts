@@ -292,7 +292,10 @@ describe('auth.service', () => {
         newPassword: 'newsecret1',
         confirmPassword: 'newsecret1',
       }),
-    ).resolves.toBeUndefined()
+    ).resolves.toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    })
 
     expect(repository.updatePasswordHashAndInvalidateRefresh).toHaveBeenCalledWith(
       'user-1',
@@ -342,5 +345,27 @@ describe('auth.service', () => {
       status: 401,
     })
     expect(repository.claimRefreshJti).not.toHaveBeenCalled()
+  })
+
+  it('accepts refresh tokens issued in the same second as a password change', async () => {
+    const nowSec = Math.floor(Date.now() / 1000)
+    const { verifyRefreshToken } = await import('../../src/modules/auth/auth.tokens.js')
+    vi.mocked(verifyRefreshToken).mockReturnValueOnce({
+      sub: 'user-1',
+      role: 'CLIENT',
+      typ: 'refresh',
+      jti: 'jti-1',
+      iat: nowSec,
+      exp: 9999999999,
+    })
+    vi.mocked(repository.findById).mockResolvedValue(
+      makeUser({ refreshInvalidBefore: new Date(nowSec * 1000 + 500) }),
+    )
+    const service = createAuthService(repository, config)
+
+    await expect(service.refreshTokens({ refreshToken: 'good' })).resolves.toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    })
   })
 })

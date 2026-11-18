@@ -94,8 +94,8 @@ export function createAuthController(service: AuthService, config: AppConfig): A
     async changePassword(req, res, next) {
       try {
         const userId = requireUserId(req)
-        await service.changePassword(userId, req.body)
-        res.status(204).send()
+        const tokens = await service.changePassword(userId, req.body)
+        res.status(200).json(tokens)
       } catch (error) {
         next(error)
       }

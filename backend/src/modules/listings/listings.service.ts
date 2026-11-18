@@ -7,15 +7,11 @@ import type { StorageService } from '../../storage/storage.service.js'
 import type { ProvidersService } from '../providers/index.js'
 import type {
   CreateListingRecordInput,
-  ListingPriceFields,
-  ListingPriceUpdate,
   ListingRecord,
   ListingsRepository,
 } from './listings.repository.js'
 import type {
   BulkPriceAdjustBody,
-  BulkPriceDirection,
-  BulkPriceMode,
   CreateListingBody,
   ImportListingsBody,
   ListListingsQuery,
@@ -151,46 +147,6 @@ function normalizePricing(input: {
     priceMin: input.priceMin ?? null,
     priceMax: input.priceMax ?? null,
   }
-}
-
-function hasPricedField(value: string | null) {
-  return value != null && value !== ''
-}
-
-function listingHasAnyPrice(row: ListingPriceFields) {
-  return (
-    hasPricedField(row.price) ||
-    hasPricedField(row.priceMin) ||
-    hasPricedField(row.priceMax) ||
-    hasPricedField(row.rentalPrice)
-  )
-}
-
-/** Keep Decimal(18, 4) as a fixed 4-place string for Prisma. */
-function formatAdjustedPrice(value: number): string {
-  // Max integer digits for Decimal(18,4); avoid non-safe float literals (eslint no-loss-of-precision).
-  const maxDecimal184 = 99_999_999_999_999
-  const clamped = Math.max(0, Math.min(value, maxDecimal184))
-  return (Math.round(clamped * 10_000) / 10_000).toFixed(4)
-}
-
-function adjustAmount(
-  raw: string | null,
-  direction: BulkPriceDirection,
-  mode: BulkPriceMode,
-  delta: number,
-): string | null {
-  if (!hasPricedField(raw)) return raw
-  const current = Number(raw)
-  if (!Number.isFinite(current)) return raw
-  let next: number
-  if (mode === 'percentage') {
-    const factor = direction === 'increase' ? 1 + delta / 100 : 1 - delta / 100
-    next = current * factor
-  } else {
-    next = direction === 'increase' ? current + delta : current - delta
-  }
-  return formatAdjustedPrice(next)
 }
 
 export function createListingsService(
@@ -453,28 +409,13 @@ export function createListingsService(
 
     async bulkAdjustPrices(input, actor) {
       const providerId = await resolveManageProviderId(actor, input.providerId)
-
       const delta = Number(input.value)
-      let skipped = 0
-      const updated = await repository.lockAndUpdatePrices(providerId, (rows) => {
-        const updates: ListingPriceUpdate[] = []
-        skipped = 0
-        for (const row of rows) {
-          if (!listingHasAnyPrice(row)) {
-            skipped += 1
-            continue
-          }
-          updates.push({
-            id: row.id,
-            price: adjustAmount(row.price, input.direction, input.mode, delta),
-            priceMin: adjustAmount(row.priceMin, input.direction, input.mode, delta),
-            priceMax: adjustAmount(row.priceMax, input.direction, input.mode, delta),
-            rentalPrice: adjustAmount(row.rentalPrice, input.direction, input.mode, delta),
-          })
-        }
-        return updates
+      return repository.adjustProviderPrices({
+        providerId,
+        direction: input.direction,
+        mode: input.mode,
+        delta,
       })
-      return { updated, skipped }
     },
 
     async importListings(input, actor) {

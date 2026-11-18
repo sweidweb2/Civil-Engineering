@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { cvCompletenessPercent } from '@/features/worker/cvCompleteness'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys, invalidateWorkerCaches } from '@/lib/cacheKeys'
@@ -18,6 +19,11 @@ import {
 export type WorkerSaveContext = {
   profile: WorkerProfile | null
   base: WorkerProfileWriteInput
+}
+
+export type WorkerSaveOptions = {
+  /** Toast shown on success. Defaults to "CV saved"; `null` shows none. */
+  successMessage?: string | null
 }
 
 export type WorkerSavePatch =
@@ -51,7 +57,10 @@ export function useWorkerProfile() {
   const isReady = remote.status === 'success'
   const error = remote.status === 'error' ? remote.error : undefined
 
-  async function saveMerged(patch: WorkerSavePatch): Promise<boolean> {
+  async function saveMerged(
+    patch: WorkerSavePatch,
+    options: WorkerSaveOptions = {},
+  ): Promise<boolean> {
     if (!isReady) {
       handleApiError(new Error('Worker profile is still loading'), t('worker.saveFailed'))
       return false
@@ -59,7 +68,7 @@ export function useWorkerProfile() {
 
     setIsSaving(true)
     try {
-      await enqueueWorkerSave(async () => {
+      const { before, after } = await enqueueWorkerSave(async () => {
         const latest = await getMyWorkerProfile()
         const base = latest.data ? profileToWrite(latest.data) : { ...EMPTY_WORKER_WRITE }
         const body: WorkerProfileWriteInput =
@@ -67,9 +76,13 @@ export function useWorkerProfile() {
             ? patch({ profile: latest.data, base })
             : { ...base, ...patch }
         await upsertMyWorkerProfile(body)
+        return { before: cvCompletenessPercent(latest.data), after: cvCompletenessPercent(body) }
       })
       invalidateWorkerCaches()
-      toastSuccess(t('worker.saved'))
+      if (after === 100 && before < 100) toastSuccess(t('worker.cvComplete'))
+      else if (options.successMessage !== null) {
+        toastSuccess(options.successMessage ?? t('worker.saved'))
+      }
       await remote.refetch({ fresh: true })
       return true
     } catch (error) {

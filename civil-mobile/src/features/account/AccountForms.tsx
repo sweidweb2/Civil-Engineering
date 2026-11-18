@@ -25,8 +25,8 @@ const EMPTY_PASSWORD: ProviderPasswordValues = {
   confirmPassword: '',
 }
 
-/** Edit the signed-in user's own name and phone. */
-export function AccountDetailsForm() {
+/** State + save for the signed-in user's own name and phone. */
+export function useAccountDetails() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const userId = user?.id
@@ -96,6 +96,14 @@ export function AccountDetailsForm() {
     }
   }
 
+  return { user, form, set, errors, isSaving, onSave }
+}
+
+/** Edit the signed-in user's own name and phone. */
+export function AccountDetailsForm() {
+  const { t } = useTranslation()
+  const { user, form, set, errors, isSaving, onSave } = useAccountDetails()
+
   return (
     <Section title={t('account.details')} description={user?.email ? ltr(user.email) : undefined}>
       <FieldRow>
@@ -138,7 +146,8 @@ export function AccountDetailsForm() {
   )
 }
 
-export function PasswordForm() {
+/** State + submit for changing the signed-in user's password. */
+export function usePasswordChange() {
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
@@ -168,6 +177,13 @@ export function PasswordForm() {
       setIsSaving(false)
     }
   }
+
+  return { form, set, errors, isSaving, onSave }
+}
+
+export function PasswordForm() {
+  const { t } = useTranslation()
+  const { form, set, errors, isSaving, onSave } = usePasswordChange()
 
   return (
     <Section title={t('account.password')} description={t('account.passwordHint')}>

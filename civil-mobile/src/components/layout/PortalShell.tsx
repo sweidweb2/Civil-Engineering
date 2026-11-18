@@ -11,6 +11,7 @@ import {
   BottomNavigation,
   type BottomNavItem,
 } from '@/components/layout/BottomNavigation'
+import { WorkerTabBar } from '@/features/worker/ui/WorkerTabBar'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import {
   ADMIN_MORE_LINKS,
@@ -94,11 +95,24 @@ export function PortalShell({ portal, children }: PortalShellProps) {
     [nav, pathname, portal, themeColors, t],
   )
 
+  // The worker portal has its own palette and a floating pill tab bar.
+  const isWorker = portal === 'worker'
+
   return (
-    <View className="flex-1 bg-background">
+    <View className={`flex-1 ${isWorker ? 'bg-wk-bg' : 'bg-background'}`}>
       <View className="min-h-0 w-full max-w-[720px] flex-1 self-center">
         <View className="min-h-0 flex-1">{children}</View>
-        {isTopLevel ? <BottomNavigation items={items} action={action} /> : null}
+        {isTopLevel && isWorker ? (
+          <WorkerTabBar
+            items={items}
+            renderIcon={(item, color) => {
+              const Icon = nav.find((n) => n.key === item.key)?.icon
+              return Icon ? <Icon size={20} strokeWidth={2} color={color} /> : null
+            }}
+          />
+        ) : isTopLevel ? (
+          <BottomNavigation items={items} action={action} />
+        ) : null}
         {portal === 'admin' ? (
           <BottomSheet
             visible={createOpen}

@@ -53,9 +53,41 @@ const SKIP_REFRESH_PATHS = new Set([
   '/auth/logout',
 ])
 
+/** Default budget for API calls so hung backends cannot stall the UI forever. */
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
+/** Uploads may be larger; still bounded. */
+const UPLOAD_REQUEST_TIMEOUT_MS = 60_000
+
 function shouldSkipRefresh(path: string): boolean {
   const pathname = path.split('?')[0] ?? path
   return SKIP_REFRESH_PATHS.has(pathname)
+}
+
+function createTimeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+    return AbortSignal.timeout(ms)
+  }
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), ms)
+  return controller.signal
+}
+
+/** Merge caller abort with a timeout so either can cancel the request. */
+function withRequestTimeout(timeoutMs: number, signal?: AbortSignal | null): AbortSignal {
+  const timeout = createTimeoutSignal(timeoutMs)
+  if (!signal) return timeout
+  if (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal) {
+    return AbortSignal.any([timeout, signal])
+  }
+  const controller = new AbortController()
+  const onAbort = () => controller.abort()
+  if (signal.aborted || timeout.aborted) {
+    controller.abort()
+    return controller.signal
+  }
+  signal.addEventListener('abort', onAbort, { once: true })
+  timeout.addEventListener('abort', onAbort, { once: true })
+  return controller.signal
 }
 
 async function exchangeRefreshToken(refreshToken?: string | null): Promise<AuthTokens> {
@@ -64,6 +96,7 @@ async function exchangeRefreshToken(refreshToken?: string | null): Promise<AuthT
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+    signal: createTimeoutSignal(DEFAULT_REQUEST_TIMEOUT_MS),
   })
 
   const data = (await response.json().catch(() => ({}))) as ApiErrorBody & AuthTokens
@@ -112,6 +145,13 @@ export type ApiRequestOptions = RequestInit & {
   skipAuthRefresh?: boolean
   /** Byte progress for multipart uploads. Uses XHR because fetch cannot report it. */
   onUploadProgress?: (percent: number) => void
+  /** Override the default request timeout (ms). */
+  timeoutMs?: number
+}
+
+/** Apply refreshed session tokens through the bound auth bridge (if any). */
+export function applySessionTokens(tokens: AuthTokens): void {
+  authSession?.setTokens(tokens)
 }
 
 function toHeaderRecord(headers: HeadersInit | undefined): Record<string, string> {
@@ -138,6 +178,7 @@ function uploadWithProgress(
     body: FormData
     onUploadProgress: (percent: number) => void
     signal?: AbortSignal | null
+    timeoutMs?: number
   },
 ): Promise<Response> {
   return new Promise((resolve, reject) => {
@@ -145,6 +186,7 @@ function uploadWithProgress(
     xhr.open(init.method, url)
     xhr.withCredentials = true
     xhr.responseType = 'text'
+    xhr.timeout = init.timeoutMs ?? UPLOAD_REQUEST_TIMEOUT_MS
     for (const [key, value] of Object.entries(init.headers)) {
       xhr.setRequestHeader(key, value)
     }
@@ -174,6 +216,7 @@ function uploadWithProgress(
       )
     }
     xhr.onerror = () => reject(new ApiError(0, 'Upload failed'))
+    xhr.ontimeout = () => reject(new ApiError(0, 'Upload timed out'))
     xhr.onabort = () => reject(new DOMException('The operation was aborted.', 'AbortError'))
 
     if (init.signal) {
@@ -189,7 +232,7 @@ function uploadWithProgress(
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { accessToken, skipAuthRefresh, headers, onUploadProgress, ...rest } = options
+  const { accessToken, skipAuthRefresh, headers, onUploadProgress, timeoutMs, ...rest } = options
   const method = (rest.method ?? 'GET').toUpperCase()
   const requestId =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -214,19 +257,24 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     }
 
     const networkStarted = performance.now()
+    const resolvedTimeoutMs =
+      timeoutMs ?? (isFormData ? UPLOAD_REQUEST_TIMEOUT_MS : DEFAULT_REQUEST_TIMEOUT_MS)
+    const signal = withRequestTimeout(resolvedTimeoutMs, rest.signal)
     const response =
-      onUploadProgress && rest.body instanceof FormData
+      onUploadProgress && isFormData
         ? await uploadWithProgress(`${API_BASE_URL}${path}`, {
             method: (rest.method ?? 'POST').toUpperCase(),
             headers: requestHeaders,
-            body: rest.body,
+            body: rest.body as FormData,
             onUploadProgress,
-            signal: rest.signal,
+            signal,
+            timeoutMs: resolvedTimeoutMs,
           })
         : await fetch(`${API_BASE_URL}${path}`, {
             ...rest,
             credentials: 'include',
             headers: requestHeaders,
+            signal,
           })
     const networkMs = Math.round(performance.now() - networkStarted)
     perfLog('api', `network ${method} ${path} ${networkMs}ms status=${response.status}`, {

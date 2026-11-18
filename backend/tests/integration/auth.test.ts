@@ -157,7 +157,9 @@ describe.skipIf(!hasDb)('auth API (integration)', () => {
         newPassword: 'password2',
         confirmPassword: 'password2',
       })
-    expect(changed.status).toBe(204)
+    expect(changed.status).toBe(200)
+    expect(changed.body.accessToken).toBeTruthy()
+    expect(changed.body.refreshToken).toBeTruthy()
 
     const oldLogin = await request(app).post('/api/v1/auth/login').send({
       email: 'pwd@example.com',

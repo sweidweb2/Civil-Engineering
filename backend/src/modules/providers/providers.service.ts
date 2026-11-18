@@ -276,34 +276,25 @@ export function createProvidersService(
       const key = `providers/${id}/logo/${objectId}.webp`
       const previous = provider.logoUrl
 
-      // CAS DB pointer first so concurrent uploads cannot both win; then put to R2.
+      // R2 first so a hang/timeout never leaves the DB pointing at a missing object.
+      // CAS then claims the pointer; losers delete their orphan object.
+      await storage.putObject({
+        key,
+        body: webpBuffer,
+        contentType: 'image/webp',
+      })
+
       const updated = await repository.compareAndSetLogo(id, previous, key)
       if (!updated) {
-        throw conflict('Provider logo was changed by another request', 'PROVIDER_LOGO_CONFLICT')
-      }
-
-      try {
-        await storage.putObject({
-          key,
-          body: webpBuffer,
-          contentType: 'image/webp',
-        })
-      } catch (error) {
         try {
-          const reverted = await repository.compareAndSetLogo(id, key, previous)
-          if (!reverted) {
-            getLogger().error(
-              { providerId: id, storagePath: key },
-              'failed to revert provider logo after storage put failure (CAS miss)',
-            )
-          }
-        } catch (revertError) {
+          await storage.deleteObject(key)
+        } catch (error) {
           getLogger().error(
-            { err: revertError, providerId: id, storagePath: key },
-            'failed to revert provider logo after storage put failure',
+            { err: error, providerId: id, storagePath: key },
+            'failed to delete orphan provider logo after CAS miss',
           )
         }
-        throw error
+        throw conflict('Provider logo was changed by another request', 'PROVIDER_LOGO_CONFLICT')
       }
 
       if (previous && previous !== key && !/^https?:\/\//i.test(previous)) {

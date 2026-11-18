@@ -1,155 +1,243 @@
-import { useEffect, useMemo, useState } from 'react'
-import { router } from 'expo-router'
-import { X } from 'lucide-react-native'
+import { useState } from 'react'
+import { ActivityIndicator, Text, View } from 'react-native'
+import { Plus, Search, Wrench, X } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import {
-  ChoiceField,
-  EmptyState,
-  FormScreen,
-  MenuGroup,
-  MenuRow,
-  Section,
-  SelectField,
-} from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { Pressable } from '@/components/ui/pressable'
+import { WkPickerSheet } from '@/features/worker/ui/forms'
+import {
+  WkBodyScroll,
+  WkEmpty,
+  WkError,
+  WkEyebrow,
+  WkGroup,
+  WkGroupLabel,
+  WkPill,
+  WkSkeletonCard,
+  WkTopBar,
+} from '@/features/worker/ui/kit'
+import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { SKILL_LEVEL_TONE } from '@/features/worker/ui/sections'
+import { useWorkerCategories } from '@/features/worker/useWorkerCategories'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
-import { useRemoteData } from '@/hooks/useRemoteData'
-import { useThemeColors } from '@/hooks/useThemeColors'
-import { enumLabel, enumOptions } from '@/i18n/labels'
-import { cacheKeys } from '@/lib/cacheKeys'
-import { listCategories } from '@/services/categories'
+import { enumLabel } from '@/i18n/labels'
+import { errorMessage } from '@/services/feedback'
 import {
   WORKER_SKILL_LEVEL_OPTIONS,
+  type WorkerSkill,
   type WorkerSkillLevel,
-  type WorkerSkillWrite,
 } from '@/services/workers'
 
+/**
+ * Skills: every add / remove saves straight away (no Save button). Saves go
+ * through the shared serialized PUT queue, so quick successive taps cannot
+ * clobber each other.
+ */
 export function WorkerSkillsScreen() {
   const { t, i18n } = useTranslation()
-  const colors = useThemeColors()
-  const { profile, isReady, isLoading, error, refetch, isSaving, saveMerged } = useWorkerProfile()
-  const [skills, setSkills] = useState<WorkerSkillWrite[]>([])
-  const [draftCategoryId, setDraftCategoryId] = useState('')
-  const [draftLevel, setDraftLevel] = useState<WorkerSkillLevel>('INTERMEDIATE')
+  const { c } = useWorkerPalette()
+  const { profile, isReady, error, refetch, isSaving, saveMerged } = useWorkerProfile()
+  const { trades, isLoading: tradesLoading } = useWorkerCategories()
+  const [draft, setDraft] = useState<{ id: string; label: string } | null>(null)
+  const [level, setLevel] = useState<WorkerSkillLevel>('INTERMEDIATE')
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
-  const loadCategories = useMemo(
-    () => () => listCategories(1, 100, { kind: 'WORKER', includeCounts: false }),
-    [],
-  )
-  const categoriesRemote = useRemoteData(loadCategories, {
-    cacheKey: `${cacheKeys.categoriesPicker}:WORKER`,
-  })
-  const categories =
-    categoriesRemote.status === 'success'
-      ? categoriesRemote.data.data.filter((c) => c.isActive)
-      : []
+  const isAr = i18n.language?.startsWith('ar') ?? false
+  const skills = profile?.skills ?? []
+  const nameOf = (s: WorkerSkill) => (isAr && s.categoryNameAr ? s.categoryNameAr : s.categoryName)
+  const owned = new Set(skills.map((s) => s.categoryId))
+  const options = trades
+    .filter((tr) => !owned.has(tr.id))
+    .map((tr) => ({ value: tr.id, label: tr.label }))
 
-  useEffect(() => {
-    if (!profile) return
-    setSkills(profile.skills.map((s) => ({ categoryId: s.categoryId, level: s.level })))
-  }, [profile])
-
-  const categoryOptions = categories
-    .filter((c) => !skills.some((s) => s.categoryId === c.id) || c.id === draftCategoryId)
-    .map((c) => ({
-      value: c.id,
-      label: i18n.language?.startsWith('ar') && c.nameAr ? c.nameAr : c.name,
-    }))
-
-  const nameById = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const c of categories) {
-      map.set(c.id, i18n.language?.startsWith('ar') && c.nameAr ? c.nameAr : c.name)
+  async function addSkill() {
+    if (!draft || adding) return
+    const pick = draft
+    setAdding(true)
+    const ok = await saveMerged(
+      ({ base }) =>
+        base.skills.some((s) => s.categoryId === pick.id)
+          ? base
+          : { ...base, skills: [...base.skills, { categoryId: pick.id, level }] },
+      { successMessage: t('worker.skillAdded', { name: pick.label }) },
+    )
+    setAdding(false)
+    if (ok) {
+      setDraft(null)
+      setLevel('INTERMEDIATE')
     }
-    if (profile) {
-      for (const s of profile.skills) {
-        if (!map.has(s.categoryId)) {
-          map.set(
-            s.categoryId,
-            i18n.language?.startsWith('ar') && s.categoryNameAr ? s.categoryNameAr : s.categoryName,
-          )
-        }
-      }
-    }
-    return map
-  }, [categories, i18n.language, profile])
-
-  function addSkill() {
-    if (!draftCategoryId) return
-    if (skills.some((s) => s.categoryId === draftCategoryId)) return
-    setSkills((current) => [...current, { categoryId: draftCategoryId, level: draftLevel }])
-    setDraftCategoryId('')
-    setDraftLevel('INTERMEDIATE')
   }
 
-  async function onSave() {
-    const ok = await saveMerged(({ base }) => ({ ...base, skills }))
-    if (ok) router.back()
+  async function removeSkill(skill: WorkerSkill) {
+    if (removingId) return
+    setRemovingId(skill.categoryId)
+    await saveMerged(
+      ({ base }) => ({
+        ...base,
+        skills: base.skills.filter((s) => s.categoryId !== skill.categoryId),
+      }),
+      { successMessage: t('worker.skillRemoved', { name: nameOf(skill) }) },
+    )
+    setRemovingId(null)
   }
+
+  const canAdd = Boolean(draft) && isReady
 
   return (
-    <FormScreen
-      title={t('worker.sections.skills')}
-      subtitle={t('worker.skillsHint')}
-      backHref="/worker/cv"
-      isLoading={isLoading}
-      error={error}
-      onRetry={() => void refetch({ fresh: true })}
-      loadingLabel={t('worker.loading')}
-      footer={
-        <Button onPress={() => void onSave()} disabled={isSaving || !isReady} className="w-full">
-          {isSaving ? <ButtonSpinner /> : null}
-          <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
-        </Button>
-      }
-    >
-      <Section title={t('worker.addSkill')} description={t('worker.addSkillHint')}>
-        <SelectField
-          label={t('worker.trade')}
-          placeholder={t('worker.pickTrade')}
-          options={categoryOptions}
-          value={draftCategoryId}
-          onChange={setDraftCategoryId}
-        />
-        <ChoiceField
-          label={t('worker.skillLevel')}
-          value={draftLevel}
-          onChange={(value) => setDraftLevel(value as WorkerSkillLevel)}
-          options={enumOptions(t, 'workerSkillLevel', WORKER_SKILL_LEVEL_OPTIONS)}
-        />
-        <Button variant="outline" onPress={addSkill} disabled={!draftCategoryId} className="w-full">
-          <ButtonText>{t('worker.addSkillAction')}</ButtonText>
-        </Button>
-      </Section>
+    <View className="flex-1 bg-wk-bg">
+      <WkTopBar
+        title={t('worker.sections.skills')}
+        backHref="/worker/cv"
+        count={skills.length ? t('worker.countTotal', { count: skills.length }) : undefined}
+      />
+      <WkBodyScroll bottom={60}>
+        {error && !profile ? (
+          <WkError
+            message={errorMessage(error, t('common.errorGeneric'))}
+            onRetry={() => void refetch({ fresh: true })}
+          />
+        ) : null}
 
-      {skills.length === 0 ? (
-        <EmptyState title={t('worker.skillsEmpty')} description={t('worker.skillsEmptyHint')} />
-      ) : (
-        <MenuGroup>
-          {skills.map((skill, index) => (
-            <MenuRow
-              key={skill.categoryId}
-              label={nameById.get(skill.categoryId) ?? skill.categoryId}
-              hint={enumLabel(t, 'workerSkillLevel', skill.level)}
-              last={index === skills.length - 1}
-              trailing={
+        {/* Add a trade */}
+        <View className="gap-3.5 rounded-[22px] bg-wk-hero p-[18px]">
+          <WkEyebrow hero>{t('worker.addSkill')}</WkEyebrow>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t('worker.trade')}: ${draft?.label ?? t('worker.searchTrades')}`}
+            onPress={() => setPickerOpen(true)}
+            className="h-12 flex-row items-center justify-between gap-2 rounded-xl border border-wk-hero-line bg-wk-hero-field pe-3 ps-3.5 active:opacity-80"
+          >
+            <Text
+              className={`min-w-0 flex-1 text-[15px] ${draft ? 'text-wk-hero-ink' : 'text-wk-hero-mute'}`}
+              numberOfLines={1}
+            >
+              {draft?.label ?? t('worker.searchTrades')}
+            </Text>
+            <Search size={17} color={c.heroMute} strokeWidth={1.9} />
+          </Pressable>
+
+          <View
+            className="flex-row gap-1.5 rounded-[14px] bg-wk-hero-field p-1"
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t('worker.skillLevel')}
+          >
+            {WORKER_SKILL_LEVEL_OPTIONS.map((opt) => {
+              const on = opt.value === level
+              return (
                 <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t('common.remove')} ${nameById.get(skill.categoryId) ?? ''}`}
-                  onPress={() =>
-                    setSkills((current) => current.filter((s) => s.categoryId !== skill.categoryId))
-                  }
-                  className="-me-3 size-11 items-center justify-center rounded-full active:bg-muted"
+                  key={opt.value}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => setLevel(opt.value)}
+                  className={`h-10 flex-1 items-center justify-center rounded-[10px] ${on ? 'bg-wk-hero-ink' : ''}`}
                 >
-                  <X size={18} color={colors.muted} strokeWidth={1.75} />
+                  <Text
+                    className={`text-[13px] font-medium ${on ? 'text-wk-hero' : 'text-wk-hero-mute'}`}
+                    numberOfLines={1}
+                  >
+                    {enumLabel(t, 'workerSkillLevel', opt.value)}
+                  </Text>
                 </Pressable>
-              }
-            />
-          ))}
-        </MenuGroup>
-      )}
-    </FormScreen>
+              )
+            })}
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              draft ? t('worker.addNamed', { name: draft.label }) : t('worker.addSkillAction')
+            }
+            accessibilityState={{ disabled: !canAdd, busy: adding }}
+            disabled={!canAdd || adding}
+            onPress={() => void addSkill()}
+            className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[14px] px-4 ${
+              canAdd ? 'bg-wk-lime active:opacity-85' : 'bg-wk-hero-field'
+            }`}
+          >
+            {adding ? (
+              <ActivityIndicator size="small" color={c.onLime} />
+            ) : (
+              <Plus size={18} color={canAdd ? c.onLime : c.heroMute} strokeWidth={2} />
+            )}
+            <Text
+              className={`min-w-0 text-[15px] font-semibold ${canAdd ? 'text-wk-on-lime' : 'text-wk-hero-mute'}`}
+              numberOfLines={1}
+            >
+              {draft ? t('worker.addNamed', { name: draft.label }) : t('worker.addSkillAction')}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Current skills */}
+        <WkGroupLabel>{t('worker.yourSkills')}</WkGroupLabel>
+        {!isReady ? (
+          <WkSkeletonCard />
+        ) : skills.length === 0 ? (
+          <WkEmpty
+            compact
+            icon={Wrench}
+            title={t('worker.skillsEmpty')}
+            body={t('worker.skillsEmptyHint')}
+          />
+        ) : (
+          <WkGroup>
+            {skills.map((skill) => {
+              const name = nameOf(skill)
+              const removing = removingId === skill.categoryId
+              return (
+                <View
+                  key={skill.categoryId}
+                  className={`min-h-[60px] flex-row items-center gap-3 bg-wk-sf pe-1.5 ps-4 ${removing ? 'opacity-50' : ''}`}
+                >
+                  <Text
+                    className="min-w-0 flex-1 text-[15px] font-medium text-wk-ink"
+                    numberOfLines={2}
+                  >
+                    {name}
+                  </Text>
+                  <WkPill
+                    size="md"
+                    tone={SKILL_LEVEL_TONE[skill.level]}
+                    label={enumLabel(t, 'workerSkillLevel', skill.level)}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t('common.remove')} ${name}`}
+                    disabled={Boolean(removingId) || isSaving}
+                    onPress={() => void removeSkill(skill)}
+                    className="size-11 items-center justify-center rounded-xl active:bg-wk-red-soft"
+                  >
+                    {removing ? (
+                      <ActivityIndicator size="small" color={c.ink3} />
+                    ) : (
+                      <X size={18} color={c.ink3} strokeWidth={2} />
+                    )}
+                  </Pressable>
+                </View>
+              )
+            })}
+          </WkGroup>
+        )}
+      </WkBodyScroll>
+
+      <WkPickerSheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('worker.chooseTrade')}
+        options={options}
+        value={draft?.id}
+        isLoading={tradesLoading}
+        searchPlaceholder={t('worker.searchTrades')}
+        emptyLabel={(query) =>
+          query ? t('worker.noTradesMatch', { query }) : t('worker.noTrades')
+        }
+        onSelect={(option) => {
+          setDraft({ id: option.value, label: option.label })
+          setPickerOpen(false)
+        }}
+      />
+    </View>
   )
 }

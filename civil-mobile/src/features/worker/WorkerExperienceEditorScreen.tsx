@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
-import { View } from 'react-native'
 import { router } from 'expo-router'
+import { AlignLeft, Briefcase, Calendar } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { DangerZone, FormScreen, Section, TextField, ToggleRow } from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import {
+  WkDangerZone,
+  WkField,
+  WkFormScreen,
+  WkSection,
+  WkToggle,
+} from '@/features/worker/ui/forms'
+import { WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import {
   workerExperienceSchema,
   type WorkerExperienceValues,
 } from '@/features/worker/worker.schema'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { showBlockingAlert } from '@/services/feedback'
 import type { WorkerExperienceWrite } from '@/services/workers'
 
 const EMPTY: WorkerExperienceValues = {
@@ -35,6 +40,7 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
   const itemId = !isNew && profile?.experiences[index] ? profile.experiences[index].id : null
   const [form, setForm] = useState<WorkerExperienceValues>(EMPTY)
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
   useEffect(() => {
     if (isNew || !profile || Number.isNaN(index) || !profile.experiences[index]) return
@@ -65,56 +71,66 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
       return
     }
     setErrors({})
-    const ok = await saveMerged(({ profile: latest, base }) => {
-      const current = base.experiences
-      if (isNew || !itemId) {
+    const ok = await saveMerged(
+      ({ profile: latest, base }) => {
+        const current = base.experiences
+        if (isNew || !itemId) {
+          return {
+            ...base,
+            experiences: [...current, toWrite(parsed.data, current.length)],
+          }
+        }
+        const freshIndex = latest?.experiences.findIndex((item) => item.id === itemId) ?? -1
+        if (freshIndex < 0) {
+          return {
+            ...base,
+            experiences: [...current, toWrite(parsed.data, current.length)],
+          }
+        }
         return {
           ...base,
-          experiences: [...current, toWrite(parsed.data, current.length)],
+          experiences: current.map((item, i) =>
+            i === freshIndex ? toWrite(parsed.data, i) : item,
+          ),
         }
-      }
-      const freshIndex = latest?.experiences.findIndex((item) => item.id === itemId) ?? -1
-      if (freshIndex < 0) {
-        return {
-          ...base,
-          experiences: [...current, toWrite(parsed.data, current.length)],
-        }
-      }
-      return {
-        ...base,
-        experiences: current.map((item, i) => (i === freshIndex ? toWrite(parsed.data, i) : item)),
-      }
-    })
+      },
+      { successMessage: isNew ? t('worker.addedToCv') : t('worker.changesSaved') },
+    )
     if (ok) router.back()
   }
 
   function onDelete() {
     if (isNew || !itemId) return
-    showBlockingAlert(t('worker.deleteItemTitle'), t('worker.deleteItemBody'), {
-      confirmLabel: t('common.delete'),
-      cancelLabel: t('common.cancel'),
+    setConfirm({
+      title: t('worker.deleteItemTitle'),
+      body: t('worker.deleteItemBody'),
+      cta: t('common.delete'),
       onConfirm: () => {
+        setConfirm(null)
         void (async () => {
-          const ok = await saveMerged(({ profile: latest, base }) => {
-            const experiences = (latest?.experiences ?? [])
-              .filter((item) => item.id !== itemId)
-              .map((item, i) =>
-                toWrite(
-                  {
-                    company: item.company,
-                    roleTitle: item.roleTitle,
-                    projectType: item.projectType,
-                    location: item.location,
-                    startDate: item.startDate,
-                    endDate: item.endDate,
-                    isCurrent: item.isCurrent,
-                    description: item.description,
-                  },
-                  i,
-                ),
-              )
-            return { ...base, experiences }
-          })
+          const ok = await saveMerged(
+            ({ profile: latest, base }) => {
+              const experiences = (latest?.experiences ?? [])
+                .filter((item) => item.id !== itemId)
+                .map((item, i) =>
+                  toWrite(
+                    {
+                      company: item.company,
+                      roleTitle: item.roleTitle,
+                      projectType: item.projectType,
+                      location: item.location,
+                      startDate: item.startDate,
+                      endDate: item.endDate,
+                      isCurrent: item.isCurrent,
+                      description: item.description,
+                    },
+                    i,
+                  ),
+                )
+              return { ...base, experiences }
+            },
+            { successMessage: t('worker.deleted') },
+          )
           if (ok) router.back()
         })()
       },
@@ -122,89 +138,98 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
   }
 
   return (
-    <FormScreen
+    <WkFormScreen
       title={isNew ? t('worker.addExperience') : t('worker.editExperience')}
       backHref="/worker/cv/experience"
       isLoading={isLoading}
       error={error}
       onRetry={() => void refetch({ fresh: true })}
-      loadingLabel={t('worker.loading')}
       footer={
-        <View className="min-w-0 flex-1 gap-2">
-          <Button onPress={() => void onSave()} disabled={isSaving || !isReady} className="w-full">
-            {isSaving ? <ButtonSpinner /> : null}
-            <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
-          </Button>
-        </View>
+        <WkButton
+          label={isNew ? t('worker.addToCv') : t('worker.saveChanges')}
+          loading={isSaving}
+          disabled={!isReady}
+          onPress={() => void onSave()}
+        />
       }
     >
-      <Section title={t('worker.sections.experience')}>
-        <TextField
+      <WkSection icon={Briefcase} title={t('worker.roleSection')}>
+        <WkField
           label={t('worker.roleTitle')}
           required
           value={form.roleTitle}
           onChangeText={(value) => setForm((c) => ({ ...c, roleTitle: value }))}
           error={errors.roleTitle}
         />
-        <TextField
+        <WkField
           label={t('worker.company')}
           required
           value={form.company}
           onChangeText={(value) => setForm((c) => ({ ...c, company: value }))}
           error={errors.company}
         />
-        <TextField
+        <WkField
           label={t('worker.projectType')}
           value={form.projectType ?? ''}
           onChangeText={(value) => setForm((c) => ({ ...c, projectType: value }))}
           error={errors.projectType}
         />
-        <TextField
+        <WkField
           label={t('worker.jobLocation')}
           value={form.location ?? ''}
           onChangeText={(value) => setForm((c) => ({ ...c, location: value }))}
           error={errors.location}
         />
-        <ToggleRow
-          label={t('worker.currentRole')}
-          description={t('worker.currentRoleHint')}
-          value={form.isCurrent}
-          onValueChange={(value) =>
-            setForm((c) => ({ ...c, isCurrent: value, endDate: value ? null : c.endDate }))
-          }
-        />
-        <TextField
+      </WkSection>
+      <WkSection icon={Calendar} title={t('worker.datesSection')}>
+        <WkField
           label={t('worker.startDate')}
           value={form.startDate ?? ''}
           onChangeText={(value) => setForm((c) => ({ ...c, startDate: value }))}
           error={errors.startDate}
           placeholder={t('common.dateFormat')}
-          helper={t('common.dateFormat')}
+          keyboardType="numbers-and-punctuation"
+          ltr
+        />
+        <WkToggle
+          label={t('worker.currentRole')}
+          value={form.isCurrent}
+          onChange={(value) =>
+            setForm((c) => ({ ...c, isCurrent: value, endDate: value ? null : c.endDate }))
+          }
         />
         {!form.isCurrent ? (
-          <TextField
+          <WkField
             label={t('worker.endDate')}
             value={form.endDate ?? ''}
             onChangeText={(value) => setForm((c) => ({ ...c, endDate: value }))}
             error={errors.endDate}
             placeholder={t('common.dateFormat')}
+            keyboardType="numbers-and-punctuation"
+            ltr
           />
         ) : null}
-        <TextField
+      </WkSection>
+      <WkSection icon={AlignLeft} title={t('worker.descriptionSection')}>
+        <WkField
           label={t('common.description')}
           value={form.description ?? ''}
           onChangeText={(value) => setForm((c) => ({ ...c, description: value }))}
           error={errors.description}
+          placeholder={t('worker.descriptionPlaceholder')}
           multiline
         />
-      </Section>
+      </WkSection>
       {!isNew ? (
-        <DangerZone title={t('common.dangerZone')}>
-          <Button variant="destructive" onPress={onDelete} disabled={isSaving || !isReady}>
-            <ButtonText>{t('common.delete')}</ButtonText>
-          </Button>
-        </DangerZone>
+        <WkDangerZone
+          title={t('common.dangerZone')}
+          body={t('worker.dangerBody')}
+          label={t('common.delete')}
+          disabled={isSaving || !isReady}
+          onPress={onDelete}
+        />
       ) : null}
-    </FormScreen>
+      <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
+    </WkFormScreen>
   )
 }

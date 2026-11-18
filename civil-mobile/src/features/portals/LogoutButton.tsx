@@ -12,6 +12,20 @@ export function useLogout() {
   const logout = useAuthStore((s) => s.logout)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
+  /** Log out without asking (for screens that show their own confirm dialog). */
+  async function logoutNow() {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      router.replace('/login')
+    } catch (error) {
+      showApiAlert(error, t('account.logoutFailed'))
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   function requestLogout() {
     if (isLoggingOut) return
 
@@ -19,23 +33,11 @@ export function useLogout() {
       destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('account.logout'),
-      onConfirm: () => {
-        void (async () => {
-          setIsLoggingOut(true)
-          try {
-            await logout()
-            router.replace('/login')
-          } catch (error) {
-            showApiAlert(error, t('account.logoutFailed'))
-          } finally {
-            setIsLoggingOut(false)
-          }
-        })()
-      },
+      onConfirm: () => void logoutNow(),
     })
   }
 
-  return { isLoggingOut, requestLogout }
+  return { isLoggingOut, requestLogout, logoutNow }
 }
 
 export function LogoutButton() {

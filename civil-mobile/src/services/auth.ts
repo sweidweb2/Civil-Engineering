@@ -1,4 +1,4 @@
-import { apiRequest, type AuthTokens, refreshTokens } from './api'
+import { apiRequest, applySessionTokens, type AuthTokens, refreshTokens } from './api'
 import { getDeviceId } from './deviceId'
 
 export type AuthRole = 'SUPER' | 'ADMIN' | 'PROVIDER' | 'WORKER' | 'MANAGER' | 'CLIENT'
@@ -68,13 +68,15 @@ export function logout(refreshToken: string) {
   })
 }
 
-export function changePassword(input: {
+export async function changePassword(input: {
   currentPassword: string
   newPassword: string
   confirmPassword: string
 }) {
-  return apiRequest<void>('/auth/change-password', {
+  const tokens = await apiRequest<AuthTokens>('/auth/change-password', {
     method: 'POST',
     body: JSON.stringify(input),
   })
+  applySessionTokens(tokens)
+  return tokens
 }

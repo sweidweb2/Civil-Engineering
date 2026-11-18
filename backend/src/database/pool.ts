@@ -30,6 +30,8 @@ export function getPool(): Pool {
   }
 
   const max = resolvePoolMax()
+  /** Cap individual SQL statements so lock waits cannot hold pool slots forever. */
+  const statementTimeoutMs = 60_000
   const config: PoolConfig = {
     connectionString,
     max,
@@ -40,11 +42,19 @@ export function getPool(): Pool {
   }
 
   const pool = new Pool(config)
+  pool.on('connect', (client) => {
+    client.query(`SET statement_timeout TO ${statementTimeoutMs}`).catch((err) => {
+      getLogger().error({ err }, 'failed to set postgres statement_timeout')
+    })
+  })
   pool.on('error', (err) => {
     getLogger().error({ err }, 'pg pool idle client error')
   })
 
-  getLogger().info({ max, vercel: Boolean(process.env.VERCEL) }, 'postgres pool ready')
+  getLogger().info(
+    { max, statementTimeoutMs, vercel: Boolean(process.env.VERCEL) },
+    'postgres pool ready',
+  )
 
   globalForPool.pgPool = pool
   return pool

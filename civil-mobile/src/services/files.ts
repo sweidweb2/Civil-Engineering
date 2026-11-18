@@ -1,5 +1,5 @@
 import { optimizeIfImage } from '../lib/optimizeImage'
-import { apiRequest } from './api'
+import { apiRequest, createTimeoutSignal } from './api'
 
 export type FileEntityType = 'PROJECT' | 'USER' | 'EXPENSE' | 'MATERIAL' | 'WORKER' | 'LISTING'
 
@@ -90,6 +90,8 @@ export async function uploadFile(input: {
       'Content-Type': optimized.mime,
     },
     body,
+    // Direct R2 PUT — keep a hard ceiling so hung storage cannot stall the app.
+    signal: createTimeoutSignal(60_000),
   })
 
   if (!put.ok) {

@@ -89,20 +89,10 @@ function setup(opts?: {
         : [],
     ),
     updatePrices: vi.fn(async () => undefined),
-    lockAndUpdatePrices: vi.fn(async (_providerId, buildUpdates) => {
-      const rows = listing
-        ? [
-            {
-              id: listing.id,
-              price: listing.price,
-              priceMin: listing.priceMin,
-              priceMax: listing.priceMax,
-              rentalPrice: listing.rentalPrice,
-            },
-          ]
-        : []
-      return buildUpdates(rows).length
-    }),
+    adjustProviderPrices: vi.fn(async () => ({
+      updated: listing && listing.price != null ? 1 : 0,
+      skipped: listing && listing.price == null ? 1 : 0,
+    })),
     createMany: vi.fn(async (inputs) => inputs.length),
     create: vi.fn(async (input) =>
       record({
@@ -280,31 +270,19 @@ describe('listingsService', () => {
     const { service, repository } = setup({
       listing: record({ price: '100', rentalPrice: '50' }),
     })
+    vi.mocked(repository.adjustProviderPrices).mockResolvedValue({ updated: 1, skipped: 0 })
     await expect(
       service.bulkAdjustPrices(
         { providerId: 'prv-1', direction: 'increase', mode: 'percentage', value: '10' },
         admin,
       ),
     ).resolves.toEqual({ updated: 1, skipped: 0 })
-    expect(repository.lockAndUpdatePrices).toHaveBeenCalledWith('prv-1', expect.any(Function))
-    const buildUpdates = vi.mocked(repository.lockAndUpdatePrices).mock.calls[0]![1]
-    expect(
-      buildUpdates([
-        {
-          id: 'lst-1',
-          price: '100',
-          priceMin: null,
-          priceMax: null,
-          rentalPrice: '50',
-        },
-      ]),
-    ).toEqual([
-      expect.objectContaining({
-        id: 'lst-1',
-        price: '110.0000',
-        rentalPrice: '55.0000',
-      }),
-    ])
+    expect(repository.adjustProviderPrices).toHaveBeenCalledWith({
+      providerId: 'prv-1',
+      direction: 'increase',
+      mode: 'percentage',
+      delta: 10,
+    })
   })
 
   it('requires providerId for admin bulk price adjust', async () => {

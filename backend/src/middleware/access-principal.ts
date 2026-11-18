@@ -11,7 +11,7 @@ export type AccessPrincipal = {
 export type ResolveAccessPrincipal = (userId: string) => Promise<AccessPrincipal | null>
 
 /** Short TTL so demotions apply quickly without a DB round-trip on every request. */
-const PRINCIPAL_CACHE_TTL_MS = 10_000
+const PRINCIPAL_CACHE_TTL_MS = 3_000
 
 type CacheEntry = {
   principal: AccessPrincipal | null

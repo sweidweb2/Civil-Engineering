@@ -168,7 +168,14 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
           contentType: 'image/webp',
         })
       } catch (error) {
-        await repository.delete(image.id).catch(() => undefined)
+        try {
+          await repository.delete(image.id)
+        } catch (compensateError) {
+          getLogger().error(
+            { err: compensateError, imageId: image.id, storagePath },
+            `failed to roll back ${policy.logLabel} row after storage put failure`,
+          )
+        }
         throw error
       }
 

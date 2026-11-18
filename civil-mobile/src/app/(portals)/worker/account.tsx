@@ -1,5 +1,5 @@
-import { AccountScreen } from '@/features/account/AccountScreen'
+import { WorkerAccountScreen } from '@/features/worker/WorkerAccountScreen'
 
 export default function WorkerAccount() {
-  return <AccountScreen />
+  return <WorkerAccountScreen />
 }

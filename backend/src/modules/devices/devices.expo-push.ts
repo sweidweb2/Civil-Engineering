@@ -1,6 +1,8 @@
 import type { NotifyUserPayload } from './devices.types.js'
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
+/** Expo Push is best-effort — fail fast rather than stalling callers. */
+const EXPO_PUSH_TIMEOUT_MS = 10_000
 
 export type ExpoPushTicket = {
   status: 'ok' | 'error'
@@ -55,6 +57,7 @@ export async function sendExpoPush(
     method: 'POST',
     headers,
     body: JSON.stringify(messages),
+    signal: AbortSignal.timeout(EXPO_PUSH_TIMEOUT_MS),
   })
 
   if (!response.ok) {

@@ -181,6 +181,8 @@ export function bulkAdjustListingPrices(input: BulkPriceAdjustInput) {
   return apiRequest<{ data: BulkPriceAdjustResult }>('/listings/bulk-price-adjust', {
     method: 'POST',
     body: JSON.stringify(input),
+    // Large catalogs can take longer than the default 30s; abort mid-flight risks double-apply.
+    timeoutMs: 90_000,
   })
 }
 
@@ -215,5 +217,6 @@ export function importListings(input: ImportListingsInput) {
   return apiRequest<{ data: ImportListingsResult }>('/listings/import', {
     method: 'POST',
     body: JSON.stringify(input),
+    timeoutMs: 90_000,
   })
 }

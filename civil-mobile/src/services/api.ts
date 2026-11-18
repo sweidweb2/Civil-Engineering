@@ -50,9 +50,40 @@ const SKIP_REFRESH_PATHS = new Set([
   '/auth/logout',
 ])
 
+/** Default budget for API calls so hung backends cannot stall the UI forever. */
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
+
 function shouldSkipRefresh(path: string): boolean {
   const pathname = path.split('?')[0] ?? path
   return SKIP_REFRESH_PATHS.has(pathname)
+}
+
+/** Abort after `ms` — works even when `AbortSignal.timeout` is missing (older RN). */
+export function createTimeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+    return AbortSignal.timeout(ms)
+  }
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), ms)
+  return controller.signal
+}
+
+/** Merge caller abort with a timeout so either can cancel the request. */
+function withRequestTimeout(timeoutMs: number, signal?: AbortSignal | null): AbortSignal {
+  const timeout = createTimeoutSignal(timeoutMs)
+  if (!signal) return timeout
+  if (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal) {
+    return AbortSignal.any([timeout, signal])
+  }
+  const controller = new AbortController()
+  const onAbort = () => controller.abort()
+  if (signal.aborted || timeout.aborted) {
+    controller.abort()
+    return controller.signal
+  }
+  signal.addEventListener('abort', onAbort, { once: true })
+  timeout.addEventListener('abort', onAbort, { once: true })
+  return controller.signal
 }
 
 async function exchangeRefreshToken(refreshToken: string): Promise<AuthTokens> {
@@ -60,6 +91,7 @@ async function exchangeRefreshToken(refreshToken: string): Promise<AuthTokens> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
+    signal: createTimeoutSignal(DEFAULT_REQUEST_TIMEOUT_MS),
   })
 
   const data = (await response.json().catch(() => ({}))) as ApiErrorBody & AuthTokens
@@ -106,10 +138,20 @@ export type ApiRequestOptions = RequestInit & {
   accessToken?: string | null
   /** Skip 401→refresh→retry (auth endpoints and the refresh call itself). */
   skipAuthRefresh?: boolean
+  /** Override the default request timeout (ms). */
+  timeoutMs?: number
+}
+
+/** Default budget for multipart uploads — aligned with R2 server timeout. */
+export const UPLOAD_REQUEST_TIMEOUT_MS = 60_000
+
+/** Apply refreshed session tokens through the bound auth bridge (if any). */
+export function applySessionTokens(tokens: AuthTokens): void {
+  authSession?.setTokens(tokens)
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { accessToken, skipAuthRefresh, headers, ...rest } = options
+  const { accessToken, skipAuthRefresh, headers, timeoutMs, ...rest } = options
 
   const resolveToken = (override?: string | null) => {
     if (override !== undefined) return override
@@ -117,10 +159,13 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   }
 
   const isFormData = typeof FormData !== 'undefined' && rest.body instanceof FormData
+  const resolvedTimeoutMs =
+    timeoutMs ?? (isFormData ? UPLOAD_REQUEST_TIMEOUT_MS : DEFAULT_REQUEST_TIMEOUT_MS)
 
   const execute = async (token: string | null) => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
+      signal: withRequestTimeout(resolvedTimeoutMs, rest.signal),
       headers: {
         // Multipart bodies must not carry a JSON content type: fetch has to set
         // `multipart/form-data; boundary=…` itself.

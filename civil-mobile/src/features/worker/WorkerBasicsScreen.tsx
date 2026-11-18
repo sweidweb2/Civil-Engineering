@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
 import { router } from 'expo-router'
+import { HardHat, Languages, MapPin, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { FormScreen, Section, TextField } from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import {
+  WkField,
+  WkFormScreen,
+  WkPickerSheet,
+  WkSection,
+  WkSelect,
+} from '@/features/worker/ui/forms'
+import { WkButton } from '@/features/worker/ui/kit'
+import { useWorkerCategories } from '@/features/worker/useWorkerCategories'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerBasicsSchema, type WorkerBasicsValues } from '@/features/worker/worker.schema'
 import { type FieldErrors, parseForm } from '@/lib/form'
@@ -21,8 +29,10 @@ const EMPTY: WorkerBasicsValues = {
 export function WorkerBasicsScreen() {
   const { t } = useTranslation()
   const { profile, isReady, isLoading, error, refetch, isSaving, saveMerged } = useWorkerProfile()
+  const { trades, labelForName, isLoading: tradesLoading } = useWorkerCategories()
   const [form, setForm] = useState<WorkerBasicsValues>(EMPTY)
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -44,48 +54,68 @@ export function WorkerBasicsScreen() {
       return
     }
     setErrors({})
-    const ok = await saveMerged(parsed.data)
+    const ok = await saveMerged(parsed.data, { successMessage: t('worker.changesSaved') })
     if (ok) router.back()
   }
 
+  const set = <K extends keyof WorkerBasicsValues>(key: K, value: WorkerBasicsValues[K]) =>
+    setForm((c) => ({ ...c, [key]: value }))
+
+  // A trade typed before the picker existed may not match a category: keep it selectable.
+  const tradeOptions = trades.map((tr) => ({ value: tr.name, label: tr.label }))
+  if (form.primaryTrade && !trades.some((tr) => tr.name === form.primaryTrade)) {
+    tradeOptions.unshift({ value: form.primaryTrade, label: form.primaryTrade })
+  }
+
   return (
-    <FormScreen
+    <WkFormScreen
       title={t('worker.sections.basics')}
-      subtitle={t('worker.basicsHint')}
       backHref="/worker/cv"
       isLoading={isLoading}
       error={error}
       onRetry={() => void refetch({ fresh: true })}
-      loadingLabel={t('worker.loading')}
       footer={
-        <Button onPress={() => void onSave()} disabled={isSaving || !isReady} className="w-full">
-          {isSaving ? <ButtonSpinner /> : null}
-          <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
-        </Button>
+        <WkButton
+          label={t('worker.saveChanges')}
+          loading={isSaving}
+          disabled={!isReady}
+          onPress={() => void onSave()}
+        />
       }
     >
-      <Section title={t('worker.aboutYou')}>
-        <TextField
+      <WkSection icon={UserRound} title={t('worker.aboutYou')}>
+        <WkField
           label={t('worker.headline')}
           value={form.headline ?? ''}
-          onChangeText={(value) => setForm((c) => ({ ...c, headline: value }))}
+          onChangeText={(value) => set('headline', value)}
           error={errors.headline}
           placeholder={t('worker.headlinePlaceholder')}
         />
-        <TextField
-          label={t('worker.primaryTrade')}
-          value={form.primaryTrade ?? ''}
-          onChangeText={(value) => setForm((c) => ({ ...c, primaryTrade: value }))}
-          error={errors.primaryTrade}
-          placeholder={t('worker.primaryTradePlaceholder')}
+        <WkField
+          label={t('worker.bio')}
+          value={form.bio ?? ''}
+          onChangeText={(value) => set('bio', value)}
+          error={errors.bio}
+          placeholder={t('worker.bioPlaceholder')}
+          multiline
         />
-        <TextField
+      </WkSection>
+
+      <WkSection icon={HardHat} title={t('worker.tradeSection')}>
+        <WkSelect
+          label={t('worker.primaryTrade')}
+          value={labelForName(form.primaryTrade)}
+          placeholder={t('worker.chooseTrade')}
+          error={errors.primaryTrade}
+          onPress={() => setPickerOpen(true)}
+        />
+        <WkField
           label={t('worker.yearsExperience')}
           value={form.yearsExperience == null ? '' : String(form.yearsExperience)}
           onChangeText={(value) => {
             const trimmed = value.trim()
             if (!trimmed) {
-              setForm((c) => ({ ...c, yearsExperience: null }))
+              set('yearsExperience', null)
               return
             }
             const parsed = Number.parseInt(trimmed, 10)
@@ -95,43 +125,55 @@ export function WorkerBasicsScreen() {
             }))
           }}
           keyboardType="number-pad"
+          placeholder="0"
+          maxLength={2}
+          ltr
           error={errors.yearsExperience}
         />
-        <TextField
-          label={t('worker.bio')}
-          value={form.bio ?? ''}
-          onChangeText={(value) => setForm((c) => ({ ...c, bio: value }))}
-          error={errors.bio}
-          multiline
-          placeholder={t('worker.bioPlaceholder')}
-        />
-      </Section>
+      </WkSection>
 
-      <Section title={t('worker.location')}>
-        <TextField
+      <WkSection icon={MapPin} title={t('worker.location')}>
+        <WkField
           label={t('common.city')}
           value={form.city ?? ''}
-          onChangeText={(value) => setForm((c) => ({ ...c, city: value }))}
+          onChangeText={(value) => set('city', value)}
           error={errors.city}
         />
-        <TextField
+        <WkField
           label={t('common.country')}
           value={form.country ?? ''}
-          onChangeText={(value) => setForm((c) => ({ ...c, country: value }))}
+          onChangeText={(value) => set('country', value)}
           error={errors.country}
         />
-      </Section>
+      </WkSection>
 
-      <Section title={t('worker.languages')}>
-        <TextField
+      <WkSection icon={Languages} title={t('worker.languages')}>
+        <WkField
           label={t('worker.languages')}
           value={form.languages ?? ''}
-          onChangeText={(value) => setForm((c) => ({ ...c, languages: value }))}
+          onChangeText={(value) => set('languages', value)}
           error={errors.languages}
           placeholder={t('worker.languagesPlaceholder')}
-          helper={t('worker.languagesHelper')}
+          hint={t('worker.languagesHelper')}
         />
-      </Section>
-    </FormScreen>
+      </WkSection>
+
+      <WkPickerSheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('worker.chooseTrade')}
+        options={tradeOptions}
+        value={form.primaryTrade}
+        isLoading={tradesLoading}
+        searchPlaceholder={t('worker.searchTrades')}
+        emptyLabel={(query) =>
+          query ? t('worker.noTradesMatch', { query }) : t('worker.noTrades')
+        }
+        onSelect={(option) => {
+          set('primaryTrade', option.value)
+          setPickerOpen(false)
+        }}
+      />
+    </WkFormScreen>
   )
 }

@@ -32,7 +32,8 @@ export type AuthService = {
   login: (input: LoginBody) => Promise<LoginResult>
   refreshTokens: (input: RefreshBody) => Promise<AuthTokens>
   logout: (input: RefreshBody) => Promise<void>
-  changePassword: (userId: string, input: ChangePasswordBody) => Promise<void>
+  /** Invalidates other devices' refresh tokens and returns a fresh session for this device. */
+  changePassword: (userId: string, input: ChangePasswordBody) => Promise<AuthTokens>
 }
 
 function toUserDto(user: AuthUserRecord): AuthUserDto {
@@ -207,11 +208,14 @@ export function createAuthService(
         throw unauthorized('Invalid or expired refresh token')
       }
 
-      // Password change stamps refreshInvalidBefore; reject older (or iat-less) refresh JWTs.
+      // Password change stamps refreshInvalidBefore. Compare in whole seconds so
+      // JWT iat (second precision) is not rejected when issued in the same second.
       if (user.refreshInvalidBefore) {
-        const issuedAtMs =
-          typeof payload.iat === 'number' ? payload.iat * 1000 : Number.NEGATIVE_INFINITY
-        if (issuedAtMs < user.refreshInvalidBefore.getTime()) {
+        if (typeof payload.iat !== 'number') {
+          throw unauthorized('Invalid or expired refresh token')
+        }
+        const cutoffSec = Math.floor(user.refreshInvalidBefore.getTime() / 1000)
+        if (payload.iat < cutoffSec) {
           throw unauthorized('Invalid or expired refresh token')
         }
       }
@@ -274,6 +278,9 @@ export function createAuthService(
       } catch (error) {
         getLogger().error({ err: error }, 'failed to write change-password activity')
       }
+
+      // Re-issue for this device so the caller is not logged out after invalidating others.
+      return issueTokens(config, user)
     },
   }
 }

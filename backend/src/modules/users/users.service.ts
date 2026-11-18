@@ -406,7 +406,18 @@ export function createUsersService(
       })
 
       const previousFileId = user.profile?.avatarUrl
-      const updated = await repository.setAvatarFileId(id, uploaded.id)
+      let updated
+      try {
+        updated = await repository.setAvatarFileId(id, uploaded.id)
+      } catch (error) {
+        // Avoid orphan READY files that the PENDING/DELETED sweeper would miss.
+        try {
+          await filesService.softDelete(actor, uploaded.id)
+        } catch {
+          // Best-effort; original link failure is what the client should see.
+        }
+        throw error
+      }
 
       if (previousFileId && previousFileId !== uploaded.id) {
         try {

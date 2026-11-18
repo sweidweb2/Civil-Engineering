@@ -112,13 +112,15 @@ export type ListingsRepository = {
   findPriceFieldsByProviderId: (providerId: string) => Promise<ListingPriceFields[]>
   updatePrices: (updates: ListingPriceUpdate[]) => Promise<void>
   /**
-   * Lock all provider listings, re-read prices, apply updates in one transaction
-   * so concurrent bulk adjusts / edits cannot interleave mid-batch.
+   * Single-statement bulk price adjust under a transaction (row locks via UPDATE).
+   * Avoids N sequential updates that overrun client/DB timeouts and encourage double-apply retries.
    */
-  lockAndUpdatePrices: (
-    providerId: string,
-    buildUpdates: (rows: ListingPriceFields[]) => ListingPriceUpdate[],
-  ) => Promise<number>
+  adjustProviderPrices: (input: {
+    providerId: string
+    direction: 'increase' | 'decrease'
+    mode: 'percentage' | 'amount'
+    delta: number
+  }) => Promise<{ updated: number; skipped: number }>
   create: (input: CreateListingRecordInput) => Promise<ListingRecord>
   createMany: (inputs: CreateListingRecordInput[]) => Promise<number>
   update: (id: string, input: UpdateListingBody) => Promise<ListingRecord>
@@ -438,41 +440,79 @@ export function createListingsRepository(): ListingsRepository {
       )
     },
 
-    async lockAndUpdatePrices(providerId, buildUpdates) {
+    async adjustProviderPrices(input) {
+      const maxDecimal184 = 99_999_999_999_999
       return prisma.$transaction(async (tx) => {
-        await tx.$executeRaw`
-          SELECT id FROM listings WHERE "providerId" = ${providerId} FOR UPDATE
-        `
-        const rows = await tx.listing.findMany({
-          where: { providerId },
-          select: {
-            id: true,
-            price: true,
-            priceMin: true,
-            priceMax: true,
-            rentalPrice: true,
-          },
-        })
-        const fields: ListingPriceFields[] = rows.map((row) => ({
-          id: row.id,
-          price: decimalToString(row.price),
-          priceMin: decimalToString(row.priceMin),
-          priceMax: decimalToString(row.priceMax),
-          rentalPrice: decimalToString(row.rentalPrice),
-        }))
-        const updates = buildUpdates(fields)
-        for (const update of updates) {
-          await tx.listing.update({
-            where: { id: update.id },
-            data: {
-              price: update.price,
-              priceMin: update.priceMin,
-              priceMax: update.priceMax,
-              rentalPrice: update.rentalPrice,
-            },
-          })
+        // Allow large catalogs without hitting the pool's default statement_timeout.
+        await tx.$executeRaw`SET LOCAL statement_timeout = '120000'`
+
+        const total = await tx.listing.count({ where: { providerId: input.providerId } })
+
+        let updated: number
+        if (input.mode === 'percentage') {
+          const factor =
+            input.direction === 'increase' ? 1 + input.delta / 100 : 1 - input.delta / 100
+          updated = await tx.$executeRaw`
+            UPDATE listings
+            SET
+              price = CASE
+                WHEN price IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND(price * ${factor}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "priceMin" = CASE
+                WHEN "priceMin" IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND("priceMin" * ${factor}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "priceMax" = CASE
+                WHEN "priceMax" IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND("priceMax" * ${factor}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "rentalPrice" = CASE
+                WHEN "rentalPrice" IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND("rentalPrice" * ${factor}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "updatedAt" = NOW()
+            WHERE "providerId" = ${input.providerId}
+              AND (
+                price IS NOT NULL
+                OR "priceMin" IS NOT NULL
+                OR "priceMax" IS NOT NULL
+                OR "rentalPrice" IS NOT NULL
+              )
+          `
+        } else {
+          const amount = input.direction === 'increase' ? input.delta : -input.delta
+          updated = await tx.$executeRaw`
+            UPDATE listings
+            SET
+              price = CASE
+                WHEN price IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND(price + ${amount}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "priceMin" = CASE
+                WHEN "priceMin" IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND("priceMin" + ${amount}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "priceMax" = CASE
+                WHEN "priceMax" IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND("priceMax" + ${amount}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "rentalPrice" = CASE
+                WHEN "rentalPrice" IS NULL THEN NULL
+                ELSE LEAST(GREATEST(ROUND("rentalPrice" + ${amount}::numeric, 4), 0), ${maxDecimal184}::numeric)
+              END,
+              "updatedAt" = NOW()
+            WHERE "providerId" = ${input.providerId}
+              AND (
+                price IS NOT NULL
+                OR "priceMin" IS NOT NULL
+                OR "priceMax" IS NOT NULL
+                OR "rentalPrice" IS NOT NULL
+              )
+          `
         }
-        return updates.length
+
+        return { updated, skipped: Math.max(0, total - updated) }
       })
     },
 

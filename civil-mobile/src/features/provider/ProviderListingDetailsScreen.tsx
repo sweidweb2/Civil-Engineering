@@ -44,6 +44,7 @@ export function ProviderListingDetailsScreen({
   function onDelete() {
     if (!listingId || isDeleting) return
     showBlockingAlert(t('listings.deleteTitle'), t('listings.deleteBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.delete'),
       onConfirm: () => {

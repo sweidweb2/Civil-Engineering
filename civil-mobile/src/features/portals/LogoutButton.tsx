@@ -16,6 +16,7 @@ export function useLogout() {
     if (isLoggingOut) return
 
     showBlockingAlert(t('account.logoutTitle'), t('account.logoutBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('account.logout'),
       onConfirm: () => {

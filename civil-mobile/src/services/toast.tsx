@@ -1,9 +1,15 @@
+import { View } from 'react-native'
+import { CircleAlert, CircleCheck } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
+
 import { Toast, ToastDescription, ToastTitle, useToast } from '@/components/ui/toast'
+import { useThemeColors } from '@/hooks/useThemeColors'
 import { ApiError } from '@/services/api'
 
 /** Hook helper for quick, non-blocking success confirmations. */
 export function useToastSuccess() {
   const toast = useToast()
+  const colors = useThemeColors()
 
   return function toastSuccess(title: string, description?: string) {
     toast.show({
@@ -11,8 +17,13 @@ export function useToastSuccess() {
       duration: 2500,
       render: ({ id }: { id: string }) => (
         <Toast nativeID={`toast-${id}`} action="success" variant="solid">
-          <ToastTitle>{title}</ToastTitle>
-          {description ? <ToastDescription>{description}</ToastDescription> : null}
+          <View className="flex-row items-center gap-3">
+            <CircleCheck size={22} color={colors.success} />
+            <View className="min-w-0 flex-1 gap-1">
+              <ToastTitle>{title}</ToastTitle>
+              {description ? <ToastDescription>{description}</ToastDescription> : null}
+            </View>
+          </View>
         </Toast>
       ),
     })
@@ -25,6 +36,8 @@ export function useToastSuccess() {
  */
 export function useToastApiError() {
   const toast = useToast()
+  const colors = useThemeColors()
+  const { t } = useTranslation()
 
   return function toastApiError(error: unknown, fallback = 'Something went wrong') {
     const message =
@@ -35,8 +48,13 @@ export function useToastApiError() {
       duration: 4000,
       render: ({ id }: { id: string }) => (
         <Toast nativeID={`toast-${id}`} action="error" variant="solid">
-          <ToastTitle>Error</ToastTitle>
-          <ToastDescription>{message}</ToastDescription>
+          <View className="flex-row items-center gap-3">
+            <CircleAlert size={22} color={colors.error} />
+            <View className="min-w-0 flex-1 gap-1">
+              <ToastTitle>{t('common.error')}</ToastTitle>
+              <ToastDescription>{message}</ToastDescription>
+            </View>
+          </View>
         </Toast>
       ),
     })

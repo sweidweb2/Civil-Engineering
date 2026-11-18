@@ -74,6 +74,7 @@ export function AdminReviewsScreen() {
 
   function onDelete(review: Review) {
     showBlockingAlert(t('reviews.deleteTitle'), t('reviews.deleteBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.delete'),
       onConfirm: () => {

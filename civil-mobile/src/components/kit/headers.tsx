@@ -3,10 +3,13 @@ import { Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
 import { ChevronLeft, type LucideIcon } from 'lucide-react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
 import { useIsDark, useThemeColors } from '@/hooks/useThemeColors'
+
+import { DirectionalIcon } from './primitives'
 
 /** Sets the status-bar icon color while this screen is focused. */
 export function useStatusBarStyle(style: 'light' | 'dark') {
@@ -37,6 +40,7 @@ export function IconButton({
   disabled?: boolean
 }) {
   const colors = useThemeColors()
+  const mirrored = Icon === ChevronLeft
   return (
     <Pressable
       accessibilityRole="button"
@@ -50,7 +54,11 @@ export function IconButton({
       } ${disabled ? 'opacity-40' : ''}`}
       onPress={onPress}
     >
-      <Icon size={20} color={onHero ? '#FFFFFF' : colors.text} />
+      {mirrored ? (
+        <DirectionalIcon icon={Icon} size={20} color={onHero ? '#FFFFFF' : colors.text} />
+      ) : (
+        <Icon size={20} color={onHero ? '#FFFFFF' : colors.text} />
+      )}
     </Pressable>
   )
 }
@@ -80,6 +88,7 @@ export function HeroHeader({
   children,
 }: HeroHeaderProps) {
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
   useStatusBarStyle('light')
   return (
     <View
@@ -106,7 +115,12 @@ export function HeroHeader({
 
       <View className="flex-row items-center gap-3">
         {backHref ? (
-          <IconButton icon={ChevronLeft} label="Go back" onHero onPress={() => goBack(backHref)} />
+          <IconButton
+            icon={ChevronLeft}
+            label={t('common.goBack')}
+            onHero
+            onPress={() => goBack(backHref)}
+          />
         ) : null}
         <View className="min-w-0 flex-1">
           {eyebrow ? (
@@ -148,6 +162,7 @@ type AppBarProps = {
 /** Compact bar for detail and form screens. */
 export function AppBar({ title, subtitle, backHref, right }: AppBarProps) {
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
   const isDark = useIsDark()
   useStatusBarStyle(isDark ? 'light' : 'dark')
   return (
@@ -155,7 +170,7 @@ export function AppBar({ title, subtitle, backHref, right }: AppBarProps) {
       className="flex-row items-center gap-3 bg-background px-4 pb-3"
       style={{ paddingTop: insets.top + 8 }}
     >
-      <IconButton icon={ChevronLeft} label="Go back" onPress={() => goBack(backHref)} />
+      <IconButton icon={ChevronLeft} label={t('common.goBack')} onPress={() => goBack(backHref)} />
       <View className="min-w-0 flex-1">
         <Text
           className="text-lg font-bold text-foreground"

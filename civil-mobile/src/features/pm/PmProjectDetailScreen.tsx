@@ -15,6 +15,7 @@ import { GalleryImagesField } from '@/components/files/GalleryImagesField'
 import {
   Card,
   ChoiceField,
+  DirectionalIcon,
   FieldRow,
   FormScreen,
   IconTile,
@@ -125,6 +126,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
   function onArchive() {
     if (!projectId || isArchiving) return
     showBlockingAlert(t('projects.archiveTitle'), t('projects.archiveBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('projects.archive'),
       onConfirm: () => {
@@ -155,27 +157,15 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
       onRetry={() => void remote.refetch()}
       loadingLabel={t('projects.loadingOne')}
       footer={
-        <>
-          <Button
-            className="flex-1"
-            variant="destructive"
-            onPress={onArchive}
-            disabled={isArchiving}
-            accessibilityState={{ busy: isArchiving }}
-          >
-            {isArchiving ? <ButtonSpinner /> : null}
-            <ButtonText>{t('projects.archive')}</ButtonText>
-          </Button>
-          <Button
-            className="flex-[2]"
-            onPress={() => void onSave()}
-            disabled={isSaving}
-            accessibilityState={{ busy: isSaving }}
-          >
-            {isSaving ? <ButtonSpinner /> : null}
-            <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
-          </Button>
-        </>
+        <Button
+          className="flex-1"
+          onPress={() => void onSave()}
+          disabled={isSaving}
+          accessibilityState={{ busy: isSaving }}
+        >
+          {isSaving ? <ButtonSpinner /> : null}
+          <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
+        </Button>
       }
     >
       {project ? (
@@ -210,7 +200,7 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
               <Text className="text-base font-bold text-foreground">{t('projects.stages')}</Text>
               <Text className="text-sm text-muted-foreground">{t('projects.stagesHint')}</Text>
             </View>
-            <ChevronRight size={18} color={colors.primary} />
+            <DirectionalIcon icon={ChevronRight} size={18} color={colors.primary} />
           </Pressable>
 
           <Section title={t('gallery.title')} icon={Images} tone="info">
@@ -273,6 +263,24 @@ export function PmProjectDetailScreen({ basePath = '/pm/projects' }: PmProjectDe
               onChangeText={setNotes}
             />
           </Section>
+
+          <View className="gap-3 rounded-3xl border border-destructive/30 p-5">
+            <View className="gap-0.5">
+              <Text className="text-base font-bold text-destructive">
+                {t('projects.dangerZone')}
+              </Text>
+              <Text className="text-xs text-muted-foreground">{t('projects.dangerHint')}</Text>
+            </View>
+            <Button
+              variant="destructive"
+              onPress={onArchive}
+              disabled={isArchiving}
+              accessibilityState={{ busy: isArchiving }}
+            >
+              {isArchiving ? <ButtonSpinner /> : null}
+              <ButtonText>{t('projects.archive')}</ButtonText>
+            </Button>
+          </View>
         </>
       ) : null}
     </FormScreen>

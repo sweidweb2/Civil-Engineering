@@ -10,6 +10,7 @@ import {
 } from 'lucide-react-native'
 import type { ReactElement, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import Animated, { FadeInDown } from 'react-native-reanimated'
 
 import { AsyncState } from '@/components/feedback/AsyncState'
 import { Button, ButtonText } from '@/components/ui/button'
@@ -17,7 +18,7 @@ import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { glow, softShadows } from '@/theme/shadows'
 
-import { PressableScale, StatusPill } from './primitives'
+import { DirectionalIcon, PressableScale, SkeletonBlock, StatusPill } from './primitives'
 import type { Tone } from './tones'
 
 type SearchBarProps = {
@@ -180,7 +181,7 @@ export function Pager({ page, totalPages, onChange }: PagerProps) {
         }`}
         onPress={() => onChange(page - 1)}
       >
-        <ChevronLeft size={18} color={colors.text} />
+        <DirectionalIcon icon={ChevronLeft} size={18} color={colors.text} />
       </Pressable>
       <Text className="text-sm font-semibold text-muted-foreground">
         {t('common.pageOf', { page, total: totalPages })}
@@ -194,7 +195,7 @@ export function Pager({ page, totalPages, onChange }: PagerProps) {
         }`}
         onPress={() => onChange(page + 1)}
       >
-        <ChevronRight size={18} color={colors.text} />
+        <DirectionalIcon icon={ChevronRight} size={18} color={colors.text} />
       </Pressable>
     </View>
   )
@@ -208,13 +209,38 @@ export function Fab({ label, onPress }: { label: string; onPress: () => void }) 
       accessibilityRole="button"
       accessibilityLabel={label}
       scaleTo={0.94}
-      className="absolute bottom-4 right-5 h-14 flex-row items-center gap-2 rounded-full bg-primary px-6"
+      className="absolute bottom-4 end-5 h-14 flex-row items-center gap-2 rounded-full bg-primary px-6"
       style={glow(colors.primary, 0.45)}
       onPress={onPress}
     >
       <Plus size={20} color={colors.onPrimary} />
       <Text className="text-base font-bold text-primary-foreground">{label}</Text>
     </PressableScale>
+  )
+}
+
+/** Placeholder cards shown while a list loads for the first time. */
+export function ListSkeleton({ label, count = 6 }: { label?: string; count?: number }) {
+  return (
+    <View
+      className="flex-1 gap-4 px-5 pt-1"
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+    >
+      {Array.from({ length: count }, (_, index) => (
+        <View
+          key={index}
+          className="flex-row items-center gap-4 rounded-3xl border border-border/40 bg-card p-4"
+          style={softShadows.card}
+        >
+          <SkeletonBlock className="size-16 rounded-2xl" />
+          <View className="flex-1 gap-2.5">
+            <SkeletonBlock className="h-4 w-3/5 rounded-full" />
+            <SkeletonBlock className="h-3 w-4/5 rounded-full" />
+          </View>
+        </View>
+      ))}
+    </View>
   )
 }
 
@@ -260,12 +286,18 @@ export function PagedList<T>({
       error={error}
       onRetry={onRefresh}
       loadingLabel={loadingLabel}
+      loadingFallback={<ListSkeleton label={loadingLabel} />}
     >
       <FlatList
         className="flex-1"
         data={data}
         keyExtractor={keyExtractor}
-        renderItem={({ item }) => renderItem(item)}
+        renderItem={({ item, index }) => (
+          // Short stagger for the first rows only; later rows (paging) just fade.
+          <Animated.View entering={FadeInDown.duration(260).delay(Math.min(index, 6) * 40)}>
+            {renderItem(item)}
+          </Animated.View>
+        )}
         contentContainerClassName={`gap-4 px-5 pt-1 ${hasFab ? 'pb-28' : 'pb-8'}`}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -304,7 +336,9 @@ export function ListCard({
     <>
       {leading}
       <View className="min-w-0 flex-1 gap-1">{children}</View>
-      {onPress && showChevron ? <ChevronRight size={18} color={colors.disabled} /> : null}
+      {onPress && showChevron ? (
+        <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
+      ) : null}
     </>
   )
   const className = 'flex-row items-center gap-4 rounded-3xl border border-border/40 bg-card p-4'

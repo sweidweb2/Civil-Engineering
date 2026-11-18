@@ -77,6 +77,7 @@ export function GalleryImagesField({
   function confirmRemove(tile: Tile) {
     setActive(null)
     showBlockingAlert(t('gallery.removeTitle'), t('gallery.removeBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.delete'),
       onConfirm: () => {

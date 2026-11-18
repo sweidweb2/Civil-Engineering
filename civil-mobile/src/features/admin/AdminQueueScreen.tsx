@@ -109,6 +109,7 @@ export function AdminQueueScreen() {
                     disabled={busy}
                     onPress={() =>
                       showBlockingAlert(t('queue.removeTitle'), t('queue.removeBody'), {
+                        destructive: true,
                         cancelLabel: t('common.cancel'),
                         confirmLabel: t('common.remove'),
                         onConfirm: () => void runAction(item.id, 'delete'),

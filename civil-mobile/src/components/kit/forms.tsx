@@ -2,7 +2,6 @@ import { Children, type ReactNode, useMemo, useState } from 'react'
 import {
   FlatList,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   Text,
@@ -18,7 +17,6 @@ import {
   EyeOff,
   type LucideIcon,
   Search,
-  X,
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -29,6 +27,7 @@ import { useThemeColors } from '@/hooks/useThemeColors'
 import { softShadows } from '@/theme/shadows'
 
 import { IconTile } from './primitives'
+import { BottomSheet } from './sheet'
 import type { Tone } from './tones'
 
 /** Scrollable form body that stays clear of the keyboard. */
@@ -357,7 +356,6 @@ export function SelectField({
 }: SelectFieldProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
-  const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
 
@@ -392,80 +390,56 @@ export function SelectField({
       </Pressable>
       <FieldHint helper={helper} />
 
-      <Modal
+      <BottomSheet
         visible={open}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setOpen(false)}
-        statusBarTranslucent
+        onClose={() => {
+          setOpen(false)
+          setQuery('')
+        }}
+        title={label}
+        maxHeightRatio={0.75}
       >
-        <View className="flex-1 justify-end bg-black/50">
-          <Pressable
-            accessibilityLabel={t('common.close')}
-            className="flex-1"
-            onPress={() => setOpen(false)}
-          />
-          <View
-            className="max-h-[75%] rounded-t-[32px] bg-card px-5 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
-          >
-            <View className="mb-3 h-1 w-10 self-center rounded-full bg-border" />
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-lg font-bold text-foreground">{label}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('common.close')}
-                hitSlop={8}
-                className="size-9 items-center justify-center rounded-full bg-muted"
-                onPress={() => setOpen(false)}
-              >
-                <X size={18} color={colors.text} />
-              </Pressable>
-            </View>
-
-            {options.length > 8 ? (
-              <View className="mb-2 h-11 flex-row items-center gap-2 rounded-2xl bg-muted px-3.5">
-                <Search size={16} color={colors.textMuted} />
-                <TextInput
-                  className="h-full flex-1 text-base text-foreground"
-                  value={query}
-                  onChangeText={setQuery}
-                  placeholder={t('common.search')}
-                  placeholderTextColor={colors.textMuted}
-                  autoCorrect={false}
-                />
-              </View>
-            ) : null}
-
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.value}
-              keyboardShouldPersistTaps="handled"
-              ListHeaderComponent={
-                allowClear && !query ? (
-                  <SheetOption
-                    label={t('common.none')}
-                    active={value === ''}
-                    onPress={() => choose('')}
-                  />
-                ) : null
-              }
-              ListEmptyComponent={
-                <Text className="py-8 text-center text-sm text-muted-foreground">
-                  {t('common.nothingMatches')}
-                </Text>
-              }
-              renderItem={({ item }) => (
-                <SheetOption
-                  label={item.label}
-                  active={item.value === value}
-                  onPress={() => choose(item.value)}
-                />
-              )}
+        {options.length > 8 ? (
+          <View className="mb-2 h-11 flex-row items-center gap-2 rounded-2xl bg-muted px-3.5">
+            <Search size={16} color={colors.textMuted} />
+            <TextInput
+              className="h-full flex-1 text-base text-foreground"
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('common.search')}
+              placeholderTextColor={colors.textMuted}
+              autoCorrect={false}
             />
           </View>
-        </View>
-      </Modal>
+        ) : null}
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.value}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            allowClear && !query ? (
+              <SheetOption
+                label={t('common.none')}
+                active={value === ''}
+                onPress={() => choose('')}
+              />
+            ) : null
+          }
+          ListEmptyComponent={
+            <Text className="py-8 text-center text-sm text-muted-foreground">
+              {t('common.nothingMatches')}
+            </Text>
+          }
+          renderItem={({ item }) => (
+            <SheetOption
+              label={item.label}
+              active={item.value === value}
+              onPress={() => choose(item.value)}
+            />
+          )}
+        />
+      </BottomSheet>
     </View>
   )
 }

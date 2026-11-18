@@ -6,6 +6,8 @@ export type AppAlertRequest = {
   message: string
   confirmLabel: string
   cancelLabel?: string
+  /** Styles the confirm action as destructive. Falls back to a label heuristic when unset. */
+  destructive?: boolean
   onConfirm?: () => void
   onCancel?: () => void
 }
@@ -31,6 +33,7 @@ export const useAlertStore = create<AlertState>((set) => ({
         message: input.message,
         confirmLabel: input.confirmLabel ?? 'OK',
         cancelLabel: input.cancelLabel,
+        destructive: input.destructive,
         onConfirm: input.onConfirm,
         onCancel: input.onCancel,
       },

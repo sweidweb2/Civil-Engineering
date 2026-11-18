@@ -21,4 +21,15 @@ describe('alertStore', () => {
     useAlertStore.getState().dismiss()
     expect(useAlertStore.getState().current).toBeNull()
   })
+
+  it('carries an explicit destructive flag through to the alert', () => {
+    useAlertStore.getState().show({
+      title: 'T',
+      message: 'M',
+      confirmLabel: 'أرشفة',
+      cancelLabel: 'إلغاء',
+      destructive: true,
+    })
+    expect(useAlertStore.getState().current?.destructive).toBe(true)
+  })
 })

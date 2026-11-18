@@ -60,6 +60,13 @@ const STATUS_TONES: Record<string, Tone> = {
   COMPLETED: 'success',
   CANCELLED: 'danger',
   NOT_STARTED: 'neutral',
+  // workers
+  AVAILABLE: 'success',
+  BUSY: 'warning',
+  UNAVAILABLE: 'neutral',
+  VERIFIED: 'success',
+  REQUESTED: 'warning',
+  UNVERIFIED: 'info',
 }
 
 export function toneForStatus(status: string | null | undefined): Tone {

@@ -270,7 +270,7 @@ export function AdminDashboardScreen() {
                     <View className="flex-1">
                       <ProgressBar value={project.progress} />
                     </View>
-                    <Text className="w-10 text-right text-xs font-semibold text-muted-foreground">
+                    <Text className="w-10 text-end text-xs font-semibold text-muted-foreground">
                       {Math.round(project.progress)}%
                     </Text>
                   </View>

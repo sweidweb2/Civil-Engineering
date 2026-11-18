@@ -101,6 +101,7 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
   function onDelete() {
     if (!categoryId || isDeleting) return
     showBlockingAlert(t('categories.deleteTitle'), t('categories.deleteBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.delete'),
       onConfirm: () => {

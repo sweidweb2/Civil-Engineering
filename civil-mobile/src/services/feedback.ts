@@ -17,6 +17,7 @@ export function showBlockingAlert(
   options?: {
     confirmLabel?: string
     cancelLabel?: string
+    destructive?: boolean
     onConfirm?: () => void
     onCancel?: () => void
   },
@@ -26,6 +27,7 @@ export function showBlockingAlert(
     message,
     confirmLabel: options?.confirmLabel,
     cancelLabel: options?.cancelLabel,
+    destructive: options?.destructive,
     onConfirm: options?.onConfirm,
     onCancel: options?.onCancel,
   })

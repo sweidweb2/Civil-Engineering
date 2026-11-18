@@ -25,7 +25,8 @@ export function AppAlertHost() {
 
   const isOpen = Boolean(current)
   const hasCancel = Boolean(current?.cancelLabel)
-  const isDestructive = hasCancel && DESTRUCTIVE_LABEL.test(current?.confirmLabel ?? '')
+  const isDestructive =
+    current?.destructive ?? (hasCancel && DESTRUCTIVE_LABEL.test(current?.confirmLabel ?? ''))
   const Icon = isDestructive ? CircleAlert : Info
 
   function closeWith(action?: () => void) {

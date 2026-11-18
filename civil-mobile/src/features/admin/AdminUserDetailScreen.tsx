@@ -97,6 +97,7 @@ export function AdminUserDetailScreen() {
   function onDeactivate() {
     if (!userId || isDeactivating) return
     showBlockingAlert(t('users.deactivateTitle'), t('users.deactivateBody'), {
+      destructive: true,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('users.deactivate'),
       onConfirm: () => {

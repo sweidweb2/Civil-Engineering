@@ -3,7 +3,15 @@ import { router } from 'expo-router'
 import { ChevronRight } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar, Card, HeroHeader, IconTile, SectionLabel, type Tone } from '@/components/kit'
+import {
+  Avatar,
+  Card,
+  DirectionalIcon,
+  HeroHeader,
+  IconTile,
+  SectionLabel,
+  type Tone,
+} from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { LogoutRow } from '@/features/account/AccountForms'
 import { useThemeColors } from '@/hooks/useThemeColors'
@@ -50,7 +58,7 @@ export function AdminMoreScreen() {
               {user ? `${enumLabel(t, 'role', user.role)} · ${user.email}` : ''}
             </Text>
           </View>
-          <ChevronRight size={18} color={colors.disabled} />
+          <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
         </Pressable>
 
         <View className="gap-2">
@@ -76,7 +84,7 @@ export function AdminMoreScreen() {
                       {t(`more.links.${item.key}.description`)}
                     </Text>
                   </View>
-                  <ChevronRight size={18} color={colors.disabled} />
+                  <DirectionalIcon icon={ChevronRight} size={18} color={colors.disabled} />
                 </Pressable>
               )
             })}

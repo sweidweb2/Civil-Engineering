@@ -1,11 +1,19 @@
 import { type ReactNode, useEffect } from 'react'
-import { Pressable as RNPressable, type PressableProps, Text, View } from 'react-native'
+import {
+  I18nManager,
+  Pressable as RNPressable,
+  type PressableProps,
+  Text,
+  View,
+} from 'react-native'
 import { Image } from 'expo-image'
 import type { LucideIcon } from 'lucide-react-native'
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
@@ -14,6 +22,7 @@ import { withUniwind } from 'uniwind'
 import { useThemeColors } from '@/hooks/useThemeColors'
 import { softShadows } from '@/theme/shadows'
 
+import { AnimatedNumber } from './AnimatedNumber'
 import { type Tone, TONE_BG, TONE_COLOR, TONE_DOT, TONE_TEXT } from './tones'
 
 const AnimatedPressable = withUniwind(Animated.createAnimatedComponent(RNPressable))
@@ -129,7 +138,8 @@ export function PressableScale({
   return (
     <AnimatedPressable
       {...rest}
-      className={className}
+      // withUniwind maps className → { $$css, tailwind }; styleq rejects undefined.
+      className={className ?? ''}
       style={[animated, style as never]}
       onPressIn={(e) => {
         scale.set(withSpring(scaleTo, { damping: 18, stiffness: 320 }))
@@ -190,12 +200,12 @@ export function StatCard({
         <View className={`size-2 rounded-full ${TONE_DOT[tone]} opacity-60`} />
       </View>
       <View className="gap-0.5">
-        <Text
-          className="text-[32px] font-bold leading-9 text-foreground"
-          style={{ fontVariant: ['tabular-nums'] }}
-        >
-          {value}
-        </Text>
+        <AnimatedNumber
+          value={value}
+          className="font-bold text-foreground"
+          fontSize={32}
+          lineHeight={36}
+        />
         <Text className="text-sm text-muted-foreground" numberOfLines={1}>
           {label}
         </Text>
@@ -294,13 +304,13 @@ export function HeroStat({
       className="min-w-0 flex-1 gap-0.5 rounded-2xl border border-hero-foreground/20 bg-hero-foreground/15 px-4 py-3"
       onPress={onPress}
     >
-      <Text
-        className="text-2xl font-bold leading-8 text-hero-foreground"
-        style={{ fontVariant: ['tabular-nums'] }}
+      <AnimatedNumber
+        value={value}
+        className="font-bold text-hero-foreground"
+        fontSize={24}
+        lineHeight={32}
         numberOfLines={1}
-      >
-        {value}
-      </Text>
+      />
       <Text className="text-xs font-medium text-hero-foreground/80" numberOfLines={1}>
         {label}
       </Text>
@@ -334,4 +344,41 @@ export function ActionTile({
       </Text>
     </PressableScale>
   )
+}
+
+/** Icon that mirrors horizontally in RTL (chevrons, back arrows). */
+export function DirectionalIcon({
+  icon: Icon,
+  size = 18,
+  color,
+}: {
+  icon: LucideIcon
+  size?: number
+  color: string
+}) {
+  return (
+    <Icon
+      size={size}
+      color={color}
+      style={{ transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] }}
+    />
+  )
+}
+
+/** Pulsing placeholder block for skeleton screens. */
+export function SkeletonBlock({ className }: { className?: string }) {
+  const opacity = useSharedValue(1)
+  useEffect(() => {
+    opacity.set(
+      withRepeat(
+        withSequence(
+          withTiming(0.45, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+      ),
+    )
+  }, [opacity])
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }))
+  return <Animated.View className={`bg-muted ${className ?? ''}`} style={style} />
 }

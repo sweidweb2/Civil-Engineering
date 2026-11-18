@@ -256,7 +256,7 @@ export function PmDashboardScreen() {
                       <ProgressBar value={project.progress} />
                     </View>
                     <Text
-                      className="w-10 text-right text-xs font-semibold text-muted-foreground"
+                      className="w-10 text-end text-xs font-semibold text-muted-foreground"
                       style={{ fontVariant: ['tabular-nums'] }}
                     >
                       {Math.round(project.progress)}%

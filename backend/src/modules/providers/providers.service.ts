@@ -15,8 +15,8 @@ import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/
 import {
   assertAllowedImageUpload,
   encodeImageToWebp,
-  MAX_BRAND_IMAGE_BYTES,
   type ImageUploadFile,
+  MAX_BRAND_IMAGE_BYTES,
 } from '../files/index.js'
 import type { ProviderRecord, ProvidersRepository } from './providers.repository.js'
 import type {
@@ -26,9 +26,9 @@ import type {
   UpdateProviderBody,
 } from './providers.schema.js'
 import type {
+  PaginatedOwnerCandidates,
   PaginatedProviders,
   Provider,
-  PaginatedOwnerCandidates,
   ProviderStatusCounts,
 } from './providers.types.js'
 

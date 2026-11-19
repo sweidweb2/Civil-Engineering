@@ -14,12 +14,12 @@ export function createAuthModule(config: AppConfig = loadConfig()) {
 }
 
 export {
+  type AccessPrincipal,
   clearAccessPrincipalCache,
   createDbAccessPrincipalResolver,
   invalidateAccessPrincipal,
-  type AccessPrincipal,
   type ResolveAccessPrincipal,
 } from './access-principal.js'
+export type { RoleName } from './auth.schema.js'
 export { hashPassword, verifyPassword } from './auth.tokens.js'
 export { passwordSchema } from './password.schema.js'
-export type { RoleName } from './auth.schema.js'

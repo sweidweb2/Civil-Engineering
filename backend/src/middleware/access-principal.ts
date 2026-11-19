@@ -3,9 +3,9 @@
  * Domain services should import from `modules/auth` — not this middleware file.
  */
 export {
+  type AccessPrincipal,
   clearAccessPrincipalCache,
   createDbAccessPrincipalResolver,
   invalidateAccessPrincipal,
-  type AccessPrincipal,
   type ResolveAccessPrincipal,
 } from '../modules/auth/access-principal.js'

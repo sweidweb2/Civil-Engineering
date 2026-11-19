@@ -8,8 +8,8 @@ import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/
 import {
   assertAllowedImageUpload,
   encodeImageToWebp,
-  MAX_GALLERY_IMAGES,
   type ImageUploadFile,
+  MAX_GALLERY_IMAGES,
 } from './image-policy.js'
 
 /** Owner-scoped gallery row with a stable `ownerId` (projectId or listingId). */

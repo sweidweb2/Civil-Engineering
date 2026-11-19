@@ -3,8 +3,8 @@
  * idempotent (safe to retry). Add a durable runner only when a real need appears.
  */
 
-import { withAdvisoryLock } from '../database/advisory-lock.js'
 import { loadConfig } from '../config/index.js'
+import { withAdvisoryLock } from '../database/advisory-lock.js'
 import { getLogger } from '../logging/index.js'
 import { createAuthRepository } from '../modules/auth/auth.repository.js'
 import { notifyUser } from '../modules/devices/index.js'

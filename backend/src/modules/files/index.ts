@@ -43,6 +43,17 @@ export function createFilesModule(deps: { service: FilesService }) {
 
 export type { FilesService }
 export {
+  assertAllowedImageUpload,
+  createImageUpload,
+  encodeImageToWebp,
+  type ImageUploadFile,
+  isAllowedImageMime,
+  MAX_BRAND_IMAGE_BYTES,
+  MAX_GALLERY_IMAGES,
+  readUploadBytes,
+  toWebpBuffer,
+} from './image-policy.js'
+export {
   createOwnerGalleryService,
   type OwnerGalleryImage,
   type OwnerGalleryImageWithUrl,
@@ -50,14 +61,3 @@ export {
   type OwnerGalleryRepository,
   type OwnerGalleryService,
 } from './owner-gallery.service.js'
-export {
-  assertAllowedImageUpload,
-  createImageUpload,
-  encodeImageToWebp,
-  isAllowedImageMime,
-  MAX_BRAND_IMAGE_BYTES,
-  MAX_GALLERY_IMAGES,
-  readUploadBytes,
-  toWebpBuffer,
-  type ImageUploadFile,
-} from './image-policy.js'

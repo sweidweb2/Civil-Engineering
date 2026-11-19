@@ -3,11 +3,11 @@ import { conflict, forbidden, notFound, validationError } from '../../errors/app
 import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
 import {
   assertAllowedImageUpload,
+  type FilesService,
+  type ImageUploadFile,
   isAllowedImageMime,
   MAX_BRAND_IMAGE_BYTES,
   readUploadBytes,
-  type FilesService,
-  type ImageUploadFile,
 } from '../files/index.js'
 import type { ListingsService } from '../listings/index.js'
 import type { ProjectsService } from '../projects/index.js'

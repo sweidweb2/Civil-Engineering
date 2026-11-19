@@ -2,7 +2,6 @@ import { randomBytes } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-
 import multer from 'multer'
 import sharp from 'sharp'
 

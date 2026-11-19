@@ -34,6 +34,7 @@ import { useWorkerPalette } from './palette'
 /** Pushed form screen: top bar, loading / error states, body, pinned save. */
 export function WkFormScreen({
   title,
+  count,
   backHref,
   isLoading,
   error,
@@ -43,6 +44,8 @@ export function WkFormScreen({
   testID,
 }: {
   title: string
+  /** Mono label on the right of the top bar (code, "3 / 5"). */
+  count?: string
   backHref: string
   isLoading?: boolean
   error?: unknown
@@ -54,7 +57,7 @@ export function WkFormScreen({
   const { t } = useTranslation()
   return (
     <View className="flex-1 bg-wk-bg" testID={testID}>
-      <WkTopBar title={title} backHref={backHref} />
+      <WkTopBar title={title} backHref={backHref} count={count} />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

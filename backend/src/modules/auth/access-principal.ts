@@ -12,6 +12,8 @@ export type ResolveAccessPrincipal = (userId: string) => Promise<AccessPrincipal
 
 /** Short TTL so demotions apply quickly without a DB round-trip on every request. */
 const PRINCIPAL_CACHE_TTL_MS = 3_000
+/** Cap process memory if many distinct users hit one instance. */
+const PRINCIPAL_CACHE_MAX = 5_000
 
 type CacheEntry = {
   principal: AccessPrincipal | null
@@ -29,6 +31,17 @@ export function invalidateAccessPrincipal(userId: string): void {
 /** Test helper — clears the shared cache. */
 export function clearAccessPrincipalCache(): void {
   principalCache.clear()
+}
+
+function prunePrincipalCache(now: number): void {
+  for (const [userId, entry] of principalCache) {
+    if (entry.expiresAt <= now) principalCache.delete(userId)
+  }
+  while (principalCache.size >= PRINCIPAL_CACHE_MAX) {
+    const oldest = principalCache.keys().next().value
+    if (oldest === undefined) break
+    principalCache.delete(oldest)
+  }
 }
 
 /**
@@ -61,6 +74,7 @@ export function createDbAccessPrincipalResolver(
         }
       : null
 
+    prunePrincipalCache(now)
     principalCache.set(userId, { principal, expiresAt: now + cacheTtlMs })
     logPerf('auth', `principal cache miss ${ms}ms`, { userId, cache: 'miss', ms })
     return principal

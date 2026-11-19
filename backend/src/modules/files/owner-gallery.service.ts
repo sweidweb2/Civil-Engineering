@@ -5,7 +5,12 @@ import type { AppConfig } from '../../config/index.js'
 import { isUniqueConflictError, notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
-import { assertAllowedImageUpload, MAX_GALLERY_IMAGES, toWebpBuffer } from './image-policy.js'
+import {
+  assertAllowedImageUpload,
+  encodeImageToWebp,
+  MAX_GALLERY_IMAGES,
+  type ImageUploadFile,
+} from './image-policy.js'
 
 /** Owner-scoped gallery row with a stable `ownerId` (projectId or listingId). */
 export type OwnerGalleryImage = {
@@ -74,7 +79,7 @@ export type OwnerGalleryService = {
   upload: (
     actor: AuthActor,
     ownerId: string,
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    file: ImageUploadFile & { originalname?: string },
     input: { isMain?: boolean; displayOrder?: number },
   ) => Promise<OwnerGalleryImageWithUrl>
   update: (
@@ -138,11 +143,11 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
 
     async upload(actor, ownerId, file, input) {
       await policy.assertCanManage(actor, ownerId)
-      assertAllowedImageUpload(file)
+      await assertAllowedImageUpload(file)
 
       const imageId = randomUUID().replace(/-/g, '')
       const storagePath = `${policy.keyPrefix}/${ownerId}/images/${imageId}.webp`
-      const webpBuffer = await toWebpBuffer(file.buffer)
+      const webpBuffer = await encodeImageToWebp(file)
 
       // DB first (count + main under row lock) so concurrent uploads cannot overrun the cap
       // or create dual mains; R2 put is compensated if it fails after insert.

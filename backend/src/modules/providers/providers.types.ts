@@ -33,6 +33,15 @@ export type ProviderOwnerCandidate = {
   displayName: string | null
 }
 
+export type PaginatedOwnerCandidates = {
+  data: ProviderOwnerCandidate[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
+}
+
 export type ProviderStatusCounts = {
   PENDING: number
   APPROVED: number

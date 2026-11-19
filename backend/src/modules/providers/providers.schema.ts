@@ -15,6 +15,12 @@ export const listProvidersQuerySchema = paginationQuerySchema.extend({
   counts: countsQuerySchema,
 })
 
+export const listOwnerCandidatesQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().max(120).optional(),
+})
+
+export type ListOwnerCandidatesQuery = z.infer<typeof listOwnerCandidatesQuerySchema>
+
 function blankToUndefined(value: unknown) {
   if (value == null || value === '') return undefined
   return typeof value === 'string' ? value.trim() : value

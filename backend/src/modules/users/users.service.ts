@@ -3,9 +3,11 @@ import { conflict, forbidden, notFound, validationError } from '../../errors/app
 import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
 import {
   assertAllowedImageUpload,
-  type FilesService,
   isAllowedImageMime,
   MAX_BRAND_IMAGE_BYTES,
+  readUploadBytes,
+  type FilesService,
+  type ImageUploadFile,
 } from '../files/index.js'
 import type { ListingsService } from '../listings/index.js'
 import type { ProjectsService } from '../projects/index.js'
@@ -67,7 +69,7 @@ export type UsersService = {
   setAvatar: (id: string, input: SetAvatarBody, actor: AuthActor) => Promise<UserAvatarResult>
   uploadAvatar: (
     id: string,
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    file: ImageUploadFile & { originalname?: string },
     actor: AuthActor,
   ) => Promise<UserAvatarResult>
   clearAvatar: (id: string, actor: AuthActor) => Promise<UserAvatarResult>
@@ -394,14 +396,15 @@ export function createUsersService(
 
     async uploadAvatar(id, file, actor) {
       const user = await assertAccessible(id, actor)
-      assertAllowedImageUpload(file, { maxBytes: MAX_BRAND_IMAGE_BYTES })
+      await assertAllowedImageUpload(file, { maxBytes: MAX_BRAND_IMAGE_BYTES })
+      const body = await readUploadBytes(file)
 
       const uploaded = await filesService.uploadBytes(actor, {
         entityType: 'USER',
         entityId: id,
         mime: file.mimetype,
         originalName: file.originalname || 'avatar.jpg',
-        body: file.buffer,
+        body,
       })
 
       const previousFileId = user.profile?.avatarUrl

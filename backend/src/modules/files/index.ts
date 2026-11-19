@@ -53,8 +53,11 @@ export {
 export {
   assertAllowedImageUpload,
   createImageUpload,
+  encodeImageToWebp,
   isAllowedImageMime,
   MAX_BRAND_IMAGE_BYTES,
   MAX_GALLERY_IMAGES,
+  readUploadBytes,
   toWebpBuffer,
+  type ImageUploadFile,
 } from './image-policy.js'

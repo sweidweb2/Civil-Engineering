@@ -3,6 +3,7 @@
  * idempotent (safe to retry). Add a durable runner only when a real need appears.
  */
 
+import { withAdvisoryLock } from '../database/advisory-lock.js'
 import { loadConfig } from '../config/index.js'
 import { getLogger } from '../logging/index.js'
 import { createAuthRepository } from '../modules/auth/auth.repository.js'
@@ -14,6 +15,9 @@ const PURGE_DENIED_REFRESH_INTERVAL_MS = 60 * 60 * 1000
 const PURGE_DELETED_FILES_INTERVAL_MS = 60 * 60 * 1000
 const STALE_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 const FILE_CLEANUP_BATCH = 50
+/** Stable Postgres advisory lock keys (multi-instance single-flight). */
+const LOCK_PURGE_DENIED_REFRESH = 810_001
+const LOCK_PURGE_DELETED_FILES = 810_002
 
 let purgeDeniedRefreshTimer: ReturnType<typeof setInterval> | undefined
 let purgeDeletedFilesTimer: ReturnType<typeof setInterval> | undefined
@@ -45,17 +49,20 @@ export async function deleteStorageObject(payload: { fileId: string; key: string
   }
 }
 
-/** Delete expired refresh denylist rows (idempotent). */
+/** Delete expired refresh denylist rows (idempotent; one winner across API instances). */
 export async function purgeExpiredDeniedRefreshTokens(): Promise<number> {
   if (!process.env.DATABASE_URL) {
     return 0
   }
   try {
-    const removed = await createAuthRepository().purgeExpiredDeniedRefreshTokens()
-    if (removed > 0) {
-      getLogger().info({ removed }, 'jobs.purgeDeniedRefreshTokens')
-    }
-    return removed
+    const removed = await withAdvisoryLock(LOCK_PURGE_DENIED_REFRESH, async () => {
+      const count = await createAuthRepository().purgeExpiredDeniedRefreshTokens()
+      if (count > 0) {
+        getLogger().info({ removed: count }, 'jobs.purgeDeniedRefreshTokens')
+      }
+      return count
+    })
+    return removed ?? 0
   } catch (error) {
     getLogger().error(
       { message: error instanceof Error ? error.message : String(error) },
@@ -81,7 +88,7 @@ export function startDeniedRefreshTokenPurgeScheduler(): void {
 /**
  * Retry R2 deletes for soft-deleted files and claim stale PENDING rows.
  * Uses conditional PENDING→DELETED claims so complete() cannot race into a READY+missing-blob state.
- * Idempotent; failures are logged and retried next interval.
+ * Idempotent; one winner across API instances via Postgres advisory lock.
  */
 export async function purgeDeletedFileObjects(): Promise<{
   deletedObjects: number
@@ -96,63 +103,66 @@ export async function purgeDeletedFileObjects(): Promise<{
     return { deletedObjects: 0, stalePending: 0 }
   }
 
-  const repository = createFilesRepository()
-  const storage = getStorageService(config)
-  let deletedObjects = 0
-  let stalePending = 0
-
   try {
-    const deleted = await repository.listDeleted(FILE_CLEANUP_BATCH)
-    for (const file of deleted) {
-      try {
-        await storage.deleteObject(file.key)
-        await repository.hardDeleteIfDeleted(file.id)
-        deletedObjects += 1
-      } catch (error) {
-        getLogger().error(
-          {
-            fileId: file.id,
-            key: file.key,
-            message: error instanceof Error ? error.message : String(error),
-          },
-          'jobs.purgeDeletedFileObjects delete failed',
-        )
-      }
-    }
+    const result = await withAdvisoryLock(LOCK_PURGE_DELETED_FILES, async () => {
+      const repository = createFilesRepository()
+      const storage = getStorageService(config)
+      let deletedObjects = 0
+      let stalePending = 0
 
-    const cutoff = new Date(Date.now() - STALE_PENDING_MAX_AGE_MS)
-    const pending = await repository.listStalePending(cutoff, FILE_CLEANUP_BATCH)
-    for (const file of pending) {
-      try {
-        // Claim first so a concurrent complete() cannot mark READY after we decide to GC.
-        const claimed = await repository.claimStalePending(file.id)
-        if (!claimed) continue
-        await storage.deleteObject(claimed.key).catch(() => undefined)
-        await repository.hardDeleteIfDeleted(claimed.id)
-        stalePending += 1
-      } catch (error) {
-        getLogger().error(
-          {
-            fileId: file.id,
-            key: file.key,
-            message: error instanceof Error ? error.message : String(error),
-          },
-          'jobs.purgeDeletedFileObjects stale pending failed',
-        )
+      const deleted = await repository.listDeleted(FILE_CLEANUP_BATCH)
+      for (const file of deleted) {
+        try {
+          await storage.deleteObject(file.key)
+          await repository.hardDeleteIfDeleted(file.id)
+          deletedObjects += 1
+        } catch (error) {
+          getLogger().error(
+            {
+              fileId: file.id,
+              key: file.key,
+              message: error instanceof Error ? error.message : String(error),
+            },
+            'jobs.purgeDeletedFileObjects delete failed',
+          )
+        }
       }
-    }
 
-    if (deletedObjects > 0 || stalePending > 0) {
-      getLogger().info({ deletedObjects, stalePending }, 'jobs.purgeDeletedFileObjects')
-    }
+      const cutoff = new Date(Date.now() - STALE_PENDING_MAX_AGE_MS)
+      const pending = await repository.listStalePending(cutoff, FILE_CLEANUP_BATCH)
+      for (const file of pending) {
+        try {
+          // Claim first so a concurrent complete() cannot mark READY after we decide to GC.
+          const claimed = await repository.claimStalePending(file.id)
+          if (!claimed) continue
+          await storage.deleteObject(claimed.key).catch(() => undefined)
+          await repository.hardDeleteIfDeleted(claimed.id)
+          stalePending += 1
+        } catch (error) {
+          getLogger().error(
+            {
+              fileId: file.id,
+              key: file.key,
+              message: error instanceof Error ? error.message : String(error),
+            },
+            'jobs.purgeDeletedFileObjects stale pending failed',
+          )
+        }
+      }
+
+      if (deletedObjects > 0 || stalePending > 0) {
+        getLogger().info({ deletedObjects, stalePending }, 'jobs.purgeDeletedFileObjects')
+      }
+      return { deletedObjects, stalePending }
+    })
+    return result ?? { deletedObjects: 0, stalePending: 0 }
   } catch (error) {
     getLogger().error(
       { message: error instanceof Error ? error.message : String(error) },
       'jobs.purgeDeletedFileObjects failed',
     )
+    return { deletedObjects: 0, stalePending: 0 }
   }
-
-  return { deletedObjects, stalePending }
 }
 
 /**

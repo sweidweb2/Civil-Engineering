@@ -58,7 +58,12 @@ export type ProvidersRepository = {
   findIdByOwnerUserId: (ownerUserId: string) => Promise<string | null>
   findOwnerUserIdById: (id: string) => Promise<string | null>
   findOwnerUser: (id: string) => Promise<ProviderOwnerUser | null>
-  findEligibleOwners: (includeUserId?: string | null) => Promise<ProviderOwnerCandidate[]>
+  findEligibleOwners: (query: {
+    page: number
+    limit: number
+    q?: string
+    includeUserId?: string | null
+  }) => Promise<{ items: ProviderOwnerCandidate[]; total: number }>
   create: (input: CreateProviderBody) => Promise<ProviderRecord>
   update: (id: string, input: UpdateProviderBody) => Promise<ProviderRecord>
   /**
@@ -163,22 +168,57 @@ export function createProvidersRepository(): ProvidersRepository {
       })
     },
 
-    async findEligibleOwners(includeUserId) {
-      const users = await prisma.user.findMany({
-        where: {
-          role: 'PROVIDER',
-          status: 'ACTIVE',
-          OR: [{ provider: { is: null } }, ...(includeUserId ? [{ id: includeUserId }] : [])],
-        },
-        orderBy: { email: 'asc' },
-        take: 100,
-        select: ownerSelect,
-      })
-      return users.map((user) => ({
-        id: user.id,
-        email: user.email,
-        displayName: ownerDisplayName(user.profile),
-      }))
+    async findEligibleOwners(query) {
+      const q = query.q?.trim()
+      const where = {
+        role: 'PROVIDER' as const,
+        status: 'ACTIVE' as const,
+        OR: [
+          { provider: { is: null } },
+          ...(query.includeUserId ? [{ id: query.includeUserId }] : []),
+        ],
+        ...(q
+          ? {
+              AND: [
+                {
+                  OR: [
+                    { email: { contains: q, mode: 'insensitive' as const } },
+                    {
+                      profile: {
+                        is: {
+                          OR: [
+                            { displayName: { contains: q, mode: 'insensitive' as const } },
+                            { firstName: { contains: q, mode: 'insensitive' as const } },
+                            { lastName: { contains: q, mode: 'insensitive' as const } },
+                          ],
+                        },
+                      },
+                    },
+                  ],
+                },
+              ],
+            }
+          : {}),
+      }
+      const skip = (query.page - 1) * query.limit
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          orderBy: { email: 'asc' },
+          skip,
+          take: query.limit,
+          select: ownerSelect,
+        }),
+        prisma.user.count({ where }),
+      ])
+      return {
+        items: users.map((user) => ({
+          id: user.id,
+          email: user.email,
+          displayName: ownerDisplayName(user.profile),
+        })),
+        total,
+      }
     },
 
     async create(input) {

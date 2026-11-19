@@ -3,6 +3,7 @@ import type { AppConfig } from '../../config/index.js'
 import type { StorageService } from '../../storage/index.js'
 import {
   createOwnerGalleryService,
+  type ImageUploadFile,
   type OwnerGalleryImage,
   type OwnerGalleryImageWithUrl,
   type OwnerGalleryRepository,
@@ -25,7 +26,7 @@ export type ListingImagesService = {
   uploadListingImage: (
     actor: AuthActor,
     listingId: string,
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    file: ImageUploadFile & { originalname?: string },
     input: UploadListingImageBody,
   ) => Promise<ListingImageWithUrl>
   updateListingImage: (

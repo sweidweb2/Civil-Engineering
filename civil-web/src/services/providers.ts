@@ -162,8 +162,13 @@ export function listProviders(page = 1, limit = 12, q?: string, status?: Provide
   return apiRequest<PaginatedProviders>(`/providers?${params.toString()}`)
 }
 
-export function listProviderOwnerCandidates() {
-  return apiRequest<{ data: ProviderOwnerCandidate[] }>('/providers/owner-candidates')
+export function listProviderOwnerCandidates(page = 1, limit = 100, q?: string) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (q?.trim()) params.set('q', q.trim())
+  return apiRequest<{
+    data: ProviderOwnerCandidate[]
+    meta: { page: number; limit: number; total: number }
+  }>(`/providers/owner-candidates?${params.toString()}`)
 }
 
 export function getProvider(id: string) {

@@ -30,7 +30,7 @@ function emptyDraft(status: ProjectStageStatus = 'NOT_STARTED'): StageDraft {
   return { status }
 }
 
-function draftFromSummary(summary: ProjectStagesSummary, key: StageKey): StageDraft {
+export function draftFromSummary(summary: ProjectStagesSummary, key: StageKey): StageDraft {
   const slot = summary[key]
   if (!slot.data) return emptyDraft()
   const draft: StageDraft = {}
@@ -102,7 +102,7 @@ function StageStepper({
   )
 }
 
-function fieldsForStage(key: StageKey): { key: string; multiline?: boolean }[] {
+export function fieldsForStage(key: StageKey): { key: string; multiline?: boolean }[] {
   switch (key) {
     case 'geotechnical':
       return [
@@ -161,7 +161,7 @@ function fieldsForStage(key: StageKey): { key: string; multiline?: boolean }[] {
 }
 
 /** Draft keys that hold an uploaded file's storage key, per stage. */
-function fileFieldsForStage(key: StageKey): string[] {
+export function fileFieldsForStage(key: StageKey): string[] {
   switch (key) {
     case 'geotechnical':
       return ['reportFilePath']

@@ -54,7 +54,7 @@ function setup(opts?: {
     findOwnerUser: vi.fn(
       async () => opts?.ownerUser ?? { id: owner.id, role: 'PROVIDER', status: 'ACTIVE' },
     ),
-    findEligibleOwners: vi.fn(async () => []),
+    findEligibleOwners: vi.fn(async () => ({ items: [], total: 0 })),
     create: vi.fn(async (input) =>
       record({
         name: input.name,

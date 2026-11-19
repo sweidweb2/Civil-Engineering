@@ -7,6 +7,7 @@ import { validate } from '../../middleware/validate.js'
 import type { ProvidersController } from './providers.controller.js'
 import {
   createProviderBodySchema,
+  listOwnerCandidatesQuerySchema,
   listProvidersQuerySchema,
   providerIdParamsSchema,
   updateProviderBodySchema,
@@ -23,7 +24,12 @@ export function createProvidersRoutes(controller: ProvidersController): Router {
     validate({ query: listProvidersQuerySchema }),
     controller.list,
   )
-  router.get('/owner-candidates', authorize(...ADMIN_ROLES), controller.listOwnerCandidates)
+  router.get(
+    '/owner-candidates',
+    authorize(...ADMIN_ROLES),
+    validate({ query: listOwnerCandidatesQuerySchema }),
+    controller.listOwnerCandidates,
+  )
   router.get('/me', authorize('PROVIDER', ...ADMIN_ROLES), controller.getMine)
   router.get('/:id', validate({ params: providerIdParamsSchema }), controller.getById)
   router.post(

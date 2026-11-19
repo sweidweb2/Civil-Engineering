@@ -1,3 +1,7 @@
+import { randomBytes } from 'node:crypto'
+import os from 'node:os'
+import path from 'node:path'
+
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import multer from 'multer'
 
@@ -5,10 +9,19 @@ import { parseAuthActor } from '../../auth/auth-actor.js'
 import { validationError } from '../../errors/app-error.js'
 import { allowedMimeSchema, type UploadFileFields } from './files.schema.js'
 import type { FilesService } from './files.service.js'
+import { readUploadBytes } from './image-policy.js'
 
-/** Matches STORAGE_MAX_BYTES default (25 MB). */
+/** Matches STORAGE_MAX_BYTES default (25 MB). Disk-backed to avoid large heap spikes. */
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, os.tmpdir())
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || '').slice(0, 16) || '.bin'
+      cb(null, `civil-file-${Date.now()}-${randomBytes(8).toString('hex')}${ext}`)
+    },
+  }),
   limits: { fileSize: 25 * 1024 * 1024 },
 })
 
@@ -53,12 +66,13 @@ export function createFilesController(service: FilesService): FilesController {
           throw validationError('File type is not allowed')
         }
         const fields = req.body as UploadFileFields
+        const body = await readUploadBytes(req.file)
         const file = await service.uploadBytes(parseAuthActor(req), {
           entityType: fields.entityType,
           entityId: fields.entityId,
           mime: mimeParsed.data,
           originalName: req.file.originalname || 'upload',
-          body: req.file.buffer,
+          body,
         })
         res.status(201).json(toFileResponse(file))
       } catch (error) {

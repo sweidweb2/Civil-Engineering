@@ -13,7 +13,8 @@ const rateLimitHandler: RequestHandler = (_req, res) => {
 
 /**
  * In-process rate limit (express-rate-limit memory store).
- * Fine for a single API instance; multi-instance later → edge (Nginx/CDN) or a shared store.
+ * Fine for a single API instance. Multi-instance deploy must add edge/CDN limits
+ * (or a new shared-store decision) — Redis is not in the stack.
  */
 export function createApiRateLimiter(config: AppConfig) {
   return rateLimit({

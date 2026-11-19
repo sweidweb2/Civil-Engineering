@@ -12,17 +12,23 @@ import {
 } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
-import { assertAllowedImageUpload, MAX_BRAND_IMAGE_BYTES, toWebpBuffer } from '../files/index.js'
+import {
+  assertAllowedImageUpload,
+  encodeImageToWebp,
+  MAX_BRAND_IMAGE_BYTES,
+  type ImageUploadFile,
+} from '../files/index.js'
 import type { ProviderRecord, ProvidersRepository } from './providers.repository.js'
 import type {
   CreateProviderBody,
+  ListOwnerCandidatesQuery,
   ListProvidersQuery,
   UpdateProviderBody,
 } from './providers.schema.js'
 import type {
   PaginatedProviders,
   Provider,
-  ProviderOwnerCandidate,
+  PaginatedOwnerCandidates,
   ProviderStatusCounts,
 } from './providers.types.js'
 
@@ -33,14 +39,17 @@ export type ProviderWithLogo = {
 
 export type ProvidersService = {
   listProviders: (query: ListProvidersQuery, actor: AuthActor) => Promise<PaginatedProviders>
-  listOwnerCandidates: (actor: AuthActor) => Promise<ProviderOwnerCandidate[]>
+  listOwnerCandidates: (
+    actor: AuthActor,
+    query: ListOwnerCandidatesQuery,
+  ) => Promise<PaginatedOwnerCandidates>
   getMyProvider: (actor: AuthActor) => Promise<ProviderWithLogo>
   getProviderById: (id: string, actor: AuthActor) => Promise<ProviderWithLogo>
   createProvider: (input: CreateProviderBody, actor: AuthActor) => Promise<Provider>
   updateProvider: (id: string, input: UpdateProviderBody, actor: AuthActor) => Promise<Provider>
   uploadLogo: (
     id: string,
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    file: ImageUploadFile & { originalname?: string },
     actor: AuthActor,
   ) => Promise<ProviderWithLogo>
   clearLogo: (id: string, actor: AuthActor) => Promise<ProviderWithLogo>
@@ -183,11 +192,19 @@ export function createProvidersService(
       }
     },
 
-    async listOwnerCandidates(actor) {
+    async listOwnerCandidates(actor, query) {
       if (!isAdmin(actor.roles)) {
         throw forbidden('Only admins can list provider owners')
       }
-      return repository.findEligibleOwners()
+      const { items, total } = await repository.findEligibleOwners({
+        page: query.page,
+        limit: query.limit,
+        q: query.q,
+      })
+      return {
+        data: items,
+        meta: { page: query.page, limit: query.limit, total },
+      }
     },
 
     async getMyProvider(actor) {
@@ -264,9 +281,9 @@ export function createProvidersService(
       const provider = await loadOrThrow(id)
       assertProviderAccess(actor, provider.ownerUserId)
 
-      assertAllowedImageUpload(file, { maxBytes: MAX_BRAND_IMAGE_BYTES })
+      await assertAllowedImageUpload(file, { maxBytes: MAX_BRAND_IMAGE_BYTES })
 
-      const webpBuffer = await toWebpBuffer(file.buffer)
+      const webpBuffer = await encodeImageToWebp(file)
       const objectId = randomUUID().replace(/-/g, '')
       const key = `providers/${id}/logo/${objectId}.webp`
       const previous = provider.logoUrl

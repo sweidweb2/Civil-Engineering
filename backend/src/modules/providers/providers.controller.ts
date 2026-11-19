@@ -37,8 +37,8 @@ export function createProvidersController(service: ProvidersService): ProvidersC
 
     async listOwnerCandidates(req, res, next) {
       try {
-        const data = await service.listOwnerCandidates(parseAuthActor(req))
-        res.status(200).json({ data })
+        const result = await service.listOwnerCandidates(parseAuthActor(req), req.query as never)
+        res.status(200).json(result)
       } catch (error) {
         next(error)
       }

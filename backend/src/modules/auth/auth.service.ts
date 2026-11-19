@@ -2,7 +2,7 @@ import type { AppConfig } from '../../config/index.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { conflict, isUniqueConflictError, unauthorized } from '../../errors/app-error.js'
 import { ErrorCodes } from '../../errors/error-codes.js'
-import { enqueuePurgeExpiredDeniedRefreshTokens } from '../../jobs/index.js'
+import { purgeExpiredDeniedRefreshTokens } from '../../jobs/index.js'
 import { getLogger } from '../../logging/index.js'
 import type { LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
@@ -60,7 +60,7 @@ function maybePurgeDeniedRefreshTokens(): void {
   const now = Date.now()
   if (now - lastDeniedRefreshPurgeAt < DENIED_REFRESH_PURGE_MIN_INTERVAL_MS) return
   lastDeniedRefreshPurgeAt = now
-  void enqueuePurgeExpiredDeniedRefreshTokens()
+  void purgeExpiredDeniedRefreshTokens()
 }
 
 function issueTokens(config: AppConfig, user: AuthUserRecord): AuthTokens {

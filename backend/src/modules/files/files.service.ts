@@ -4,9 +4,8 @@ import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
 import { maybePurgeDeletedFileObjects } from '../../jobs/index.js'
-import { buildObjectKey } from '../../storage/object-key.js'
-import type { StorageService } from '../../storage/storage.service.js'
-import type { ProjectsService } from '../projects/projects.service.js'
+import { buildObjectKey, type StorageService } from '../../storage/index.js'
+import type { ProjectsService } from '../projects/index.js'
 import { assertCanAttachToEntity, assertCanCompleteUpload } from './files.authz.js'
 import type { FilesRepository } from './files.repository.js'
 import type { PresignFileBody } from './files.schema.js'
@@ -45,11 +44,11 @@ export type FilesServiceDeps = {
   storage: StorageService
   projectsService: ProjectsService
   config: AppConfig
-  enqueueDelete: (payload: { fileId: string; key: string }) => Promise<void>
+  deleteStorageObject: (payload: { fileId: string; key: string }) => Promise<void>
 }
 
 export function createFilesService(deps: FilesServiceDeps): FilesService {
-  const { repository, storage, projectsService, config, enqueueDelete } = deps
+  const { repository, storage, projectsService, config, deleteStorageObject } = deps
   const maxBytes = config.storage?.maxBytes ?? config.storageMaxBytes
   const uploadTtl = config.storage?.uploadUrlTtlSec ?? config.storageUploadUrlTtlSec
   const downloadTtl = config.storage?.downloadUrlTtlSec ?? config.storageDownloadUrlTtlSec
@@ -179,7 +178,7 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
       await assertCanAttachToEntity(actor, file.entityType, file.entityId, projectsService)
 
       const deleted = await repository.markDeleted(file.id)
-      await enqueueDelete({ fileId: deleted.id, key: deleted.key })
+      await deleteStorageObject({ fileId: deleted.id, key: deleted.key })
       void maybePurgeDeletedFileObjects()
       return deleted
     },
@@ -245,13 +244,13 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         })
         const ready = await repository.markReady(fileId, size)
         if (!ready) {
-          await enqueueDelete({ fileId, key }).catch(() => undefined)
+          await deleteStorageObject({ fileId, key }).catch(() => undefined)
           throw forbidden('File cannot be completed')
         }
         return ready
       } catch (error) {
         await repository.markDeleted(fileId).catch(() => undefined)
-        await enqueueDelete({ fileId, key }).catch(() => undefined)
+        await deleteStorageObject({ fileId, key }).catch(() => undefined)
         throw error
       }
     },

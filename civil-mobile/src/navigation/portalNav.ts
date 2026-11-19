@@ -7,6 +7,7 @@ import {
   FolderTree,
   Home,
   LayoutDashboard,
+  LayoutGrid,
   Library,
   MoreHorizontal,
   Package,
@@ -68,9 +69,9 @@ export const PM_NAV: PortalNavItem[] = [
 ]
 
 export const PROVIDER_NAV: PortalNavItem[] = [
-  { key: 'dashboard', label: 'Home', href: '/provider', icon: LayoutDashboard, end: true },
-  { key: 'listings', label: 'Listings', href: '/provider/listings', icon: Package },
-  { key: 'profile', label: 'Profile', href: '/provider/profile', icon: UserRound },
+  { key: 'dashboard', label: 'Home', href: '/provider', icon: Home, end: true },
+  { key: 'listings', label: 'Listings', href: '/provider/listings', icon: LayoutGrid },
+  { key: 'profile', label: 'Profile', href: '/provider/profile', icon: Store },
 ]
 
 export const CLIENT_NAV: PortalNavItem[] = [

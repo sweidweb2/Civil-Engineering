@@ -1,13 +1,12 @@
 import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
-import { invalidateAccessPrincipal } from '../../middleware/access-principal.js'
-import { hashPassword } from '../auth/auth.tokens.js'
+import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
 import {
   assertAllowedImageUpload,
+  type FilesService,
   isAllowedImageMime,
   MAX_BRAND_IMAGE_BYTES,
-} from '../files/image-policy.js'
-import type { FilesService } from '../files/index.js'
+} from '../files/index.js'
 import type { ListingsService } from '../listings/index.js'
 import type { ProjectsService } from '../projects/index.js'
 import type { ProvidersService } from '../providers/index.js'

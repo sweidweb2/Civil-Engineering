@@ -1,46 +1,30 @@
 import type { AppConfig } from '../../config/index.js'
 import { loadConfig } from '../../config/index.js'
-import { getStorageService, type StorageService } from '../../storage/index.js'
-import { getProjectsService, type ProjectsService } from '../projects/index.js'
+import { getStorageOrUnavailable, type StorageService } from '../../storage/index.js'
+import type { ProjectsService } from '../projects/index.js'
 import { createProjectImagesController } from './project-images.controller.js'
 import { createProjectImagesRepository } from './project-images.repository.js'
 import { createProjectImagesRouter } from './project-images.routes.js'
 import { createProjectImagesService } from './project-images.service.js'
 
 export type ProjectImagesModuleDeps = {
+  projectsService: ProjectsService
   config?: AppConfig
   storage?: StorageService
-  projectsService?: ProjectsService
 }
 
-function unavailableStorage(): StorageService {
-  const fail = async () => {
-    throw new Error('Storage is not configured (STORAGE_* env vars required)')
-  }
-  return {
-    bucket: 'unconfigured',
-    presignPut: fail,
-    presignGet: fail,
-    headObject: fail,
-    putObject: fail,
-    deleteObject: async () => undefined,
-  }
-}
-
-export function createProjectImagesModule(deps: ProjectImagesModuleDeps = {}) {
+export function createProjectImagesModule(deps: ProjectImagesModuleDeps) {
   const config = deps.config ?? loadConfig()
-  const repository = createProjectImagesRepository()
-  const storage =
-    deps.storage ?? (config.storage ? getStorageService(config) : unavailableStorage())
-  const projectsService = deps.projectsService ?? getProjectsService()
+  const storage = getStorageOrUnavailable(config, deps.storage)
   const service = createProjectImagesService({
-    repository,
-    projectsService,
+    repository: createProjectImagesRepository(),
+    projectsService: deps.projectsService,
     storage,
     config,
   })
-  const controller = createProjectImagesController({ service })
-  return createProjectImagesRouter({ controller })
+  return createProjectImagesRouter({
+    controller: createProjectImagesController({ service }),
+  })
 }
 
 export * from './project-images.controller.js'

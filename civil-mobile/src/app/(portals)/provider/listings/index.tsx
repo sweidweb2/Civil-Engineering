@@ -1,5 +1,5 @@
-import { ListingsListScreen } from '@/features/provider/ListingsListScreen'
+import { ProviderListingsScreen } from '@/features/provider/ProviderListingsScreen'
 
 export default function ProviderListingsRoute() {
-  return <ListingsListScreen />
+  return <ProviderListingsScreen />
 }

@@ -11,13 +11,8 @@ import {
   validationError,
 } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
-import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
-import type { StorageService } from '../../storage/storage.service.js'
-import {
-  assertAllowedImageUpload,
-  MAX_BRAND_IMAGE_BYTES,
-  toWebpBuffer,
-} from '../files/image-policy.js'
+import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
+import { assertAllowedImageUpload, MAX_BRAND_IMAGE_BYTES, toWebpBuffer } from '../files/index.js'
 import type { ProviderRecord, ProvidersRepository } from './providers.repository.js'
 import type {
   CreateProviderBody,

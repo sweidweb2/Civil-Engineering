@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.460.0/font/lucide.css">
+<style>
+body{margin:0;background:#E6E4DE;font-family:'Geist',system-ui,sans-serif;color:#141614;-webkit-font-smoothing:antialiased}
+a{color:#15803D}a:hover{color:#0F5E2D}
+*{box-sizing:border-box}*::-webkit-scrollbar{display:none}
+button,input,textarea{font-family:inherit}
+input::placeholder,textarea::placeholder{color:var(--ink3)}
+[data-theme="light"]{--bg:#F4F3EF;--sf:#FFFFFF;--sf2:#F0EFEA;--ink:#141614;--ink2:#545853;--ink3:#8A8D87;--line:rgba(20,22,20,.08);--line2:rgba(20,22,20,.16);--brand:#15803D;--brandSoft:#E3F1E7;--onBrand:#FFFFFF;--hero:#0F2419;--heroInk:#EEF3EC;--heroMute:rgba(238,243,236,.66);--heroLine:rgba(238,243,236,.12);--lime:#86E3A6;--amber:#9A5806;--amberSoft:#F9EEDA;--red:#B42318;--redSoft:#FBE8E6;--teal:#0E6F86;--tealSoft:#E0F0F4;--shadow:0 1px 2px rgba(20,22,20,.04),0 10px 28px -8px rgba(20,22,20,.08);--tab:rgba(20,22,20,.94);--tabInk:#F4F3EF;--scrim:rgba(10,12,10,.42)}
+[data-theme="dark"]{--bg:#0B0D0B;--sf:#151815;--sf2:#1E221E;--ink:#ECEFEA;--ink2:#A9AEA6;--ink3:#737870;--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.16);--brand:#2BB062;--brandSoft:rgba(43,176,98,.15);--onBrand:#04110A;--hero:#123020;--heroInk:#EEF3EC;--heroMute:rgba(238,243,236,.66);--heroLine:rgba(238,243,236,.12);--lime:#86E3A6;--amber:#EBA748;--amberSoft:rgba(235,167,72,.13);--red:#F27A68;--redSoft:rgba(242,122,104,.13);--teal:#5BC7DF;--tealSoft:rgba(91,199,223,.13);--shadow:0 0 0 1px rgba(255,255,255,.04);--tab:rgba(236,239,234,.95);--tabInk:#0B0D0B;--scrim:rgba(0,0,0,.6)}
+[data-theme] [style*="overflow-y"]>*{flex-shrink:0}
+@keyframes enter{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-10px) scale(.97)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes dlg{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;gap:56px;justify-content:center;align-items:flex-start;padding:48px 32px">
+
+<sc-if value="{{ showRail }}" hint-placeholder-val="{{ true }}">
+<aside style="width:248px;display:flex;flex-direction:column;gap:28px;padding-top:28px">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#7A7871">Worker portal · prototype</span>
+    <span style="font:600 26px/1.1 'Geist',sans-serif;letter-spacing:-.025em;color:#141614">Worker CV app</span>
+    <span style="font:400 13px/1.55 'Geist',sans-serif;color:#5A5852;text-wrap:pretty">Fully clickable. Edit any section, save, and watch readiness update. Theme, verification and CV state live in Tweaks.</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ rail }}" as="r" hint-placeholder-count="11">
+      <button onClick="{{ r.go }}" style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px 0 {{ r.pad }};border:none;border-radius:10px;background:{{ r.bg }};color:{{ r.color }};font:500 13px 'Geist',sans-serif;text-align:left;cursor:pointer" style-hover="background:rgba(20,22,20,.06)">
+        <span style="width:5px;height:5px;border-radius:50%;background:{{ r.dot }};flex:none"></span>{{ r.label }}
+      </button>
+    </sc-for>
+  </div>
+</aside>
+</sc-if>
+
+<div style="flex:none;width:410px;height:864px;border-radius:62px;background:#0A0A0A;padding:10px;box-shadow:0 50px 90px -30px rgba(20,22,20,.45),0 0 0 1px rgba(0,0,0,.25)">
+<div data-theme="{{ theme }}" style="position:relative;width:390px;height:844px;border-radius:52px;overflow:hidden;background:var(--bg);color:var(--ink);transition:background .3s">
+
+  <div style="position:absolute;top:0;left:0;right:0;height:50px;z-index:40;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:6px 34px 0 40px;color:var(--ink);transition:background .3s">
+    <span style="font:600 15px 'Geist',sans-serif">9:41</span>
+    <div style="display:flex;gap:6px;align-items:center;font-size:16px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full" style="font-size:20px"></i></div>
+  </div>
+  <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:122px;height:35px;border-radius:20px;background:#000;z-index:41"></div>
+
+  <!-- HOME -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 20px 132px;display:flex;flex-direction:column;gap:16px;animation:fade .3s ease-out">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 4px 0">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)">{{ todayLabel }}</span>
+        <span style="font:500 15px/1.2 'Geist',sans-serif;color:var(--ink2)">Good morning, {{ firstName }}</span>
+      </div>
+      <button onClick="{{ openRates }}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:none;border-radius:999px;background:{{ avail.bg }};color:{{ avail.color }};font:500 13px 'Geist',sans-serif;cursor:pointer"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ avail.label }}</button>
+    </div>
+
+    <div style="position:relative;overflow:hidden;border-radius:26px;background:var(--hero);color:var(--heroInk);padding:20px;display:flex;flex-direction:column;gap:20px;animation:rise .4s cubic-bezier(.2,.8,.2,1)">
+      <div style="position:absolute;right:-80px;top:-90px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(134,227,166,.2),transparent 68%)"></div>
+      <div style="position:relative;display:flex;align-items:center;gap:18px">
+        <div style="flex:none;width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--lime) {{ pctDeg }}deg,var(--heroLine) 0);display:grid;place-items:center;transition:background .4s">
+          <div style="width:76px;height:76px;border-radius:50%;background:var(--hero);display:grid;place-items:center;font:600 24px/1 'Geist',sans-serif;letter-spacing:-.03em"><span>{{ pct }}%</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+          <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--heroMute)">CV readiness</span>
+          <span style="font:600 17px/1.25 'Geist',sans-serif;letter-spacing:-.01em">{{ hero.title }}</span>
+          <span style="font:400 13px/1.45 'Geist',sans-serif;color:var(--heroMute);text-wrap:pretty">{{ hero.body }}</span>
+        </div>
+      </div>
+      <div style="position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--heroLine);padding-top:16px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
+          <button onClick="{{ s.go }}" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:0 12px;border:none;border-left:{{ s.sep }};background:none;color:var(--heroInk);cursor:pointer;text-align:left">
+            <span style="font:600 22px/1 'Geist',sans-serif;letter-spacing:-.02em">{{ s.v }}</span>
+            <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--heroMute)">{{ s.l }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <button onClick="{{ onHero }}" style="position:relative;height:52px;border:none;border-radius:16px;background:var(--lime);color:#0A1F12;font:600 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .15s" style-active="transform:scale(.98)">{{ hero.cta }}<i class="icon-arrow-right" style="font-size:18px"></i></button>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center;padding:14px 14px 14px 16px;border-radius:20px;background:{{ verif.bg }}">
+      <div style="flex:none;width:40px;height:40px;border-radius:12px;background:var(--sf);color:{{ verif.color }};display:grid;place-items:center;font-size:20px"><i class="icon-{{ verif.icon }}"></i></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font:600 15px/1.25 'Geist',sans-serif;color:{{ verif.color }}">{{ verif.title }}</span>
+        <span style="font:400 13px/1.45 'Geist',sans-serif;color:var(--ink2);text-wrap:pretty">{{ verif.body }}</span>
+      </div>
+      <sc-if value="{{ verif.showBtn }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onRequestVerif }}" style="flex:none;height:44px;padding:0 14px;border:none;border-radius:12px;background:var(--ink);color:var(--bg);font:600 13px 'Geist',sans-serif;cursor:pointer">Request</button>
+      </sc-if>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+      <sc-for list="{{ quick }}" as="q" hint-placeholder-count="4">
+        <button onClick="{{ q.go }}" style="min-height:104px;padding:16px;border:none;border-radius:20px;background:var(--sf);box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:14px;text-align:left;color:var(--ink);cursor:pointer;transition:transform .15s" style-active="transform:scale(.97)">
+          <span style="width:40px;height:40px;border-radius:12px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font-size:20px"><i class="icon-{{ q.icon }}"></i></span>
+          <span style="display:flex;flex-direction:column;gap:3px"><span style="font:600 15px/1.2 'Geist',sans-serif">{{ q.label }}</span><span style="font:400 13px/1.3 'Geist',sans-serif;color:var(--ink3)">{{ q.sub }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ hasTodo }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">To finish · {{ todoCount }}</span>
+      <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)">
+        <sc-for list="{{ todo }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.go }}" style="display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px;border:none;background:var(--sf);color:var(--ink);text-align:left;cursor:pointer" style-hover="background:var(--sf2)">
+            <span style="flex:none;width:36px;height:36px;border-radius:10px;background:var(--sf2);color:var(--ink2);display:grid;place-items:center;font-size:18px"><i class="icon-{{ t.icon }}"></i></span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:500 15px/1.25 'Geist',sans-serif">{{ t.t }}</span><span style="font:400 13px/1.3 'Geist',sans-serif;color:var(--ink3)">{{ t.d }}</span></span>
+            <i class="icon-chevron-right" style="font-size:18px;color:var(--ink3)"></i>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- MY CV -->
+  <sc-if value="{{ isCv }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 20px 132px;display:flex;flex-direction:column;gap:16px;animation:fade .3s ease-out">
+    <div style="border-radius:26px;background:var(--sf);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="flex:none;width:60px;height:60px;border-radius:18px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font:600 20px 'Geist',sans-serif;letter-spacing:-.02em">{{ profile.initials }}</div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font:600 17px/1.25 'Geist',sans-serif;letter-spacing:-.01em;text-wrap:pretty">{{ profile.name }}</span>
+          <span style="font:400 13px/1.3 'Geist',sans-serif;color:var(--ink2)">{{ profile.line }}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:{{ avail.bg }};color:{{ avail.color }};font:500 13px 'Geist',sans-serif"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ avail.label }}</span>
+        <span style="display:flex;align-items:center;gap:6px;font:500 13px 'Geist',sans-serif;color:{{ verif.color }}"><i class="icon-{{ verif.icon }}" style="font-size:15px"></i>{{ verif.short }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 15px 'Geist',sans-serif">{{ pct }}% complete</span><span style="font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">{{ readyCount }} / 6</span></div>
+        <div style="height:8px;border-radius:4px;background:var(--sf2);overflow:hidden"><div style="height:100%;width:{{ pct }}%;border-radius:4px;background:var(--brand);transition:width .5s cubic-bezier(.2,.8,.2,1)"></div></div>
+        <span style="font:400 13px/1.45 'Geist',sans-serif;color:var(--ink2);text-wrap:pretty">{{ cvHint }}</span>
+      </div>
+    </div>
+    <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Sections</span>
+    <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)">
+      <sc-for list="{{ cvRows }}" as="r" hint-placeholder-count="6">
+        <button onClick="{{ r.go }}" style="display:flex;align-items:center;gap:14px;min-height:68px;padding:12px 16px;border:none;background:var(--sf);color:var(--ink);text-align:left;cursor:pointer" style-hover="background:var(--sf2)">
+          <span style="flex:none;width:40px;height:40px;border-radius:12px;background:{{ r.tileBg }};color:{{ r.tileColor }};display:grid;place-items:center;font-size:19px"><i class="icon-{{ r.icon }}"></i></span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font:500 15px/1.2 'Geist',sans-serif">{{ r.t }}</span><span style="font:400 13px/1.3 'Geist',sans-serif;color:{{ r.metaColor }}">{{ r.meta }}</span></span>
+          <i class="icon-{{ r.stateIcon }}" style="font-size:18px;color:{{ r.stateColor }}"></i>
+          <i class="icon-chevron-right" style="font-size:18px;color:var(--ink3)"></i>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ACCOUNT -->
+  <sc-if value="{{ isAccount }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 20px 132px;display:flex;flex-direction:column;gap:16px;animation:fade .3s ease-out">
+    <div style="border-radius:26px;background:var(--sf);box-shadow:var(--shadow);padding:20px;display:flex;align-items:center;gap:14px">
+      <div style="flex:none;width:56px;height:56px;border-radius:50%;background:var(--hero);color:var(--lime);display:grid;place-items:center;font:600 19px 'Geist',sans-serif">{{ profile.initials }}</div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+        <span style="font:600 17px/1.2 'Geist',sans-serif;letter-spacing:-.01em">{{ acctName }}</span>
+        <span style="font:400 13px/1.3 'Geist',sans-serif;color:var(--ink2)">Worker · <span dir="ltr">omar.haddad@mail.com</span></span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:var(--sf2)">
+      <sc-for list="{{ acctTabs }}" as="a" hint-placeholder-count="2">
+        <button onClick="{{ a.go }}" style="height:40px;border:none;border-radius:10px;background:{{ a.bg }};color:{{ a.color }};box-shadow:{{ a.shadow }};font:500 15px 'Geist',sans-serif;cursor:pointer;transition:all .2s">{{ a.label }}</button>
+      </sc-for>
+    </div>
+    <div style="border-radius:22px;background:var(--sf);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:16px">
+      <sc-for list="{{ acctFields }}" as="f" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:500 13px 'Geist',sans-serif;color:var(--ink2)">{{ f.label }}</span>
+          <div style="position:relative;display:flex">
+            <input value="{{ f.value }}" onChange="{{ f.onChange }}" type="{{ f.inputType }}" placeholder="{{ f.ph }}" dir="{{ f.dir }}" style="flex:1;min-width:0;height:48px;padding:0 48px 0 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none;transition:border-color .15s" style-focus="border-color:var(--brand);background:var(--sf)">
+            <sc-if value="{{ f.isPw }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ f.onReveal }}" aria-label="Show password" style="position:absolute;right:2px;top:2px;width:44px;height:44px;border:none;background:none;color:var(--ink3);font-size:18px;cursor:pointer"><i class="icon-{{ f.eye }}"></i></button>
+            </sc-if>
+          </div>
+          <sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:6px;align-items:center;font:500 13px 'Geist',sans-serif;color:var(--red)"><i class="icon-circle-alert" style="font-size:14px"></i>{{ f.err }}</span></sc-if>
+        </div>
+      </sc-for>
+      <button onClick="{{ onAcctSave }}" style="height:52px;border:none;border-radius:14px;background:var(--brand);color:var(--onBrand);font:600 15px 'Geist',sans-serif;cursor:pointer" style-active="transform:scale(.98)">{{ acctSaveLabel }}</button>
+    </div>
+    <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Appearance</span>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+      <sc-for list="{{ themeOpts }}" as="o" hint-placeholder-count="3">
+        <button onClick="{{ o.go }}" style="height:72px;border:1.5px solid {{ o.border }};border-radius:16px;background:var(--sf);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:500 13px 'Geist',sans-serif;cursor:pointer"><i class="icon-{{ o.icon }}" style="font-size:20px;color:{{ o.iconColor }}"></i>{{ o.label }}</button>
+      </sc-for>
+    </div>
+    <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Language</span>
+    <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)">
+      <sc-for list="{{ langOpts }}" as="l" hint-placeholder-count="2">
+        <button onClick="{{ l.go }}" style="display:flex;align-items:center;gap:14px;min-height:56px;padding:0 16px;border:none;background:var(--sf);color:var(--ink);text-align:left;cursor:pointer">
+          <span style="flex:1;font:500 15px 'Geist',sans-serif">{{ l.label }}</span>
+          <span style="width:22px;height:22px;border-radius:50%;border:{{ l.ring }};display:grid;place-items:center"><span style="width:10px;height:10px;border-radius:50%;background:{{ l.dot }}"></span></span>
+        </button>
+      </sc-for>
+    </div>
+    <button onClick="{{ onLogout }}" style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border:none;border-radius:20px;background:var(--sf);box-shadow:var(--shadow);color:var(--red);font:500 15px 'Geist',sans-serif;cursor:pointer"><i class="icon-log-out" style="font-size:18px"></i>Log out</button>
+    <span style="text-align:center;font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">v 2.4.0 · build 118</span>
+  </div>
+  </sc-if>
+
+  <!-- LIST (experience / education / certifications) -->
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;animation:enter .3s cubic-bezier(.2,.8,.2,1)">
+    <div style="position:absolute;top:50px;left:0;right:0;height:60px;z-index:5;background:var(--bg);display:flex;align-items:center;gap:8px;padding:0 12px">
+      <button onClick="{{ back }}" aria-label="Back" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);font-size:20px;display:grid;place-items:center;cursor:pointer"><i class="icon-chevron-left"></i></button>
+      <span style="flex:1;font:600 17px 'Geist',sans-serif;letter-spacing:-.01em">{{ list.title }}</span>
+      <span style="margin-right:8px;font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">{{ list.count }}</span>
+    </div>
+    <div style="position:absolute;inset:0;overflow-y:auto;padding:118px 20px 120px;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ skeleton }}" as="k" hint-placeholder-count="3">
+          <div style="height:92px;border-radius:20px;background:var(--sf);padding:16px;display:flex;gap:14px;animation:pulse 1.2s ease-in-out infinite">
+            <div style="width:40px;height:40px;border-radius:12px;background:var(--sf2)"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;padding-top:4px"><div style="width:60%;height:12px;border-radius:6px;background:var(--sf2)"></div><div style="width:40%;height:10px;border-radius:5px;background:var(--sf2)"></div></div>
+          </div>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{ listShowItems }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ list.items }}" as="it" hint-placeholder-count="2">
+          <button onClick="{{ it.go }}" style="display:flex;align-items:flex-start;gap:14px;padding:16px;border:none;border-radius:20px;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);text-align:left;cursor:pointer;animation:rise .35s cubic-bezier(.2,.8,.2,1) both" style-active="transform:scale(.98)">
+            <span style="flex:none;width:40px;height:40px;border-radius:12px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font-size:19px"><i class="icon-{{ it.icon }}"></i></span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <span style="font:600 15px/1.25 'Geist',sans-serif">{{ it.title }}</span>
+              <span style="font:400 13px/1.35 'Geist',sans-serif;color:var(--ink2)">{{ it.sub }}</span>
+              <span style="display:flex;align-items:center;gap:8px;padding-top:4px"><span style="font:500 11px 'Geist Mono',monospace;letter-spacing:.04em;color:var(--ink3)">{{ it.meta }}</span>
+                <sc-if value="{{ it.hasPill }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 8px;border-radius:999px;background:{{ it.pill.bg }};color:{{ it.pill.color }};font:500 11px/22px 'Geist',sans-serif">{{ it.pill.label }}</span></sc-if>
+              </span>
+            </span>
+            <i class="icon-chevron-right" style="font-size:18px;color:var(--ink3);margin-top:10px"></i>
+          </button>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{ listShowEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:40px;display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px 24px;text-align:center;animation:rise .35s ease-out">
+          <div style="width:72px;height:72px;border-radius:22px;background:var(--sf);box-shadow:var(--shadow);color:var(--brand);display:grid;place-items:center;font-size:30px"><i class="icon-{{ list.emptyIcon }}"></i></div>
+          <span style="font:600 17px 'Geist',sans-serif;margin-top:8px">{{ list.emptyTitle }}</span>
+          <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);max-width:270px;text-wrap:pretty">{{ list.emptyBody }}</span>
+        </div>
+      </sc-if>
+    </div>
+    <button onClick="{{ list.onAdd }}" style="position:absolute;right:20px;bottom:40px;z-index:6;height:56px;padding:0 22px 0 18px;border:none;border-radius:28px;background:var(--ink);color:var(--bg);font:600 15px 'Geist',sans-serif;display:flex;align-items:center;gap:8px;box-shadow:0 12px 28px -8px rgba(0,0,0,.4);cursor:pointer" style-active="transform:scale(.96)"><i class="icon-plus" style="font-size:20px"></i>{{ list.addLabel }}</button>
+  </div>
+  </sc-if>
+
+  <!-- FORM (basics / rates / editors) -->
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;animation:enter .3s cubic-bezier(.2,.8,.2,1)">
+    <div style="position:absolute;top:50px;left:0;right:0;height:60px;z-index:5;background:var(--bg);display:flex;align-items:center;gap:8px;padding:0 12px">
+      <button onClick="{{ back }}" aria-label="Back" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);font-size:20px;display:grid;place-items:center;cursor:pointer"><i class="icon-chevron-left"></i></button>
+      <span style="flex:1;font:600 17px 'Geist',sans-serif;letter-spacing:-.01em">{{ form.title }}</span>
+    </div>
+    <div style="position:absolute;inset:0;overflow-y:auto;padding:118px 20px 132px;display:flex;flex-direction:column;gap:14px">
+      <sc-for list="{{ form.sections }}" as="sec" hint-placeholder-count="2">
+        <div style="border-radius:22px;background:var(--sf);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:32px;height:32px;border-radius:10px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font-size:16px"><i class="icon-{{ sec.icon }}"></i></span>
+            <span style="font:600 15px 'Geist',sans-serif">{{ sec.title }}</span>
+          </div>
+          <sc-for list="{{ sec.fields }}" as="f" hint-placeholder-count="2">
+            <sc-if value="{{ f.show }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-if value="{{ f.hasLabel }}" hint-placeholder-val="{{ true }}"><span style="font:500 13px 'Geist',sans-serif;color:var(--ink2)">{{ f.label }}</span></sc-if>
+              <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ true }}">
+                <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" inputMode="{{ f.inputMode }}" dir="{{ f.dir }}" style="height:48px;padding:0 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none;transition:border-color .15s" style-focus="border-color:var(--brand);background:var(--sf)">
+              </sc-if>
+              <sc-if value="{{ f.isMulti }}" hint-placeholder-val="{{ false }}">
+                <textarea value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" rows="4" style="padding:12px 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:var(--ink);font:400 15px/1.5 'Geist',sans-serif;outline:none;resize:none" style-focus="border-color:var(--brand);background:var(--sf)"></textarea>
+              </sc-if>
+              <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ f.onOpen }}" style="height:48px;padding:0 12px 0 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:{{ f.selectColor }};font:400 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left">{{ f.selectLabel }}<i class="icon-chevron-down" style="font-size:18px;color:var(--ink3)"></i></button>
+              </sc-if>
+              <sc-if value="{{ f.isChoice }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+                    <button onClick="{{ o.go }}" style="height:44px;padding:0 16px;border:none;border-radius:12px;background:{{ o.bg }};color:{{ o.color }};font:500 15px 'Geist',sans-serif;cursor:pointer;transition:all .15s">{{ o.label }}</button>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.isToggle }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ f.onToggle }}" style="display:flex;align-items:center;gap:14px;min-height:48px;padding:0;border:none;background:none;color:var(--ink);text-align:left;cursor:pointer">
+                  <span style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font:500 15px 'Geist',sans-serif">{{ f.label }}</span><sc-if value="{{ f.hasHint }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px/1.45 'Geist',sans-serif;color:var(--ink3);text-wrap:pretty">{{ f.hint }}</span></sc-if></span>
+                  <span style="flex:none;width:50px;height:30px;border-radius:15px;background:{{ f.trackBg }};padding:3px;transition:background .2s"><span style="display:block;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transform:translateX({{ f.knobX }});transition:transform .25s cubic-bezier(.3,1.4,.5,1)"></span></span>
+                </button>
+              </sc-if>
+              <sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:6px;align-items:center;font:500 13px 'Geist',sans-serif;color:var(--red)"><i class="icon-circle-alert" style="font-size:14px"></i>{{ f.err }}</span></sc-if>
+              <sc-if value="{{ f.showHint }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px 'Geist',sans-serif;color:var(--ink3)">{{ f.hint }}</span></sc-if>
+            </div>
+            </sc-if>
+          </sc-for>
+        </div>
+      </sc-for>
+      <sc-if value="{{ form.canDelete }}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius:22px;border:1px solid var(--redSoft);background:var(--sf);padding:18px;display:flex;align-items:center;gap:12px">
+          <span style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font:600 15px 'Geist',sans-serif;color:var(--red)">Danger zone</span><span style="font:400 13px 'Geist',sans-serif;color:var(--ink3)">Removes this entry from your CV.</span></span>
+          <button onClick="{{ askDelete }}" style="height:44px;padding:0 14px;border:none;border-radius:12px;background:var(--redSoft);color:var(--red);font:600 13px 'Geist',sans-serif;display:flex;align-items:center;gap:6px;cursor:pointer"><i class="icon-trash-2" style="font-size:16px"></i>Delete</button>
+        </div>
+      </sc-if>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;padding:16px 20px 34px;background:linear-gradient(to top,var(--bg) 70%,transparent)">
+      <button onClick="{{ save }}" style="width:100%;height:54px;border:none;border-radius:16px;background:var(--brand);color:var(--onBrand);font:600 15px 'Geist',sans-serif;cursor:pointer;box-shadow:0 10px 24px -10px var(--brand)" style-active="transform:scale(.98)">{{ form.saveLabel }}</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- SKILLS -->
+  <sc-if value="{{ isSkills }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;animation:enter .3s cubic-bezier(.2,.8,.2,1)">
+    <div style="position:absolute;top:50px;left:0;right:0;height:60px;z-index:5;background:var(--bg);display:flex;align-items:center;gap:8px;padding:0 12px">
+      <button onClick="{{ back }}" aria-label="Back" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);font-size:20px;display:grid;place-items:center;cursor:pointer"><i class="icon-chevron-left"></i></button>
+      <span style="flex:1;font:600 17px 'Geist',sans-serif;letter-spacing:-.01em">Skills</span>
+      <span style="margin-right:8px;font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">{{ skillCount }}</span>
+    </div>
+    <div style="position:absolute;inset:0;overflow-y:auto;padding:118px 20px 60px;display:flex;flex-direction:column;gap:14px">
+      <div style="border-radius:22px;background:var(--hero);color:var(--heroInk);padding:18px;display:flex;flex-direction:column;gap:14px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--heroMute)">Add a trade</span>
+        <button onClick="{{ openSkillPicker }}" style="height:48px;padding:0 12px 0 14px;border-radius:12px;border:1px solid var(--heroLine);background:rgba(255,255,255,.06);color:{{ skillTradeColor }};font:400 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left">{{ skillTradeLabel }}<i class="icon-search" style="font-size:17px;color:var(--heroMute)"></i></button>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:4px;border-radius:14px;background:rgba(255,255,255,.06)">
+          <sc-for list="{{ levelOpts }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.go }}" style="height:40px;border:none;border-radius:10px;background:{{ o.bg }};color:{{ o.color }};font:500 13px 'Geist',sans-serif;cursor:pointer;transition:all .15s">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <button onClick="{{ addSkill }}" style="height:50px;border:none;border-radius:14px;background:{{ addBg }};color:{{ addColor }};font:600 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s"><i class="icon-plus" style="font-size:18px"></i>{{ addSkillLabel }}</button>
+      </div>
+      <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Your skills</span>
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <div style="height:180px;border-radius:20px;background:var(--sf);animation:pulse 1.2s ease-in-out infinite"></div>
+      </sc-if>
+      <sc-if value="{{ skillsShowItems }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)">
+          <sc-for list="{{ skillItems }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;min-height:60px;padding:0 6px 0 16px;background:var(--sf)">
+              <span style="flex:1;min-width:0;font:500 15px 'Geist',sans-serif">{{ s.trade }}</span>
+              <span style="height:26px;padding:0 10px;border-radius:999px;background:{{ s.pill.bg }};color:{{ s.pill.color }};font:500 13px/26px 'Geist',sans-serif">{{ s.pill.label }}</span>
+              <button onClick="{{ s.remove }}" aria-label="Remove" style="width:44px;height:44px;border:none;border-radius:12px;background:none;color:var(--ink3);font-size:18px;cursor:pointer" style-hover="color:var(--red)"><i class="icon-x"></i></button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ skillsShowEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px 24px;text-align:center">
+          <div style="width:64px;height:64px;border-radius:20px;background:var(--sf);box-shadow:var(--shadow);color:var(--brand);display:grid;place-items:center;font-size:28px"><i class="icon-wrench"></i></div>
+          <span style="font:600 17px 'Geist',sans-serif;margin-top:6px">No skills yet</span>
+          <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);max-width:260px;text-wrap:pretty">Pick a trade above and set your level. Project managers filter by these.</span>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TAB BAR -->
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:50%;bottom:30px;transform:translateX(-50%);z-index:20;display:flex;gap:4px;padding:6px;border-radius:999px;background:var(--tab);box-shadow:0 16px 40px -12px rgba(0,0,0,.45);backdrop-filter:blur(16px);animation:rise .35s ease-out">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+      <button onClick="{{ t.go }}" aria-label="{{ t.label }}" style="height:50px;min-width:56px;padding:0 {{ t.pad }};border:none;border-radius:999px;background:{{ t.bg }};color:{{ t.color }};display:flex;align-items:center;justify-content:center;gap:8px;font:600 15px 'Geist',sans-serif;cursor:pointer;transition:all .3s cubic-bezier(.2,.8,.2,1)">
+        <i class="icon-{{ t.icon }}" style="font-size:20px"></i>
+        <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}"><span style="animation:fade .25s ease-out;white-space:nowrap">{{ t.label }}</span></sc-if>
+      </button>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <!-- SHEET -->
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:50">
+    <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:var(--scrim);animation:fade .2s ease-out"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:620px;border-radius:28px 28px 0 0;background:var(--sf);display:flex;flex-direction:column;animation:sheet .32s cubic-bezier(.2,.9,.25,1)">
+      <div style="display:flex;justify-content:center;padding:10px 0 6px"><span style="width:40px;height:5px;border-radius:3px;background:var(--line2)"></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px"><span style="font:600 17px 'Geist',sans-serif">Choose a trade</span><button onClick="{{ closeSheet }}" aria-label="Close" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--sf2);color:var(--ink2);font-size:18px;cursor:pointer"><i class="icon-x"></i></button></div>
+      <div style="padding:8px 20px 12px;position:relative">
+        <i class="icon-search" style="position:absolute;left:34px;top:22px;font-size:17px;color:var(--ink3)"></i>
+        <input value="{{ sheetQ }}" onChange="{{ onSheetQ }}" placeholder="Search trades" autofocus="autofocus" style="width:100%;height:48px;padding:0 14px 0 42px;border-radius:12px;border:1px solid var(--line);background:var(--sf2);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none" style-focus="border-color:var(--brand)">
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:0 12px 40px">
+        <sc-for list="{{ sheetItems }}" as="s" hint-placeholder-count="6">
+          <button onClick="{{ s.go }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:0 12px;border:none;border-radius:12px;background:{{ s.bg }};color:var(--ink);font:{{ s.weight }} 15px 'Geist',sans-serif;text-align:left;cursor:pointer" style-hover="background:var(--sf2)">{{ s.label }}<sc-if value="{{ s.on }}" hint-placeholder-val="{{ false }}"><i class="icon-check" style="font-size:18px;color:var(--brand)"></i></sc-if></button>
+        </sc-for>
+        <sc-if value="{{ sheetEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:32px;text-align:center;font:400 15px 'Geist',sans-serif;color:var(--ink3)">No trades match “{{ sheetQ }}”</div></sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- CONFIRM -->
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:55;display:grid;place-items:center;padding:28px">
+    <div onClick="{{ cancelConfirm }}" style="position:absolute;inset:0;background:var(--scrim);animation:fade .2s ease-out"></div>
+    <div style="position:relative;width:100%;border-radius:26px;background:var(--sf);padding:24px 20px 20px;display:flex;flex-direction:column;gap:8px;animation:dlg .25s cubic-bezier(.2,.9,.25,1)">
+      <span style="font:600 17px/1.3 'Geist',sans-serif">{{ confirm.title }}</span>
+      <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);text-wrap:pretty">{{ confirm.body }}</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+        <button onClick="{{ cancelConfirm }}" style="height:50px;border:none;border-radius:14px;background:var(--sf2);color:var(--ink);font:600 15px 'Geist',sans-serif;cursor:pointer">Cancel</button>
+        <button onClick="{{ doConfirm }}" style="height:50px;border:none;border-radius:14px;background:{{ confirm.bg }};color:#fff;font:600 15px 'Geist',sans-serif;cursor:pointer">{{ confirm.cta }}</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:58px;left:50%;z-index:60;width:350px;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:{{ toast.bg }};color:{{ toast.color }};font:500 15px 'Geist',sans-serif;box-shadow:0 16px 36px -12px rgba(0,0,0,.45);animation:pop .3s cubic-bezier(.2,.9,.25,1) both">
+      <i class="icon-{{ toast.icon }}" style="font-size:20px;color:{{ toast.iconColor }}"></i><span style="flex:1">{{ toast.msg }}</span>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink);opacity:.85;z-index:70"></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;,&quot;system&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;cvState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;partial&quot;,&quot;full&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;partial&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Data&quot;},&quot;verification&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;requested&quot;,&quot;verified&quot;,&quot;none&quot;],&quot;default&quot;:&quot;requested&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Data&quot;},&quot;showRail&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const TRADES=['Civil / Structural','Concrete works','Formwork','Rebar fixing','Steel erection','Masonry','Carpentry','Electrical installation','Plumbing','HVAC','Welding','Land surveying','Heavy equipment operation','Crane operation','Scaffolding','Painting & finishing','Tiling','Waterproofing','AutoCAD','Revit / BIM','Quantity surveying','HSE / Safety','Site supervision','Road works','Asphalt paving'];
+const clone=o=>JSON.parse(JSON.stringify(o));
+const blank=()=>({basics:{headline:'',bio:'',trade:'',years:'',city:'',country:'',languages:''},experience:[],education:[],certifications:[],skills:[],rates:{hourly:'',daily:'',currency:'SAR',availability:'Available',link:'',visible:false}});
+const FULL={basics:{headline:'Site engineer — reinforced concrete',bio:'Nine years running concrete and formwork crews on residential towers and highway structures. Strong on QA/QC and pour planning.',trade:'Civil / Structural',years:'9',city:'Riyadh',country:'Saudi Arabia',languages:'Arabic, English'},
+experience:[{role:'Site Engineer',company:'Al-Bina Contracting',type:'Residential tower',location:'Riyadh',start:'2021-03-01',end:'',current:true,desc:'Lead a 40-person concrete crew on a 28-storey tower.'},{role:'Assistant Site Engineer',company:'Gulf Roads Co.',type:'Highway bridge',location:'Dammam',start:'2017-06-01',end:'2021-02-15',current:false,desc:''}],
+education:[{school:'King Saud University',degree:'B.Sc.',field:'Civil Engineering',start:'2012',end:'2016'}],
+certifications:[{name:'OSHA 30-Hour Construction',issuer:'OSHA',issued:'2022-04-10',expires:'2027-04-10',cid:'OS-30-88213'},{name:'ACI Concrete Field Testing Grade I',issuer:'American Concrete Institute',issued:'2019-09-01',expires:'2024-09-01',cid:'ACI-01-55120'}],
+skills:[{trade:'Concrete works',level:'Expert'},{trade:'Formwork',level:'Expert'},{trade:'Rebar fixing',level:'Intermediate'},{trade:'AutoCAD',level:'Intermediate'},{trade:'HSE / Safety',level:'Basic'}],
+rates:{hourly:'95',daily:'700',currency:'SAR',availability:'Available',link:'https://cv.example.com/omar',visible:true}};
+function seedCV(k){if(k==='empty')return blank();const c=clone(FULL);if(k==='partial'){c.certifications=[];c.rates=blank().rates;}return c;}
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtD=d=>{const m=/^(\d{4})-(\d{2})/.exec(d||'');return m?MON[+m[2]-1]+' '+m[1]:(d||'');};
+const TONE={green:['var(--brandSoft)','var(--brand)'],amber:['var(--amberSoft)','var(--amber)'],red:['var(--redSoft)','var(--red)'],teal:['var(--tealSoft)','var(--teal)'],neutral:['var(--sf2)','var(--ink2)']};
+const pill=(label,t)=>({label,bg:TONE[t][0],color:TONE[t][1]});
+const AVAIL={Available:'green',Busy:'amber',Unavailable:'neutral'};
+const LEVEL={Expert:'green',Intermediate:'teal',Basic:'neutral'};
+const NEWS={experience:{role:'',company:'',type:'',location:'',start:'',end:'',current:false,desc:''},education:{school:'',degree:'',field:'',start:'',end:''},certifications:{name:'',issuer:'',issued:'',expires:'',cid:''}};
+const REQ={basics:['headline','trade'],experience:['role','company','start'],education:['school','degree'],certifications:['name','issuer'],rates:[]};
+const SECTIONS=[{k:'basics',t:'Basics',icon:'user-round',d:'Headline, trade and location'},{k:'experience',t:'Experience',icon:'briefcase',d:'Add at least one past job',u:['job','jobs']},{k:'education',t:'Education',icon:'graduation-cap',d:'School, degree, field',u:['entry','entries']},{k:'certifications',t:'Certifications',icon:'badge-check',d:'Safety and trade certificates',u:['certificate','certificates']},{k:'skills',t:'Skills',icon:'wrench',d:'Trades and your level',u:['skill','skills']},{k:'rates',t:'Rates & visibility',icon:'banknote',d:'Set an hourly or daily rate'}];
+const SINGLE={experience:'job',education:'education entry',certifications:'certificate'};
+const TODAY='2026-11-18';
+
+class Component extends DCLogic {
+  state={stack:[{s:'home'}],cv:seedCV(this.props.cvState??'partial'),draft:{},errors:{},toast:null,confirm:null,sheet:null,sheetQ:'',acctTab:'details',theme:null,verif:null,loading:false,skillTrade:'',skillLevel:'Intermediate',reveal:{},acct:{first:'Omar',last:'Haddad',display:'Omar H.',phone:'+966 55 214 8830'},pw:{cur:'',next:'',conf:''},lang:'en'};
+  componentDidUpdate(p){
+    if(p.cvState!==this.props.cvState)this.setState({cv:seedCV(this.props.cvState??'partial'),stack:[{s:'home'}]});
+    if(p.verification!==this.props.verification)this.setState({verif:null});
+    if(p.theme!==this.props.theme)this.setState({theme:null});
+  }
+  componentWillUnmount(){clearTimeout(this._t);clearTimeout(this._l);}
+  top(){const s=this.state.stack;return s[s.length-1];}
+  toast(msg,tone='ok'){clearTimeout(this._t);this.setState({toast:{msg,tone}});this._t=setTimeout(()=>this.setState({toast:null}),2600);}
+  push(e){const l=e.s==='list'||e.s==='skills';this.setState(st=>({stack:[...st.stack,e],errors:{},loading:l}));if(l){clearTimeout(this._l);this._l=setTimeout(()=>this.setState({loading:false}),520);}}
+  tab(s){this.setState({stack:[{s}],loading:false,errors:{}});}
+  openForm(kind,index=null){const cv=this.state.cv;const d=(kind==='basics'||kind==='rates')?clone(cv[kind]):index==null?clone(NEWS[kind]):clone(cv[kind][index]);this.setState({draft:d});this.push({s:'form',kind,index});}
+  open(k){if(k==='basics'||k==='rates')this.openForm(k);else if(k==='skills')this.push({s:'skills'});else this.push({s:'list',kind:k});}
+  jump(base,fn){this.setState({stack:base,loading:false,errors:{},sheet:null,confirm:null},fn);}
+  setD(k,v){this.setState(st=>({draft:{...st.draft,[k]:v},errors:{...st.errors,[k]:null}}));}
+  ready(cv){const b=cv.basics;return{basics:!!(b.headline&&b.trade&&b.city),experience:cv.experience.length>0,education:cv.education.length>0,certifications:cv.certifications.length>0,skills:cv.skills.length>0,rates:!!(cv.rates.hourly||cv.rates.daily)};}
+  pct(cv){return Math.round(Object.values(this.ready(cv)).filter(Boolean).length/6*100);}
+  save=()=>{
+    const {kind,index}=this.top();const d=this.state.draft;const errs={};
+    (REQ[kind]||[]).forEach(k=>{if(!String(d[k]??'').trim())errs[k]='Required';});
+    if(kind==='experience'||kind==='certifications')['start','end','issued','expires'].forEach(k=>{if(d[k]&&!/^\d{4}-\d{2}-\d{2}$/.test(d[k]))errs[k]='Use the format YYYY-MM-DD';});
+    if(kind==='education')['start','end'].forEach(k=>{if(d[k]&&!/^\d{4}$/.test(d[k]))errs[k]='Use a 4-digit year';});
+    if(kind==='rates')['hourly','daily'].forEach(k=>{if(d[k]&&isNaN(+d[k]))errs[k]='Numbers only';});
+    if(kind==='basics'&&d.years&&isNaN(+d.years))errs.years='Numbers only';
+    if(Object.keys(errs).length){this.setState({errors:errs});this.toast('Check the highlighted fields','err');return;}
+    const before=this.pct(this.state.cv);const cv=clone(this.state.cv);
+    if(kind==='basics'||kind==='rates')cv[kind]=d;else if(index==null)cv[kind].unshift(d);else cv[kind][index]=d;
+    const after=this.pct(cv);
+    this.setState(st=>({cv,stack:st.stack.slice(0,-1)}));
+    if(after===100&&before<100)this.toast('CV complete — you’re ready for verification','peak');
+    else this.toast(index==null&&kind!=='basics'&&kind!=='rates'?'Added to your CV':'Changes saved');
+  };
+  askDelete=()=>{const {kind,index}=this.top();this.setState({confirm:{title:`Delete this ${SINGLE[kind]}?`,body:'It will be removed from your CV. This can’t be undone.',cta:'Delete',bg:'var(--red)',on:()=>{const cv=clone(this.state.cv);cv[kind].splice(index,1);this.setState(st=>({cv,confirm:null,stack:st.stack.slice(0,-1)}));this.toast('Deleted');}}});};
+  addSkill=()=>{const {skillTrade:t,skillLevel:l,cv}=this.state;if(!t||cv.skills.some(s=>s.trade===t))return;const c=clone(cv);c.skills.unshift({trade:t,level:l});const done=this.pct(c)===100&&this.pct(cv)<100;this.setState({cv:c,skillTrade:''});this.toast(done?'CV complete — you’re ready for verification':`${t} added`,done?'peak':'ok');};
+  renderVals(){
+    const st=this.state,cv=st.cv,top=this.top(),r=this.ready(cv);
+    const readyCount=Object.values(r).filter(Boolean).length,pct=Math.round(readyCount/6*100);
+    let theme=st.theme??this.props.theme??'light';
+    if(theme==='system')theme=(typeof matchMedia!=='undefined'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+    const themeSel=st.theme??this.props.theme??'light';
+    const v=st.verif??this.props.verification??'requested';
+    const VER={verified:{icon:'shield-check',title:'Verified and visible',short:'Verified',body:'Project managers can find you in the directory.',bg:'var(--brandSoft)',color:'var(--brand)',showBtn:false},
+      requested:{icon:'clock',title:'Verification requested',short:'In review',body:'An admin is reviewing your profile — usually 1–2 working days.',bg:'var(--amberSoft)',color:'var(--amber)',showBtn:false},
+      none:{icon:'shield-alert',title:'Not verified yet',short:'Not verified',body:'Request verification to appear in the directory.',bg:'var(--sf)',color:'var(--ink)',showBtn:true}};
+    const verif=VER[v]||VER.requested;
+    const missing=SECTIONS.filter(s=>!r[s.k]);
+    const metaOf=s=>{if(s.k==='basics')return r.basics?'Ready':'Add details';if(s.k==='rates')return r.rates?(cv.rates.hourly?`${cv.rates.hourly} ${cv.rates.currency} / hour`:`${cv.rates.daily} ${cv.rates.currency} / day`):'Add details';const n=cv[s.k].length;return n?`${n} ${s.u[n===1?0:1]}`:'Add details';};
+    const hero=readyCount===0?{title:'Start your CV',body:'Six short sections. Most workers finish in about ten minutes.',cta:'Start with Basics'}:readyCount<6?{title:`${readyCount} of 6 sections ready`,body:`Next up: ${missing[0].t}. A complete CV gets verified faster.`,cta:'Continue'}:{title:'Your CV is complete',body:'Keep rates and availability current as jobs change.',cta:'View my CV'};
+    const name=[st.acct.first,st.acct.last].join(' ');
+    const initials=(st.acct.first[0]||'')+(st.acct.last[0]||'');
+    const avail=pill(cv.rates.availability,AVAIL[cv.rates.availability]||'neutral');
+    const isForm=top.s==='form',isList=top.s==='list';
+    // form
+    let form={title:'',sections:[],canDelete:false,saveLabel:'Save'};
+    if(isForm){
+      const d=st.draft,e=st.errors,kind=top.kind,isNew=top.index==null;
+      const mk=(key,label,o={})=>{const type=o.type||'text',val=d[key],err=e[key];
+        const f={key,label,ph:o.ph||'',hint:o.hint||'',hasHint:!!o.hint,showHint:!!o.hint&&type!=='toggle'&&!err,show:!o.hide,hasLabel:type!=='toggle',isText:type==='text',isMulti:type==='multi',isSelect:type==='select',isChoice:type==='choice',isToggle:type==='toggle',inputMode:o.mode||'text',dir:o.ltr?'ltr':'auto',value:val??'',err:err||'',hasErr:!!err,border:err?'var(--red)':'var(--line)',onChange:ev=>this.setD(key,ev.target.value)};
+        if(type==='select'){f.selectLabel=val||o.ph||'Choose';f.selectColor=val?'var(--ink)':'var(--ink3)';f.onOpen=()=>this.setState({sheet:{target:'draft',key},sheetQ:''});}
+        if(type==='choice')f.options=o.options.map(x=>({label:x,bg:val===x?'var(--ink)':'var(--sf2)',color:val===x?'var(--bg)':'var(--ink2)',go:()=>this.setD(key,x)}));
+        if(type==='toggle'){f.trackBg=val?'var(--brand)':'var(--line2)';f.knobX=val?'20px':'0px';f.onToggle=()=>this.setD(key,!val);}
+        return f;};
+      const date={ph:'YYYY-MM-DD',ltr:true,mode:'numeric'};
+      const cfg={
+        basics:{title:'Basics',sections:[{title:'About you',icon:'user-round',fields:[mk('headline','Headline',{ph:'e.g. Site engineer — concrete'}),mk('bio','Bio',{type:'multi',ph:'A few lines on what you do best'})]},{title:'Trade',icon:'hard-hat',fields:[mk('trade','Primary trade',{type:'select',ph:'Choose your trade'}),mk('years','Years of experience',{ph:'0',mode:'numeric',ltr:true})]},{title:'Location',icon:'map-pin',fields:[mk('city','City',{ph:'e.g. Riyadh'}),mk('country','Country',{ph:'e.g. Saudi Arabia'})]},{title:'Languages',icon:'languages',fields:[mk('languages','Languages',{ph:'Arabic, English',hint:'Separate with commas'})]}]},
+        rates:{title:'Rates & visibility',sections:[{title:'Rates',icon:'banknote',fields:[mk('hourly',`Hourly rate (${d.currency||'SAR'})`,{ph:'0',mode:'decimal',ltr:true}),mk('daily',`Daily rate (${d.currency||'SAR'})`,{ph:'0',mode:'decimal',ltr:true}),mk('currency','Currency',{type:'choice',options:['SAR','AED','USD','EGP']}),mk('availability','Availability',{type:'choice',options:['Available','Busy','Unavailable']}),mk('link','External CV link',{ph:'https://',ltr:true,hint:'Optional — LinkedIn or a PDF link'})]},{title:'Visibility',icon:'eye',fields:[mk('visible','Show in directory',{type:'toggle',hint:'Verified profiles appear to project managers searching for workers.'})]}]},
+        experience:{title:isNew?'Add job':'Edit job',sections:[{title:'Role',icon:'briefcase',fields:[mk('role','Role',{ph:'e.g. Site Engineer'}),mk('company','Company',{ph:'e.g. Al-Bina Contracting'}),mk('type','Project type',{ph:'e.g. Residential tower'}),mk('location','Location',{ph:'City, country'})]},{title:'Dates',icon:'calendar',fields:[mk('start','Start date',date),mk('current','I still work here',{type:'toggle'}),mk('end','End date',{...date,hide:!!d.current})]},{title:'Description',icon:'align-left',fields:[mk('desc','What you did',{type:'multi',ph:'Scope, crew size, results'})]}]},
+        education:{title:isNew?'Add education':'Edit education',sections:[{title:'School',icon:'graduation-cap',fields:[mk('school','School',{ph:'e.g. King Saud University'}),mk('degree','Degree',{ph:'e.g. B.Sc.'}),mk('field','Field of study',{ph:'e.g. Civil Engineering'})]},{title:'Years',icon:'calendar',fields:[mk('start','Start year',{ph:'YYYY',ltr:true,mode:'numeric'}),mk('end','End year',{ph:'YYYY',ltr:true,mode:'numeric'})]}]},
+        certifications:{title:isNew?'Add certificate':'Edit certificate',sections:[{title:'Certificate',icon:'badge-check',fields:[mk('name','Certificate name',{ph:'e.g. OSHA 30-Hour'}),mk('issuer','Issuer',{ph:'e.g. OSHA'}),mk('cid','Credential ID',{ph:'Optional',ltr:true})]},{title:'Validity',icon:'calendar',fields:[mk('issued','Issued on',date),mk('expires','Expires on',{...date,hint:'Leave empty if it doesn’t expire'})]}]}
+      }[kind];
+      form={...cfg,canDelete:!isNew&&!['basics','rates'].includes(kind),saveLabel:isNew&&!['basics','rates'].includes(kind)?'Add to CV':'Save changes'};
+    }
+    // list
+    let list={title:'',items:[],count:'',onAdd:null,addLabel:'Add'};
+    if(isList){
+      const k=top.kind,arr=cv[k];
+      const items=arr.map((x,i)=>{const go=()=>this.openForm(k,i);
+        if(k==='experience')return{icon:'briefcase',title:x.role,sub:[x.company,x.type].filter(Boolean).join(' · '),meta:`${fmtD(x.start)} – ${x.current?'Present':fmtD(x.end)}`,hasPill:!!x.current,pill:pill('Current','green'),go};
+        if(k==='education')return{icon:'graduation-cap',title:x.school,sub:[x.degree,x.field].filter(Boolean).join(' · '),meta:[x.start,x.end].filter(Boolean).join(' – '),hasPill:false,pill:pill('','neutral'),go};
+        const exp=x.expires&&x.expires<TODAY;
+        return{icon:'badge-check',title:x.name,sub:x.issuer,meta:x.expires?`${exp?'Expired':'Expires'} ${fmtD(x.expires)}`:'No expiry',hasPill:!!x.expires,pill:exp?pill('Expired','red'):pill('Valid','green'),go};});
+      const E={experience:['briefcase','No experience yet','Add the jobs and projects you’ve worked on — most recent first.','Add job'],education:['graduation-cap','No education yet','Add your school, degree or vocational training.','Add'],certifications:['badge-check','No certificates yet','Safety and trade certificates help you get verified faster.','Add']}[k];
+      list={title:{experience:'Experience',education:'Education',certifications:'Certifications'}[k],count:arr.length?`${arr.length} TOTAL`:'',items,emptyIcon:E[0],emptyTitle:E[1],emptyBody:E[2],addLabel:E[3],onAdd:()=>this.openForm(k)};
+    }
+    // account
+    const isPwTab=st.acctTab==='security';
+    const aF=(key,label,src,o={})=>{const err=st.errors['a_'+key];const pw=!!o.pw;const shown=st.reveal[key];return{label,value:st[src][key],ph:o.ph||'',dir:o.ltr?'ltr':'auto',isPw:pw,inputType:pw&&!shown?'password':'text',eye:shown?'eye-off':'eye',onReveal:()=>this.setState(s=>({reveal:{...s.reveal,[key]:!s.reveal[key]}})),err:err||'',hasErr:!!err,border:err?'var(--red)':'var(--line)',onChange:ev=>{const val=ev.target.value;this.setState(s=>({[src]:{...s[src],[key]:val},errors:{...s.errors,['a_'+key]:null}}));}};};
+    const acctFields=isPwTab?[aF('cur','Current password','pw',{pw:true}),aF('next','New password','pw',{pw:true,ph:'At least 8 characters'}),aF('conf','Confirm new password','pw',{pw:true})]:[aF('first','First name','acct'),aF('last','Last name','acct'),aF('display','Display name','acct'),aF('phone','Phone','acct',{ltr:true})];
+    const onAcctSave=()=>{if(!isPwTab){const errs={};['first','last'].forEach(k=>{if(!st.acct[k].trim())errs['a_'+k]='Required';});if(Object.keys(errs).length){this.setState({errors:errs});this.toast('Check the highlighted fields','err');return;}this.toast('Details saved');return;}
+      const p=st.pw,errs={};if(!p.cur)errs.a_cur='Required';if(p.next.length<8)errs.a_next='Use at least 8 characters';if(p.conf!==p.next)errs.a_conf='Passwords don’t match';
+      if(Object.keys(errs).length){this.setState({errors:errs});this.toast('Check the highlighted fields','err');return;}
+      this.setState({pw:{cur:'',next:'',conf:''},reveal:{}});this.toast('Password updated');};
+    // sheet
+    const sh=st.sheet;let sheetItems=[];
+    if(sh){const cur=sh.target==='draft'?st.draft[sh.key]:st.skillTrade;const q=st.sheetQ.trim().toLowerCase();const owned=sh.target==='skill'?cv.skills.map(s=>s.trade):[];
+      sheetItems=TRADES.filter(t=>!q||t.toLowerCase().includes(q)).filter(t=>!owned.includes(t)).map(t=>({label:t,on:t===cur,bg:t===cur?'var(--brandSoft)':'transparent',weight:t===cur?600:400,go:()=>{if(sh.target==='draft')this.setD(sh.key,t);else this.setState({skillTrade:t});this.setState({sheet:null});}}));}
+    // toast
+    const T={ok:{bg:'var(--ink)',color:'var(--bg)',icon:'circle-check',iconColor:'var(--lime)'},err:{bg:'var(--red)',color:'#fff',icon:'circle-alert',iconColor:'#fff'},peak:{bg:'var(--hero)',color:'var(--heroInk)',icon:'party-popper',iconColor:'var(--lime)'}};
+    const toast=st.toast?{msg:st.toast.msg,...T[st.toast.tone]}:{};
+    // rail
+    const curKey=isForm?'form:'+top.kind+(top.index==null?':new':''):isList?'list:'+top.kind:top.s;
+    const cvBase=[{s:'cv'}];
+    const R=[['home','Home',0,()=>this.tab('home')],['cv','My CV',0,()=>this.tab('cv')],['form:basics','Basics',1,()=>this.jump(cvBase,()=>this.openForm('basics'))],['list:experience','Experience',1,()=>this.jump(cvBase,()=>this.open('experience'))],['form:experience','Experience editor',2,()=>this.jump([...cvBase,{s:'list',kind:'experience'}],()=>this.openForm('experience',cv.experience.length?0:null))],['list:education','Education',1,()=>this.jump(cvBase,()=>this.open('education'))],['list:certifications','Certifications',1,()=>this.jump(cvBase,()=>this.open('certifications'))],['form:certifications:new','Certificate editor',2,()=>this.jump([...cvBase,{s:'list',kind:'certifications'}],()=>this.openForm('certifications'))],['skills','Skills',1,()=>this.jump(cvBase,()=>this.open('skills'))],['form:rates','Rates & visibility',1,()=>this.jump(cvBase,()=>this.openForm('rates'))],['account','Account',0,()=>this.tab('account')]];
+    const rail=R.map(([k,label,lvl,go])=>{const on=curKey===k||(k==='form:experience'&&curKey==='form:experience:new');return{label,go,pad:12+lvl*16+'px',bg:on?'#141614':'transparent',color:on?'#F4F3EF':'#3E3D39',dot:on?'#86E3A6':lvl?'rgba(20,22,20,.2)':'#15803D'};});
+    const skillOk=!!st.skillTrade;
+    return {
+      theme,showRail:this.props.showRail??true,rail,
+      isHome:top.s==='home',isCv:top.s==='cv',isAccount:top.s==='account',isForm,isList,isSkills:top.s==='skills',
+      showTabs:['home','cv','account'].includes(top.s),
+      tabs:[['home','Home','house'],['cv','My CV','file-user'],['account','Account','user-round']].map(([id,label,icon])=>{const a=top.s===id;return{label,icon,active:a,pad:a?'20px':'0px',bg:a?'var(--brand)':'transparent',color:a?'var(--onBrand)':'var(--tabInk)',go:()=>this.tab(id)};}),
+      todayLabel:new Date(TODAY+'T09:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),
+      firstName:st.acct.first||'there',avail,openRates:()=>this.jump(cvBase,()=>this.openForm('rates')),
+      pct,pctDeg:Math.max(pct*3.6,0.01),readyCount,hero,
+      onHero:()=>{if(readyCount<6){this.setState({stack:[{s:'cv'}]},()=>this.open(missing[0].k));}else this.tab('cv');},
+      stats:[{v:cv.experience.length,l:'Jobs',k:'experience'},{v:cv.skills.length,l:'Skills',k:'skills'},{v:cv.certifications.length,l:'Certs',k:'certifications'}].map((s,i)=>({...s,sep:i?'1px solid var(--heroLine)':'none',go:()=>this.jump(cvBase,()=>this.open(s.k))})),
+      verif,onRequestVerif:()=>{this.setState({verif:'requested'});this.toast('Verification requested');},
+      quick:[{label:'My CV',sub:`${readyCount} of 6 ready`,icon:'file-user',go:()=>this.tab('cv')},{label:'Add job',sub:'New experience',icon:'briefcase',go:()=>this.jump([...cvBase,{s:'list',kind:'experience'}],()=>this.openForm('experience'))},{label:'Skills',sub:cv.skills.length?`${cv.skills.length} trades`:'None yet',icon:'wrench',go:()=>this.jump(cvBase,()=>this.open('skills'))},{label:'Account',sub:'Details & security',icon:'settings',go:()=>this.tab('account')}],
+      todo:missing.slice(0,3).map(s=>({...s,go:()=>this.jump(cvBase,()=>this.open(s.k))})),hasTodo:missing.length>0,todoCount:missing.length,
+      profile:{initials,name:cv.basics.headline||name,line:[cv.basics.trade,cv.basics.city].filter(Boolean).join(' · ')||'Add your trade and city in Basics'},
+      cvHint:pct===100?'Every section is in place. Nice work.':`Add ${missing.map(s=>s.t.toLowerCase()).join(', ')} to reach 100%.`,
+      cvRows:SECTIONS.map(s=>{const ok=r[s.k];return{...s,meta:metaOf(s),metaColor:ok?'var(--ink2)':'var(--amber)',tileBg:ok?'var(--brandSoft)':'var(--sf2)',tileColor:ok?'var(--brand)':'var(--ink2)',stateIcon:ok?'circle-check':'circle-dashed',stateColor:ok?'var(--brand)':'var(--amber)',go:()=>this.open(s.k)};}),
+      back:()=>this.setState(s=>({stack:s.stack.length>1?s.stack.slice(0,-1):s.stack,errors:{}})),
+      form,save:this.save,askDelete:this.askDelete,
+      list,loading:st.loading,skeleton:[1,2,3],listShowItems:isList&&!st.loading&&list.items.length>0,listShowEmpty:isList&&!st.loading&&list.items.length===0,
+      skillCount:cv.skills.length?`${cv.skills.length} TOTAL`:'',
+      skillItems:cv.skills.map((s,i)=>({trade:s.trade,pill:pill(s.level,LEVEL[s.level]),remove:()=>{const c=clone(cv);c.skills.splice(i,1);this.setState({cv:c});this.toast(`${s.trade} removed`);}})),
+      skillsShowItems:!st.loading&&cv.skills.length>0,skillsShowEmpty:!st.loading&&cv.skills.length===0,
+      skillTradeLabel:st.skillTrade||'Search trades',skillTradeColor:st.skillTrade?'var(--heroInk)':'var(--heroMute)',
+      openSkillPicker:()=>this.setState({sheet:{target:'skill'},sheetQ:''}),
+      levelOpts:['Basic','Intermediate','Expert'].map(l=>({label:l,bg:st.skillLevel===l?'var(--heroInk)':'transparent',color:st.skillLevel===l?'var(--hero)':'var(--heroMute)',go:()=>this.setState({skillLevel:l})})),
+      addSkill:this.addSkill,addBg:skillOk?'var(--lime)':'rgba(255,255,255,.08)',addColor:skillOk?'#0A1F12':'var(--heroMute)',addSkillLabel:skillOk?`Add ${st.skillTrade}`:'Add skill',
+      acctName:name,acctTabs:[['details','Details'],['security','Security']].map(([id,label])=>{const a=st.acctTab===id;return{label,bg:a?'var(--sf)':'transparent',color:a?'var(--ink)':'var(--ink3)',shadow:a?'0 1px 3px rgba(0,0,0,.08)':'none',go:()=>this.setState({acctTab:id,errors:{}})};}),
+      acctFields,onAcctSave,acctSaveLabel:isPwTab?'Update password':'Save details',
+      themeOpts:[['light','Light','sun'],['dark','Dark','moon'],['system','System','monitor']].map(([id,label,icon])=>{const a=themeSel===id;return{label,icon,border:a?'var(--brand)':'var(--line)',iconColor:a?'var(--brand)':'var(--ink3)',go:()=>this.setState({theme:id})};}),
+      langOpts:[['en','English'],['ar','العربية']].map(([id,label])=>{const a=st.lang===id;return{label,ring:a?'2px solid var(--brand)':'2px solid var(--line2)',dot:a?'var(--brand)':'transparent',go:()=>{if(a)return;this.setState({confirm:{title:id==='ar'?'Switch to العربية?':'Switch to English?',body:'The app restarts to apply the new language and reading direction.',cta:'Restart',bg:'var(--brand)',on:()=>{this.setState({lang:id,confirm:null});this.toast('Language saved — applies after restart');}}});}};}),
+      onLogout:()=>this.setState({confirm:{title:'Log out?',body:'You’ll need your email and password to sign back in.',cta:'Log out',bg:'var(--red)',on:()=>{this.setState({confirm:null,stack:[{s:'home'}]});this.toast('Signed out (prototype)');}}}),
+      sheetOpen:!!sh,sheetItems,sheetEmpty:!!sh&&sheetItems.length===0,sheetQ:st.sheetQ,onSheetQ:e=>this.setState({sheetQ:e.target.value}),closeSheet:()=>this.setState({sheet:null}),
+      confirmOpen:!!st.confirm,confirm:st.confirm||{},doConfirm:()=>st.confirm&&st.confirm.on(),cancelConfirm:()=>this.setState({confirm:null}),
+      toastOpen:!!st.toast,toast
+    };
+  }
+}
+</script>
+</body>
+</html>

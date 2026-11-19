@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.460.0/font/lucide.css">
+<style>
+body{margin:0;background:#E6E4DE;font-family:'Geist',system-ui,sans-serif;color:#141614;-webkit-font-smoothing:antialiased}
+a{color:#15803D}a:hover{color:#0F5E2D}
+*{box-sizing:border-box}*::-webkit-scrollbar{display:none}
+button,input,textarea{font-family:inherit}
+input::placeholder,textarea::placeholder{color:var(--ink3)}
+[data-theme] [style*="overflow-y"]>*{flex-shrink:0}
+[data-theme] [style*="overflow-x"]>*{flex-shrink:0}
+[data-theme="light"]{--bg:#F4F3EF;--sf:#FFFFFF;--sf2:#F0EFEA;--ink:#141614;--ink2:#545853;--ink3:#8A8D87;--line:rgba(20,22,20,.08);--line2:rgba(20,22,20,.16);--brand:#15803D;--brandSoft:#E3F1E7;--onBrand:#FFFFFF;--hero:#0F2419;--heroInk:#EEF3EC;--heroMute:rgba(238,243,236,.7);--heroLine:rgba(238,243,236,.14);--lime:#86E3A6;--amber:#9A5806;--amberSoft:#F9EEDA;--red:#B42318;--redSoft:#FBE8E6;--teal:#0E6F86;--tealSoft:#E0F0F4;--shadow:0 1px 2px rgba(20,22,20,.04),0 10px 28px -8px rgba(20,22,20,.08);--tab:rgba(20,22,20,.94);--tabInk:#F4F3EF;--scrim:rgba(10,12,10,.42)}
+[data-theme="dark"]{--bg:#0B0D0B;--sf:#151815;--sf2:#1E221E;--ink:#ECEFEA;--ink2:#A9AEA6;--ink3:#737870;--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.16);--brand:#2BB062;--brandSoft:rgba(43,176,98,.15);--onBrand:#04110A;--hero:#123020;--heroInk:#EEF3EC;--heroMute:rgba(238,243,236,.7);--heroLine:rgba(238,243,236,.14);--lime:#86E3A6;--amber:#EBA748;--amberSoft:rgba(235,167,72,.13);--red:#F27A68;--redSoft:rgba(242,122,104,.13);--teal:#5BC7DF;--tealSoft:rgba(91,199,223,.13);--shadow:0 0 0 1px rgba(255,255,255,.04);--tab:rgba(236,239,234,.95);--tabInk:#0B0D0B;--scrim:rgba(0,0,0,.6)}
+@keyframes enter{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-10px) scale(.97)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes dlg{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes kb{from{transform:scale(1.08)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;gap:56px;justify-content:center;align-items:flex-start;padding:48px 32px">
+
+<sc-if value="{{ showRail }}" hint-placeholder-val="{{ true }}">
+<aside style="width:248px;display:flex;flex-direction:column;gap:28px;padding-top:28px">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#7A7871">PM portal · prototype</span>
+    <span style="font:600 26px/1.1 'Geist',sans-serif;letter-spacing:-.025em;color:#141614">Project manager app</span>
+    <span style="font:400 13px/1.55 'Geist',sans-serif;color:#5A5852;text-wrap:pretty">Track projects through five stages, upload documents, browse providers and workers. Data state (empty, error, offline) and theme live in Tweaks.</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ rail }}" as="r" hint-placeholder-count="7">
+      <button onClick="{{ r.go }}" style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px 0 {{ r.pad }};border:none;border-radius:10px;background:{{ r.bg }};color:{{ r.color }};font:500 13px 'Geist',sans-serif;text-align:left;cursor:pointer" style-hover="background:rgba(20,22,20,.06)">
+        <span style="width:5px;height:5px;border-radius:50%;background:{{ r.dot }};flex:none"></span>{{ r.label }}
+      </button>
+    </sc-for>
+  </div>
+</aside>
+</sc-if>
+
+<div style="flex:none;width:410px;height:864px;border-radius:62px;background:#0A0A0A;padding:10px;box-shadow:0 50px 90px -30px rgba(20,22,20,.45),0 0 0 1px rgba(0,0,0,.25)">
+<div data-theme="{{ theme }}" style="position:relative;width:390px;height:844px;border-radius:52px;overflow:hidden;background:var(--bg);color:var(--ink);transition:background .3s">
+
+  <div style="position:absolute;top:0;left:0;right:0;height:50px;z-index:40;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:6px 34px 0 40px;color:var(--ink);transition:background .3s">
+    <span style="font:600 15px 'Geist',sans-serif">9:41</span>
+    <div style="display:flex;gap:6px;align-items:center;font-size:16px"><i class="icon-signal"></i><i class="icon-{{ wifiIcon }}"></i><i class="icon-battery-full" style="font-size:20px"></i></div>
+  </div>
+  <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:122px;height:35px;border-radius:20px;background:#000;z-index:41"></div>
+
+  <!-- HOME -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 0 132px;display:flex;flex-direction:column;gap:16px;animation:fade .3s ease-out">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 24px 0">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)">{{ todayLabel }}</span>
+        <span style="font:500 15px/1.2 'Geist',sans-serif;color:var(--ink2)">Good morning, {{ firstName }}</span>
+      </div>
+      <button onClick="{{ newProject }}" aria-label="New project" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--ink);color:var(--bg);font-size:20px;display:grid;place-items:center;cursor:pointer" style-active="transform:scale(.94)"><i class="icon-plus"></i></button>
+    </div>
+
+    <sc-if value="{{ homeFull }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="margin:0 20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
+          <button onClick="{{ s.go }}" style="padding:14px;border:none;border-radius:18px;background:var(--sf);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;align-items:flex-start;color:var(--ink);cursor:pointer;text-align:left" style-active="transform:scale(.97)">
+            <span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)"><span style="width:6px;height:6px;border-radius:50%;background:{{ s.dot }}"></span>{{ s.l }}</span>
+            <span style="font:600 26px/1 'Geist',sans-serif;letter-spacing:-.02em">{{ s.v }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasHold }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ goHold }}" style="margin:0 20px;display:flex;align-items:center;gap:12px;padding:14px 16px;border:none;border-radius:18px;background:var(--amberSoft);color:var(--ink);text-align:left;cursor:pointer">
+        <span style="flex:none;width:36px;height:36px;border-radius:10px;background:var(--sf);color:var(--amber);display:grid;place-items:center;font-size:18px"><i class="icon-circle-pause"></i></span>
+        <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font:600 15px 'Geist',sans-serif;color:var(--amber)">{{ holdTitle }}</span><span style="font:400 13px 'Geist',sans-serif;color:var(--ink2)">{{ holdBody }}</span></span>
+        <i class="icon-chevron-right" style="font-size:18px;color:var(--amber)"></i>
+      </button>
+      </sc-if>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="padding:8px 24px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Active projects</span>
+        <div style="display:flex;gap:12px;overflow-x:auto;padding:0 20px 8px;scroll-snap-type:x mandatory;scroll-padding:0 20px">
+          <sc-for list="{{ carousel }}" as="c" hint-placeholder-count="2">
+            <button onClick="{{ c.go }}" style="position:relative;width:296px;height:348px;padding:0;border:none;border-radius:26px;overflow:hidden;background:var(--hero);color:#fff;text-align:left;cursor:pointer;scroll-snap-align:start" style-active="transform:scale(.98)">
+              <img src="{{ c.src }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kb 1.6s cubic-bezier(.2,.8,.2,1)">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,16,10,.35) 0%,rgba(6,16,10,0) 28%,rgba(6,16,10,.15) 50%,rgba(6,16,10,.94) 100%)"></div>
+              <div style="position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:center">
+                <span style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:rgba(10,12,10,.55);backdrop-filter:blur(8px);font:500 12px 'Geist',sans-serif"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.dot }}"></span>{{ c.stage }}</span>
+                <span style="font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:rgba(255,255,255,.85)">{{ c.code }}</span>
+              </div>
+              <div style="position:absolute;left:18px;right:18px;bottom:18px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                    <span style="font:600 19px/1.2 'Geist',sans-serif;letter-spacing:-.01em;text-wrap:pretty">{{ c.name }}</span>
+                    <span style="font:400 13px 'Geist',sans-serif;color:rgba(255,255,255,.75)">{{ c.city }}</span>
+                  </div>
+                  <span style="font:600 40px/1 'Geist',sans-serif;letter-spacing:-.04em">{{ c.pct }}<span style="font-size:18px;opacity:.7">%</span></span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+                  <sc-for list="{{ c.segs }}" as="g" hint-placeholder-count="5"><span style="height:5px;border-radius:3px;background:{{ g.bg }}"></span></sc-for>
+                </div>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ homeEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:0 20px;position:relative;height:420px;border-radius:28px;overflow:hidden;background:var(--hero);color:#fff">
+      <img src="{{ emptyImg }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kb 1.6s cubic-bezier(.2,.8,.2,1)">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,16,10,.05) 0%,rgba(6,16,10,.3) 45%,rgba(6,16,10,.94) 100%)"></div>
+      <div style="position:absolute;left:20px;right:20px;bottom:20px;display:flex;flex-direction:column;gap:14px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.72)">Welcome</span>
+        <span style="font:600 26px/1.15 'Geist',sans-serif;letter-spacing:-.02em;text-wrap:pretty">Start your first project</span>
+        <span style="font:400 15px/1.5 'Geist',sans-serif;color:rgba(255,255,255,.8);text-wrap:pretty">Track it from soil tests to handover — five stages, every document in one place.</span>
+        <button onClick="{{ newProject }}" style="height:52px;border:none;border-radius:16px;background:#fff;color:#0A1F12;font:600 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer"><i class="icon-plus" style="font-size:18px"></i>New project</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ homeOk }}" hint-placeholder-val="{{ true }}">
+    <div style="margin:0 20px;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:10px">
+      <button onClick="{{ newProject }}" style="min-height:96px;padding:14px;border:none;border-radius:18px;background:var(--ink);color:var(--bg);display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:10px;text-align:left;cursor:pointer" style-active="transform:scale(.97)"><span style="width:36px;height:36px;border-radius:11px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:19px"><i class="icon-plus"></i></span><span style="font:600 15px/1.2 'Geist',sans-serif">New project</span></button>
+      <button onClick="{{ goProjects }}" style="min-height:96px;padding:14px;border:none;border-radius:18px;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:10px;text-align:left;cursor:pointer" style-active="transform:scale(.97)"><span style="width:36px;height:36px;border-radius:11px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font-size:18px"><i class="icon-folder-kanban"></i></span><span style="font:600 15px/1.2 'Geist',sans-serif">All projects</span></button>
+      <button onClick="{{ goDirectory }}" style="min-height:96px;padding:14px;border:none;border-radius:18px;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:10px;text-align:left;cursor:pointer" style-active="transform:scale(.97)"><span style="width:36px;height:36px;border-radius:11px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font-size:18px"><i class="icon-contact-round"></i></span><span style="font:600 15px/1.2 'Geist',sans-serif">Directory</span></button>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ homeFull }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:12px;padding:0 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px 0">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Recent</span>
+        <button onClick="{{ goProjects }}" style="height:32px;padding:0 4px;border:none;background:none;color:var(--brand);font:600 13px 'Geist',sans-serif;cursor:pointer">See all</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:22px;overflow:hidden;box-shadow:var(--shadow)">
+        <sc-for list="{{ recent }}" as="p" hint-placeholder-count="3">
+          <button onClick="{{ p.go }}" style="display:flex;align-items:center;gap:14px;padding:12px 14px 12px 12px;border:none;background:var(--sf);color:var(--ink);text-align:left;cursor:pointer" style-hover="background:var(--sf2)">
+            <img src="{{ p.thumb }}" alt="" style="flex:none;width:56px;height:56px;border-radius:14px;object-fit:cover;background:var(--sf2)">
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+              <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;min-width:0;font:600 15px/1.2 'Geist',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span><span style="flex:none;height:22px;padding:0 8px;border-radius:999px;background:{{ p.pill.bg }};color:{{ p.pill.color }};font:500 11px/22px 'Geist',sans-serif">{{ p.pill.label }}</span></span>
+              <span style="display:flex;align-items:center;gap:10px"><span style="flex:1;height:5px;border-radius:3px;background:var(--sf2);overflow:hidden"><span style="display:block;height:100%;width:{{ p.pct }}%;border-radius:3px;background:{{ p.bar }}"></span></span><span style="font:500 11px 'Geist Mono',monospace;color:var(--ink3);min-width:30px;text-align:right">{{ p.pct }}%</span></span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- PROJECTS -->
+  <sc-if value="{{ isProjects }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 20px 132px;display:flex;flex-direction:column;gap:14px;animation:fade .3s ease-out">
+    <div style="display:flex;gap:10px">
+      <div style="position:relative;flex:1;min-width:0">
+        <i class="icon-search" style="position:absolute;left:14px;top:15px;font-size:18px;color:var(--ink3)"></i>
+        <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Search name, code or city" style="width:100%;height:48px;padding:0 14px 0 42px;border-radius:14px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none;box-shadow:var(--shadow)" style-focus="border-color:var(--brand)">
+      </div>
+      <button onClick="{{ newProject }}" aria-label="New project" style="flex:none;width:48px;height:48px;border:none;border-radius:14px;background:var(--ink);color:var(--bg);font-size:22px;display:grid;place-items:center;cursor:pointer" style-active="transform:scale(.95)"><i class="icon-plus"></i></button>
+    </div>
+    <div style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px">
+      <sc-for list="{{ pFilters }}" as="f" hint-placeholder-count="5">
+        <button onClick="{{ f.go }}" style="height:38px;padding:0 14px;border:1px solid {{ f.border }};border-radius:999px;background:{{ f.bg }};color:{{ f.color }};font:500 13px 'Geist',sans-serif;display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;transition:all .15s">{{ f.label }}<span style="font:500 11px 'Geist Mono',monospace;opacity:.6">{{ f.n }}</span></button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ skeleton }}" as="k" hint-placeholder-count="4">
+        <div style="height:104px;border-radius:22px;background:var(--sf);padding:12px;display:flex;gap:14px;animation:pulse 1.2s ease-in-out infinite"><div style="width:80px;height:80px;border-radius:16px;background:var(--sf2)"></div><div style="flex:1;display:flex;flex-direction:column;gap:10px;padding-top:8px"><div style="width:70%;height:12px;border-radius:6px;background:var(--sf2)"></div><div style="width:40%;height:10px;border-radius:5px;background:var(--sf2)"></div><div style="width:90%;height:6px;border-radius:3px;background:var(--sf2);margin-top:8px"></div></div></div>
+      </sc-for>
+    </sc-if>
+    <sc-if value="{{ showPList }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ pList }}" as="p" hint-placeholder-count="4">
+        <button onClick="{{ p.go }}" style="display:flex;gap:14px;padding:12px;border:none;border-radius:22px;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);text-align:left;cursor:pointer;animation:rise .35s cubic-bezier(.2,.8,.2,1) both" style-active="transform:scale(.98)">
+          <img src="{{ p.thumb }}" alt="" loading="lazy" style="flex:none;width:80px;height:80px;border-radius:16px;object-fit:cover;background:var(--sf2)">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:2px 2px 0 0">
+            <span style="display:flex;align-items:flex-start;gap:8px"><span style="flex:1;min-width:0;font:600 15px/1.25 'Geist',sans-serif">{{ p.name }}</span><span style="flex:none;height:22px;padding:0 8px;border-radius:999px;background:{{ p.pill.bg }};color:{{ p.pill.color }};font:500 11px/22px 'Geist',sans-serif">{{ p.pill.label }}</span></span>
+            <span style="font:400 13px 'Geist',sans-serif;color:var(--ink3)"><span dir="ltr" style="font:500 12px 'Geist Mono',monospace">{{ p.code }}</span> · {{ p.city }}</span>
+            <span style="display:flex;align-items:center;gap:10px;margin-top:auto"><span style="flex:1;height:5px;border-radius:3px;background:var(--sf2);overflow:hidden"><span style="display:block;height:100%;width:{{ p.pct }}%;border-radius:3px;background:{{ p.bar }}"></span></span><span style="font:500 11px 'Geist Mono',monospace;color:var(--ink3);min-width:30px;text-align:right">{{ p.pct }}%</span></span>
+          </span>
+        </button>
+      </sc-for>
+    </sc-if>
+    <sc-if value="{{ showPEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="border-radius:26px;overflow:hidden;background:var(--sf);box-shadow:var(--shadow);animation:rise .35s ease-out">
+        <div style="position:relative;height:180px"><img src="{{ emptyImg2 }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"><div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,var(--sf) 100%)"></div></div>
+        <div style="padding:0 22px 22px;display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+          <span style="font:600 17px 'Geist',sans-serif">{{ pEmpty.title }}</span>
+          <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);text-wrap:pretty">{{ pEmpty.body }}</span>
+          <button onClick="{{ pEmpty.go }}" style="margin-top:8px;height:48px;padding:0 18px;border:none;border-radius:14px;background:var(--brand);color:var(--onBrand);font:600 15px 'Geist',sans-serif;display:flex;align-items:center;gap:8px;cursor:pointer"><i class="icon-{{ pEmpty.icon }}" style="font-size:18px"></i>{{ pEmpty.cta }}</button>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- DIRECTORY -->
+  <sc-if value="{{ isDirectory }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 20px 132px;display:flex;flex-direction:column;gap:14px;animation:fade .3s ease-out">
+    <div style="position:relative">
+      <i class="icon-search" style="position:absolute;left:14px;top:15px;font-size:18px;color:var(--ink3)"></i>
+      <input value="{{ dq }}" onChange="{{ onDq }}" placeholder="Search providers and workers" style="width:100%;height:48px;padding:0 14px 0 42px;border-radius:14px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none;box-shadow:var(--shadow)" style-focus="border-color:var(--brand)">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(3,auto);padding:4px;border-radius:14px;background:var(--sf2)">
+        <sc-for list="{{ dFilters }}" as="f" hint-placeholder-count="3">
+          <button onClick="{{ f.go }}" style="height:36px;padding:0 14px;border:none;border-radius:10px;background:{{ f.bg }};color:{{ f.color }};box-shadow:{{ f.shadow }};font:500 13px 'Geist',sans-serif;cursor:pointer;transition:all .2s">{{ f.label }}</button>
+        </sc-for>
+      </div>
+      <span style="font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">{{ dCount }}</span>
+    </div>
+    <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ skeleton }}" as="k" hint-placeholder-count="4">
+        <div style="height:76px;border-radius:20px;background:var(--sf);padding:14px;display:flex;gap:14px;align-items:center;animation:pulse 1.2s ease-in-out infinite"><div style="width:48px;height:48px;border-radius:14px;background:var(--sf2)"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div style="width:60%;height:12px;border-radius:6px;background:var(--sf2)"></div><div style="width:40%;height:10px;border-radius:5px;background:var(--sf2)"></div></div></div>
+      </sc-for>
+    </sc-if>
+    <sc-if value="{{ showDList }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:22px;overflow:hidden;box-shadow:var(--shadow)">
+        <sc-for list="{{ dList }}" as="d" hint-placeholder-count="5">
+          <button onClick="{{ d.go }}" style="display:flex;align-items:center;gap:14px;min-height:76px;padding:12px 14px;border:none;background:var(--sf);color:var(--ink);text-align:left;cursor:pointer" style-hover="background:var(--sf2)">
+            <span style="position:relative;flex:none;width:52px;height:52px;border-radius:{{ d.radius }};overflow:hidden;background:{{ d.avBg }};color:{{ d.avInk }};display:grid;place-items:center;font:600 17px 'Geist',sans-serif">
+              <sc-if value="{{ d.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ d.photo }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if>
+              <sc-if value="{{ d.noPhoto }}" hint-placeholder-val="{{ true }}"><span>{{ d.initials }}</span></sc-if>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <span style="display:flex;align-items:center;gap:6px"><span style="min-width:0;font:600 15px/1.2 'Geist',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.name }}</span><sc-if value="{{ d.verified }}" hint-placeholder-val="{{ false }}"><i class="icon-badge-check" style="flex:none;font-size:15px;color:var(--brand)"></i></sc-if></span>
+              <span style="font:400 13px/1.3 'Geist',sans-serif;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.sub }}</span>
+            </span>
+            <span style="flex:none;height:22px;padding:0 8px;border-radius:999px;background:{{ d.typeBg }};color:{{ d.typeInk }};font:500 11px/22px 'Geist',sans-serif">{{ d.type }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showDEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:40px 24px;text-align:center">
+        <div style="width:64px;height:64px;border-radius:20px;background:var(--sf);box-shadow:var(--shadow);color:var(--brand);display:grid;place-items:center;font-size:28px"><i class="icon-search-x"></i></div>
+        <span style="font:600 17px 'Geist',sans-serif;margin-top:6px">No matches</span>
+        <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);max-width:260px;text-wrap:pretty">Try a different name, trade or city.</span>
+        <button onClick="{{ clearDq }}" style="margin-top:6px;height:44px;padding:0 16px;border:none;border-radius:12px;background:var(--sf2);color:var(--ink);font:600 13px 'Geist',sans-serif;cursor:pointer">Clear search</button>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ACCOUNT -->
+  <sc-if value="{{ isAccount }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;padding:62px 20px 132px;display:flex;flex-direction:column;gap:16px;animation:fade .3s ease-out">
+    <div style="border-radius:26px;background:var(--sf);box-shadow:var(--shadow);padding:20px;display:flex;align-items:center;gap:14px">
+      <div style="flex:none;width:56px;height:56px;border-radius:50%;background:var(--hero);color:var(--lime);display:grid;place-items:center;font:600 19px 'Geist',sans-serif">{{ initials }}</div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+        <span style="font:600 17px/1.2 'Geist',sans-serif;letter-spacing:-.01em">{{ acctName }}</span>
+        <span style="font:400 13px/1.3 'Geist',sans-serif;color:var(--ink2)">Project manager · <span dir="ltr">sara.q@albina.sa</span></span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:var(--sf2)">
+      <sc-for list="{{ acctTabs }}" as="a" hint-placeholder-count="2">
+        <button onClick="{{ a.go }}" style="height:40px;border:none;border-radius:10px;background:{{ a.bg }};color:{{ a.color }};box-shadow:{{ a.shadow }};font:500 15px 'Geist',sans-serif;cursor:pointer;transition:all .2s">{{ a.label }}</button>
+      </sc-for>
+    </div>
+    <div style="border-radius:22px;background:var(--sf);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:16px">
+      <sc-for list="{{ acctFields }}" as="f" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:500 13px 'Geist',sans-serif;color:var(--ink2)">{{ f.label }}</span>
+          <div style="position:relative;display:flex">
+            <input value="{{ f.value }}" onChange="{{ f.onChange }}" type="{{ f.inputType }}" placeholder="{{ f.ph }}" dir="{{ f.dir }}" style="flex:1;min-width:0;height:48px;padding:0 48px 0 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none" style-focus="border-color:var(--brand);background:var(--sf)">
+            <sc-if value="{{ f.isPw }}" hint-placeholder-val="{{ false }}"><button onClick="{{ f.onReveal }}" aria-label="Show password" style="position:absolute;right:2px;top:2px;width:44px;height:44px;border:none;background:none;color:var(--ink3);font-size:18px;cursor:pointer"><i class="icon-{{ f.eye }}"></i></button></sc-if>
+          </div>
+          <sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:6px;align-items:center;font:500 13px 'Geist',sans-serif;color:var(--red)"><i class="icon-circle-alert" style="font-size:14px"></i>{{ f.err }}</span></sc-if>
+        </div>
+      </sc-for>
+      <button onClick="{{ onAcctSave }}" style="height:52px;border:none;border-radius:14px;background:var(--brand);color:var(--onBrand);font:600 15px 'Geist',sans-serif;cursor:pointer" style-active="transform:scale(.98)">{{ acctSaveLabel }}</button>
+    </div>
+    <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Appearance</span>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+      <sc-for list="{{ themeOpts }}" as="o" hint-placeholder-count="3">
+        <button onClick="{{ o.go }}" style="height:72px;border:1.5px solid {{ o.border }};border-radius:16px;background:var(--sf);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:500 13px 'Geist',sans-serif;cursor:pointer"><i class="icon-{{ o.icon }}" style="font-size:20px;color:{{ o.iconColor }}"></i>{{ o.label }}</button>
+      </sc-for>
+    </div>
+    <span style="padding:8px 4px 0;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)">Language</span>
+    <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)">
+      <sc-for list="{{ langOpts }}" as="l" hint-placeholder-count="2">
+        <button onClick="{{ l.go }}" style="display:flex;align-items:center;gap:14px;min-height:56px;padding:0 16px;border:none;background:var(--sf);color:var(--ink);text-align:left;cursor:pointer">
+          <span style="flex:1;font:500 15px 'Geist',sans-serif">{{ l.label }}</span>
+          <span style="width:22px;height:22px;border-radius:50%;border:{{ l.ring }};display:grid;place-items:center"><span style="width:10px;height:10px;border-radius:50%;background:{{ l.dot }}"></span></span>
+        </button>
+      </sc-for>
+    </div>
+    <button onClick="{{ onLogout }}" style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border:none;border-radius:20px;background:var(--sf);box-shadow:var(--shadow);color:var(--red);font:500 15px 'Geist',sans-serif;cursor:pointer"><i class="icon-log-out" style="font-size:18px"></i>Log out</button>
+  </div>
+  </sc-if>
+
+  <!-- ERROR / OFFLINE (tab screens) -->
+  <sc-if value="{{ showErr }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:50px 0 0;z-index:8;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 36px 120px;text-align:center;animation:fade .3s ease-out">
+    <div style="width:80px;height:80px;border-radius:24px;background:{{ err.tileBg }};color:{{ err.tileInk }};display:grid;place-items:center;font-size:34px"><i class="icon-{{ err.icon }}"></i></div>
+    <span style="font:600 19px 'Geist',sans-serif;margin-top:8px;letter-spacing:-.01em">{{ err.title }}</span>
+    <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);text-wrap:pretty">{{ err.body }}</span>
+    <button onClick="{{ retry }}" style="margin-top:12px;height:50px;padding:0 22px;border:none;border-radius:14px;background:var(--ink);color:var(--bg);font:600 15px 'Geist',sans-serif;display:flex;align-items:center;gap:8px;cursor:pointer"><i class="icon-rotate-cw" style="font-size:17px"></i>{{ retryLabel }}</button>
+  </div>
+  </sc-if>
+
+  <!-- FORM SCREEN (new / detail / stages) -->
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;animation:enter .3s cubic-bezier(.2,.8,.2,1)">
+    <div style="position:absolute;top:50px;left:0;right:0;height:60px;z-index:5;background:var(--bg);display:flex;align-items:center;gap:8px;padding:0 12px">
+      <button onClick="{{ back }}" aria-label="Back" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--sf);box-shadow:var(--shadow);color:var(--ink);font-size:20px;display:grid;place-items:center;cursor:pointer"><i class="icon-chevron-left"></i></button>
+      <span style="flex:1;min-width:0;font:600 17px 'Geist',sans-serif;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ form.title }}</span>
+      <span dir="ltr" style="margin-right:8px;font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">{{ form.code }}</span>
+    </div>
+    <div style="position:absolute;inset:0;overflow-y:auto;padding:118px 20px 140px;display:flex;flex-direction:column;gap:14px">
+
+      <sc-if value="{{ form.hasSummary }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;height:230px;border-radius:26px;overflow:hidden;background:var(--hero);color:#fff">
+        <img src="{{ sum.img }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,16,10,.2) 0%,rgba(6,16,10,.1) 35%,rgba(6,16,10,.92) 100%)"></div>
+        <span style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:rgba(10,12,10,.55);backdrop-filter:blur(8px);font:500 12px 'Geist',sans-serif"><span style="width:6px;height:6px;border-radius:50%;background:{{ sum.dot }}"></span>{{ sum.status }}</span>
+        <div style="position:absolute;left:18px;right:18px;bottom:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:600 19px/1.2 'Geist',sans-serif;letter-spacing:-.01em;text-wrap:pretty">{{ sum.name }}</span><span style="font:400 13px 'Geist',sans-serif;color:rgba(255,255,255,.75)">{{ sum.sub }}</span></div>
+            <span style="font:600 36px/1 'Geist',sans-serif;letter-spacing:-.04em">{{ sum.pct }}<span style="font-size:16px;opacity:.7">%</span></span>
+          </div>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden"><div style="height:100%;width:{{ sum.pct }}%;border-radius:3px;background:var(--lime);transition:width .5s cubic-bezier(.2,.8,.2,1)"></div></div>
+        </div>
+      </div>
+      <button onClick="{{ openStages }}" style="display:flex;flex-direction:column;gap:14px;padding:18px;border:none;border-radius:22px;background:var(--hero);color:var(--heroInk);text-align:left;cursor:pointer" style-active="transform:scale(.98)">
+        <span style="display:flex;align-items:center;gap:12px;width:100%">
+          <span style="flex:none;width:40px;height:40px;border-radius:12px;background:rgba(134,227,166,.16);color:var(--lime);display:grid;place-items:center;font-size:19px"><i class="icon-milestone"></i></span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font:600 15px 'Geist',sans-serif">Stages</span><span style="font:400 13px 'Geist',sans-serif;color:var(--heroMute)">{{ sum.stageLine }}</span></span>
+          <i class="icon-chevron-right" style="font-size:20px;color:var(--heroMute)"></i>
+        </span>
+        <span style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:100%">
+          <sc-for list="{{ sum.segs }}" as="g" hint-placeholder-count="5"><span style="height:5px;border-radius:3px;background:{{ g.bg }}"></span></sc-for>
+        </span>
+      </button>
+      </sc-if>
+
+      <sc-if value="{{ form.hasStepper }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:2px 20px 4px">
+        <sc-for list="{{ stepper }}" as="s" hint-placeholder-count="5">
+          <button onClick="{{ s.go }}" style="width:132px;padding:12px;border:1.5px solid {{ s.border }};border-radius:18px;background:{{ s.bg }};color:var(--ink);display:flex;flex-direction:column;gap:10px;align-items:flex-start;text-align:left;cursor:pointer;transition:all .2s">
+            <span style="width:30px;height:30px;border-radius:50%;background:{{ s.dotBg }};color:{{ s.dotInk }};border:{{ s.ring }};display:grid;place-items:center;font:600 13px 'Geist',sans-serif"><sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><i class="icon-check" style="font-size:15px"></i></sc-if><sc-if value="{{ s.notDone }}" hint-placeholder-val="{{ true }}"><span>{{ s.n }}</span></sc-if></span>
+            <span style="display:flex;flex-direction:column;gap:3px"><span style="font:600 13px 'Geist',sans-serif">{{ s.name }}</span><span style="font:500 11px 'Geist',sans-serif;color:{{ s.stColor }}">{{ s.status }}</span></span>
+          </button>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-for list="{{ form.sections }}" as="sec" hint-placeholder-count="2">
+        <div style="border-radius:22px;background:var(--sf);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:32px;height:32px;border-radius:10px;background:var(--brandSoft);color:var(--brand);display:grid;place-items:center;font-size:16px"><i class="icon-{{ sec.icon }}"></i></span>
+            <span style="flex:1;font:600 15px 'Geist',sans-serif">{{ sec.title }}</span>
+            <span style="font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;color:var(--ink3)">{{ sec.meta }}</span>
+          </div>
+          <sc-if value="{{ sec.isGallery }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-if value="{{ sec.gal.hasCover }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ sec.gal.coverGo }}" style="position:relative;height:180px;padding:0;border:none;border-radius:16px;overflow:hidden;background:var(--sf2);cursor:pointer"><img src="{{ sec.gal.cover }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:rgba(10,12,10,.62);backdrop-filter:blur(8px);color:#fff;font:500 12px 'Geist',sans-serif"><i class="icon-star" style="font-size:13px;color:var(--lime)"></i>Main image</span></button>
+              </sc-if>
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+                <sc-for list="{{ sec.gal.thumbs }}" as="t" hint-placeholder-count="2">
+                  <button onClick="{{ t.go }}" style="aspect-ratio:1/1;padding:0;border:none;border-radius:12px;overflow:hidden;background:var(--sf2);cursor:pointer"><img src="{{ t.src }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></button>
+                </sc-for>
+                <sc-if value="{{ sec.gal.canAdd }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ addPhoto }}" style="aspect-ratio:1/1;border:1.5px dashed var(--line2);border-radius:12px;background:var(--sf2);color:var(--ink2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:500 11px 'Geist',sans-serif;cursor:pointer"><i class="icon-camera" style="font-size:20px"></i>Add</button>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ sec.isDocs }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ sec.docs }}" as="d" hint-placeholder-count="1">
+                <div style="display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 6px 10px 12px;border-radius:14px;background:var(--sf2)">
+                  <span style="flex:none;width:40px;height:40px;border-radius:11px;background:{{ d.tileBg }};color:{{ d.tileInk }};display:grid;place-items:center;font-size:18px"><i class="icon-{{ d.icon }}"></i></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font:500 13px/1.25 'Geist',sans-serif;color:var(--ink2)">{{ d.label }}</span><span dir="ltr" style="font:500 13px 'Geist',sans-serif;color:{{ d.fileInk }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left">{{ d.file }}</span></span>
+                  <sc-if value="{{ d.has }}" hint-placeholder-val="{{ false }}"><button onClick="{{ d.remove }}" aria-label="Remove file" style="width:44px;height:44px;border:none;border-radius:12px;background:none;color:var(--ink3);font-size:18px;cursor:pointer" style-hover="color:var(--red)"><i class="icon-x"></i></button></sc-if>
+                  <sc-if value="{{ d.none }}" hint-placeholder-val="{{ true }}"><button onClick="{{ d.upload }}" style="height:40px;padding:0 12px;margin-right:4px;border:none;border-radius:10px;background:var(--sf);color:var(--ink);font:600 13px 'Geist',sans-serif;display:flex;align-items:center;gap:6px;cursor:pointer;box-shadow:var(--shadow)"><i class="icon-upload" style="font-size:15px"></i>Upload</button></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-for list="{{ sec.fields }}" as="f" hint-placeholder-count="2">
+            <sc-if value="{{ f.show }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font:500 13px 'Geist',sans-serif;color:var(--ink2)">{{ f.label }}</span>
+              <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ true }}">
+                <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" inputMode="{{ f.inputMode }}" dir="{{ f.dir }}" style="height:48px;padding:0 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:var(--ink);font:400 15px 'Geist',sans-serif;outline:none" style-focus="border-color:var(--brand);background:var(--sf)">
+              </sc-if>
+              <sc-if value="{{ f.isMulti }}" hint-placeholder-val="{{ false }}">
+                <textarea value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" rows="4" style="padding:12px 14px;border-radius:12px;border:1px solid {{ f.border }};background:var(--sf2);color:var(--ink);font:400 15px/1.5 'Geist',sans-serif;outline:none;resize:none" style-focus="border-color:var(--brand);background:var(--sf)"></textarea>
+              </sc-if>
+              <sc-if value="{{ f.isChoice }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+                    <button onClick="{{ o.go }}" style="height:44px;padding:0 16px;border:none;border-radius:12px;background:{{ o.bg }};color:{{ o.color }};font:500 15px 'Geist',sans-serif;cursor:pointer;transition:all .15s">{{ o.label }}</button>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:6px;align-items:center;font:500 13px 'Geist',sans-serif;color:var(--red)"><i class="icon-circle-alert" style="font-size:14px"></i>{{ f.err }}</span></sc-if>
+              <sc-if value="{{ f.showHint }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px 'Geist',sans-serif;color:var(--ink3)">{{ f.hint }}</span></sc-if>
+            </div>
+            </sc-if>
+          </sc-for>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{ form.hasDanger }}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius:22px;border:1px solid var(--redSoft);background:var(--sf);padding:18px;display:flex;align-items:center;gap:12px">
+          <span style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font:600 15px 'Geist',sans-serif;color:var(--red)">Danger zone</span><span style="font:400 13px/1.4 'Geist',sans-serif;color:var(--ink3)">Archiving removes the project from your lists.</span></span>
+          <button onClick="{{ askArchive }}" style="height:44px;padding:0 14px;border:none;border-radius:12px;background:var(--redSoft);color:var(--red);font:600 13px 'Geist',sans-serif;display:flex;align-items:center;gap:6px;cursor:pointer"><i class="icon-archive" style="font-size:16px"></i>Archive</button>
+        </div>
+      </sc-if>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;padding:16px 20px 34px;background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;gap:10px">
+      <sc-if value="{{ form.hasSecondary }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ save }}" style="flex:1;height:54px;border:1px solid var(--line2);border-radius:16px;background:var(--sf);color:var(--ink);font:600 15px 'Geist',sans-serif;cursor:pointer" style-active="transform:scale(.98)">Save</button>
+      </sc-if>
+      <button onClick="{{ form.primary }}" style="flex:1.4;height:54px;border:none;border-radius:16px;background:var(--brand);color:var(--onBrand);font:600 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 10px 24px -10px var(--brand)" style-active="transform:scale(.98)">{{ form.primaryLabel }}<sc-if value="{{ form.hasSecondary }}" hint-placeholder-val="{{ false }}"><i class="icon-arrow-right" style="font-size:18px"></i></sc-if></button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TAB BAR -->
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:50%;bottom:30px;transform:translateX(-50%);z-index:20;display:flex;gap:4px;padding:6px;border-radius:999px;background:var(--tab);box-shadow:0 16px 40px -12px rgba(0,0,0,.45);backdrop-filter:blur(16px);animation:rise .35s ease-out">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <button onClick="{{ t.go }}" aria-label="{{ t.label }}" style="height:50px;min-width:54px;padding:0 {{ t.pad }};border:none;border-radius:999px;background:{{ t.bg }};color:{{ t.color }};display:flex;align-items:center;justify-content:center;gap:8px;font:600 15px 'Geist',sans-serif;cursor:pointer;transition:all .3s cubic-bezier(.2,.8,.2,1)">
+        <i class="icon-{{ t.icon }}" style="font-size:20px"></i>
+        <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}"><span style="animation:fade .25s ease-out;white-space:nowrap">{{ t.label }}</span></sc-if>
+      </button>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <!-- SHEET -->
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:50">
+    <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:var(--scrim);animation:fade .2s ease-out"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;max-height:680px;border-radius:28px 28px 0 0;background:var(--sf);display:flex;flex-direction:column;padding-bottom:34px;overflow:hidden;animation:sheet .32s cubic-bezier(.2,.9,.25,1)">
+      <sc-if value="{{ sheet.isPerson }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;height:170px;background:var(--hero)">
+          <sc-if value="{{ sheet.p.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ sheet.p.photo }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></sc-if>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,0) 40%,rgba(0,0,0,.35))"></div>
+          <div style="position:absolute;top:10px;left:0;right:0;display:flex;justify-content:center"><span style="width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.7)"></span></div>
+          <button onClick="{{ closeSheet }}" aria-label="Close" style="position:absolute;top:16px;right:14px;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.9);color:#141614;font-size:18px;cursor:pointer"><i class="icon-x"></i></button>
+        </div>
+        <div style="padding:0 20px;margin-top:-34px;position:relative;display:flex;flex-direction:column;gap:14px">
+          <div style="width:68px;height:68px;border-radius:{{ sheet.p.radius }};border:4px solid var(--sf);background:{{ sheet.p.avBg }};color:{{ sheet.p.avInk }};display:grid;place-items:center;font:600 21px 'Geist',sans-serif;overflow:hidden;position:relative">
+            <sc-if value="{{ sheet.p.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ sheet.p.photo }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if>
+            <sc-if value="{{ sheet.p.noPhoto }}" hint-placeholder-val="{{ true }}"><span>{{ sheet.p.initials }}</span></sc-if>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="display:flex;align-items:center;gap:6px;font:600 19px/1.2 'Geist',sans-serif;letter-spacing:-.01em">{{ sheet.p.name }}<sc-if value="{{ sheet.p.verified }}" hint-placeholder-val="{{ false }}"><i class="icon-badge-check" style="font-size:18px;color:var(--brand)"></i></sc-if></span>
+            <span style="font:400 15px 'Geist',sans-serif;color:var(--ink2)">{{ sheet.p.sub }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:16px;overflow:hidden">
+            <sc-for list="{{ sheet.p.facts }}" as="x" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;min-height:48px;padding:0 14px;background:var(--sf2)"><i class="icon-{{ x.icon }}" style="font-size:16px;color:var(--ink3)"></i><span style="flex:1;font:400 15px 'Geist',sans-serif;color:var(--ink2)">{{ x.k }}</span><span dir="{{ x.dir }}" style="font:500 15px 'Geist',sans-serif">{{ x.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button onClick="{{ sheet.p.call }}" style="height:52px;border:1px solid var(--line2);border-radius:14px;background:var(--sf);color:var(--ink);font:600 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer"><i class="icon-phone" style="font-size:17px"></i>Call</button>
+            <button onClick="{{ sheet.p.wa }}" style="height:52px;border:none;border-radius:14px;background:var(--brand);color:var(--onBrand);font:600 15px 'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer"><i class="icon-message-circle" style="font-size:17px"></i>WhatsApp</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sheet.isPlain }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:center;padding:10px 0 6px"><span style="width:40px;height:5px;border-radius:3px;background:var(--line2)"></span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px 10px 20px"><span style="font:600 17px 'Geist',sans-serif">{{ sheet.title }}</span><button onClick="{{ closeSheet }}" aria-label="Close" style="width:44px;height:44px;border:none;border-radius:50%;background:var(--sf2);color:var(--ink2);font-size:18px;cursor:pointer"><i class="icon-x"></i></button></div>
+      </sc-if>
+      <sc-if value="{{ sheet.isList }}" hint-placeholder-val="{{ false }}">
+        <div style="overflow-y:auto;padding:0 12px">
+          <sc-for list="{{ sheet.items }}" as="s" hint-placeholder-count="3">
+            <button onClick="{{ s.go }}" style="width:100%;display:flex;align-items:center;gap:14px;min-height:56px;padding:0 12px;border:none;border-radius:14px;background:transparent;color:{{ s.color }};font:500 15px 'Geist',sans-serif;text-align:left;cursor:pointer" style-hover="background:var(--sf2)">
+              <span style="width:36px;height:36px;border-radius:10px;background:var(--sf2);display:grid;place-items:center;font-size:18px"><i class="icon-{{ s.icon }}"></i></span>{{ s.label }}
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sheet.isLibrary }}" hint-placeholder-val="{{ false }}">
+        <div style="overflow-y:auto;padding:0 20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+          <sc-for list="{{ sheet.photos }}" as="p" hint-placeholder-count="9">
+            <button onClick="{{ p.go }}" style="position:relative;aspect-ratio:1/1;padding:0;border:none;border-radius:10px;overflow:hidden;background:var(--sf2);cursor:pointer;opacity:{{ p.opacity }}"><img src="{{ p.src }}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block"><sc-if value="{{ p.on }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:14px;border:2px solid #fff"><i class="icon-check"></i></span></sc-if></button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:55;display:grid;place-items:center;padding:28px">
+    <div onClick="{{ cancelConfirm }}" style="position:absolute;inset:0;background:var(--scrim);animation:fade .2s ease-out"></div>
+    <div style="position:relative;width:100%;border-radius:26px;background:var(--sf);overflow:hidden;display:flex;flex-direction:column;animation:dlg .25s cubic-bezier(.2,.9,.25,1)">
+      <sc-if value="{{ confirm.hasImg }}" hint-placeholder-val="{{ false }}"><div style="height:120px;background:var(--sf2)"><img src="{{ confirm.img }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.5)"></div></sc-if>
+      <div style="padding:22px 20px 20px;display:flex;flex-direction:column;gap:8px">
+        <span style="font:600 17px/1.3 'Geist',sans-serif">{{ confirm.title }}</span>
+        <span style="font:400 15px/1.5 'Geist',sans-serif;color:var(--ink2);text-wrap:pretty">{{ confirm.body }}</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+          <button onClick="{{ cancelConfirm }}" style="height:50px;border:none;border-radius:14px;background:var(--sf2);color:var(--ink);font:600 15px 'Geist',sans-serif;cursor:pointer">Cancel</button>
+          <button onClick="{{ doConfirm }}" style="height:50px;border:none;border-radius:14px;background:{{ confirm.bg }};color:#fff;font:600 15px 'Geist',sans-serif;cursor:pointer">{{ confirm.cta }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:58px;left:50%;z-index:60;width:350px;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:{{ toast.bg }};color:{{ toast.color }};font:500 15px 'Geist',sans-serif;box-shadow:0 16px 36px -12px rgba(0,0,0,.45);animation:pop .3s cubic-bezier(.2,.9,.25,1) both">
+      <i class="icon-{{ toast.icon }}" style="font-size:20px;color:{{ toast.iconColor }}"></i><span style="flex:1">{{ toast.msg }}</span>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink);opacity:.85;z-index:70"></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;,&quot;system&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dataState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;empty&quot;,&quot;error&quot;,&quot;offline&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Data&quot;},&quot;showRail&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const PH={rebar:'1504307651254-35680f356dfd',crew:'1541888946425-d81bb19240f5',plans:'1503387762-592deb58ef4e',elec:'1621905251189-08b45d6a269e',earth:'1517089596392-fb9a9033e05b',drill:'1572981779307-38b8cabb2407',rebar2:'1531834685032-c34bf0d84c77',towers:'1565008447742-97f6f38c985c',hammer:'1586864387967-d02ef85d93e8',exc:'1580901368919-7738efb0f87e',frame:'1508450859948-4e04fabaa4ea',crane:'1535732759880-bbd5c7265e3f',weld:'1504917595217-d4dc5ebe6122',insul:'1607400201889-565b1ee75f8e'};
+const LIB=[PH.towers,PH.crane,PH.frame,PH.earth,PH.exc,PH.crew,PH.plans,PH.rebar,PH.rebar2,PH.weld,PH.hammer,PH.elec];
+const U=(id,w=800)=>`https://images.unsplash.com/photo-${id}?w=${w}&q=72&auto=format&fit=crop`;
+const clone=o=>JSON.parse(JSON.stringify(o));
+const TODAY='2026-11-18';
+const STAGES=[{k:'geo',name:'Geotechnical',icon:'mountain'},{k:'design',name:'Design',icon:'pen-tool'},{k:'lic',name:'Licensing',icon:'stamp'},{k:'mat',name:'Materials',icon:'package'},{k:'maint',name:'Maintenance',icon:'wrench'}];
+const SF={
+ geo:[['soil','Soil type','choice',['Clay','Sand','Gravel','Rock','Mixed']],['bearing','Bearing capacity (kPa)','num'],['testDate','Test date','date'],['lab','Testing lab','text','e.g. Saudi Geotech Labs']],
+ design:[['consultant','Design consultant','text','e.g. Dar Al-Handasah'],['rev','Current revision','text','e.g. Rev C'],['approved','Approved on','date']],
+ lic:[['permit','Permit number','code','e.g. RYD-BP-2025-0001'],['authority','Issuing authority','text','e.g. Riyadh Municipality'],['issued','Issued on','date'],['expires','Expires on','date']],
+ mat:[['supplier','Main supplier','text','e.g. Gulf Steel Trading'],['cost','Materials cost (SAR)','num'],['delivery','Next delivery','date']],
+ maint:[['contractor','Maintenance contractor','text','Company name'],['handover','Handover date','date'],['warranty','Warranty ends','date']]};
+const SDOCS={geo:['Soil investigation report','Borehole logs'],design:['Architectural drawings','Structural calculations'],lic:['Building permit'],mat:['Supplier invoices','Delivery notes'],maint:['Handover report']};
+const FILL={geo:{soil:'Sand',bearing:'250',testDate:'2025-02-11',lab:'Saudi Geotech Labs'},design:{consultant:'Dar Al-Handasah',rev:'Rev C',approved:'2025-05-02'},lic:{permit:'RYD-BP-2025-04471',authority:'Riyadh Municipality',issued:'2025-07-20',expires:'2027-07-20'},mat:{supplier:'Gulf Steel Trading',cost:'4850000',delivery:'2026-12-02'},maint:{contractor:'Najd Facility Services',handover:'2026-03-30',warranty:'2031-03-30'}};
+const fileOf=l=>({name:l.replace(/\s+/g,'_')+'.pdf',size:(1+((l.length*7)%40)/10).toFixed(1)+' MB'});
+const mkStages=code=>code.split('').map((c,i)=>{const k=STAGES[i].k;return{status:{C:'Complete',I:'In progress',N:'Not started'}[c],f:c==='N'?{}:clone(FILL[k]),notes:'',docs:Object.fromEntries(SDOCS[k].map((d,j)=>[d,c==='C'||(c==='I'&&j===0)?fileOf(d):null]))};});
+const SEED=[
+{id:'p1',name:'Al-Narjis Residential Tower',code:'NRJ-028',type:'Residential',status:'Active',desc:'28-storey residential tower with two basement levels and podium retail.',address:'Al-Narjis District, Anas Ibn Malik Rd',city:'Riyadh',country:'Saudi Arabia',start:'2025-01-15',end:'2027-06-30',notes:'Concrete pour for level 19 scheduled after rebar inspection.',photos:[PH.towers,PH.crane,PH.frame],stages:mkStages('CCCIN')},
+{id:'p2',name:'King Fahd Road Interchange',code:'KFR-114',type:'Infrastructure',status:'Active',desc:'Grade-separated interchange with two flyovers and service roads.',address:'King Fahd Rd / Exit 9',city:'Riyadh',country:'Saudi Arabia',start:'2025-06-01',end:'2028-02-28',notes:'',photos:[PH.exc,PH.earth],stages:mkStages('CCINN')},
+{id:'p3',name:'Al-Khobar Logistics Hub',code:'KLH-007',type:'Industrial',status:'On hold',desc:'Cold-storage warehouse, 24,000 m².',address:'2nd Industrial City',city:'Dammam',country:'Saudi Arabia',start:'2025-09-10',end:'2027-04-01',notes:'Paused pending revised soil report from client.',photos:[PH.frame,PH.rebar],stages:mkStages('CINNN')},
+{id:'p4',name:'Diriyah Family Clinic',code:'DRC-302',type:'Commercial',status:'Planning',desc:'Two-storey outpatient clinic.',address:'Al-Bujairi',city:'Diriyah',country:'Saudi Arabia',start:'2026-12-01',end:'2027-11-30',notes:'',photos:[PH.plans],stages:mkStages('INNNN')},
+{id:'p5',name:'Jeddah Corniche Villas',code:'JCV-051',type:'Residential',status:'Completed',desc:'Twelve beachfront villas with shared amenities.',address:'North Corniche',city:'Jeddah',country:'Saudi Arabia',start:'2023-03-01',end:'2026-03-30',notes:'Handed over. Warranty period active.',photos:[PH.crew,PH.rebar2],stages:mkStages('CCCCC')}];
+const DIR=[
+{id:'d1',type:'Provider',name:'Najd Equipment & Supply',sub:'Heavy equipment · Riyadh',photo:PH.exc,verified:true,facts:[['layout-grid','Category','Heavy equipment'],['package','Listings','6 live'],['map-pin','City','Riyadh'],['phone','Phone','+966 11 480 2290']]},
+{id:'d2',type:'Worker',name:'Omar Haddad',sub:'Site engineer · Civil / Structural',verified:true,facts:[['hard-hat','Trade','Civil / Structural'],['briefcase','Experience','9 years'],['banknote','Rate','SAR 95 / hour'],['map-pin','City','Riyadh']]},
+{id:'d3',type:'Provider',name:'Gulf Steel Trading',sub:'Steel & rebar · Dammam',photo:PH.rebar,verified:true,facts:[['layout-grid','Category','Steel & rebar'],['package','Listings','14 live'],['map-pin','City','Dammam'],['phone','Phone','+966 13 812 0044']]},
+{id:'d4',type:'Worker',name:'Khalid Mansour',sub:'Crane operator · NCCCO certified',verified:true,facts:[['hard-hat','Trade','Crane operation'],['briefcase','Experience','12 years'],['banknote','Rate','SAR 900 / day'],['map-pin','City','Jeddah']]},
+{id:'d5',type:'Provider',name:'Al-Rajhi Ready-Mix',sub:'Concrete & aggregates · Riyadh',photo:PH.earth,verified:false,facts:[['layout-grid','Category','Concrete & aggregates'],['package','Listings','4 live'],['map-pin','City','Riyadh'],['phone','Phone','+966 11 233 9080']]},
+{id:'d6',type:'Worker',name:'Yusuf Rahman',sub:'Electrician · Low & medium voltage',verified:false,facts:[['hard-hat','Trade','Electrical installation'],['briefcase','Experience','6 years'],['banknote','Rate','SAR 60 / hour'],['map-pin','City','Riyadh']]},
+{id:'d7',type:'Provider',name:'Bright Spark Electrical',sub:'Electrical supplies · Jeddah',photo:PH.elec,verified:true,facts:[['layout-grid','Category','Electrical supplies'],['package','Listings','22 live'],['map-pin','City','Jeddah'],['phone','Phone','+966 12 660 1715']]},
+{id:'d8',type:'Worker',name:'Ahmed Saleh',sub:'Land surveyor · GNSS & total station',verified:true,facts:[['hard-hat','Trade','Land surveying'],['briefcase','Experience','7 years'],['banknote','Rate','SAR 750 / day'],['map-pin','City','Dammam']]}];
+const TONE={Active:['var(--brandSoft)','var(--brand)'],Completed:['var(--brandSoft)','var(--brand)'],'On hold':['var(--amberSoft)','var(--amber)'],Planning:['var(--tealSoft)','var(--teal)']};
+const DOT={Active:'#4ADE80',Completed:'#86E3A6','On hold':'#F5B54A',Planning:'#5BC7DF'};
+const BAR={Active:'var(--brand)',Completed:'var(--brand)','On hold':'var(--amber)',Planning:'var(--teal)'};
+const progress=p=>p.stages.reduce((a,s)=>a+(s.status==='Complete'?20:s.status==='In progress'?10:0),0);
+const curStage=p=>{const i=p.stages.findIndex(s=>s.status!=='Complete');return i<0?null:i;};
+const pill=s=>({label:s,bg:TONE[s][0],color:TONE[s][1]});
+const isDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v);
+const initialsOf=n=>n.split(/\s+/).filter(w=>/^[A-Za-z]/.test(w)).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+class Component extends DCLogic {
+  state={stack:[{s:'home'}],projects:this.props.dataState==='empty'?[]:clone(SEED),failed:['error','offline'].includes(this.props.dataState),draft:{},sDraft:[],sIdx:0,errors:{},toast:null,confirm:null,sheet:null,q:'',filter:'All',dq:'',dFilter:'All',loading:false,acctTab:'details',theme:null,acct:{first:'Sara',last:'Al-Qahtani',display:'Sara Q.',phone:'+966 50 318 7721'},pw:{cur:'',next:'',conf:''},reveal:{},lang:'en'};
+  componentDidUpdate(p){
+    if(p.dataState!==this.props.dataState)this.setState({projects:this.props.dataState==='empty'?[]:clone(SEED),failed:['error','offline'].includes(this.props.dataState),stack:[{s:'home'}]});
+    if(p.theme!==this.props.theme)this.setState({theme:null});
+  }
+  componentWillUnmount(){clearTimeout(this._t);clearTimeout(this._l);}
+  top(){const s=this.state.stack;return s[s.length-1];}
+  toast(msg,tone='ok'){clearTimeout(this._t);this.setState({toast:{msg,tone}});this._t=setTimeout(()=>this.setState({toast:null}),2600);}
+  load(){clearTimeout(this._l);this.setState({loading:true});this._l=setTimeout(()=>this.setState({loading:false}),520);}
+  tab(s,extra={}){this.setState({stack:[{s}],errors:{},sheet:null,...extra});if(s==='projects'||s==='directory')this.load();else this.setState({loading:false});}
+  push(e){this.setState(st=>({stack:[...st.stack,e],errors:{}}));}
+  proj(id){return this.state.projects.find(p=>p.id===id);}
+  openDetail(id){const p=this.proj(id);const {stages,...rest}=p;this.setState({draft:clone(rest)});this.push({s:'detail',id});}
+  openNew(){this.setState({draft:{name:'',code:'',type:'',desc:'',start:'',end:'',photos:[]}});this.push({s:'new'});}
+  openStages(id,idx){const p=this.proj(id);const i=idx??(curStage(p)??0);this.setState({sDraft:clone(p.stages),sIdx:i});this.push({s:'stages',id});}
+  jump(stack,fn){this.setState({stack,errors:{},sheet:null,confirm:null,loading:false},fn);}
+  setD(k,v){this.setState(st=>({draft:{...st.draft,[k]:v},errors:{...st.errors,[k]:null}}));}
+  setS(fn){this.setState(st=>{const s=clone(st.sDraft);fn(s[st.sIdx]);return{sDraft:s};});}
+  validateBasics(d,needDates){const e={};if(!d.name.trim())e.name='Give the project a name';if(!d.code.trim())e.code='Add a project code';if(!d.type)e.type='Choose a type';
+    ['start','end'].forEach(k=>{if(d[k]&&!isDate(d[k]))e[k]='Use the format YYYY-MM-DD';});if(needDates&&!d.start)e.start='Add a start date';
+    if(!e.start&&!e.end&&d.start&&d.end&&d.end<d.start)e.end='End date is before the start date';return e;}
+  save=()=>{
+    const top=this.top(),st=this.state;
+    if(top.s==='stages'){const e={};st.sDraft.forEach((s,i)=>{const k=STAGES[i].k;SF[k].forEach(([key,,type])=>{const v=s.f[key];if(!v)return;if(type==='date'&&!isDate(v))e[i+':'+key]='Use the format YYYY-MM-DD';if(type==='num'&&isNaN(+String(v).replace(/,/g,'')))e[i+':'+key]='Numbers only';});});
+      if(Object.keys(e).length){const bad=+Object.keys(e)[0].split(':')[0];this.setState({errors:e,sIdx:bad});this.toast('Check the highlighted fields','err');return false;}
+      const before=progress(this.proj(top.id));
+      this.setState(s=>({projects:s.projects.map(p=>p.id===top.id?{...p,stages:clone(s.sDraft),status:s.sDraft.every(x=>x.status==='Complete')?'Completed':p.status==='Completed'?'Active':p.status}:p)}));
+      const after=progress({stages:st.sDraft});
+      if(after===100&&before<100)this.toast('All five stages complete','peak');else this.toast('Stages saved');return true;}
+    const d=st.draft,e=this.validateBasics(d,top.s==='new');
+    if(Object.keys(e).length){this.setState({errors:e});this.toast('Check the highlighted fields','err');return;}
+    if(top.s==='new'){const id='p'+Date.now();const p={...clone(d),id,status:'Planning',address:'',city:'',country:'Saudi Arabia',notes:'',stages:mkStages('NNNNN')};
+      this.setState(s=>({projects:[p,...s.projects],stack:[...s.stack.slice(0,-1),{s:'detail',id}],draft:(({stages,...r})=>clone(r))(p)}));this.toast('Project created','peak');return;}
+    this.setState(s=>({projects:s.projects.map(p=>p.id===top.id?{...p,...clone(d)}:p)}));this.toast('Project saved');
+  };
+  renderVals(){
+    const st=this.state,top=this.top(),P=st.projects;
+    let theme=st.theme??this.props.theme??'light';const themeSel=theme;
+    if(theme==='system')theme=(typeof matchMedia!=='undefined'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+    const offline=this.props.dataState==='offline';
+    const cnt={All:P.length,Active:0,Planning:0,'On hold':0,Completed:0};P.forEach(p=>cnt[p.status]++);
+    const goP=f=>()=>this.tab('projects',{filter:f||'All',q:''});
+    const segsOf=stages=>stages.map(s=>({bg:s.status==='Complete'?'var(--lime)':s.status==='In progress'?'rgba(134,227,166,.45)':'rgba(255,255,255,.18)'}));
+    const row=p=>{const pct=progress(p);return{name:p.name,code:p.code,city:p.city||'—',pct,pill:pill(p.status),bar:BAR[p.status],thumb:U(p.photos[0]||PH.plans,200),go:()=>this.openDetail(p.id)};};
+    const active=P.filter(p=>p.status==='Active'||p.status==='Planning');
+    const isForm=['new','detail','stages'].includes(top.s);
+    // field factory
+    const mk=(o,val,set,err)=>{const t=o.type||'text';return{label:o.label,ph:o.ph||'',hint:o.hint||'',show:!o.hide,isText:t==='text',isMulti:t==='multi',isChoice:t==='choice',inputMode:o.mode||'text',dir:o.ltr?'ltr':'auto',value:val??'',err:err||'',hasErr:!!err,showHint:!!o.hint&&!err,border:err?'var(--red)':'var(--line)',onChange:ev=>set(ev.target.value),
+      options:(o.options||[]).map(x=>({label:x,bg:val===x?'var(--ink)':'var(--sf2)',color:val===x?'var(--bg)':'var(--ink2)',go:()=>set(x)}))};};
+    const date={ph:'YYYY-MM-DD',ltr:true,mode:'numeric'};
+    const mkD=(key,label,o={})=>mk({label,...o},st.draft[key],v=>this.setD(key,v),st.errors[key]);
+    const galOf=photos=>({hasCover:photos.length>0,cover:U(photos[0]||PH.plans,800),coverGo:()=>this.setState({sheet:{kind:'img',idx:0}}),thumbs:photos.slice(1).map((p,i)=>({src:U(p,200),go:()=>this.setState({sheet:{kind:'img',idx:i+1}})})),canAdd:photos.length<8});
+    let form={sections:[]},sum={segs:[]},stepper=[];
+    const typeOpts=['Residential','Commercial','Infrastructure','Industrial'];
+    if(top.s==='new'){const d=st.draft;
+      form={title:'New project',code:'',primary:this.save,primaryLabel:'Create project',sections:[
+        {title:'Basics',icon:'file-text',fields:[mkD('name','Project name',{ph:'e.g. Al-Narjis Residential Tower'}),mkD('code','Project code',{ph:'e.g. NRJ-028',ltr:true}),mkD('type','Type',{type:'choice',options:typeOpts}),mkD('desc','Description',{type:'multi',ph:'Scope, size, client'})]},
+        {title:'Schedule',icon:'calendar',fields:[mkD('start','Start date',date),mkD('end','End date',date)]},
+        {title:'Gallery',icon:'images',meta:`${d.photos.length} / 8`,isGallery:true,gal:galOf(d.photos),fields:[]}]};}
+    const P0=(top.s==='detail'||top.s==='stages')&&this.proj(top.id);
+    if(top.s==='detail'&&P0){const d=st.draft,pct=progress(P0),ci=curStage(P0),done=P0.stages.filter(s=>s.status==='Complete').length;
+      sum={img:U(P0.photos[0]||PH.plans,900),name:P0.name,sub:[P0.type,P0.city].filter(Boolean).join(' · '),status:P0.status,dot:DOT[P0.status],pct,segs:segsOf(P0.stages),stageLine:ci==null?'All 5 stages complete':`${done} of 5 complete · ${STAGES[ci].name} ${P0.stages[ci].status==='In progress'?'in progress':'next'}`};
+      form={title:P0.name,code:P0.code,hasSummary:true,hasDanger:true,primary:this.save,primaryLabel:'Save changes',sections:[
+        {title:'Gallery',icon:'images',meta:`${d.photos.length} / 8`,isGallery:true,gal:galOf(d.photos),fields:[]},
+        {title:'Basics',icon:'file-text',fields:[mkD('name','Project name'),mkD('code','Project code',{ltr:true}),mkD('type','Type',{type:'choice',options:typeOpts}),mkD('status','Status',{type:'choice',options:['Planning','Active','On hold','Completed']}),mkD('desc','Description',{type:'multi'})]},
+        {title:'Location & dates',icon:'map-pin',fields:[mkD('address','Address',{ph:'Street, district'}),mkD('city','City'),mkD('country','Country'),mkD('start','Start date',date),mkD('end','End date',date)]},
+        {title:'Notes',icon:'notebook-pen',fields:[mkD('notes','Notes',{type:'multi',ph:'Anything the team should know'})]}]};}
+    if(top.s==='stages'&&P0){const i=st.sIdx,S=st.sDraft[i],def=STAGES[i],k=def.k;
+      const setF=key=>v=>{this.setS(s=>{s.f[key]=v;});this.setState(x=>({errors:{...x.errors,[i+':'+key]:null}}));};
+      stepper=STAGES.map((s,j)=>{const x=st.sDraft[j],on=j===i,c=x.status==='Complete',ip=x.status==='In progress';return{n:j+1,name:s.name,status:x.status,done:c,notDone:!c,
+        border:on?'var(--brand)':'var(--line)',bg:on?'var(--sf)':'transparent',dotBg:c?'var(--brand)':'transparent',dotInk:c?'#fff':ip?'var(--amber)':'var(--ink3)',ring:c?'none':ip?'2px solid var(--amber)':'2px solid var(--line2)',stColor:c?'var(--brand)':ip?'var(--amber)':'var(--ink3)',go:()=>this.setState({sIdx:j})};});
+      const fields=SF[k].map(([key,label,type,opt])=>type==='choice'?mk({label,type:'choice',options:opt},S.f[key],setF(key),st.errors[i+':'+key]):mk({label,ph:type==='date'?'YYYY-MM-DD':type==='num'?'0':opt,ltr:type!=='text',mode:type==='date'||type==='num'?'numeric':'text'},S.f[key],setF(key),st.errors[i+':'+key]));
+      const docs=SDOCS[k].map(l=>{const f=S.docs[l];return{label:l,has:!!f,none:!f,file:f?`${f.name} · ${f.size}`:'Not uploaded',fileInk:f?'var(--ink)':'var(--ink3)',icon:f?'file-check-2':'file-up',tileBg:f?'var(--brandSoft)':'var(--sf)',tileInk:f?'var(--brand)':'var(--ink3)',
+        upload:()=>{this.setS(s=>{s.docs[l]=fileOf(l);});this.toast(`${l} uploaded`);},remove:()=>this.setS(s=>{s.docs[l]=null;})};});
+      const nUp=docs.filter(d=>d.has).length,last=i===4;
+      form={title:'Stages',code:P0.code,hasStepper:true,hasSecondary:!last,primaryLabel:last?'Save stages':'Save & next',
+        primary:()=>{if(this.save()!==false&&!last)this.setState({sIdx:i+1});},
+        sections:[{title:`${i+1} · ${def.name}`,icon:def.icon,fields:[mk({label:'Status',type:'choice',options:['Not started','In progress','Complete']},S.status,v=>this.setS(s=>{s.status=v;})),...fields]},
+          {title:'Documents',icon:'folder-open',meta:`${nUp} / ${docs.length}`,isDocs:true,docs,fields:[]},
+          {title:'Notes',icon:'notebook-pen',fields:[mk({label:'Stage notes',type:'multi',ph:'Findings, decisions, open issues'},S.notes,v=>this.setS(s=>{s.notes=v;}))]}]};}
+    // projects list
+    const q=st.q.trim().toLowerCase();
+    const vis=P.filter(p=>(st.filter==='All'||p.status===st.filter)&&(!q||(p.name+' '+p.code+' '+p.city).toLowerCase().includes(q)));
+    const pEmpty=P.length===0?{title:'No projects yet',body:'Create a project to start tracking stages, photos and documents.',cta:'New project',icon:'plus',go:()=>this.openNew()}:{title:'Nothing matches',body:q?`No projects match “${st.q}”.`:`No ${st.filter.toLowerCase()} projects right now.`,cta:'Clear filters',icon:'rotate-ccw',go:()=>this.setState({q:'',filter:'All'})};
+    // directory
+    const dq=st.dq.trim().toLowerCase();
+    const dVis=DIR.filter(d=>(st.dFilter==='All'||d.type+'s'===st.dFilter)&&(!dq||(d.name+' '+d.sub).toLowerCase().includes(dq)));
+    const person=d=>({...d,hasPhoto:!!d.photo,noPhoto:!d.photo,photo:d.photo?U(d.photo,d.photo&&st.sheet?600:160):'',initials:initialsOf(d.name),radius:d.type==='Provider'?'16px':'50%',avBg:d.type==='Provider'?'var(--sf2)':'var(--hero)',avInk:'var(--lime)',typeBg:d.type==='Provider'?'var(--tealSoft)':'var(--sf2)',typeInk:d.type==='Provider'?'var(--teal)':'var(--ink2)',
+      facts:d.facts.map(([icon,k,v])=>({icon,k,v,dir:/^\+?\d/.test(v)?'ltr':'auto'})),call:()=>this.toast('Opens the phone dialer (not in prototype)'),wa:()=>this.toast('Opens WhatsApp (not in prototype)'),go:()=>this.setState({sheet:{kind:'person',id:d.id}})});
+    // account
+    const isPw=st.acctTab==='security';
+    const aF=(key,label,src,o={})=>{const err=st.errors['a_'+key],pw=!!o.pw,shown=st.reveal[key];return{label,value:st[src][key],ph:o.ph||'',dir:o.ltr?'ltr':'auto',isPw:pw,inputType:pw&&!shown?'password':'text',eye:shown?'eye-off':'eye',onReveal:()=>this.setState(s=>({reveal:{...s.reveal,[key]:!s.reveal[key]}})),err:err||'',hasErr:!!err,border:err?'var(--red)':'var(--line)',onChange:ev=>{const v=ev.target.value;this.setState(s=>({[src]:{...s[src],[key]:v},errors:{...s.errors,['a_'+key]:null}}));}};};
+    const acctFields=isPw?[aF('cur','Current password','pw',{pw:true}),aF('next','New password','pw',{pw:true,ph:'At least 8 characters'}),aF('conf','Confirm new password','pw',{pw:true})]:[aF('first','First name','acct'),aF('last','Last name','acct'),aF('display','Display name','acct'),aF('phone','Phone','acct',{ltr:true})];
+    const onAcctSave=()=>{const e={};if(isPw){const p=st.pw;if(!p.cur)e.a_cur='Required';if(p.next.length<8)e.a_next='Use at least 8 characters';if(p.conf!==p.next)e.a_conf='Passwords don’t match';}else['first','last'].forEach(k=>{if(!st.acct[k].trim())e['a_'+k]='Required';});
+      if(Object.keys(e).length){this.setState({errors:e});this.toast('Check the highlighted fields','err');return;}if(isPw)this.setState({pw:{cur:'',next:'',conf:''},reveal:{}});this.toast(isPw?'Password updated':'Details saved');};
+    // sheet
+    const sh=st.sheet;let sheet={};
+    if(sh){
+      if(sh.kind==='person')sheet={isPerson:true,p:person(DIR.find(d=>d.id===sh.id))};
+      if(sh.kind==='source')sheet={isPlain:true,isList:true,title:'Add photo',items:[{label:'Take photo',icon:'camera',color:'var(--ink)',go:()=>{this.toast('Camera isn’t available in the prototype');this.setState({sheet:{kind:'library'}});}},{label:'Choose from library',icon:'images',color:'var(--ink)',go:()=>this.setState({sheet:{kind:'library'}})}]};
+      if(sh.kind==='library'){const have=st.draft.photos||[];sheet={isPlain:true,isLibrary:true,title:'Library',photos:LIB.map(p=>{const on=have.includes(p);return{src:U(p,240),on,opacity:on?.55:1,go:()=>{if(on)return;this.setState(s=>({draft:{...s.draft,photos:[...s.draft.photos,p]},sheet:null}));}};})};}
+      if(sh.kind==='img')sheet={isPlain:true,isList:true,title:'Photo',items:[...(sh.idx>0?[{label:'Set as main image',icon:'star',color:'var(--ink)',go:()=>{const ph=[...st.draft.photos];const [x]=ph.splice(sh.idx,1);ph.unshift(x);this.setState(s=>({draft:{...s.draft,photos:ph},sheet:null}));}}]:[]),{label:'Remove photo',icon:'trash-2',color:'var(--red)',go:()=>{const ph=[...st.draft.photos];ph.splice(sh.idx,1);this.setState(s=>({draft:{...s.draft,photos:ph},sheet:null}));}}]};
+    }
+    const T={ok:{bg:'var(--ink)',color:'var(--bg)',icon:'circle-check',iconColor:'var(--lime)'},err:{bg:'var(--red)',color:'#fff',icon:'circle-alert',iconColor:'#fff'},peak:{bg:'var(--hero)',color:'var(--heroInk)',icon:'party-popper',iconColor:'var(--lime)'}};
+    const isTab=['home','projects','directory'].includes(top.s);
+    const fid=P[0]?.id;
+    const R=[['home','Home',0,()=>this.tab('home')],['projects','Projects',0,()=>this.tab('projects')],['detail','Project detail',1,()=>fid?this.jump([{s:'projects'}],()=>this.openDetail(fid)):this.toast('No projects yet')],['stages','Project stages',2,()=>fid?this.jump([{s:'projects'}],()=>{this.openDetail(fid);this.openStages(fid);}):this.toast('No projects yet')],['new','New project',1,()=>this.jump([{s:'projects'}],()=>this.openNew())],['directory','Directory',0,()=>this.tab('directory')],['account','Account',0,()=>this.tab('account')]];
+    const name=[st.acct.first,st.acct.last].join(' ');
+    return {
+      theme,showRail:this.props.showRail??true,wifiIcon:offline?'wifi-off':'wifi',
+      rail:R.map(([k,label,lvl,go])=>{const on=top.s===k;return{label,go,pad:12+lvl*16+'px',bg:on?'#141614':'transparent',color:on?'#F4F3EF':'#3E3D39',dot:on?'#86E3A6':lvl?'rgba(20,22,20,.2)':'#15803D'};}),
+      isHome:top.s==='home',isProjects:top.s==='projects',isDirectory:top.s==='directory',isAccount:top.s==='account',isForm,
+      showTabs:['home','projects','directory','account'].includes(top.s),
+      tabs:[['home','Home','house'],['projects','Projects','folder-kanban'],['directory','Directory','contact-round'],['account','Account','user-round']].map(([id,label,icon])=>{const a=top.s===id;return{label,icon,active:a,pad:a?'18px':'0px',bg:a?'var(--brand)':'transparent',color:a?'var(--onBrand)':'var(--tabInk)',go:()=>this.tab(id)};}),
+      showErr:st.failed&&isTab,
+      err:offline?{icon:'wifi-off',title:'You’re offline',body:'Check your connection. Your saved projects will load as soon as you’re back online.',tileBg:'var(--sf2)',tileInk:'var(--ink2)'}:{icon:'server-crash',title:'Couldn’t load your projects',body:'Something went wrong on our side. Try again in a moment.',tileBg:'var(--redSoft)',tileInk:'var(--red)'},
+      retryLabel:offline?'Try again':'Retry',retry:()=>{this.setState({failed:false});this.load();},
+      todayLabel:new Date(TODAY+'T09:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),
+      firstName:st.acct.first||'there',initials:initialsOf(name)||'PM',acctName:name,
+      homeFull:P.length>0,homeEmpty:P.length===0,homeOk:true,emptyImg:U(PH.plans,900),emptyImg2:U(PH.plans,800),
+      stats:[['Active','Active','#22A35A'],['On hold','On hold','#E0A33A'],['Completed','Completed','#9EA29B']].map(([l,f,dot])=>({l,dot,v:cnt[f],go:goP(f)})),
+      hasHold:cnt['On hold']>0,holdTitle:`${cnt['On hold']} project${cnt['On hold']>1?'s':''} on hold`,holdBody:(P.find(p=>p.status==='On hold')||{}).notes||'Review what’s blocking them.',goHold:goP('On hold'),
+      carousel:active.map(p=>{const ci=curStage(p);return{name:p.name,code:p.code,city:p.city,pct:progress(p),segs:segsOf(p.stages),stage:ci==null?'Complete':`${STAGES[ci].name}`,dot:DOT[p.status],src:U(p.photos[0]||PH.plans,700),go:()=>this.openDetail(p.id)};}),
+      recent:P.slice(0,4).map(row),
+      newProject:()=>this.openNew(),goProjects:goP(),goDirectory:()=>this.tab('directory'),
+      q:st.q,onQ:e=>this.setState({q:e.target.value}),
+      pFilters:['All','Active','Planning','On hold','Completed'].map(f=>{const a=st.filter===f;return{label:f,n:cnt[f],bg:a?'var(--ink)':'var(--sf)',color:a?'var(--bg)':'var(--ink2)',border:a?'var(--ink)':'var(--line)',go:()=>this.setState({filter:f})};}),
+      loading:st.loading,skeleton:[1,2,3,4],showPList:!st.loading&&vis.length>0,showPEmpty:!st.loading&&vis.length===0,pList:vis.map(row),pEmpty,
+      dq:st.dq,onDq:e=>this.setState({dq:e.target.value}),clearDq:()=>this.setState({dq:''}),
+      dFilters:['All','Providers','Workers'].map(f=>{const a=st.dFilter===f;return{label:f,bg:a?'var(--sf)':'transparent',color:a?'var(--ink)':'var(--ink3)',shadow:a?'0 1px 3px rgba(0,0,0,.08)':'none',go:()=>this.setState({dFilter:f})};}),
+      dCount:`${dVis.length} RESULT${dVis.length===1?'':'S'}`,dList:dVis.map(person),showDList:!st.loading&&dVis.length>0,showDEmpty:!st.loading&&dVis.length===0,
+      form,sum,stepper,save:this.save,addPhoto:()=>this.setState({sheet:{kind:'source'}}),
+      openStages:()=>this.openStages(top.id),
+      askArchive:()=>P0&&this.setState({confirm:{title:'Archive this project?',body:`“${P0.name}” will be removed from your lists. An admin can restore it.`,cta:'Archive',bg:'var(--red)',hasImg:true,img:U(P0.photos[0]||PH.plans,600),on:()=>{this.setState(s=>({projects:s.projects.filter(x=>x.id!==P0.id),confirm:null,stack:s.stack.slice(0,-1)}));this.toast('Project archived');}}}),
+      back:()=>this.setState(s=>({stack:s.stack.length>1?s.stack.slice(0,-1):s.stack,errors:{},sheet:null})),
+      acctTabs:[['details','Details'],['security','Security']].map(([id,label])=>{const a=st.acctTab===id;return{label,bg:a?'var(--sf)':'transparent',color:a?'var(--ink)':'var(--ink3)',shadow:a?'0 1px 3px rgba(0,0,0,.08)':'none',go:()=>this.setState({acctTab:id,errors:{}})};}),
+      acctFields,onAcctSave,acctSaveLabel:isPw?'Update password':'Save details',
+      themeOpts:[['light','Light','sun'],['dark','Dark','moon'],['system','System','monitor']].map(([id,label,icon])=>{const a=themeSel===id;return{label,icon,border:a?'var(--brand)':'var(--line)',iconColor:a?'var(--brand)':'var(--ink3)',go:()=>this.setState({theme:id})};}),
+      langOpts:[['en','English'],['ar','العربية']].map(([id,label])=>{const a=st.lang===id;return{label,ring:a?'2px solid var(--brand)':'2px solid var(--line2)',dot:a?'var(--brand)':'transparent',go:()=>{if(a)return;this.setState({confirm:{title:id==='ar'?'Switch to العربية?':'Switch to English?',body:'The app restarts to apply the new language and reading direction.',cta:'Restart',bg:'var(--brand)',on:()=>{this.setState({lang:id,confirm:null});this.toast('Language saved — applies after restart');}}});}};}),
+      onLogout:()=>this.setState({confirm:{title:'Log out?',body:'You’ll need your email and password to sign back in.',cta:'Log out',bg:'var(--red)',on:()=>{this.setState({confirm:null,stack:[{s:'home'}]});this.toast('Signed out (prototype)');}}}),
+      sheetOpen:!!sh,sheet,closeSheet:()=>this.setState({sheet:null}),
+      confirmOpen:!!st.confirm,confirm:st.confirm||{},doConfirm:()=>st.confirm&&st.confirm.on(),cancelConfirm:()=>this.setState({confirm:null}),
+      toastOpen:!!st.toast,toast:st.toast?{msg:st.toast.msg,...T[st.toast.tone]}:{}
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import type { AuthActor } from '../../authz/index.js'
 import { conflict, isUniqueConflictError } from '../../errors/app-error.js'
-import type { ProjectsService } from '../projects/projects.service.js'
+import type { ProjectsService } from '../projects/index.js'
 import {
   designMissing,
   geotechnicalMissing,

@@ -1,5 +1,5 @@
-import { ProviderListingDetailsScreen } from '@/features/provider/ProviderListingDetailsScreen'
+import { ProviderListingDetailScreen } from '@/features/provider/ProviderListingDetailScreen'
 
 export default function ProviderListingDetails() {
-  return <ProviderListingDetailsScreen />
+  return <ProviderListingDetailScreen />
 }

@@ -51,18 +51,7 @@ export type PaginatedListings = {
   }
 }
 
-export function listingTypeLabel(type: ListingType): string {
-  if (type === 'MATERIAL') return 'Material'
-  if (type === 'EQUIPMENT') return 'Equipment'
-  return 'Service'
-}
-
-export function rentalUnitLabel(unit: RentalUnit): string {
-  if (unit === 'HOUR') return 'Hour'
-  if (unit === 'DAY') return 'Day'
-  if (unit === 'WEEK') return 'Week'
-  return 'Month'
-}
+export const RENTAL_UNITS: RentalUnit[] = ['HOUR', 'DAY', 'WEEK', 'MONTH']
 
 export function isRentalUnit(value: string): value is RentalUnit {
   return value === 'HOUR' || value === 'DAY' || value === 'WEEK' || value === 'MONTH'

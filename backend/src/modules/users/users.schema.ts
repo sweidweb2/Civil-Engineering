@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { countsQuerySchema } from '../_shared/counts.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
-import { passwordSchema } from '../auth/password.schema.js'
+import { passwordSchema } from '../auth/index.js'
 
 const optionalSearchQuery = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),

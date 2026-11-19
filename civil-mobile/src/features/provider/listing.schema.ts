@@ -62,10 +62,14 @@ function emptyToNull(value: string): string | null {
 export function listingWriteFromForm(
   form: ListingFormValues,
   providerId?: string,
-): { data: ListingWriteInput } | { error: string } {
+): { data: ListingWriteInput } | { error: string; field?: keyof ListingFormValues } {
   const parsed = listingFormSchema.safeParse(form)
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Check the form fields' }
+    const issue = parsed.error.issues[0]
+    return {
+      error: issue?.message ?? 'Check the form fields',
+      field: issue?.path[0] as keyof ListingFormValues | undefined,
+    }
   }
   const value = parsed.data
   const rentalUnit: RentalUnit | null =

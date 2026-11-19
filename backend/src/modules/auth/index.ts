@@ -12,3 +12,14 @@ export function createAuthModule(config: AppConfig = loadConfig()) {
   const controller = createAuthController(service, config)
   return createAuthRoutes(controller, config)
 }
+
+export {
+  clearAccessPrincipalCache,
+  createDbAccessPrincipalResolver,
+  invalidateAccessPrincipal,
+  type AccessPrincipal,
+  type ResolveAccessPrincipal,
+} from './access-principal.js'
+export { hashPassword, verifyPassword } from './auth.tokens.js'
+export { passwordSchema } from './password.schema.js'
+export type { RoleName } from './auth.schema.js'

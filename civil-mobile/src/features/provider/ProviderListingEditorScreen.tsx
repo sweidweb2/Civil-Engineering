@@ -14,9 +14,7 @@ import {
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useListingEditor } from '@/features/provider/useListingEditor'
-import type { ListingStatus } from '@/services/listings'
-
-const RENTAL_UNITS = ['HOUR', 'DAY', 'WEEK', 'MONTH']
+import { RENTAL_UNITS, type ListingStatus } from '@/services/listings'
 
 type ProviderListingEditorScreenProps = {
   mode: 'create' | 'edit'

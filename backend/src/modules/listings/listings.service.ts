@@ -2,8 +2,7 @@ import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
-import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
-import type { StorageService } from '../../storage/storage.service.js'
+import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { ProvidersService } from '../providers/index.js'
 import type {
   CreateListingRecordInput,

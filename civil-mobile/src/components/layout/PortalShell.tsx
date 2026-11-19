@@ -95,8 +95,8 @@ export function PortalShell({ portal, children }: PortalShellProps) {
     [nav, pathname, portal, themeColors, t],
   )
 
-  // The worker portal has its own palette and a floating pill tab bar.
-  const isWorker = portal === 'worker'
+  // Worker and provider portals use the green palette and a floating pill tab bar.
+  const isWorker = portal === 'worker' || portal === 'provider'
 
   return (
     <View className={`flex-1 ${isWorker ? 'bg-wk-bg' : 'bg-background'}`}>

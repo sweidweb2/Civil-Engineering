@@ -6,8 +6,6 @@ import { createAuthModule } from './modules/auth/index.js'
 import { createCategoriesModule } from './modules/categories/index.js'
 import { createDevicesModule } from './modules/devices/index.js'
 import { buildFilesService, createFilesModule } from './modules/files/index.js'
-import { createHealthController } from './modules/health/health.controller.js'
-import { createHealthRepository } from './modules/health/health.repository.js'
 import { createHealthRoutes } from './modules/health/health.routes.js'
 import { createHealthService } from './modules/health/health.service.js'
 import { createListingImagesModule } from './modules/listing-images/index.js'
@@ -54,10 +52,8 @@ export type CompositionRoot = {
  * module that needs it. This replaces the "first caller's `getXService` deps win"
  * ordering that used to live in `routes/v1.ts`.
  *
- * The `getXService()` singletons in each module remain only for standalone/test use;
- * nothing on this path reads them for modules that take deps (providers, listings,
- * projects, files). Dependency-free services (categories, logging, devices)
- * still use their singletons, which cannot be shadowed by someone else's deps.
+ * Prefer `buildXService` + explicit deps on this path. Module `getXService()`
+ * singletons remain only for standalone/test helpers — not for app wiring.
  */
 export function createCompositionRoot(deps: CompositionRootDeps = {}): CompositionRoot {
   const config = deps.config ?? loadConfig()
@@ -70,10 +66,8 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
   const reviewsService = buildReviewsService({ ...moduleDeps, listingsService })
   const filesService = buildFilesService({ ...moduleDeps, projectsService })
 
-  const healthService = createHealthService(createHealthRepository(deps.pool))
-
   return {
-    health: createHealthRoutes(createHealthController(healthService)),
+    health: createHealthRoutes(createHealthService({ pool: deps.pool })),
     auth: createAuthModule(config),
     devices: createDevicesModule(),
     files: createFilesModule({ service: filesService }),

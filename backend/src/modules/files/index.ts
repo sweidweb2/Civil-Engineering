@@ -1,7 +1,7 @@
 import type { AppConfig } from '../../config/index.js'
 import { loadConfig } from '../../config/index.js'
-import { enqueueDeleteStorageObject } from '../../jobs/index.js'
-import { getStorageService, type StorageService } from '../../storage/index.js'
+import { deleteStorageObject } from '../../jobs/index.js'
+import { getStorageOrUnavailable, type StorageService } from '../../storage/index.js'
 import { getProjectsService, type ProjectsService } from '../projects/index.js'
 import { createFilesController } from './files.controller.js'
 import { createFilesRepository } from './files.repository.js'
@@ -12,21 +12,7 @@ export type FilesModuleDeps = {
   config?: AppConfig
   storage?: StorageService
   projectsService?: ProjectsService
-  enqueueDelete?: (payload: { fileId: string; key: string }) => Promise<void>
-}
-
-function unavailableStorage(): StorageService {
-  const fail = async () => {
-    throw new Error('Storage is not configured (STORAGE_* env vars required)')
-  }
-  return {
-    bucket: 'unconfigured',
-    presignPut: fail,
-    presignGet: fail,
-    headObject: fail,
-    putObject: fail,
-    deleteObject: async () => undefined,
-  }
+  deleteStorageObject?: (payload: { fileId: string; key: string }) => Promise<void>
 }
 
 let filesServiceSingleton: FilesService | null = null
@@ -34,14 +20,13 @@ let filesServiceSingleton: FilesService | null = null
 /** Builds a fresh service. The composition root calls this once per app. */
 export function buildFilesService(deps: FilesModuleDeps = {}): FilesService {
   const config = deps.config ?? loadConfig()
-  const storage =
-    deps.storage ?? (config.storage ? getStorageService(config) : unavailableStorage())
+  const storage = getStorageOrUnavailable(config, deps.storage)
   return createFilesService({
     repository: createFilesRepository(),
     storage,
     projectsService: deps.projectsService ?? getProjectsService(),
     config,
-    enqueueDelete: deps.enqueueDelete ?? enqueueDeleteStorageObject,
+    deleteStorageObject: deps.deleteStorageObject ?? deleteStorageObject,
   })
 }
 
@@ -51,9 +36,8 @@ export function getFilesService(deps: FilesModuleDeps = {}): FilesService {
   return filesServiceSingleton
 }
 
-export function createFilesModule(deps: FilesModuleDeps & { service?: FilesService } = {}) {
-  const service = deps.service ?? getFilesService(deps)
-  const controller = createFilesController(service)
+export function createFilesModule(deps: { service: FilesService }) {
+  const controller = createFilesController(deps.service)
   return createFilesRoutes(controller)
 }
 
@@ -66,3 +50,11 @@ export {
   type OwnerGalleryRepository,
   type OwnerGalleryService,
 } from './owner-gallery.service.js'
+export {
+  assertAllowedImageUpload,
+  createImageUpload,
+  isAllowedImageMime,
+  MAX_BRAND_IMAGE_BYTES,
+  MAX_GALLERY_IMAGES,
+  toWebpBuffer,
+} from './image-policy.js'

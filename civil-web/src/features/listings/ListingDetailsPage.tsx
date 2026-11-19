@@ -20,10 +20,8 @@ import {
   formatListingPrice,
   getListingById,
   type Listing,
-  listingTypeLabel,
   localizedListingCategoryName,
   RENTAL_UNITS,
-  rentalUnitLabel,
   updateListing,
 } from '@/services/listings'
 import { useLocaleStore } from '@/stores/localeStore'
@@ -190,7 +188,7 @@ export function ListingDetailsPage() {
                     <CardTitle>{t('admin:listings.detailsTitle')}</CardTitle>
                     <CardDescription>
                       {listing.providerName ?? t('admin:listings.noProvider')}
-                      {listing.type ? ` · ${listingTypeLabel(listing.type)}` : ''}
+                      {listing.type ? ` · ${t(`admin:listingType.${listing.type}`)}` : ''}
                     </CardDescription>
                   </div>
                   <Badge variant={listing.status === 'ACTIVE' ? 'default' : 'secondary'}>
@@ -243,13 +241,9 @@ export function ListingDetailsPage() {
                       <dd className="text-sm font-medium">
                         {listing.rentalPrice && listing.rentalUnit
                           ? `${listing.currency} ${listing.rentalPrice} / ${
-                              RENTAL_UNITS.includes(
-                                listing.rentalUnit as (typeof RENTAL_UNITS)[number],
-                              )
-                                ? t(`admin:listings.form.rentalUnits.${listing.rentalUnit}`, {
-                                    defaultValue: rentalUnitLabel(listing.rentalUnit),
-                                  })
-                                : rentalUnitLabel(listing.rentalUnit)
+                              RENTAL_UNITS.includes(listing.rentalUnit)
+                                ? t(`admin:listings.form.rentalUnits.${listing.rentalUnit}`)
+                                : listing.rentalUnit
                             }`
                           : '—'}
                       </dd>

@@ -1,7 +1,7 @@
 import { View } from 'react-native'
 
 import { EmptyState, IdentityBlock, ScreenHeader, useTodayCaption } from '@/components/kit'
-import { LogoutButton } from '@/features/portals/LogoutButton'
+import { LogoutButton } from '@/components/LogoutButton'
 import { userDisplayName } from '@/lib/user'
 import { useAuthStore } from '@/stores/authStore'
 

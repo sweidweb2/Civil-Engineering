@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { changePasswordSchema, type ChangePasswordValues } from '@/features/auth/password.schema'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import i18n from '@/i18n'
 import { optimizeIfImage } from '@/lib/optimizeImage'
@@ -79,42 +80,8 @@ const profileSchema = z.object({
     .max(20, { error: () => i18n.t('validation:maxLength', { max: 20 }) }),
 })
 
-const passwordSchema = z
-  .object({
-    currentPassword: z
-      .string()
-      .min(1, { error: () => i18n.t('validation:required') })
-      .max(128),
-    newPassword: z
-      .string()
-      .min(8, { error: () => i18n.t('validation:passwordMin') })
-      .max(128, { error: () => i18n.t('validation:maxLength', { max: 128 }) })
-      .regex(/[A-Za-z]/, { error: () => i18n.t('validation:passwordLetter') })
-      .regex(/[0-9]/, { error: () => i18n.t('validation:passwordNumber') }),
-    confirmPassword: z
-      .string()
-      .min(1, { error: () => i18n.t('validation:required') })
-      .max(128),
-  })
-  .superRefine((value, ctx) => {
-    if (value.newPassword !== value.confirmPassword) {
-      ctx.addIssue({
-        code: 'custom',
-        message: i18n.t('validation:passwordsMismatch'),
-        path: ['confirmPassword'],
-      })
-    }
-    if (value.newPassword === value.currentPassword) {
-      ctx.addIssue({
-        code: 'custom',
-        message: i18n.t('validation:passwordDifferent'),
-        path: ['newPassword'],
-      })
-    }
-  })
-
 type ProfileForm = z.infer<typeof profileSchema>
-type PasswordForm = z.infer<typeof passwordSchema>
+type PasswordForm = ChangePasswordValues
 
 const EMPTY_FORM: ProfileForm = {
   firstName: '',
@@ -249,7 +216,7 @@ export function ProviderMainInfoPanel() {
 
   async function onPasswordSubmit(event: FormEvent) {
     event.preventDefault()
-    const parsed = passwordSchema.safeParse(passwordForm)
+    const parsed = changePasswordSchema.safeParse(passwordForm)
     if (!parsed.success) {
       const next: Partial<Record<keyof PasswordForm, string>> = {}
       for (const issue of parsed.error.issues) {

@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
-import { createImageUpload } from '../files/image-policy.js'
+import { createImageUpload } from '../files/index.js'
 import type { ListingImagesService } from './listing-images.service.js'
 
 const upload = createImageUpload()

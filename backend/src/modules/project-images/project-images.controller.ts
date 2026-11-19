@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
-import { createImageUpload } from '../files/image-policy.js'
+import { createImageUpload } from '../files/index.js'
 import type { ProjectImagesService } from './project-images.service.js'
 
 const upload = createImageUpload()
@@ -43,12 +43,10 @@ export function createProjectImagesController(
 
     uploadProjectImage: wrap(async (req, res) => {
       const actor = parseAuthActor(req)
-
       if (!req.file) {
         res.status(400).json({ error: 'No image file provided' })
         return
       }
-
       const image = await service.uploadProjectImage(
         actor,
         String(req.params.projectId),

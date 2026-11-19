@@ -35,6 +35,8 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
 
   const [form, setForm] = useState<ListingFormValues>(EMPTY_LISTING_FORM)
   const [formError, setFormError] = useState<string | undefined>()
+  /** Field the current `formError` belongs to, when validation can tell. */
+  const [formErrorField, setFormErrorField] = useState<keyof ListingFormValues | undefined>()
   const [isSaving, setIsSaving] = useState(false)
   const [queuedImages, setQueuedImages] = useState<PickedFile[]>([])
   const [selectedProviderId, setSelectedProviderId] = useState('')
@@ -74,6 +76,7 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
   function setField<K extends keyof ListingFormValues>(key: K, value: ListingFormValues[K]) {
     setForm((current) => ({ ...current, [key]: value }))
     setFormError(undefined)
+    setFormErrorField(undefined)
   }
 
   async function save() {
@@ -85,6 +88,7 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
     const parsed = listingWriteFromForm(form, isAdmin ? selectedProviderId : undefined)
     if ('error' in parsed) {
       setFormError(parsed.error)
+      setFormErrorField(parsed.field)
       return
     }
 
@@ -120,6 +124,7 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
     form,
     setField,
     formError,
+    formErrorField,
     isSaving,
     canSave: !isSaving && (!isAdmin || Boolean(selectedProviderId)),
     save,
@@ -127,6 +132,8 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
     selectedProviderId,
     setSelectedProviderId,
     categoryOptions: categories.map((category) => ({ value: category.id, label: category.name })),
+    categories,
+    isCategoriesLoading: categoriesRemote.isLoading,
     providerOptions: providers.map((provider) => ({ value: provider.id, label: provider.name })),
     isBootLoading: mode === 'edit' && listingRemote.isLoading,
     bootError: listingRemote.status === 'error' ? listingRemote.error : undefined,

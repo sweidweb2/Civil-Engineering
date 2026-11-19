@@ -4,8 +4,7 @@ import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { isUniqueConflictError, notFound, validationError } from '../../errors/app-error.js'
 import { getLogger } from '../../logging/index.js'
-import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
-import type { StorageService } from '../../storage/storage.service.js'
+import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import { assertAllowedImageUpload, MAX_GALLERY_IMAGES, toWebpBuffer } from './image-policy.js'
 
 /** Owner-scoped gallery row with a stable `ownerId` (projectId or listingId). */

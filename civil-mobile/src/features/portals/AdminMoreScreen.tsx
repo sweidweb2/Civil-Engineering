@@ -3,7 +3,7 @@ import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 
 import { IdentityBlock, MenuGroup, MenuRow, ScreenHeader, SectionLabel } from '@/components/kit'
-import { LogoutRow } from '@/features/account/AccountForms'
+import { LogoutRow } from '@/components/LogoutButton'
 import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'

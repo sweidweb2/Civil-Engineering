@@ -1,13 +1,13 @@
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import type { StorageService } from '../../storage/storage.service.js'
+import type { StorageService } from '../../storage/index.js'
 import {
   createOwnerGalleryService,
   type OwnerGalleryImage,
   type OwnerGalleryImageWithUrl,
   type OwnerGalleryRepository,
-} from '../files/owner-gallery.service.js'
-import type { ProjectsService } from '../projects/projects.service.js'
+} from '../files/index.js'
+import type { ProjectsService } from '../projects/index.js'
 import type {
   ReorderProjectImagesBody,
   UpdateProjectImageBody,

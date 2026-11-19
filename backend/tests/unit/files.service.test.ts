@@ -75,17 +75,17 @@ describe('filesService', () => {
       }),
     } as unknown as ProjectsService
 
-    const enqueueDelete = vi.fn(async () => undefined)
+    const deleteStorageObject = vi.fn(async () => undefined)
 
     const service = createFilesService({
       repository,
       storage,
       projectsService,
       config,
-      enqueueDelete,
+      deleteStorageObject,
     })
 
-    return { service, repository, storage, enqueueDelete }
+    return { service, repository, storage, deleteStorageObject }
   }
 
   it('presigns after self authz for USER entity', async () => {
@@ -168,11 +168,11 @@ describe('filesService', () => {
   })
 
   it('soft-deletes and enqueues R2 purge', async () => {
-    const { service, enqueueDelete } = setup({
+    const { service, deleteStorageObject } = setup({
       file: pendingFile({ status: 'READY' }),
     })
     await service.softDelete(actor, 'file1')
-    expect(enqueueDelete).toHaveBeenCalledWith({
+    expect(deleteStorageObject).toHaveBeenCalledWith({
       fileId: 'file1',
       key: 'test/users/user-1/2026/09/file1-a.jpg',
     })

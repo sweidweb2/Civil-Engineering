@@ -8,8 +8,7 @@ import {
   notFound,
   validationError,
 } from '../../errors/app-error.js'
-import { resolvePublicOrPresignedUrl } from '../../storage/image-url.js'
-import type { StorageService } from '../../storage/storage.service.js'
+import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
 import { scheduleProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'

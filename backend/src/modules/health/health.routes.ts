@@ -1,12 +1,21 @@
 import { Router } from 'express'
 
-import type { HealthController } from './health.controller.js'
+import { wrap } from '../../errors/async-handler.js'
+import type { HealthService } from './health.service.js'
 
-export function createHealthRoutes(controller: HealthController): Router {
+export function createHealthRoutes(service: HealthService): Router {
   const router = Router()
 
-  router.get('/', controller.getHealth)
-  router.get('/db', controller.getDbHealth)
+  router.get('/', (_req, res) => {
+    res.status(200).json(service.getHealth())
+  })
+
+  router.get(
+    '/db',
+    wrap(async (_req, res) => {
+      res.status(200).json(await service.getDbHealth())
+    }),
+  )
 
   return router
 }

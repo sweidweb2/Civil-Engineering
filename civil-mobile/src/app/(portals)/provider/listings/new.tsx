@@ -1,5 +1,5 @@
-import { ProviderListingEditorScreen } from '@/features/provider/ProviderListingEditorScreen'
+import { ProviderListingFormScreen } from '@/features/provider/ProviderListingFormScreen'
 
 export default function ProviderListingCreate() {
-  return <ProviderListingEditorScreen mode="create" />
+  return <ProviderListingFormScreen mode="create" />
 }

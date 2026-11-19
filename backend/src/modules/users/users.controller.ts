@@ -2,7 +2,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { validationError } from '../../errors/app-error.js'
-import { createImageUpload, MAX_BRAND_IMAGE_BYTES } from '../files/image-policy.js'
+import { createImageUpload, MAX_BRAND_IMAGE_BYTES } from '../files/index.js'
 import type {
   ListApprovalsQuery,
   ListLookupQuery,

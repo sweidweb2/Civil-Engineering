@@ -3,13 +3,12 @@ import { useTranslation } from 'react-i18next'
 
 import { FieldRow, Section, TextField } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { useLogout } from '@/features/portals/LogoutButton'
 import {
-  providerPasswordSchema,
-  type ProviderPasswordValues,
-  providerProfileSchema,
-  type ProviderProfileValues,
-} from '@/features/provider/profile.schema'
+  accountPasswordSchema,
+  type AccountPasswordValues,
+  accountProfileSchema,
+  type AccountProfileValues,
+} from '@/features/account/account.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { type FieldErrors, parseForm } from '@/lib/form'
@@ -19,7 +18,7 @@ import { useToastSuccess } from '@/services/toast'
 import { getUser, updateUser } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 
-const EMPTY_PASSWORD: ProviderPasswordValues = {
+const EMPTY_PASSWORD: AccountPasswordValues = {
   currentPassword: '',
   newPassword: '',
   confirmPassword: '',
@@ -33,7 +32,7 @@ export function useAccountDetails() {
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
 
-  const [form, setForm] = useState<ProviderProfileValues>({
+  const [form, setForm] = useState<AccountProfileValues>({
     firstName: user?.profile?.firstName ?? '',
     lastName: user?.profile?.lastName ?? '',
     displayName: user?.profile?.displayName ?? '',
@@ -60,13 +59,13 @@ export function useAccountDetails() {
     })
   }, [account])
 
-  function set<K extends keyof ProviderProfileValues>(key: K, value: string) {
+  function set<K extends keyof AccountProfileValues>(key: K, value: string) {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
   async function onSave() {
     if (!userId) return
-    const parsed = parseForm(providerProfileSchema, form)
+    const parsed = parseForm(accountProfileSchema, form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return
@@ -151,16 +150,16 @@ export function usePasswordChange() {
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
-  const [form, setForm] = useState<ProviderPasswordValues>(EMPTY_PASSWORD)
+  const [form, setForm] = useState<AccountPasswordValues>(EMPTY_PASSWORD)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [isSaving, setIsSaving] = useState(false)
 
-  function set<K extends keyof ProviderPasswordValues>(key: K, value: string) {
+  function set<K extends keyof AccountPasswordValues>(key: K, value: string) {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
   async function onSave() {
-    const parsed = parseForm(providerPasswordSchema, form)
+    const parsed = parseForm(accountPasswordSchema, form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return
@@ -221,25 +220,5 @@ export function PasswordForm() {
         <ButtonText>{isSaving ? t('account.updating') : t('account.updatePassword')}</ButtonText>
       </Button>
     </Section>
-  )
-}
-
-/** "Log out": a text button in `negative`, last on the screen. */
-export function LogoutRow() {
-  const { t } = useTranslation()
-  const { isLoggingOut, requestLogout } = useLogout()
-  return (
-    <Button
-      variant="ghost"
-      className="self-start px-0"
-      onPress={requestLogout}
-      disabled={isLoggingOut}
-      accessibilityState={{ busy: isLoggingOut }}
-    >
-      {isLoggingOut ? <ButtonSpinner /> : null}
-      <ButtonText className="text-destructive">
-        {isLoggingOut ? t('account.loggingOut') : t('account.logout')}
-      </ButtonText>
-    </Button>
   )
 }

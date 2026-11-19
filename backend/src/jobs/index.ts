@@ -1,12 +1,11 @@
 /**
- * Background work wrappers. No queue: everything runs inline and must stay idempotent
- * (safe to retry) — add a durable runner only when a real need appears.
+ * Inline background work. No queue — everything runs synchronously and must stay
+ * idempotent (safe to retry). Add a durable runner only when a real need appears.
  */
 
 import { loadConfig } from '../config/index.js'
 import { getLogger } from '../logging/index.js'
 import { createAuthRepository } from '../modules/auth/auth.repository.js'
-import type { NotifyUserPayload } from '../modules/devices/devices.types.js'
 import { notifyUser } from '../modules/devices/index.js'
 import { createFilesRepository } from '../modules/files/files.repository.js'
 import { getStorageService } from '../storage/index.js'
@@ -20,20 +19,12 @@ let purgeDeniedRefreshTimer: ReturnType<typeof setInterval> | undefined
 let purgeDeletedFilesTimer: ReturnType<typeof setInterval> | undefined
 let lastDeletedFilesPurgeAt = 0
 
-/** Send a user push notification (best-effort, inline). */
-export function enqueueNotifyUser(userId: string, payload: NotifyUserPayload): Promise<void> {
-  return notifyUser(userId, payload)
-}
-
 /**
  * Hard-delete an R2 object after soft-delete in Postgres.
  * Idempotent if the object is already gone; failures are logged, never thrown.
  * On success, removes the DELETED DB row so the hourly sweeper does not requeue it.
  */
-export async function enqueueDeleteStorageObject(payload: {
-  fileId: string
-  key: string
-}): Promise<void> {
+export async function deleteStorageObject(payload: { fileId: string; key: string }): Promise<void> {
   try {
     const config = loadConfig()
     if (!config.storage) {
@@ -55,7 +46,7 @@ export async function enqueueDeleteStorageObject(payload: {
 }
 
 /** Delete expired refresh denylist rows (idempotent). */
-export async function enqueuePurgeExpiredDeniedRefreshTokens(): Promise<number> {
+export async function purgeExpiredDeniedRefreshTokens(): Promise<number> {
   if (!process.env.DATABASE_URL) {
     return 0
   }
@@ -80,9 +71,9 @@ export async function enqueuePurgeExpiredDeniedRefreshTokens(): Promise<number> 
  */
 export function startDeniedRefreshTokenPurgeScheduler(): void {
   if (purgeDeniedRefreshTimer) return
-  void enqueuePurgeExpiredDeniedRefreshTokens()
+  void purgeExpiredDeniedRefreshTokens()
   purgeDeniedRefreshTimer = setInterval(() => {
-    void enqueuePurgeExpiredDeniedRefreshTokens()
+    void purgeExpiredDeniedRefreshTokens()
   }, PURGE_DENIED_REFRESH_INTERVAL_MS)
   purgeDeniedRefreshTimer.unref?.()
 }
@@ -92,7 +83,7 @@ export function startDeniedRefreshTokenPurgeScheduler(): void {
  * Uses conditional PENDING→DELETED claims so complete() cannot race into a READY+missing-blob state.
  * Idempotent; failures are logged and retried next interval.
  */
-export async function enqueuePurgeDeletedFileObjects(): Promise<{
+export async function purgeDeletedFileObjects(): Promise<{
   deletedObjects: number
   stalePending: number
 }> {
@@ -172,14 +163,14 @@ export function maybePurgeDeletedFileObjects(): void {
   const now = Date.now()
   if (now - lastDeletedFilesPurgeAt < PURGE_DELETED_FILES_INTERVAL_MS) return
   lastDeletedFilesPurgeAt = now
-  void enqueuePurgeDeletedFileObjects()
+  void purgeDeletedFileObjects()
 }
 
 export function startDeletedFileObjectsPurgeScheduler(): void {
   if (purgeDeletedFilesTimer) return
-  void enqueuePurgeDeletedFileObjects()
+  void purgeDeletedFileObjects()
   purgeDeletedFilesTimer = setInterval(() => {
-    void enqueuePurgeDeletedFileObjects()
+    void purgeDeletedFileObjects()
   }, PURGE_DELETED_FILES_INTERVAL_MS)
   purgeDeletedFilesTimer.unref?.()
 }

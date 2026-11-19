@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
-import { createImageUpload, MAX_BRAND_IMAGE_BYTES } from '../files/image-policy.js'
+import { createImageUpload, MAX_BRAND_IMAGE_BYTES } from '../files/index.js'
 import type { ListProvidersQuery } from './providers.schema.js'
 import type { ProvidersService } from './providers.service.js'
 

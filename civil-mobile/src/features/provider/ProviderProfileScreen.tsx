@@ -1,49 +1,70 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
-import { Building2 } from 'lucide-react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
+import { Image } from 'expo-image'
+import { Camera, Images, MapPin, Phone, Store, Trash2 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { AsyncState } from '@/components/feedback/AsyncState'
-import {
-  FieldRow,
-  FormScroll,
-  ScreenHeader,
-  Section,
-  SegmentedControl,
-  StatusPill,
-  TextField,
-  Thumbnail,
-  toneForStatus,
-} from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
-import { AccountDetailsForm, LogoutRow, PasswordForm } from '@/features/account/AccountForms'
-import { LanguagePicker } from '@/features/account/LanguagePicker'
-import { ThemePicker } from '@/features/account/ThemePicker'
+import { Pressable } from '@/components/ui/pressable'
 import {
   companyWriteFromForm,
   EMPTY_COMPANY,
   providerCompanySchema,
   type ProviderCompanyValues,
 } from '@/features/provider/company.schema'
-import { LogoField } from '@/features/provider/LogoField'
+import { PvOptionSheet } from '@/features/provider/ui/kit'
+import { WkField, WkSection } from '@/features/worker/ui/forms'
+import {
+  WkButton,
+  WkError,
+  WkHeroGlow,
+  WkPill,
+  WkSkeletonCard,
+  WkTabScroll,
+} from '@/features/worker/ui/kit'
+import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
+import {
+  WkAccountDetailsCard,
+  WkPasswordCard,
+  WkPreferences,
+  WkSegmented,
+} from '@/features/worker/ui/settings'
+import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateProviderProfileCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { getMyProvider, updateProvider } from '@/services/providers'
-import { useToastSuccess } from '@/services/toast'
+import { initialsOf } from '@/lib/user'
+import { errorMessage } from '@/services/feedback'
+import {
+  clearProviderLogo,
+  getMyProvider,
+  type ProviderStatus,
+  updateProvider,
+  uploadProviderLogo,
+} from '@/services/providers'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 type Key = keyof ProviderCompanyValues
+type Tab = 'company' | 'account' | 'security'
+
+const STATUS_TONE: Record<ProviderStatus, WkTone> = {
+  APPROVED: 'green',
+  PENDING: 'amber',
+  SUSPENDED: 'red',
+}
 
 export function ProviderProfileScreen() {
   const { t } = useTranslation()
+  const { shadow } = useWorkerPalette()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
-  const [tab, setTab] = useState('company')
+  const toastApiError = useToastApiError()
+  const [tab, setTab] = useState<Tab>('company')
   const [form, setForm] = useState<ProviderCompanyValues>(EMPTY_COMPANY)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [isSaving, setIsSaving] = useState(false)
+  const logoPick = useFilePick()
 
   const load = useCallback(() => getMyProvider(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.providersMe })
@@ -68,7 +89,10 @@ export function ProviderProfileScreen() {
     })
   }, [provider])
 
-  const set = (key: Key) => (value: string) => setForm((current) => ({ ...current, [key]: value }))
+  const set = (key: Key) => (value: string) => {
+    setForm((current) => ({ ...current, [key]: value }))
+    if (errors[key]) setErrors((current) => ({ ...current, [key]: undefined }))
+  }
 
   async function onSave() {
     if (!provider) return
@@ -91,128 +115,239 @@ export function ProviderProfileScreen() {
     }
   }
 
-  const tabs = [
-    { value: 'company', label: t('profile.company') },
-    { value: 'account', label: t('profile.account') },
-    { value: 'security', label: t('profile.security') },
-  ]
+  async function removeLogo() {
+    if (!provider) return
+    logoPick.setSheetOpen(false)
+    logoPick.setIsBusy(true)
+    try {
+      await clearProviderLogo(provider.id)
+      invalidateProviderProfileCaches()
+      setLogoOverride(null)
+      toastSuccess(t('logo.removed'))
+    } catch (error) {
+      toastApiError(error)
+    } finally {
+      logoPick.setIsBusy(false)
+    }
+  }
+
+  function pickLogo(source: 'camera' | 'library') {
+    if (!provider) return
+    void logoPick.pickAndRun(source, async (picked) => {
+      const result = await uploadProviderLogo(provider.id, picked)
+      invalidateProviderProfileCaches()
+      setLogoOverride(result.meta.logoDownloadUrl)
+      toastSuccess(t('logo.updated'))
+    })
+  }
+
+  const name = provider?.name || t('profile.yourCompany')
+  const place = [provider?.city, provider?.country].filter(Boolean).join(', ')
 
   return (
-    <View className="flex-1 bg-background" testID="e2e-provider-profile">
-      <ScreenHeader title={t('profile.title')} />
-
-      <AsyncState
-        isLoading={remote.isLoading}
-        error={remote.status === 'error' ? remote.error : undefined}
-        loadingLabel={t('profile.loading')}
-        onRetry={() => void remote.refetch()}
-      >
-        <FormScroll>
-          <View className="flex-row items-center gap-4">
-            <Thumbnail imageUrl={logoUrl} icon={Building2} size={64} />
-            <View className="min-w-0 flex-1 items-start gap-1">
-              <Text className="text-xl font-semibold text-foreground" numberOfLines={1}>
-                {provider?.name ?? t('profile.yourCompany')}
-              </Text>
-              {provider ? (
-                <StatusPill
-                  label={enumLabel(t, 'providerStatus', provider.status)}
-                  tone={toneForStatus(provider.status)}
+    <WkTabScroll
+      testID="e2e-provider-profile"
+      refreshing={remote.isFetching && Boolean(provider)}
+      onRefresh={() => void remote.refetch()}
+    >
+      {/* Company card */}
+      <View className="overflow-hidden rounded-[26px] bg-wk-sf" style={shadow}>
+        <View className="h-32 overflow-hidden bg-wk-hero">
+          <WkHeroGlow size={300} />
+        </View>
+        <View className="gap-3 px-5 pb-5">
+          <View className="-mt-9 flex-row items-end justify-between">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('logo.change')}
+              disabled={!provider || logoPick.isBusy}
+              onPress={() => logoPick.setSheetOpen(true)}
+              className="size-[76px] items-center justify-center overflow-hidden rounded-[22px] border-4 border-wk-sf bg-wk-hero active:opacity-85"
+            >
+              {logoUrl ? (
+                <Image
+                  source={{ uri: logoUrl }}
+                  style={{ position: 'absolute', inset: 0 }}
+                  contentFit="cover"
+                  transition={150}
                 />
+              ) : (
+                <Text className="text-[22px] font-semibold text-wk-lime">
+                  {initialsOf(name) || '·'}
+                </Text>
+              )}
+              {logoPick.isBusy ? (
+                <View
+                  className="absolute inset-0 items-center justify-center"
+                  style={{ backgroundColor: 'rgba(10,12,10,0.45)' }}
+                >
+                  <ActivityIndicator color="#FFFFFF" />
+                </View>
               ) : null}
-            </View>
+            </Pressable>
+            {provider ? (
+              <WkPill
+                label={enumLabel(t, 'providerStatus', provider.status)}
+                tone={STATUS_TONE[provider.status]}
+                dot
+                size="md"
+              />
+            ) : null}
           </View>
-          <SegmentedControl options={tabs} value={tab} onChange={setTab} />
+          <View className="gap-1">
+            <Text
+              className="text-[17px] font-semibold leading-[22px] text-wk-ink"
+              numberOfLines={2}
+            >
+              {name}
+            </Text>
+            <Text className="text-[13px] text-wk-ink2" numberOfLines={1}>
+              {[place, t('providerPortal.providerRole')].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+        </View>
+      </View>
 
-          {tab === 'company' ? (
-            <Section title={t('profile.companyInfo')}>
-              {provider ? (
-                <LogoField providerId={provider.id} logoUrl={logoUrl} onChanged={setLogoOverride} />
-              ) : null}
-              <TextField
+      <WkSegmented<Tab>
+        options={[
+          { value: 'company', label: t('profile.company') },
+          { value: 'account', label: t('profile.account') },
+          { value: 'security', label: t('profile.security') },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {tab === 'company' ? (
+        remote.isLoading && !provider ? (
+          <>
+            <WkSkeletonCard />
+            <WkSkeletonCard />
+          </>
+        ) : remote.status === 'error' && !provider ? (
+          <WkError
+            message={errorMessage(remote.error, t('common.errorGeneric'))}
+            onRetry={() => void remote.refetch()}
+          />
+        ) : (
+          <>
+            <WkSection icon={Store} title={t('profile.company')}>
+              <WkField
                 label={t('profile.companyName')}
                 required
                 value={form.name}
                 onChangeText={set('name')}
                 error={errors.name}
               />
-              <TextField
+              <WkField
                 label={t('common.description')}
                 multiline
                 value={form.description}
                 onChangeText={set('description')}
                 error={errors.description}
               />
-              <FieldRow>
-                <TextField
-                  label={t('common.phone')}
-                  value={form.phone}
-                  onChangeText={set('phone')}
-                  error={errors.phone}
-                  keyboardType="phone-pad"
-                />
-                <TextField
-                  label={t('common.whatsapp')}
-                  value={form.whatsapp}
-                  onChangeText={set('whatsapp')}
-                  error={errors.whatsapp}
-                  keyboardType="phone-pad"
-                />
-              </FieldRow>
-              <TextField
+            </WkSection>
+            <WkSection icon={Phone} title={t('providerPortal.contactSection')}>
+              <WkField
+                label={t('common.phone')}
+                value={form.phone}
+                onChangeText={set('phone')}
+                error={errors.phone}
+                keyboardType="phone-pad"
+                ltr
+              />
+              <WkField
+                label={t('common.whatsapp')}
+                value={form.whatsapp}
+                onChangeText={set('whatsapp')}
+                error={errors.whatsapp}
+                keyboardType="phone-pad"
+                ltr
+              />
+              <WkField
                 label={t('common.email')}
                 value={form.email}
                 onChangeText={set('email')}
                 error={errors.email}
                 autoCapitalize="none"
                 keyboardType="email-address"
+                ltr
               />
-              <TextField
+              <WkField
                 label={t('common.website')}
                 value={form.website}
                 onChangeText={set('website')}
                 error={errors.website}
                 autoCapitalize="none"
+                keyboardType="url"
+                ltr
               />
-              <TextField
+            </WkSection>
+            <WkSection icon={MapPin} title={t('providerPortal.locationSection')}>
+              <WkField
                 label={t('common.address')}
                 value={form.address}
                 onChangeText={set('address')}
                 error={errors.address}
               />
-              <FieldRow>
-                <TextField
-                  label={t('common.city')}
-                  value={form.city}
-                  onChangeText={set('city')}
-                  error={errors.city}
-                />
-                <TextField
-                  label={t('common.country')}
-                  value={form.country}
-                  onChangeText={set('country')}
-                  error={errors.country}
-                />
-              </FieldRow>
-              <Button
-                onPress={() => void onSave()}
-                disabled={isSaving || !provider}
-                accessibilityState={{ busy: isSaving }}
-              >
-                {isSaving ? <ButtonSpinner /> : null}
-                <ButtonText>{isSaving ? t('common.saving') : t('profile.saveCompany')}</ButtonText>
-              </Button>
-            </Section>
-          ) : null}
+              <WkField
+                label={t('common.city')}
+                value={form.city}
+                onChangeText={set('city')}
+                error={errors.city}
+              />
+              <WkField
+                label={t('common.country')}
+                value={form.country}
+                onChangeText={set('country')}
+                error={errors.country}
+              />
+            </WkSection>
+            <WkButton
+              label={isSaving ? t('common.saving') : t('profile.saveCompany')}
+              loading={isSaving}
+              disabled={!provider}
+              height={54}
+              onPress={() => void onSave()}
+            />
+          </>
+        )
+      ) : null}
+      {tab === 'account' ? <WkAccountDetailsCard /> : null}
+      {tab === 'security' ? <WkPasswordCard /> : null}
 
-          {tab === 'account' ? <AccountDetailsForm /> : null}
-          {tab === 'security' ? <PasswordForm /> : null}
+      <WkPreferences />
 
-          <ThemePicker />
-          <LanguagePicker />
-          <LogoutRow />
-        </FormScroll>
-      </AsyncState>
-    </View>
+      <PvOptionSheet
+        visible={logoPick.sheetOpen}
+        title={t('logo.change')}
+        onClose={() => logoPick.setSheetOpen(false)}
+        options={[
+          {
+            key: 'camera',
+            icon: Camera,
+            label: t('files.takePhoto'),
+            onPress: () => pickLogo('camera'),
+          },
+          {
+            key: 'library',
+            icon: Images,
+            label: t('files.chooseLibrary'),
+            onPress: () => pickLogo('library'),
+          },
+          ...(logoUrl
+            ? [
+                {
+                  key: 'remove',
+                  icon: Trash2,
+                  label: t('logo.remove'),
+                  destructive: true,
+                  onPress: () => void removeLogo(),
+                },
+              ]
+            : []),
+        ]}
+      />
+    </WkTabScroll>
   )
 }

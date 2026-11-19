@@ -57,3 +57,23 @@ export function LogoutButton() {
     </Button>
   )
 }
+
+/** "Log out": a text button in `negative`, typically last on the screen. */
+export function LogoutRow() {
+  const { t } = useTranslation()
+  const { isLoggingOut, requestLogout } = useLogout()
+  return (
+    <Button
+      variant="ghost"
+      className="self-start px-0"
+      onPress={requestLogout}
+      disabled={isLoggingOut}
+      accessibilityState={{ busy: isLoggingOut }}
+    >
+      {isLoggingOut ? <ButtonSpinner /> : null}
+      <ButtonText className="text-destructive">
+        {isLoggingOut ? t('account.loggingOut') : t('account.logout')}
+      </ButtonText>
+    </Button>
+  )
+}

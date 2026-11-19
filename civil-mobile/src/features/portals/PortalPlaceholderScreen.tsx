@@ -2,7 +2,7 @@ import { View } from 'react-native'
 import { Construction } from 'lucide-react-native'
 
 import { EmptyState, ScreenHeader } from '@/components/kit'
-import { LogoutButton } from '@/features/portals/LogoutButton'
+import { LogoutButton } from '@/components/LogoutButton'
 
 type PortalPlaceholderScreenProps = {
   title: string

@@ -1,5 +1,3 @@
-import { useAuthStore } from '@/stores/authStore'
-
 import { apiRequest } from './api'
 
 export type ActivityLogItem = {
@@ -41,18 +39,10 @@ export type PaginatedLogs<T> = {
   }
 }
 
-function accessToken() {
-  return useAuthStore.getState().tokens?.accessToken ?? null
-}
-
 export function listActivityLogs(page = 1, limit = 20) {
-  return apiRequest<PaginatedLogs<ActivityLogItem>>(`/activity-logs?page=${page}&limit=${limit}`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<PaginatedLogs<ActivityLogItem>>(`/activity-logs?page=${page}&limit=${limit}`)
 }
 
 export function listErrorLogs(page = 1, limit = 20) {
-  return apiRequest<PaginatedLogs<ErrorLogItem>>(`/error-logs?page=${page}&limit=${limit}`, {
-    accessToken: accessToken(),
-  })
+  return apiRequest<PaginatedLogs<ErrorLogItem>>(`/error-logs?page=${page}&limit=${limit}`)
 }

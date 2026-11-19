@@ -263,3 +263,19 @@ export function setWorkerVisibility(userId: string, isPublic: boolean) {
 export function getWorkerByUserId(userId: string) {
   return apiRequest<{ data: WorkerProfile }>(`/workers/${userId}`)
 }
+
+export type PaginatedWorkers = {
+  data: WorkerProfile[]
+  meta: { page: number; limit: number; total: number; totalPages: number }
+}
+
+/** Public marketplace list: non-admins only see public, verified workers. */
+export function listWorkers(params: { page?: number; limit?: number; q?: string } = {}) {
+  const search = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 20),
+    counts: 'false',
+  })
+  if (params.q?.trim()) search.set('q', params.q.trim())
+  return apiRequest<PaginatedWorkers>(`/workers?${search.toString()}`)
+}

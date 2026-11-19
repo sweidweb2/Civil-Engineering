@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native'
 import { Image } from 'expo-image'
-import { FolderKanban } from 'lucide-react-native'
 import type { TFunction } from 'i18next'
+import { FolderKanban } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 

@@ -14,7 +14,7 @@ import {
 } from '@/components/kit'
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import { useListingEditor } from '@/features/provider/useListingEditor'
-import { RENTAL_UNITS, type ListingStatus } from '@/services/listings'
+import { type ListingStatus, RENTAL_UNITS } from '@/services/listings'
 
 type ProviderListingEditorScreenProps = {
   mode: 'create' | 'edit'

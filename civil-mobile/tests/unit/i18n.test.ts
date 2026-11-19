@@ -48,7 +48,11 @@ describe('translations', () => {
       if (file.includes(`${path.sep}i18n${path.sep}`)) continue
       const text = fs.readFileSync(file, 'utf8')
       for (const match of text.matchAll(pattern)) {
-        if (!enKeys.has(match[1]!)) missing.push(`${path.relative(root, file)}: ${match[1]}`)
+        const key = match[1]!
+        // i18next plurals: t('a.b', { count }) resolves to a.b_one / a.b_other.
+        if (!enKeys.has(key) && !enKeys.has(`${key}_other`)) {
+          missing.push(`${path.relative(root, file)}: ${key}`)
+        }
       }
     }
     expect(missing).toEqual([])

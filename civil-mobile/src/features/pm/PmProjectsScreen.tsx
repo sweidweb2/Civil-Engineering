@@ -18,8 +18,8 @@ import { errorMessage } from '@/services/feedback'
 import {
   getProjectSummary,
   listProjects,
-  PROJECT_STATUS_OPTIONS,
   type Project,
+  PROJECT_STATUS_OPTIONS,
   type ProjectStatus,
 } from '@/services/projects'
 import { MONO_STYLE } from '@/theme/typography'

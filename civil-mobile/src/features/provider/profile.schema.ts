@@ -4,7 +4,7 @@
  */
 export {
   accountPasswordSchema as providerPasswordSchema,
-  accountProfileSchema as providerProfileSchema,
   type AccountPasswordValues as ProviderPasswordValues,
+  accountProfileSchema as providerProfileSchema,
   type AccountProfileValues as ProviderProfileValues,
 } from '@/features/account/account.schema'

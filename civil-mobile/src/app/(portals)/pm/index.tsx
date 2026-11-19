@@ -1,5 +1,5 @@
-import { PmDashboardScreen } from '@/features/pm/PmDashboardScreen'
+import { PmHomeScreen } from '@/features/pm/PmHomeScreen'
 
 export default function PmIndex() {
-  return <PmDashboardScreen />
+  return <PmHomeScreen />
 }

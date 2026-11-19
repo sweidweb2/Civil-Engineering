@@ -1,5 +1,5 @@
-import { DirectoryListScreen } from '@/features/pm/DirectoryListScreen'
+import { PmDirectoryScreen } from '@/features/pm/PmDirectoryScreen'
 
 export default function PmDirectoryRoute() {
-  return <DirectoryListScreen />
+  return <PmDirectoryScreen />
 }

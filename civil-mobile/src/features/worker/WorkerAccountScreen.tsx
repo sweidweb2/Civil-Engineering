@@ -14,15 +14,18 @@ import { ltr } from '@/lib/rtl'
 import { initialsOf, userDisplayName } from '@/lib/user'
 import { useAuthStore } from '@/stores/authStore'
 
-/** Worker-portal account: details / security tabs, appearance, language, log out. */
-export function WorkerAccountScreen() {
+/**
+ * Account tab on the green palette (worker and PM portals): identity card,
+ * details / security tabs, appearance, language, log out.
+ */
+export function WorkerAccountScreen({ testID = 'e2e-worker-account' }: { testID?: string }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<'details' | 'security'>('details')
   const user = useAuthStore((s) => s.user)
   const name = user ? userDisplayName(user) : t('account.title')
 
   return (
-    <WkTabScroll testID="e2e-worker-account">
+    <WkTabScroll testID={testID}>
       {/* Identity */}
       <WkCard className="flex-row items-center gap-3.5 rounded-[26px] p-5">
         <View className="size-14 items-center justify-center rounded-full bg-wk-hero">

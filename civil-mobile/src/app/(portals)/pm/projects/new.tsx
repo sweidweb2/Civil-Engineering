@@ -1,5 +1,5 @@
-import { PmProjectCreateScreen } from '@/features/pm/PmProjectCreateScreen'
+import { PmNewProjectScreen } from '@/features/pm/PmNewProjectScreen'
 
 export default function PmProjectCreate() {
-  return <PmProjectCreateScreen />
+  return <PmNewProjectScreen />
 }

@@ -1,5 +1,5 @@
-import { ProjectsListScreen } from '@/features/pm/ProjectsListScreen'
+import { PmProjectsScreen } from '@/features/pm/PmProjectsScreen'
 
 export default function PmProjectsRoute() {
-  return <ProjectsListScreen />
+  return <PmProjectsScreen />
 }

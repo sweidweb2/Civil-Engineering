@@ -38,6 +38,9 @@ type AuthState = {
   lastUserSyncAt: number
 }
 
+/** Native safety net for a hung SecureStore read; cleared once rehydration finishes. */
+let hydrationSafetyTimer: ReturnType<typeof setTimeout> | undefined
+
 /** Minimum gap between automatic user re-reads (startup / app foreground). */
 export const USER_SYNC_INTERVAL_MS = 60_000
 
@@ -148,6 +151,7 @@ export const useAuthStore = create<AuthState>()(
           console.warn('auth rehydrate failed', error)
         }
         // Always clear the gate — including SSR / empty storage / errors
+        clearTimeout(hydrationSafetyTimer)
         useAuthStore.setState({ isHydrated: true })
       },
     },
@@ -175,7 +179,7 @@ function openHydrationGate() {
 }
 
 if (Platform.OS !== 'web') {
-  setTimeout(openHydrationGate, NATIVE_HYDRATION_TIMEOUT_MS)
+  hydrationSafetyTimer = setTimeout(openHydrationGate, NATIVE_HYDRATION_TIMEOUT_MS)
 } else if (typeof window !== 'undefined') {
   queueMicrotask(openHydrationGate)
 } else {

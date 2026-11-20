@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { View } from 'react-native'
 import { Redirect } from 'expo-router'
 
@@ -9,13 +8,8 @@ import { useAuthStore } from '@/stores/authStore'
 export default function Index() {
   const user = useAuthStore((s) => s.user)
   const isHydrated = useAuthStore((s) => s.isHydrated)
-  const setHydrated = useAuthStore((s) => s.setHydrated)
-
-  useEffect(() => {
-    // Fallback if persist callback never fires on web
-    const t = setTimeout(() => setHydrated(true), 50)
-    return () => clearTimeout(t)
-  }, [setHydrated])
+  // Hydration fallbacks (web microtask, native safety timeout) live in authStore. A short
+  // timer here used to open the gate before SecureStore finished on native, flashing Login.
 
   if (!isHydrated) {
     return (

@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
 import { useForegroundRevalidate } from '@/hooks/useForegroundRevalidate'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { useSessionUserSync } from '@/hooks/useSessionUserSync'
 import { useThemeStore } from '@/stores/themeStore'
 
 function PushNotificationsBridge() {
@@ -18,9 +19,13 @@ function PushNotificationsBridge() {
   return null
 }
 
-/** Refresh stale data on open screens when the app returns to the foreground. */
+/**
+ * App foreground / session restore: refresh stale data on open screens, and re-read
+ * the signed-in user so role or status changes made elsewhere reach this device.
+ */
 function ForegroundRevalidateBridge() {
   useForegroundRevalidate()
+  useSessionUserSync()
   return null
 }
 

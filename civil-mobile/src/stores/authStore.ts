@@ -1,11 +1,13 @@
+import { Platform } from 'react-native'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { remoteCacheInvalidate } from '@/lib/remoteCache'
-import { bindAuthSession } from '@/services/api'
+import { remoteCacheGeneration, remoteCacheInvalidate } from '@/lib/remoteCache'
+import { ApiError, bindAuthSession } from '@/services/api'
 import type { AuthTokens, AuthUser } from '@/services/auth'
 import * as authApi from '@/services/auth'
 import { unregisterPushForUser } from '@/services/notifications'
+import { getUser, type User } from '@/services/users'
 
 import { authStorage } from './authStorage'
 
@@ -25,6 +27,36 @@ type AuthState = {
     role: authApi.RegisterRole
   }) => Promise<{ pendingApproval: boolean }>
   logout: () => Promise<void>
+  /**
+   * Re-read the signed-in user (role, status, verification, names) from the server.
+   * The persisted `user` is otherwise only set at login, so an admin's role change or
+   * a profile edit made elsewhere would never reach this device. Throttled to once per
+   * `USER_SYNC_INTERVAL_MS` unless `force`.
+   */
+  refreshUser: (options?: { force?: boolean }) => Promise<void>
+  /** Epoch ms of the last server read of `user` (memory only, not persisted). */
+  lastUserSyncAt: number
+}
+
+/** Minimum gap between automatic user re-reads (startup / app foreground). */
+export const USER_SYNC_INTERVAL_MS = 60_000
+
+/** Keep only the session summary fields the app routes on (same shape as login). */
+export function authUserFrom(user: User): AuthUser {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    isVerified: user.isVerified,
+    profile: user.profile
+      ? {
+          firstName: user.profile.firstName,
+          lastName: user.profile.lastName,
+          displayName: user.profile.displayName,
+        }
+      : null,
+  }
 }
 
 /**
@@ -37,6 +69,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       tokens: null,
       isHydrated: false,
+      lastUserSyncAt: 0,
       setHydrated: (value) => set({ isHydrated: value }),
       setTokens: (tokens) => set({ tokens }),
       clearSession: () => {
@@ -46,7 +79,7 @@ export const useAuthStore = create<AuthState>()(
       async login(email, password) {
         remoteCacheInvalidate()
         const result = await authApi.login(email, password)
-        set({ user: result.user, tokens: result.tokens })
+        set({ user: result.user, tokens: result.tokens, lastUserSyncAt: Date.now() })
       },
       async register(input) {
         remoteCacheInvalidate()
@@ -55,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
           set({ user: null, tokens: null })
           return { pendingApproval: true }
         }
-        set({ user: result.user, tokens: result.tokens })
+        set({ user: result.user, tokens: result.tokens, lastUserSyncAt: Date.now() })
         return { pendingApproval: false }
       },
       async logout() {
@@ -69,6 +102,37 @@ export const useAuthStore = create<AuthState>()(
         } finally {
           remoteCacheInvalidate()
           set({ user: null, tokens: null })
+        }
+      },
+      async refreshUser(options) {
+        const { user, tokens, lastUserSyncAt } = get()
+        if (!user || !tokens) return
+        if (!options?.force && Date.now() - lastUserSyncAt < USER_SYNC_INTERVAL_MS) return
+        set({ lastUserSyncAt: Date.now() })
+        const generation = remoteCacheGeneration()
+        try {
+          const { data } = await getUser(user.id)
+          // Logged out / switched account while the request was in flight.
+          if (remoteCacheGeneration() !== generation || get().user?.id !== user.id) return
+          const next = authUserFrom(data)
+          const current = get().user
+          if (JSON.stringify(current) === JSON.stringify(next)) return
+          if (current && current.role !== next.role) {
+            // Cached data belongs to the old portal; RequireAuth redirects to the new one.
+            remoteCacheInvalidate()
+          }
+          set({ user: next })
+        } catch (error) {
+          // 404: the account was deleted. Suspension / pending → 401 → the API client
+          // fails the token refresh and clears the session. Network errors: keep the
+          // stored user and try again next time.
+          if (error instanceof ApiError && error.status === 404) {
+            await get()
+              .logout()
+              .catch(() => undefined)
+          } else {
+            set({ lastUserSyncAt: 0 })
+          }
         }
       },
     }),
@@ -97,13 +161,23 @@ bindAuthSession({
   clearSession: () => useAuthStore.getState().clearSession(),
 })
 
-// SSR / first paint safety: never leave the spinner forever
-if (typeof window !== 'undefined') {
-  queueMicrotask(() => {
-    if (!useAuthStore.getState().isHydrated) {
-      useAuthStore.setState({ isHydrated: true })
-    }
-  })
+// Never leave the launch spinner forever.
+// Native: wait for `onRehydrateStorage` (SecureStore is async). Opening the gate on the
+// next microtask, as before, ran *before* the read finished (React Native defines
+// `window`), so a saved session briefly looked logged-out. Keep a long safety net only.
+// Web / SSR: localStorage resolves immediately, keep the microtask fallback.
+export const NATIVE_HYDRATION_TIMEOUT_MS = 4_000
+
+function openHydrationGate() {
+  if (!useAuthStore.getState().isHydrated) {
+    useAuthStore.setState({ isHydrated: true })
+  }
+}
+
+if (Platform.OS !== 'web') {
+  setTimeout(openHydrationGate, NATIVE_HYDRATION_TIMEOUT_MS)
+} else if (typeof window !== 'undefined') {
+  queueMicrotask(openHydrationGate)
 } else {
   useAuthStore.setState({ isHydrated: true })
 }

@@ -34,6 +34,8 @@ export function createApp(deps: AppDeps = {}) {
   if (config.trustProxy) {
     app.set('trust proxy', 1)
   }
+  // No conditional requests are used by the clients (they cache in memory), so skip ETags.
+  app.set('etag', false)
 
   app.use(requestContext)
   app.use(perfTiming)
@@ -49,6 +51,12 @@ export function createApp(deps: AppDeps = {}) {
   app.use(express.json({ limit: config.jsonBodyLimit }))
   app.use(createApiRateLimiter(config))
 
+  // Every API response is per-user (bearer token) JSON: never let browsers, OS HTTP caches
+  // (iOS NSURLCache / OkHttp) or proxies store it, since URLs are shared across users.
+  app.use('/api/v1', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store')
+    next()
+  })
   app.use('/api/v1', requireTrustedOrigin(config.corsOrigins))
   app.use('/api/v1', createV1Router({ pool, config, storage: deps.storage }))
 

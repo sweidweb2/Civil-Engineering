@@ -20,6 +20,18 @@ describe('Security middleware', () => {
     expect(res.headers['x-dns-prefetch-control']).toBe('off')
   })
 
+  it('marks API responses as not cacheable and sends no ETag', async () => {
+    const res = await request(app).get('/api/v1/health')
+    expect(res.headers['cache-control']).toBe('no-store')
+    expect(res.headers.etag).toBeUndefined()
+  })
+
+  it('also marks error responses as not cacheable', async () => {
+    const res = await request(app).get('/api/v1/users/me-does-not-exist')
+    expect(res.status).toBeGreaterThanOrEqual(400)
+    expect(res.headers['cache-control']).toBe('no-store')
+  })
+
   it('rejects oversized JSON bodies', async () => {
     const big = 'x'.repeat(2048)
     const res = await request(app)

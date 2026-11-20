@@ -1,6 +1,6 @@
 # Mobile caching plan
 
-**Status:** In progress — Phases 0–2 and 3.1–3.2 done (2026-11-20)
+**Status:** Phases 0–4 done (3.3 thumbnails and Phase 5 offline remain optional), 2026-11-20
 **Date:** 2026-11-20
 **Applies to:** `civil-mobile/` (plus small backend changes, marked **[backend]**)
 **Source:** caching audit of commit `8ef146a`
@@ -216,22 +216,31 @@ What shipped, and where it differs from the plan below:
 
 ## Phase 4: Session freshness and API hygiene
 
+**Status:** Done (2026-11-20), except the on-device check in 4.2 and the optional `/auth/me`.
+
+What shipped:
+
+- **4.1** `useAuthStore.refreshUser()` re-reads the user with the existing `GET /users/:id` and stores the same summary shape as login (`authUserFrom`). Throttled to once per `USER_SYNC_INTERVAL_MS` (60s); a login counts as a fresh read. A role change wipes the cache (RequireAuth then redirects to the new portal). 404 (account deleted) logs out. Suspended / pending accounts get 401, the token refresh is rejected (backend refresh requires `ACTIVE`) and the session is cleared. Network errors keep the stored user and retry next time. A response that arrives after a logout / account switch is ignored. Triggered by `src/hooks/useSessionUserSync.ts` (after hydration + on app foreground), mounted in `src/app/_layout.tsx`.
+- **4.2** `src/stores/authStore.ts`: on native the gate waits for `onRehydrateStorage`, with a 4s safety timeout (cleared once rehydration finishes). The microtask fallback is web-only. The 50ms `setHydrated` timer in `src/app/index.tsx` was removed (it had the same problem).
+- **4.3 [backend]** `backend/src/app.ts`: `Cache-Control: no-store` on every `/api/v1` response (errors included) and `app.set('etag', false)`. Tests in `backend/tests/integration/security.test.ts`.
+- Tests: `tests/unit/authStore.refreshUser.test.ts`, `tests/unit/authStore.hydration.test.ts` (fails against the old microtask behaviour).
+
 ### 4.1 Refresh the saved user
 
 - **Problem:** the persisted `user` (role, status, verification, names) is never re-read. If an admin changes a role or suspends someone, the app keeps routing to the old portal until 403s force a logout.
-- [ ] After hydration (when tokens exist), call the existing `GET /users/:id` for the current user (already used by `AccountForms`) and update `useAuthStore` `user`. If the role changed, routing follows automatically through `RequireAuth`.
-- [ ] Repeat on app foreground (reuse the 2.3 listener, throttled).
+- [x] After hydration (when tokens exist), call the existing `GET /users/:id` for the current user (already used by `AccountForms`) and update `useAuthStore` `user`. If the role changed, routing follows automatically through `RequireAuth`.
+- [x] Repeat on app foreground (reuse the 2.3 listener, throttled).
 - [ ] Optional [backend]: add `GET /auth/me` later if `/users/:id` returns more than needed.
 
 ### 4.2 Hydration gate
 
 - **Problem:** on native, `window` exists, so the microtask in `src/stores/authStore.ts` sets `isHydrated = true` before SecureStore finishes reading. `src/app/index.tsx` also forces it after 50ms. This can flash the login screen on a cold start (unverified on device).
-- [ ] Keep the microtask fallback for web only (`Platform.OS === 'web'`). On native, rely on `onRehydrateStorage`.
-- [ ] Verify on a device with a saved session: launch goes straight to the portal.
+- [x] Keep the microtask fallback for web only (`Platform.OS === 'web'`). On native, rely on `onRehydrateStorage`.
+- [ ] Verify on a device with a saved session: launch goes straight to the portal. (Covered by a unit test; not yet checked on a device.)
 
 ### 4.3 No HTTP caching of API responses [backend]
 
-- [ ] Send `Cache-Control: no-store` on `/api/v1/*` (authenticated, per-user data). Disable Express `etag` since no client uses conditional requests.
+- [x] Send `Cache-Control: no-store` on `/api/v1/*` (authenticated, per-user data). Disable Express `etag` since no client uses conditional requests.
 - **Why:** removes any doubt about OS-level HTTP caches reusing one user's response for another (same URL, different token).
 
 ---
@@ -256,7 +265,7 @@ Only start this if the product needs it, for example PMs checking projects on si
 | 1     | Notify open screens, session guard, dedup, cap                | M    | No            | ☑ Done    |
 | 2     | Stale-while-revalidate, TTLs, foreground refresh, detail keys | M    | No            | ☑ Done    |
 | 3     | Image cache keys (3.1 mobile; 3.2–3.3 backend)                | S–M  | 3.2, 3.3      | ☑ 3.1–3.2 |
-| 4     | Refresh user, hydration gate, `no-store`                      | S    | 4.3           | ☐         |
+| 4     | Refresh user, hydration gate, `no-store`                      | S    | 4.3           | ☑ Done    |
 | 5     | Offline read cache (optional)                                 | L    | Idempotency   | ☐         |
 
 Each phase: add unit tests next to `tests/unit/remoteCache.test.ts` and run `npm run typecheck && npm run lint && npm test` in `civil-mobile/`.

@@ -2,6 +2,7 @@ import { prisma } from '../../database/prisma.js'
 import { runInTransaction } from '../../database/transaction.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { validationError } from '../../errors/app-error.js'
+import { Prisma } from '../../generated/prisma/client.js'
 import type { ProjectImage, ProjectImagesRepository } from './project-images.types.js'
 
 function mapToProjectImage(row: {
@@ -126,16 +127,16 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
     },
 
     async reorderAtomic(projectId, orderedIds) {
+      if (orderedIds.length === 0) return
       await runInTransaction(async (tx) => {
         await tx.$executeRaw`SELECT id FROM projects WHERE id = ${projectId} FOR UPDATE`
-        for (let index = 0; index < orderedIds.length; index += 1) {
-          const id = orderedIds[index]
-          if (!id) continue
-          await tx.projectImage.updateMany({
-            where: { id, projectId },
-            data: { displayOrder: index },
-          })
-        }
+        const values = orderedIds.map((id, index) => Prisma.sql`(${id}, ${index}::int)`)
+        await tx.$executeRaw`
+          UPDATE project_images AS pi
+          SET "displayOrder" = v.ord, "updatedAt" = NOW()
+          FROM (VALUES ${Prisma.join(values)}) AS v(id, ord)
+          WHERE pi.id = v.id AND pi."projectId" = ${projectId}
+        `
       })
     },
 

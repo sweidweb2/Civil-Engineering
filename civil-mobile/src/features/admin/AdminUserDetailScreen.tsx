@@ -1,21 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { Contact, ShieldCheck, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { shortDate, USER_TONE } from '@/features/admin/ui'
 import {
-  Avatar,
-  ChoiceField,
-  DangerZone,
-  FieldRow,
-  FormScreen,
-  Section,
-  StatusPill,
-  TextField,
-  ToggleRow,
-  toneForStatus,
-} from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+  WkChoice,
+  WkDangerZone,
+  WkField,
+  WkFormScreen,
+  WkSection,
+  WkToggle,
+} from '@/features/worker/ui/forms'
+import { WkButton, WkCard, WkConfirm, type WkConfirmState, WkPill } from '@/features/worker/ui/kit'
+import { WkMedia } from '@/features/worker/ui/list'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
@@ -23,7 +22,6 @@ import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'
 import type { AuthRole } from '@/services/auth'
-import { showBlockingAlert } from '@/services/feedback'
 import { useToastSuccess } from '@/services/toast'
 import {
   AUTH_ROLE_OPTIONS,
@@ -37,6 +35,7 @@ import { getWorkerByUserId, setWorkerVisibility } from '@/services/workers'
 const BASE = '/admin/users'
 const STATUS_OPTIONS = [{ value: 'ACTIVE' }, { value: 'INACTIVE' }, { value: 'PENDING' }]
 
+/** Admin user page: identity card, access, worker directory, profile, deactivate. */
 export function AdminUserDetailScreen() {
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -50,6 +49,7 @@ export function AdminUserDetailScreen() {
   }, [userId])
   const remote = useRemoteData(load, { enabled: Boolean(userId) })
   const user = remote.status === 'success' ? remote.data.data : null
+  const avatarUrl = remote.status === 'success' ? remote.data.meta.avatarDownloadUrl : null
 
   const [role, setRole] = useState<AuthRole>('CLIENT')
   const [status, setStatus] = useState<UserStatus>('ACTIVE')
@@ -63,6 +63,7 @@ export function AdminUserDetailScreen() {
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingVisibility, setIsSavingVisibility] = useState(false)
   const [isDeactivating, setIsDeactivating] = useState(false)
+  const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -139,13 +140,14 @@ export function AdminUserDetailScreen() {
     }
   }
 
-  function onDeactivate() {
+  function askDeactivate() {
     if (!userId || isDeactivating) return
-    showBlockingAlert(t('users.deactivateTitle'), t('users.deactivateBody'), {
-      destructive: true,
-      cancelLabel: t('common.cancel'),
-      confirmLabel: t('users.deactivate'),
+    setConfirm({
+      title: t('users.deactivateTitle'),
+      body: t('users.deactivateBody'),
+      cta: t('users.deactivate'),
       onConfirm: () => {
+        setConfirm(null)
         void (async () => {
           setIsDeactivating(true)
           try {
@@ -163,119 +165,121 @@ export function AdminUserDetailScreen() {
     })
   }
 
+  const name = user ? userDisplayName(user) : t('users.user')
+
   return (
-    <FormScreen
-      title={user ? userDisplayName(user) : t('users.user')}
-      subtitle={user?.email ? ltr(user.email) : undefined}
+    <WkFormScreen
+      title={name}
       backHref={BASE}
-      isLoading={remote.isLoading}
+      isLoading={remote.isLoading && !user}
       error={remote.status === 'error' ? remote.error : undefined}
       onRetry={() => void remote.refetch()}
-      loadingLabel={t('users.loadingOne')}
+      testID="e2e-admin-user"
       footer={
-        <>
-          <Button
-            className="flex-1"
+        user ? (
+          <WkButton
+            label={isSaving ? t('common.saving') : t('worker.saveChanges')}
+            loading={isSaving}
+            height={54}
             onPress={() => void onSave()}
-            disabled={isSaving}
-            accessibilityState={{ busy: isSaving }}
-          >
-            {isSaving ? <ButtonSpinner /> : null}
-            <ButtonText>{isSaving ? t('common.saving') : t('common.save')}</ButtonText>
-          </Button>
-        </>
+          />
+        ) : undefined
       }
     >
       {user ? (
         <>
-          <View className="flex-row items-center gap-4">
-            <Avatar name={userDisplayName(user)} imageUrl={user.profile?.avatarUrl} size={64} />
-            <View className="min-w-0 flex-1 gap-1.5">
-              <Text className="text-xl font-semibold text-foreground" numberOfLines={1}>
-                {userDisplayName(user)}
+          <WkCard className="flex-row items-center gap-3.5 rounded-3xl">
+            <WkMedia
+              photo={avatarUrl ?? user.profile?.avatarUrl}
+              name={name}
+              size={60}
+              round
+              hero
+            />
+            <View className="min-w-0 flex-1 gap-1">
+              <Text
+                className="text-[17px] font-semibold leading-[22px] text-wk-ink"
+                numberOfLines={2}
+              >
+                {name}
               </Text>
-              <View className="flex-row flex-wrap gap-2">
-                <StatusPill
-                  label={enumLabel(t, 'userStatus', user.status)}
-                  tone={toneForStatus(user.status)}
-                />
-                <StatusPill label={enumLabel(t, 'role', user.role)} tone="neutral" />
-              </View>
+              <Text className="text-[13px] text-wk-ink2" numberOfLines={1}>
+                {ltr(user.email)}
+              </Text>
+              <Text className="text-[11px] text-wk-ink3">
+                {t('adminPortal.joined', { date: shortDate(user.createdAt) })}
+              </Text>
             </View>
-          </View>
+            <WkPill
+              label={enumLabel(t, 'userStatus', user.status)}
+              tone={USER_TONE[user.status]}
+              size="md"
+            />
+          </WkCard>
 
-          <Section title={t('users.access')}>
-            <ChoiceField
+          <WkSection icon={ShieldCheck} title={t('users.access')}>
+            <WkChoice
               label={t('users.role')}
               options={enumOptions(t, 'role', AUTH_ROLE_OPTIONS)}
               value={role}
               onChange={(value) => setRole(value as AuthRole)}
             />
-            <ChoiceField
+            <WkChoice
               label={t('users.status')}
               options={enumOptions(t, 'userStatus', STATUS_OPTIONS)}
               value={status}
               onChange={(value) => setStatus(value as UserStatus)}
             />
-            <ToggleRow
+            <WkToggle
               label={t('users.verified')}
+              hint={t('adminPortal.verifiedHint')}
               value={isVerified}
-              onValueChange={setIsVerified}
+              onChange={setIsVerified}
             />
-          </Section>
+          </WkSection>
 
           {user.role === 'WORKER' ? (
-            <Section title={t('users.workerDirectory')}>
-              <ToggleRow
+            <WkSection icon={Contact} title={t('users.workerDirectory')}>
+              <WkToggle
                 label={t('users.workerVisible')}
-                description={
+                hint={
                   hasWorkerProfile
                     ? t('users.workerVisibleHint')
                     : t('users.workerVisibleCreateHint')
                 }
                 value={isPublic}
-                onValueChange={(value) => void onToggleWorkerVisibility(value)}
-                disabled={isSavingVisibility}
+                onChange={(value) => void onToggleWorkerVisibility(value)}
               />
-            </Section>
+            </WkSection>
           ) : null}
 
-          <Section title={t('users.profile')}>
-            <FieldRow>
-              <TextField
-                label={t('common.firstName')}
-                value={firstName}
-                onChangeText={setFirstName}
-              />
-              <TextField label={t('common.lastName')} value={lastName} onChangeText={setLastName} />
-            </FieldRow>
-            <TextField
+          <WkSection icon={UserRound} title={t('users.profile')}>
+            <WkField label={t('common.firstName')} value={firstName} onChangeText={setFirstName} />
+            <WkField label={t('common.lastName')} value={lastName} onChangeText={setLastName} />
+            <WkField
               label={t('common.displayName')}
               value={displayName}
               onChangeText={setDisplayName}
             />
-            <TextField
+            <WkField
               label={t('common.phone')}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              ltr
             />
-          </Section>
+          </WkSection>
+
+          <WkDangerZone
+            title={t('common.dangerZone')}
+            body={t('users.deactivateBody')}
+            label={t('users.deactivate')}
+            disabled={isDeactivating || user.status === 'INACTIVE'}
+            onPress={askDeactivate}
+          />
         </>
       ) : null}
-      {user ? (
-        <DangerZone title={t('common.dangerZone')}>
-          <Button
-            variant="destructive"
-            onPress={onDeactivate}
-            disabled={isDeactivating || user?.status === 'INACTIVE'}
-            accessibilityState={{ busy: isDeactivating }}
-          >
-            {isDeactivating ? <ButtonSpinner /> : null}
-            <ButtonText>{t('users.deactivate')}</ButtonText>
-          </Button>
-        </DangerZone>
-      ) : null}
-    </FormScreen>
+      <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
+    </WkFormScreen>
   )
 }

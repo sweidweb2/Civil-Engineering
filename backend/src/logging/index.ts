@@ -7,3 +7,14 @@ export {
   setPerfRoute,
   timeAsync,
 } from './perf.js'
+export {
+  getRequestId,
+  getRequestLogger,
+  getRequestStore,
+  hashEmailHint,
+  newRequestId,
+  runWithRequestContext,
+  sanitizeRequestId,
+  setRequestRoute,
+  setRequestUserId,
+} from './request-als.js'

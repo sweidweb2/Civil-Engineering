@@ -10,7 +10,7 @@ import {
   notFound,
   validationError,
 } from '../../errors/app-error.js'
-import { getLogger } from '../../logging/index.js'
+import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import {
   assertAllowedImageUpload,
@@ -301,7 +301,7 @@ export function createProvidersService(
         try {
           await storage.deleteObject(key)
         } catch (error) {
-          getLogger().error(
+          getRequestLogger().error(
             { err: error, providerId: id, storagePath: key },
             'failed to delete orphan provider logo after CAS miss',
           )
@@ -313,7 +313,7 @@ export function createProvidersService(
         try {
           await storage.deleteObject(previous)
         } catch (error) {
-          getLogger().error(
+          getRequestLogger().error(
             { err: error, providerId: id, storagePath: previous },
             'failed to delete previous provider logo',
           )
@@ -337,7 +337,7 @@ export function createProvidersService(
         try {
           await storage.deleteObject(previous)
         } catch (error) {
-          getLogger().error(
+          getRequestLogger().error(
             { err: error, providerId: id, storagePath: previous },
             'failed to delete provider logo from storage',
           )

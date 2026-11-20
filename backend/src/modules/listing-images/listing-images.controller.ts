@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
 import { wrap } from '../../errors/async-handler.js'
-import { createImageUpload } from '../files/index.js'
+import { createImageUpload, MAX_GALLERY_IMAGES } from '../files/index.js'
 import type { ListingImagesService } from './listing-images.service.js'
 
 const upload = createImageUpload()
@@ -11,10 +11,12 @@ export type ListingImagesController = {
   listListingImages: RequestHandler
   getListingImage: RequestHandler
   uploadListingImage: RequestHandler
+  uploadListingImagesBatch: RequestHandler
   updateListingImage: RequestHandler
   deleteListingImage: RequestHandler
   reorderListingImages: RequestHandler
   uploadMiddleware: ReturnType<typeof upload.single>
+  uploadBatchMiddleware: ReturnType<typeof upload.array>
 }
 
 export type ListingImagesControllerDeps = {
@@ -28,6 +30,7 @@ export function createListingImagesController(
 
   return {
     uploadMiddleware: upload.single('image'),
+    uploadBatchMiddleware: upload.array('images', MAX_GALLERY_IMAGES),
 
     listListingImages: wrap(async (req, res) => {
       const actor = parseAuthActor(req)
@@ -54,6 +57,22 @@ export function createListingImagesController(
         req.body,
       )
       res.status(201).json({ data: image })
+    }),
+
+    uploadListingImagesBatch: wrap(async (req, res) => {
+      const actor = parseAuthActor(req)
+      const files = req.files
+      if (!Array.isArray(files) || files.length === 0) {
+        res.status(400).json({ error: 'No image files provided' })
+        return
+      }
+      const images = await service.uploadListingImagesBatch(
+        actor,
+        String(req.params.listingId),
+        files,
+        req.body,
+      )
+      res.status(201).json({ data: images })
     }),
 
     updateListingImage: wrap(async (req, res) => {

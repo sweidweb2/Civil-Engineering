@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { loadConfig } from '../config/index.js'
 import { unauthorized } from '../errors/app-error.js'
+import { getRequestLogger, setRequestUserId } from '../logging/index.js'
 import { logPerf } from '../logging/perf.js'
 import { ACCESS_COOKIE, parseCookieHeader } from '../modules/auth/auth.cookies.js'
 import type { RoleName } from '../modules/auth/auth.schema.js'
@@ -54,6 +55,15 @@ function failAuth(
 ) {
   const authMs = Math.round(performance.now() - authStarted)
   logPerf('auth', `${label} failed ${authMs}ms`, { ms: authMs, failed: true })
+  getRequestLogger().warn(
+    {
+      kind: 'auth.failure',
+      reason: 'authenticate',
+      label,
+      ms: authMs,
+    },
+    'authenticate failed',
+  )
   if (error && typeof error === 'object' && 'status' in error) {
     next(error)
     return
@@ -88,6 +98,7 @@ export function createAuthenticate(deps: AuthenticateDeps = {}): RequestHandler 
       const { id, role, jwtMs, principalMs } = await resolveActiveUser(token, resolvePrincipal)
 
       req.user = { id, roles: [role] }
+      setRequestUserId(id)
 
       const authMs = Math.round(performance.now() - authStarted)
       pushServerTiming(res, 'auth', authMs)
@@ -125,6 +136,7 @@ export function createOptionalAuthenticate(deps: AuthenticateDeps = {}): Request
       const { id, role, jwtMs, principalMs } = await resolveActiveUser(token, resolvePrincipal)
 
       req.user = { id, roles: [role] }
+      setRequestUserId(id)
 
       const authMs = Math.round(performance.now() - authStarted)
       pushServerTiming(res, 'auth', authMs)

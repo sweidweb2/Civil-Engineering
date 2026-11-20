@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { isUniqueConflictError, notFound, validationError } from '../../errors/app-error.js'
-import { getLogger } from '../../logging/index.js'
+import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import {
   assertAllowedImageUpload,
@@ -82,6 +82,12 @@ export type OwnerGalleryService = {
     file: ImageUploadFile & { originalname?: string },
     input: { isMain?: boolean; displayOrder?: number },
   ) => Promise<OwnerGalleryImageWithUrl>
+  uploadMany: (
+    actor: AuthActor,
+    ownerId: string,
+    files: Array<ImageUploadFile & { originalname?: string }>,
+    options?: { firstIsMain?: boolean },
+  ) => Promise<OwnerGalleryImageWithUrl[]>
   update: (
     actor: AuthActor,
     imageId: string,
@@ -127,6 +133,54 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
     return { ...image, url }
   }
 
+  async function uploadCore(
+    ownerId: string,
+    file: ImageUploadFile & { originalname?: string },
+    input: { isMain?: boolean; displayOrder?: number },
+  ): Promise<OwnerGalleryImageWithUrl> {
+    await assertAllowedImageUpload(file)
+
+    const imageId = randomUUID().replace(/-/g, '')
+    const storagePath = `${policy.keyPrefix}/${ownerId}/images/${imageId}.webp`
+    const webpBuffer = await encodeImageToWebp(file)
+
+    // DB first (count + main under row lock) so concurrent uploads cannot overrun the cap
+    // or create dual mains; R2 put is compensated if it fails after insert.
+    let image: OwnerGalleryImage
+    try {
+      image = await repository.createAtomic({
+        ownerId,
+        storagePath,
+        isMain: input.isMain,
+        displayOrder: input.displayOrder,
+        maxImages: MAX_GALLERY_IMAGES,
+        autoMainIfEmpty: policy.autoMain,
+      })
+    } catch (error) {
+      mapGalleryUniqueConflict(error)
+    }
+
+    try {
+      await storage.putObject({
+        key: storagePath,
+        body: webpBuffer,
+        contentType: 'image/webp',
+      })
+    } catch (error) {
+      try {
+        await repository.delete(image.id)
+      } catch (compensateError) {
+        getRequestLogger().error(
+          { err: compensateError, imageId: image.id, storagePath },
+          `failed to roll back ${policy.logLabel} row after storage put failure`,
+        )
+      }
+      throw error
+    }
+
+    return withUrl(image)
+  }
+
   return {
     async list(actor, ownerId) {
       await policy.assertCanView(actor, ownerId)
@@ -141,49 +195,28 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       return withUrl(image)
     },
 
+    async uploadMany(actor, ownerId, files, options = {}) {
+      if (files.length === 0) return []
+      if (files.length > MAX_GALLERY_IMAGES) {
+        throw validationError(`At most ${MAX_GALLERY_IMAGES} images can be uploaded at once`)
+      }
+      await policy.assertCanManage(actor, ownerId)
+      const uploaded: OwnerGalleryImageWithUrl[] = []
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index]
+        if (!file) continue
+        uploaded.push(
+          await uploadCore(ownerId, file, {
+            isMain: Boolean(options.firstIsMain) && index === 0,
+          }),
+        )
+      }
+      return uploaded
+    },
+
     async upload(actor, ownerId, file, input) {
       await policy.assertCanManage(actor, ownerId)
-      await assertAllowedImageUpload(file)
-
-      const imageId = randomUUID().replace(/-/g, '')
-      const storagePath = `${policy.keyPrefix}/${ownerId}/images/${imageId}.webp`
-      const webpBuffer = await encodeImageToWebp(file)
-
-      // DB first (count + main under row lock) so concurrent uploads cannot overrun the cap
-      // or create dual mains; R2 put is compensated if it fails after insert.
-      let image: OwnerGalleryImage
-      try {
-        image = await repository.createAtomic({
-          ownerId,
-          storagePath,
-          isMain: input.isMain,
-          displayOrder: input.displayOrder,
-          maxImages: MAX_GALLERY_IMAGES,
-          autoMainIfEmpty: policy.autoMain,
-        })
-      } catch (error) {
-        mapGalleryUniqueConflict(error)
-      }
-
-      try {
-        await storage.putObject({
-          key: storagePath,
-          body: webpBuffer,
-          contentType: 'image/webp',
-        })
-      } catch (error) {
-        try {
-          await repository.delete(image.id)
-        } catch (compensateError) {
-          getLogger().error(
-            { err: compensateError, imageId: image.id, storagePath },
-            `failed to roll back ${policy.logLabel} row after storage put failure`,
-          )
-        }
-        throw error
-      }
-
-      return withUrl(image)
+      return uploadCore(ownerId, file, input)
     },
 
     async update(actor, imageId, input) {
@@ -228,7 +261,7 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       try {
         await storage.deleteObject(image.storagePath)
       } catch (error) {
-        getLogger().error(
+        getRequestLogger().error(
           { err: error, imageId, storagePath: image.storagePath },
           `failed to delete ${policy.logLabel} from storage`,
         )

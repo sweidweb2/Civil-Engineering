@@ -1,66 +1,55 @@
-import { useMemo, useState } from 'react'
-import { Text, View } from 'react-native'
+import { useState } from 'react'
+import { Check, MessageSquareText, Trash2, X } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { ListCard, ListScreen, StandardListRow, toneForStatus } from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { REVIEW_TONE, shortDate } from '@/features/admin/ui'
+import { WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
+import { usePagedList, WkListRow, WkListScreen, type WkRowAction } from '@/features/worker/ui/list'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
-import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
-import { showBlockingAlert } from '@/services/feedback'
 import {
   deleteReview,
   listReviews,
   type Review,
   type ReviewStatus,
+  type ReviewStatusCounts,
   updateReview,
 } from '@/services/reviews'
 import { useToastSuccess } from '@/services/toast'
-import { MONO_STYLE } from '@/theme/typography'
 
 const PAGE_SIZE = 20
 const STATUSES: ReviewStatus[] = ['PENDING', 'ACCEPTED', 'REJECTED']
 
-/** Rating as a figure ("4 / 5"), mono — a number, not decoration. */
-function Rating({ rating }: { rating: number }) {
-  return (
-    <Text
-      className="text-xs font-medium text-ink-2"
-      style={MONO_STYLE}
-      accessibilityLabel={`${rating}/5`}
-    >
-      {rating} / 5
-    </Text>
-  )
-}
-
+/** Admin → Reviews: stars, comment, approve / reject / delete. */
 export function AdminReviewsScreen() {
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [busyId, setBusyId] = useState<string | null>(null)
-  const { remote, listProps } = useResourceList(
-    ({ page, query, filter }) =>
-      listReviews(page, PAGE_SIZE, {
+  const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
+  const [counts, setCounts] = useState<ReviewStatusCounts | null>(null)
+
+  const list = usePagedList<Review>({
+    cacheKeyPrefix: cacheKeys.reviews,
+    initialFilter: 'PENDING',
+    fetcher: async ({ page, query, filter }) => {
+      const r = await listReviews(page, PAGE_SIZE, {
         q: query || undefined,
         status: (filter || undefined) as ReviewStatus | undefined,
-        counts: false,
-      }),
-    { pageSize: PAGE_SIZE, initialFilter: 'PENDING', cacheKeyPrefix: cacheKeys.reviews },
-  )
-  const statusOptions = useMemo(
-    () => STATUSES.map((value) => ({ value, label: enumLabel(t, 'reviewStatus', value) })),
-    [t],
-  )
+      })
+      if (r.meta.statusCounts) setCounts(r.meta.statusCounts)
+      return r
+    },
+  })
 
-  async function setReviewStatus(review: Review, next: ReviewStatus) {
+  async function setStatus(review: Review, next: ReviewStatus) {
     setBusyId(review.id)
     try {
       await updateReview(review.id, { status: next })
       invalidateAdminCaches()
       toastSuccess(t('reviews.markedAs', { status: enumLabel(t, 'reviewStatus', next) }))
-      await remote.refetch()
+      list.reload()
     } catch (err) {
       handleApiError(err, t('reviews.updateFailed'))
     } finally {
@@ -68,19 +57,20 @@ export function AdminReviewsScreen() {
     }
   }
 
-  function onDelete(review: Review) {
-    showBlockingAlert(t('reviews.deleteTitle'), t('reviews.deleteBody'), {
-      destructive: true,
-      cancelLabel: t('common.cancel'),
-      confirmLabel: t('common.delete'),
+  function askDelete(review: Review) {
+    setConfirm({
+      title: t('reviews.deleteTitle'),
+      body: t('reviews.deleteBody'),
+      cta: t('common.delete'),
       onConfirm: () => {
+        setConfirm(null)
         void (async () => {
           setBusyId(review.id)
           try {
             await deleteReview(review.id)
             invalidateAdminCaches()
             toastSuccess(t('reviews.deleted'))
-            await remote.refetch()
+            list.reload()
           } catch (err) {
             handleApiError(err, t('reviews.deleteFailed'))
           } finally {
@@ -91,68 +81,75 @@ export function AdminReviewsScreen() {
     })
   }
 
+  const all = counts ? counts.PENDING + counts.ACCEPTED + counts.REJECTED : null
   return (
-    <ListScreen
-      title={t('reviews.title')}
-      backHref="/admin/more"
-      searchPlaceholder={t('reviews.search')}
-      filterOptions={statusOptions}
-      allLabel={t('common.all')}
-      keyExtractor={(item) => item.id}
-      renderItem={(item) => {
-        const busy = busyId === item.id
-        return (
-          <ListCard>
-            <StandardListRow
-              title={item.targetName || item.targetType}
-              statusLabel={enumLabel(t, 'reviewStatus', item.status)}
-              statusTone={toneForStatus(item.status)}
-              extra={
-                <>
-                  <Rating rating={item.rating} />
-                  <Text className="text-sm text-ink-2" numberOfLines={3}>
-                    {item.comment?.trim() || t('reviews.noComment')}
-                  </Text>
-                  <View className="flex-row flex-wrap gap-2 pt-2">
-                    {item.status !== 'ACCEPTED' ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onPress={() => void setReviewStatus(item, 'ACCEPTED')}
-                      >
-                        {busy ? <ButtonSpinner /> : null}
-                        <ButtonText>{t('reviews.approve')}</ButtonText>
-                      </Button>
-                    ) : null}
-                    {item.status !== 'REJECTED' ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onPress={() => void setReviewStatus(item, 'REJECTED')}
-                      >
-                        <ButtonText>{t('reviews.reject')}</ButtonText>
-                      </Button>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={busy}
-                      onPress={() => onDelete(item)}
-                    >
-                      <ButtonText>{t('common.delete')}</ButtonText>
-                    </Button>
-                  </View>
-                </>
-              }
+    <>
+      <WkListScreen
+        testID="e2e-admin-reviews"
+        list={list}
+        title={t('reviews.title')}
+        backHref="/admin/more"
+        searchPlaceholder={t('reviews.search')}
+        filters={[
+          ...STATUSES.map((s) => ({
+            value: s,
+            label: enumLabel(t, 'reviewStatus', s),
+            count: counts?.[s] ?? null,
+          })),
+          { value: '', label: t('providerPortal.all'), count: all },
+        ]}
+        emptyIcon={MessageSquareText}
+        emptyTitle={t('reviews.empty')}
+        renderItem={(review) => {
+          const busy = busyId === review.id
+          const actions: WkRowAction[] = []
+          if (review.status !== 'ACCEPTED') {
+            actions.push({
+              key: 'approve',
+              label: t('reviews.approve'),
+              icon: Check,
+              variant: 'brand',
+              flex: 1.3,
+              loading: busy,
+              disabled: busyId !== null,
+              onPress: () => void setStatus(review, 'ACCEPTED'),
+            })
+          }
+          if (review.status !== 'REJECTED') {
+            actions.push({
+              key: 'reject',
+              label: t('reviews.reject'),
+              icon: X,
+              disabled: busyId !== null,
+              onPress: () => void setStatus(review, 'REJECTED'),
+            })
+          }
+          actions.push({
+            key: 'delete',
+            label: t('common.delete'),
+            icon: Trash2,
+            variant: 'dangerSoft',
+            disabled: busyId !== null,
+            onPress: () => askDelete(review),
+          })
+          return (
+            <WkListRow
+              title={review.targetName || enumLabel(t, 'reviewTarget', review.targetType)}
+              pill={{
+                label: enumLabel(t, 'reviewStatus', review.status),
+                tone: REVIEW_TONE[review.status],
+              }}
+              sub2={[enumLabel(t, 'reviewTarget', review.targetType), shortDate(review.createdAt)]
+                .filter(Boolean)
+                .join(' · ')}
+              rating={review.rating}
+              body={review.comment?.trim() || t('reviews.noComment')}
+              actions={actions}
             />
-          </ListCard>
-        )
-      }}
-      loadingLabel={t('reviews.loading')}
-      emptyTitle={t('reviews.empty')}
-      {...listProps}
-    />
+          )
+        }}
+      />
+      <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
+    </>
   )
 }

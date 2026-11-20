@@ -7,6 +7,7 @@ import {
   notFound,
   validationError,
 } from '../../errors/app-error.js'
+import { auditActivity } from '../logging/index.js'
 import type { CategoriesRepository, CategoryRecord } from './categories.repository.js'
 import type {
   CategoryKind,
@@ -216,6 +217,13 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
         )
       }
       await repository.delete(id)
+      auditActivity({
+        userId: actor.id,
+        action: 'categories.delete',
+        entity: 'category',
+        entityId: id,
+        meta: { kind: category.kind, name: category.name },
+      })
     },
   }
 }

@@ -5,4 +5,6 @@ export {
   updateGalleryImageBodySchema as updateListingImageBodySchema,
   type UploadGalleryImageBody as UploadListingImageBody,
   uploadGalleryImageBodySchema as uploadListingImageBodySchema,
+  type UploadGalleryImagesBatchBody as UploadListingImagesBatchBody,
+  uploadGalleryImagesBatchBodySchema as uploadListingImagesBatchBodySchema,
 } from '../_shared/owner-gallery.schema.js'

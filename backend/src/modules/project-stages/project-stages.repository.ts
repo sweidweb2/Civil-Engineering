@@ -206,14 +206,24 @@ function mapMaintenance(row: {
   }
 }
 
+export type ProjectStagesRows = {
+  geotechnical: GeotechnicalStudy | null
+  design: ProjectDesign | null
+  licensing: ProjectLicensing | null
+  materials: MaterialProcurement | null
+  maintenance: ProjectMaintenance | null
+}
+
 export type ProjectStagesRepository = {
-  findAllByProjectId: (projectId: string) => Promise<{
-    geotechnical: GeotechnicalStudy | null
-    design: ProjectDesign | null
-    licensing: ProjectLicensing | null
-    materials: MaterialProcurement | null
-    maintenance: ProjectMaintenance | null
-  }>
+  findAllByProjectId: (projectId: string) => Promise<ProjectStagesRows>
+  findAllByProjectIds: (projectIds: string[]) => Promise<
+    Array<
+      ProjectStagesRows & {
+        projectId: string
+        ownerId: string
+      }
+    >
+  >
   findGeotechnical: (projectId: string) => Promise<GeotechnicalStudy | null>
   upsertGeotechnical: (
     projectId: string,
@@ -236,22 +246,59 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
   return {
     async findAllByProjectId(projectId) {
       const started = performance.now()
-      const [geotechnical, design, licensing, materials, maintenance] = await Promise.all([
-        prisma.geotechnicalStudy.findUnique({ where: { projectId } }),
-        prisma.projectDesign.findUnique({ where: { projectId } }),
-        prisma.projectLicensing.findUnique({ where: { projectId } }),
-        prisma.materialProcurement.findUnique({ where: { projectId } }),
-        prisma.projectMaintenance.findUnique({ where: { projectId } }),
-      ])
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: {
+          geotechnicalStudy: true,
+          design: true,
+          licensing: true,
+          materialProcurement: true,
+          maintenance: true,
+        },
+      })
       const ms = Math.round(performance.now() - started)
-      logPerf('stages', `findAllByProjectId ${ms}ms`, { projectId, ms, queries: 5 })
+      logPerf('stages', `findAllByProjectId ${ms}ms`, { projectId, ms, queries: 1 })
       return {
-        geotechnical: geotechnical ? mapGeotechnical(geotechnical) : null,
-        design: design ? mapDesign(design) : null,
-        licensing: licensing ? mapLicensing(licensing) : null,
-        materials: materials ? mapMaterials(materials) : null,
-        maintenance: maintenance ? mapMaintenance(maintenance) : null,
+        geotechnical: project?.geotechnicalStudy
+          ? mapGeotechnical(project.geotechnicalStudy)
+          : null,
+        design: project?.design ? mapDesign(project.design) : null,
+        licensing: project?.licensing ? mapLicensing(project.licensing) : null,
+        materials: project?.materialProcurement ? mapMaterials(project.materialProcurement) : null,
+        maintenance: project?.maintenance ? mapMaintenance(project.maintenance) : null,
       }
+    },
+
+    async findAllByProjectIds(projectIds) {
+      if (projectIds.length === 0) return []
+      const started = performance.now()
+      const projects = await prisma.project.findMany({
+        where: { id: { in: projectIds } },
+        select: {
+          id: true,
+          ownerId: true,
+          geotechnicalStudy: true,
+          design: true,
+          licensing: true,
+          materialProcurement: true,
+          maintenance: true,
+        },
+      })
+      const ms = Math.round(performance.now() - started)
+      logPerf('stages', `findAllByProjectIds ${ms}ms`, {
+        count: projectIds.length,
+        ms,
+        queries: 1,
+      })
+      return projects.map((project) => ({
+        projectId: project.id,
+        ownerId: project.ownerId,
+        geotechnical: project.geotechnicalStudy ? mapGeotechnical(project.geotechnicalStudy) : null,
+        design: project.design ? mapDesign(project.design) : null,
+        licensing: project.licensing ? mapLicensing(project.licensing) : null,
+        materials: project.materialProcurement ? mapMaterials(project.materialProcurement) : null,
+        maintenance: project.maintenance ? mapMaintenance(project.maintenance) : null,
+      }))
     },
 
     async findGeotechnical(projectId) {

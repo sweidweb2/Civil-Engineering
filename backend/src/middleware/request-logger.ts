@@ -4,6 +4,7 @@ import type { Options } from 'pino-http'
 import pinoHttpImport from 'pino-http'
 
 import { getLogger } from '../logging/index.js'
+import { clientIp } from '../modules/auth/client-meta.js'
 
 type PinoHttpFn = (opts?: Options<IncomingMessage, ServerResponse>) => RequestHandler
 
@@ -43,18 +44,27 @@ export function createRequestLogger(): RequestHandler {
       ignore: (req) =>
         isHealthPath(req.url) || isHealthPath((req as { originalUrl?: string }).originalUrl),
     },
-    customProps: (req) => ({
-      requestId: (req as { requestId?: string }).requestId,
-      userId: (req as { user?: { id?: string } }).user?.id,
-    }),
+    customProps: (req) => {
+      const expressReq = req as {
+        requestId?: string
+        user?: { id?: string }
+        originalUrl?: string
+      }
+      return {
+        requestId: expressReq.requestId,
+        userId: expressReq.user?.id,
+        ip: clientIp(req as Parameters<typeof clientIp>[0]),
+      }
+    },
     customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
     customErrorMessage: (req, res, err) =>
       `${req.method} ${req.url} ${res.statusCode} — ${err.message}`,
     serializers: {
       req(req) {
+        const pathOnly = (req.url ?? '').split('?')[0] ?? req.url
         return {
           method: req.method,
-          url: req.url,
+          url: pathOnly,
         }
       },
       res(res) {

@@ -1,53 +1,54 @@
-import { useMemo, useState } from 'react'
-import { View } from 'react-native'
+import { useState } from 'react'
+import { Check, Trash2, Undo2, UserCheck } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar, ListCard, ListScreen, StandardListRow } from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+import { shortDate } from '@/features/admin/ui'
+import { WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
+import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/features/worker/ui/list'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
-import { useResourceList } from '@/hooks/useResourceList'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
 import { userDisplayName } from '@/lib/user'
-import { showBlockingAlert } from '@/services/feedback'
 import { useToastSuccess } from '@/services/toast'
 import {
+  type ApprovalCounts,
   type ApprovalListStatus,
   approveUser,
   deleteApproval,
   listApprovals,
   unapproveUser,
+  type User,
 } from '@/services/users'
 
 const PAGE_SIZE = 20
 
+/** Admin → Registration requests: approve / unapprove / remove sign-ups. */
 export function AdminQueueScreen() {
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const [busyId, setBusyId] = useState<string | null>(null)
-  const { remote, list, listProps } = useResourceList(
-    ({ page, query, filter }) =>
-      listApprovals({
+  const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
+  const [counts, setCounts] = useState<ApprovalCounts | null>(null)
+
+  const list = usePagedList<User>({
+    cacheKeyPrefix: cacheKeys.queue,
+    initialFilter: 'pending',
+    fetcher: async ({ page, query, filter }) => {
+      const r = await listApprovals({
         approval: filter as ApprovalListStatus,
         page,
         limit: PAGE_SIZE,
         q: query || undefined,
-        counts: false,
-      }),
-    { pageSize: PAGE_SIZE, initialFilter: 'pending', cacheKeyPrefix: cacheKeys.queue },
-  )
-  const approval = list.filter as ApprovalListStatus
-  const filterOptions = useMemo(
-    () => [
-      { value: 'pending', label: t('queue.pending') },
-      { value: 'approved', label: t('queue.approved') },
-    ],
-    [t],
-  )
+      })
+      if (r.meta.counts) setCounts(r.meta.counts)
+      return r
+    },
+  })
+  const pendingTab = list.filter === 'pending'
 
-  async function runAction(userId: string, action: 'approve' | 'unapprove' | 'delete') {
+  async function run(userId: string, action: 'approve' | 'unapprove' | 'delete') {
     setBusyId(userId)
     try {
       if (action === 'approve') await approveUser(userId)
@@ -55,7 +56,7 @@ export function AdminQueueScreen() {
       else await deleteApproval(userId)
       invalidateAdminCaches()
       toastSuccess(t('queue.updated'))
-      await remote.refetch()
+      list.reload()
     } catch (err) {
       handleApiError(err, t('queue.updateFailed'))
     } finally {
@@ -64,70 +65,74 @@ export function AdminQueueScreen() {
   }
 
   return (
-    <ListScreen
-      title={t('queue.title')}
-      backHref="/admin/more"
-      searchPlaceholder={t('queue.search')}
-      filterOptions={filterOptions}
-      keyExtractor={(item) => item.id}
-      renderItem={(item) => {
-        const busy = busyId === item.id
-        return (
-          <ListCard
-            leading={<Avatar name={userDisplayName(item)} imageUrl={item.profile?.avatarUrl} />}
-          >
-            <StandardListRow
-              title={userDisplayName(item)}
-              statusLabel={enumLabel(t, 'role', item.role)}
-              statusTone="info"
-              subtitle={ltr(item.email)}
-              extra={
-                <View className="flex-row flex-wrap gap-2 pt-2">
-                  {approval === 'pending' ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onPress={() => void runAction(item.id, 'approve')}
-                    >
-                      {busy ? <ButtonSpinner /> : null}
-                      <ButtonText>{t('queue.approve')}</ButtonText>
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onPress={() => void runAction(item.id, 'unapprove')}
-                    >
-                      {busy ? <ButtonSpinner /> : null}
-                      <ButtonText>{t('queue.unapprove')}</ButtonText>
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={busy}
-                    onPress={() =>
-                      showBlockingAlert(t('queue.removeTitle'), t('queue.removeBody'), {
-                        destructive: true,
-                        cancelLabel: t('common.cancel'),
-                        confirmLabel: t('common.remove'),
-                        onConfirm: () => void runAction(item.id, 'delete'),
-                      })
+    <>
+      <WkListScreen
+        testID="e2e-admin-queue"
+        list={list}
+        title={t('queue.title')}
+        backHref="/admin/more"
+        searchPlaceholder={t('queue.search')}
+        filters={[
+          { value: 'pending', label: t('queue.pending'), count: counts?.pending ?? null },
+          { value: 'approved', label: t('queue.approved'), count: counts?.approved ?? null },
+        ]}
+        emptyIcon={UserCheck}
+        emptyTitle={pendingTab ? t('queue.emptyPending') : t('queue.emptyApproved')}
+        emptyBody={pendingTab ? t('adminPortal.queueEmptyHint') : undefined}
+        renderItem={(user) => {
+          const name = userDisplayName(user)
+          const busy = busyId === user.id
+          return (
+            <WkListRow
+              media={<WkMedia photo={user.profile?.avatarUrl} name={name} round hero />}
+              title={name}
+              pill={{ label: enumLabel(t, 'role', user.role), tone: 'teal' }}
+              sub={ltr(user.email)}
+              sub2={shortDate(user.createdAt)}
+              actions={[
+                pendingTab
+                  ? {
+                      key: 'approve',
+                      label: t('queue.approve'),
+                      icon: Check,
+                      variant: 'brand' as const,
+                      flex: 1.4,
+                      loading: busy,
+                      disabled: busyId !== null,
+                      onPress: () => void run(user.id, 'approve'),
                     }
-                  >
-                    <ButtonText>{t('common.remove')}</ButtonText>
-                  </Button>
-                </View>
-              }
+                  : {
+                      key: 'unapprove',
+                      label: t('queue.unapprove'),
+                      icon: Undo2,
+                      flex: 1.4,
+                      loading: busy,
+                      disabled: busyId !== null,
+                      onPress: () => void run(user.id, 'unapprove'),
+                    },
+                {
+                  key: 'remove',
+                  label: t('common.remove'),
+                  icon: Trash2,
+                  variant: 'dangerSoft' as const,
+                  disabled: busyId !== null,
+                  onPress: () =>
+                    setConfirm({
+                      title: t('queue.removeTitle'),
+                      body: t('queue.removeBody'),
+                      cta: t('common.remove'),
+                      onConfirm: () => {
+                        setConfirm(null)
+                        void run(user.id, 'delete')
+                      },
+                    }),
+                },
+              ]}
             />
-          </ListCard>
-        )
-      }}
-      loadingLabel={t('queue.loading')}
-      emptyTitle={t(approval === 'pending' ? 'queue.emptyPending' : 'queue.emptyApproved')}
-      {...listProps}
-    />
+          )
+        }}
+      />
+      <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
+    </>
   )
 }

@@ -1,5 +1,5 @@
-import { ProviderListingEditorScreen } from '@/features/provider/ProviderListingEditorScreen'
+import { ProviderListingFormScreen } from '@/features/provider/ProviderListingFormScreen'
 
 export default function AdminListingEdit() {
-  return <ProviderListingEditorScreen mode="edit" basePath="/admin/listings" scope="admin" />
+  return <ProviderListingFormScreen mode="edit" basePath="/admin/listings" scope="admin" />
 }

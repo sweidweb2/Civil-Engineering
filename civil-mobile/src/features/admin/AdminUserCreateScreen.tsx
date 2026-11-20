@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { router } from 'expo-router'
+import { KeyRound, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { passwordSchema } from '@/features/auth/password.schema'
 import {
-  ChoiceField,
-  FieldRow,
-  FormError,
-  FormScreen,
-  Section,
-  TextField,
-  ToggleRow,
-} from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+  WkChoice,
+  WkField,
+  WkFormScreen,
+  WkPasswordField,
+  WkSection,
+  WkToggle,
+} from '@/features/worker/ui/forms'
+import { WkButton } from '@/features/worker/ui/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'
@@ -20,7 +21,11 @@ import { useToastSuccess } from '@/services/toast'
 import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
 
 const BASE = '/admin/users'
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+type Errors = Partial<Record<'email' | 'password', string>>
+
+/** Admin "New user": account (email, temp password, role) + profile. */
 export function AdminUserCreateScreen() {
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
@@ -33,15 +38,20 @@ export function AdminUserCreateScreen() {
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
   const [isVerified, setIsVerified] = useState(false)
-  const [error, setError] = useState<string | undefined>()
+  const [errors, setErrors] = useState<Errors>({})
   const [isSaving, setIsSaving] = useState(false)
 
   async function onCreate() {
-    if (!email.trim() || !password.trim()) {
-      setError(t('users.emailPasswordRequired'))
+    const e: Errors = {}
+    if (!email.trim()) e.email = t('adminPortal.required')
+    else if (!EMAIL.test(email.trim())) e.email = t('adminPortal.validEmail')
+    const pw = passwordSchema.safeParse(password)
+    if (!pw.success) e.password = pw.error.issues[0]?.message
+    if (Object.keys(e).length) {
+      setErrors(e)
       return
     }
-    setError(undefined)
+    setErrors({})
     setIsSaving(true)
     try {
       const created = await createUser({
@@ -65,65 +75,74 @@ export function AdminUserCreateScreen() {
   }
 
   return (
-    <FormScreen
+    <WkFormScreen
       title={t('users.new')}
       backHref={BASE}
+      testID="e2e-admin-user-new"
       footer={
-        <Button
-          className="flex-1"
+        <WkButton
+          label={isSaving ? t('common.creating') : t('users.create')}
+          loading={isSaving}
+          height={54}
           onPress={() => void onCreate()}
-          disabled={isSaving}
-          accessibilityState={{ busy: isSaving }}
-        >
-          {isSaving ? <ButtonSpinner /> : null}
-          <ButtonText>{isSaving ? t('common.creating') : t('users.create')}</ButtonText>
-        </Button>
+        />
       }
     >
-      <FormError message={error} />
-      <Section title={t('users.account')}>
-        <TextField
+      <WkSection icon={KeyRound} title={t('users.account')}>
+        <WkField
           label={t('common.email')}
           required
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v) => {
+            setEmail(v)
+            if (errors.email) setErrors((x) => ({ ...x, email: undefined }))
+          }}
+          error={errors.email}
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder="user@example.com"
+          ltr
         />
-        <TextField
-          label={t('common.password')}
+        <WkPasswordField
+          label={t('users.tempPassword')}
           required
           value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder={t('users.tempPassword')}
+          onChangeText={(v) => {
+            setPassword(v)
+            if (errors.password) setErrors((x) => ({ ...x, password: undefined }))
+          }}
+          error={errors.password}
+          hint={t('account.passwordHint')}
         />
-        <ChoiceField
+        <WkChoice
           label={t('users.role')}
           options={enumOptions(t, 'role', AUTH_ROLE_OPTIONS)}
           value={role}
           onChange={(value) => setRole(value as AuthRole)}
         />
-        <ToggleRow label={t('users.verified')} value={isVerified} onValueChange={setIsVerified} />
-      </Section>
-      <Section title={t('users.profile')}>
-        <FieldRow>
-          <TextField label={t('common.firstName')} value={firstName} onChangeText={setFirstName} />
-          <TextField label={t('common.lastName')} value={lastName} onChangeText={setLastName} />
-        </FieldRow>
-        <TextField
+        <WkToggle
+          label={t('users.verified')}
+          hint={t('adminPortal.verifiedHint')}
+          value={isVerified}
+          onChange={setIsVerified}
+        />
+      </WkSection>
+      <WkSection icon={UserRound} title={t('users.profile')}>
+        <WkField label={t('common.firstName')} value={firstName} onChangeText={setFirstName} />
+        <WkField label={t('common.lastName')} value={lastName} onChangeText={setLastName} />
+        <WkField
           label={t('common.displayName')}
           value={displayName}
           onChangeText={setDisplayName}
         />
-        <TextField
+        <WkField
           label={t('common.phone')}
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
+          ltr
         />
-      </Section>
-    </FormScreen>
+      </WkSection>
+    </WkFormScreen>
   )
 }

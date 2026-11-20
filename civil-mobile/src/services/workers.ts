@@ -86,6 +86,31 @@ export type WorkerProfile = {
   updatedAt: string
 }
 
+/** Lean row from `GET /workers` directory lists (no nested user). */
+export type WorkerDirectoryItem = {
+  id: string
+  userId: string
+  headline: string | null
+  primaryTrade: string | null
+  yearsExperience: number | null
+  city: string | null
+  country: string | null
+  hourlyRate: string | null
+  dailyRate: string | null
+  currency: string | null
+  availability: WorkerAvailability
+  isPublic: boolean
+  verificationStatus: WorkerVerificationStatus
+  isVerified: boolean
+  displayName: string | null
+  firstName: string | null
+  lastName: string | null
+  avatarUrl: string | null
+  skillNames: string[]
+  createdAt: string
+  updatedAt: string
+}
+
 export type WorkerExperienceWrite = {
   company: string
   roleTitle: string
@@ -265,7 +290,7 @@ export function getWorkerByUserId(userId: string) {
 }
 
 export type PaginatedWorkers = {
-  data: WorkerProfile[]
+  data: WorkerDirectoryItem[]
   meta: { page: number; limit: number; total: number; totalPages: number }
 }
 
@@ -278,4 +303,8 @@ export function listWorkers(params: { page?: number; limit?: number; q?: string 
   })
   if (params.q?.trim()) search.set('q', params.q.trim())
   return apiRequest<PaginatedWorkers>(`/workers?${search.toString()}`)
+}
+
+export function directoryWorkerName(w: WorkerDirectoryItem) {
+  return w.displayName || [w.firstName, w.lastName].filter(Boolean).join(' ') || 'Worker'
 }

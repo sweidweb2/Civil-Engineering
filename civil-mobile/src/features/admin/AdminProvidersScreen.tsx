@@ -1,62 +1,71 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { router } from 'expo-router'
 import { Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { ListCard, ListScreen, StandardListRow, Thumbnail, toneForStatus } from '@/components/kit'
-import { useResourceList } from '@/hooks/useResourceList'
-import { enumLabel, enumOptions } from '@/i18n/labels'
+import { PROVIDER_TONE } from '@/features/admin/ui'
+import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/features/worker/ui/list'
+import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
-import { listProviders, PROVIDER_STATUS_OPTIONS, type ProviderStatus } from '@/services/providers'
+import {
+  listProviders,
+  type Provider,
+  PROVIDER_STATUS_OPTIONS,
+  type ProviderStatus,
+  type ProviderStatusCounts,
+} from '@/services/providers'
 
 const PAGE_SIZE = 20
 const BASE = '/admin/providers'
 
+/** Admin "Providers" tab: status chips with counts. */
 export function AdminProvidersScreen() {
   const { t } = useTranslation()
-  const { listProps } = useResourceList(
-    ({ page, query, filter }) =>
-      listProviders(
+  const [counts, setCounts] = useState<ProviderStatusCounts | null>(null)
+  const list = usePagedList<Provider>({
+    cacheKeyPrefix: cacheKeys.providers,
+    fetcher: async ({ page, query, filter }) => {
+      const r = await listProviders(
         page,
         PAGE_SIZE,
         query || undefined,
         (filter || undefined) as ProviderStatus | undefined,
-        false,
-      ),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.providers },
-  )
-  const statusOptions = useMemo(
-    () => enumOptions(t, 'providerStatus', PROVIDER_STATUS_OPTIONS),
-    [t],
-  )
+        true,
+      )
+      if (r.meta.statusCounts) setCounts(r.meta.statusCounts)
+      return r
+    },
+  })
 
+  const all = counts ? counts.PENDING + counts.APPROVED + counts.SUSPENDED : null
   return (
-    <ListScreen
-      title={t('providers.title')}
+    <WkListScreen
+      testID="e2e-admin-providers"
+      list={list}
       searchPlaceholder={t('providers.search')}
-      filterOptions={statusOptions}
-      allLabel={t('common.all')}
-      keyExtractor={(item) => item.id}
-      renderItem={(item) => (
-        <ListCard
-          accessibilityLabel={item.name}
-          leading={<Thumbnail imageUrl={item.logoUrl} icon={Store} />}
-          onPress={() => router.push(`${BASE}/${item.id}` as never)}
-        >
-          <StandardListRow
-            title={item.name}
-            statusLabel={enumLabel(t, 'providerStatus', item.status)}
-            statusTone={toneForStatus(item.status)}
-            subtitle={
-              [item.city, ltr(item.email), ltr(item.phone)].filter(Boolean).join(' · ') || '—'
-            }
-          />
-        </ListCard>
-      )}
-      loadingLabel={t('providers.loading')}
+      onAdd={() => router.push(`${BASE}/new` as never)}
+      addLabel={t('providers.new')}
+      filters={[
+        { value: '', label: t('providerPortal.all'), count: all },
+        ...PROVIDER_STATUS_OPTIONS.map((o) => ({
+          value: o.value,
+          label: enumLabel(t, 'providerStatus', o.value),
+          count: counts?.[o.value] ?? null,
+        })),
+      ]}
+      emptyIcon={Store}
       emptyTitle={t('providers.empty')}
-      {...listProps}
+      renderItem={(p) => (
+        <WkListRow
+          media={<WkMedia photo={p.logoUrl} name={p.name} hero />}
+          title={p.name}
+          pill={{ label: enumLabel(t, 'providerStatus', p.status), tone: PROVIDER_TONE[p.status] }}
+          sub={[p.city, p.country].filter(Boolean).join(', ') || null}
+          sub2={p.email ? ltr(p.email) : p.phone ? ltr(p.phone) : null}
+          onPress={() => router.push(`${BASE}/${p.id}` as never)}
+        />
+      )}
     />
   )
 }

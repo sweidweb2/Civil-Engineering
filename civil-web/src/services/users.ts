@@ -95,6 +95,25 @@ export function listUsers(page = 1, limit = 100, q?: string) {
   return apiRequest<PaginatedUsers>(`/users?${params.toString()}`, { cache: 'no-store' })
 }
 
+export type AdminOverview = {
+  users: number
+  managers: number
+  workers: number
+  providers: number
+  pendingProviders: number
+  projects: number
+  listings: number
+  reviews: number
+  verificationRequests: number
+  pendingRequests: number
+  pendingReviews: number
+}
+
+/** Single-request admin dashboard aggregates. */
+export function getAdminOverview() {
+  return apiRequest<{ data: AdminOverview }>('/users/admin-overview')
+}
+
 export function getUser(id: string) {
   return apiRequest<{ data: User; meta: { avatarDownloadUrl: string | null } }>(`/users/${id}`)
 }

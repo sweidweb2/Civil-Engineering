@@ -1,11 +1,18 @@
-import { randomUUID } from 'node:crypto'
 import type { RequestHandler } from 'express'
 
+import { newRequestId, runWithRequestContext, sanitizeRequestId } from '../logging/request-als.js'
+import { clientIp } from '../modules/auth/client-meta.js'
+
+/**
+ * Assigns `x-request-id` and opens request AsyncLocalStorage for the whole handler chain
+ * (services/jobs on this request can bind logs / activity rows to requestId + ip).
+ */
 export const requestContext: RequestHandler = (req, res, next) => {
-  const headerId = req.header('x-request-id')?.trim()
-  const requestId = headerId && headerId.length > 0 ? headerId : randomUUID()
+  const requestId = sanitizeRequestId(req.header('x-request-id')) ?? newRequestId()
+  const ip = clientIp(req) ?? undefined
 
   req.requestId = requestId
   res.setHeader('x-request-id', requestId)
-  next()
+
+  runWithRequestContext({ requestId, ip }, () => next())
 }

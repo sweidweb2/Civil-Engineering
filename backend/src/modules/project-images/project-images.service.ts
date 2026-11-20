@@ -13,6 +13,7 @@ import type {
   ReorderProjectImagesBody,
   UpdateProjectImageBody,
   UploadProjectImageBody,
+  UploadProjectImagesBatchBody,
 } from './project-images.schema.js'
 import type {
   ProjectImage,
@@ -29,6 +30,12 @@ export type ProjectImagesService = {
     file: ImageUploadFile & { originalname?: string },
     input: UploadProjectImageBody,
   ) => Promise<ProjectImageWithUrl>
+  uploadProjectImagesBatch: (
+    actor: AuthActor,
+    projectId: string,
+    files: Array<ImageUploadFile & { originalname?: string }>,
+    input: UploadProjectImagesBatchBody,
+  ) => Promise<ProjectImageWithUrl[]>
   updateProjectImage: (
     actor: AuthActor,
     imageId: string,
@@ -142,6 +149,12 @@ export function createProjectImagesService(deps: ProjectImagesServiceDeps): Proj
       toProjectImageWithUrl(await gallery.get(actor, imageId)),
     uploadProjectImage: async (actor, projectId, file, input) =>
       toProjectImageWithUrl(await gallery.upload(actor, projectId, file, input)),
+    uploadProjectImagesBatch: async (actor, projectId, files, input) =>
+      (
+        await gallery.uploadMany(actor, projectId, files, {
+          firstIsMain: input.firstIsMain,
+        })
+      ).map(toProjectImageWithUrl),
     updateProjectImage: async (actor, imageId, input) =>
       toProjectImageWithUrl(await gallery.update(actor, imageId, input)),
     deleteProjectImage: (actor, imageId) => gallery.remove(actor, imageId),

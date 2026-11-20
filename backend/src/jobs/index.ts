@@ -32,6 +32,10 @@ export async function deleteStorageObject(payload: { fileId: string; key: string
   try {
     const config = loadConfig()
     if (!config.storage) {
+      getLogger().warn(
+        { fileId: payload.fileId, key: payload.key, kind: 'jobs.storage_unconfigured' },
+        'jobs.deleteStorageObject skipped — storage not configured',
+      )
       return
     }
     const storage = getStorageService(config)
@@ -40,9 +44,9 @@ export async function deleteStorageObject(payload: { fileId: string; key: string
   } catch (error) {
     getLogger().error(
       {
+        err: error,
         fileId: payload.fileId,
         key: payload.key,
-        message: error instanceof Error ? error.message : String(error),
       },
       'jobs.deleteStorageObject failed',
     )
@@ -64,10 +68,7 @@ export async function purgeExpiredDeniedRefreshTokens(): Promise<number> {
     })
     return removed ?? 0
   } catch (error) {
-    getLogger().error(
-      { message: error instanceof Error ? error.message : String(error) },
-      'jobs.purgeDeniedRefreshTokens failed',
-    )
+    getLogger().error({ err: error }, 'jobs.purgeDeniedRefreshTokens failed')
     return 0
   }
 }
@@ -118,11 +119,7 @@ export async function purgeDeletedFileObjects(): Promise<{
           deletedObjects += 1
         } catch (error) {
           getLogger().error(
-            {
-              fileId: file.id,
-              key: file.key,
-              message: error instanceof Error ? error.message : String(error),
-            },
+            { err: error, fileId: file.id, key: file.key },
             'jobs.purgeDeletedFileObjects delete failed',
           )
         }
@@ -135,16 +132,20 @@ export async function purgeDeletedFileObjects(): Promise<{
           // Claim first so a concurrent complete() cannot mark READY after we decide to GC.
           const claimed = await repository.claimStalePending(file.id)
           if (!claimed) continue
-          await storage.deleteObject(claimed.key).catch(() => undefined)
+          try {
+            await storage.deleteObject(claimed.key)
+          } catch (error) {
+            getLogger().warn(
+              { err: error, fileId: claimed.id, key: claimed.key },
+              'jobs.purgeDeletedFileObjects stale R2 delete failed — keeping DB row for retry',
+            )
+            continue
+          }
           await repository.hardDeleteIfDeleted(claimed.id)
           stalePending += 1
         } catch (error) {
           getLogger().error(
-            {
-              fileId: file.id,
-              key: file.key,
-              message: error instanceof Error ? error.message : String(error),
-            },
+            { err: error, fileId: file.id, key: file.key },
             'jobs.purgeDeletedFileObjects stale pending failed',
           )
         }
@@ -157,10 +158,7 @@ export async function purgeDeletedFileObjects(): Promise<{
     })
     return result ?? { deletedObjects: 0, stalePending: 0 }
   } catch (error) {
-    getLogger().error(
-      { message: error instanceof Error ? error.message : String(error) },
-      'jobs.purgeDeletedFileObjects failed',
-    )
+    getLogger().error({ err: error }, 'jobs.purgeDeletedFileObjects failed')
     return { deletedObjects: 0, stalePending: 0 }
   }
 }

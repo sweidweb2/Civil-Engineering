@@ -5,6 +5,7 @@ import type { ProjectStagesService } from './project-stages.service.js'
 
 export type ProjectStagesController = {
   getSummary: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  getSummaries: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getGeotechnical: (req: Request, res: Response, next: NextFunction) => Promise<void>
   upsertGeotechnical: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getDesign: (req: Request, res: Response, next: NextFunction) => Promise<void>
@@ -24,6 +25,14 @@ export function createProjectStagesController(
     async getSummary(req, res, next) {
       try {
         const data = await service.getSummary(String(req.params.projectId), parseAuthActor(req))
+        res.status(200).json({ data })
+      } catch (error) {
+        next(error)
+      }
+    },
+    async getSummaries(req, res, next) {
+      try {
+        const data = await service.getSummaries(req.body, parseAuthActor(req))
         res.status(200).json({ data })
       } catch (error) {
         next(error)

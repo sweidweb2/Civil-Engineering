@@ -30,4 +30,12 @@ if (!process.env.VERCEL) {
 
   process.on('SIGINT', () => shutdown('SIGINT'))
   process.on('SIGTERM', () => shutdown('SIGTERM'))
+
+  process.on('unhandledRejection', (reason) => {
+    logger.error({ err: reason }, 'unhandledRejection')
+  })
+  process.on('uncaughtException', (error) => {
+    logger.error({ err: error }, 'uncaughtException')
+    shutdown('uncaughtException')
+  })
 }

@@ -35,7 +35,7 @@ function parseFilter(value: unknown): Filter {
 }
 
 /** PM "Projects" tab: search, status chips with counts, photo cards with progress. */
-export function PmProjectsScreen() {
+export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: string } = {}) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { c, shadow, isDark } = useWorkerPalette()
@@ -77,7 +77,7 @@ export function PmProjectsScreen() {
     [applied, filter, page],
   )
   const remote = useRemoteData(load, {
-    cacheKey: `${cacheKeys.projects}:pm-cards:${page}:${applied}:${filter}`,
+    cacheKey: `${cacheKeys.projects}:${basePath}:cards:${page}:${applied}:${filter}`,
   })
   const result = remote.status === 'success' ? remote.data : null
 
@@ -137,7 +137,7 @@ export function PmProjectsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('pmHome.newProject')}
-          onPress={() => router.push('/pm/projects/new' as never)}
+          onPress={() => router.push(`${basePath}/new` as never)}
           className="size-12 items-center justify-center rounded-[14px] bg-wk-ink active:opacity-80"
         >
           <Plus size={22} color={c.bg} strokeWidth={2} />
@@ -235,7 +235,7 @@ export function PmProjectsScreen() {
                 height={48}
                 icon={Plus}
                 label={t('pmHome.newProject')}
-                onPress={() => router.push('/pm/projects/new' as never)}
+                onPress={() => router.push(`${basePath}/new` as never)}
               />
             ) : (
               <WkButton
@@ -263,7 +263,7 @@ export function PmProjectsScreen() {
           <ProjectCard
             project={item}
             index={index}
-            onPress={() => router.push(`/pm/projects/${item.id}` as never)}
+            onPress={() => router.push(`${basePath}/${item.id}` as never)}
           />
         )}
         ItemSeparatorComponent={() => <View className="h-3" />}

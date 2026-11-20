@@ -51,13 +51,7 @@ export function createDevicesService(
           await repository.deleteByTokens(result.invalidTokens)
         }
       } catch (error) {
-        getLogger().error(
-          {
-            userId,
-            message: error instanceof Error ? error.message : String(error),
-          },
-          'devices.notifyUser push failed',
-        )
+        getLogger().error({ err: error, userId }, 'devices.notifyUser push failed')
       }
     },
   }

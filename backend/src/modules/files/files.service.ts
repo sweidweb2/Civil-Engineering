@@ -4,6 +4,7 @@ import type { AuthActor } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
 import { maybePurgeDeletedFileObjects } from '../../jobs/index.js'
+import { getRequestLogger } from '../../logging/index.js'
 import { buildObjectKey, type StorageService } from '../../storage/index.js'
 import type { ProjectsService } from '../projects/index.js'
 import { assertCanAttachToEntity, assertCanCompleteUpload } from './files.authz.js'
@@ -109,7 +110,12 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         }
       } catch (error) {
         // Compensate: no usable upload URL — drop the PENDING row (no R2 object yet).
-        await repository.markDeleted(fileId).catch(() => undefined)
+        await repository.markDeleted(fileId).catch((cleanupError) => {
+          getRequestLogger().warn(
+            { err: cleanupError, fileId, kind: 'files.presign_compensate_failed' },
+            'failed to mark pending file deleted after presign failure',
+          )
+        })
         throw error
       }
     },
@@ -244,13 +250,28 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
         })
         const ready = await repository.markReady(fileId, size)
         if (!ready) {
-          await deleteStorageObject({ fileId, key }).catch(() => undefined)
+          await deleteStorageObject({ fileId, key }).catch((cleanupError) => {
+            getRequestLogger().warn(
+              { err: cleanupError, fileId, key, kind: 'files.upload_compensate_failed' },
+              'failed to delete storage object after markReady miss',
+            )
+          })
           throw forbidden('File cannot be completed')
         }
         return ready
       } catch (error) {
-        await repository.markDeleted(fileId).catch(() => undefined)
-        await deleteStorageObject({ fileId, key }).catch(() => undefined)
+        await repository.markDeleted(fileId).catch((cleanupError) => {
+          getRequestLogger().warn(
+            { err: cleanupError, fileId, kind: 'files.upload_mark_deleted_failed' },
+            'failed to mark file deleted after upload failure',
+          )
+        })
+        await deleteStorageObject({ fileId, key }).catch((cleanupError) => {
+          getRequestLogger().warn(
+            { err: cleanupError, fileId, key, kind: 'files.upload_compensate_failed' },
+            'failed to delete storage object after upload failure',
+          )
+        })
         throw error
       }
     },

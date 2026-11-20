@@ -55,10 +55,11 @@ import {
 } from '@/services/projects'
 import { useToastSuccess } from '@/services/toast'
 
-const BASE = '/pm/projects'
+const DEFAULT_BASE = '/pm/projects'
 
 /** PM project page: photo summary, stages entry, gallery, editable details. */
-export function PmProjectScreen() {
+export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string } = {}) {
+  const BASE = basePath
   const { t } = useTranslation()
   const { c } = useWorkerPalette()
   const handleApiError = useHandleApiError()

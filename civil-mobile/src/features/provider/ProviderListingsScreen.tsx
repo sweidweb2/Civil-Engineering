@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { ListingGridCard, ListingGridSkeleton } from '@/features/provider/ui/kit'
-import { WkButton, WkError, WkHeroGlow } from '@/features/worker/ui/kit'
+import { WkButton, WkError, WkHeroGlow, WkTopBar } from '@/features/worker/ui/kit'
 import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
@@ -31,8 +31,21 @@ function toRows(items: Listing[]): Listing[][] {
   return rows
 }
 
-/** Provider "Listings" tab: photo grid with search and Live / Hidden filters. */
-export function ProviderListingsScreen() {
+/**
+ * Listings photo grid with search and Live / Hidden filters.
+ * Provider "Listings" tab by default; admin reuses it (all providers) as a
+ * pushed screen with `scope="admin"` and a back header.
+ */
+export function ProviderListingsScreen({
+  basePath = '/provider/listings',
+  scope = 'mine',
+  backHref,
+}: {
+  basePath?: string
+  scope?: 'mine' | 'admin'
+  /** Shows a back header (pushed screen) instead of the tab layout. */
+  backHref?: string
+} = {}) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { c, shadow, isDark } = useWorkerPalette()
@@ -76,7 +89,7 @@ export function ProviderListingsScreen() {
     [applied, filter, page],
   )
   const remote = useRemoteData(load, {
-    cacheKey: `${cacheKeys.listingsMine}:grid:${page}:${applied}:${filter}`,
+    cacheKey: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${page}:${applied}:${filter}`,
   })
   const result = remote.status === 'success' ? remote.data : null
 
@@ -143,7 +156,7 @@ export function ProviderListingsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('providerHome.newListing')}
-          onPress={() => router.push('/provider/listings/new' as never)}
+          onPress={() => router.push(`${basePath}/new` as never)}
           className="size-12 items-center justify-center rounded-[14px] bg-wk-ink active:opacity-80"
         >
           <Plus size={22} color={c.bg} strokeWidth={2} />
@@ -233,7 +246,7 @@ export function ProviderListingsScreen() {
                 height={48}
                 icon={Plus}
                 label={t('providerHome.newListing')}
-                onPress={() => router.push('/provider/listings/new' as never)}
+                onPress={() => router.push(`${basePath}/new` as never)}
               />
             ) : (
               <WkButton
@@ -251,6 +264,13 @@ export function ProviderListingsScreen() {
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-provider-listings">
+      {backHref ? (
+        <WkTopBar
+          title={t('listings.title')}
+          backHref={backHref}
+          count={total ? String(total) : undefined}
+        />
+      ) : null}
       <FlatList
         data={isFirstLoad ? [] : listRows}
         keyExtractor={(row) => row.map((l) => l.id).join(':')}
@@ -261,7 +281,7 @@ export function ProviderListingsScreen() {
                 key={listing.id}
                 listing={listing}
                 index={index * 2 + col}
-                onPress={() => router.push(`/provider/listings/${listing.id}` as never)}
+                onPress={() => router.push(`${basePath}/${listing.id}` as never)}
               />
             ))}
             {row.length === 1 ? <View className="flex-1" /> : null}
@@ -287,7 +307,7 @@ export function ProviderListingsScreen() {
         keyboardDismissMode="on-drag"
         contentContainerClassName="px-5"
         contentContainerStyle={{
-          paddingTop: insets.top + 12,
+          paddingTop: backHref ? 8 : insets.top + 12,
           paddingBottom: WK_TAB_SPACE + insets.bottom,
         }}
         refreshControl={

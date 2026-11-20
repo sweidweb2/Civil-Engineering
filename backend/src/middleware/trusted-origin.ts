@@ -1,7 +1,9 @@
 import type { RequestHandler } from 'express'
 
 import { forbidden } from '../errors/app-error.js'
+import { getRequestLogger } from '../logging/index.js'
 import { ACCESS_COOKIE, parseCookieHeader, REFRESH_COOKIE } from '../modules/auth/auth.cookies.js'
+import { clientIp } from '../modules/auth/client-meta.js'
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
@@ -52,6 +54,16 @@ export function requireTrustedOrigin(allowedOrigins: readonly string[]): Request
     const source = req.headers.origin ?? req.headers.referer
     const origin = source ? normalizeOrigin(source) : null
     if (!origin || !allowed.has(origin)) {
+      getRequestLogger().warn(
+        {
+          kind: 'security.untrusted_origin',
+          method: req.method,
+          path: (req.originalUrl || req.url).split('?')[0],
+          origin: origin ?? null,
+          ip: clientIp(req),
+        },
+        'untrusted request origin',
+      )
       next(forbidden('Untrusted request origin', 'UNTRUSTED_ORIGIN'))
       return
     }

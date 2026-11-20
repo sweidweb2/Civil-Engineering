@@ -185,10 +185,14 @@ describe('usersService', () => {
       const service = createUsersService(repository, undefined, gateway)
       await expect(service.getAdminOverview(admin)).resolves.toEqual({
         users: 4,
+        managers: 2,
+        workers: 1,
         providers: 6,
         pendingProviders: 2,
         projects: 11,
         listings: 9,
+        reviews: 10,
+        verificationRequests: 1,
         pendingRequests: 1,
         pendingReviews: 4,
         recentProjects: [],

@@ -20,12 +20,26 @@ import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { type ListingStatus, RENTAL_UNITS } from '@/services/listings'
 import { useLanguageStore } from '@/stores/languageStore'
 
-const BASE = '/provider/listings'
+const DEFAULT_BASE = '/provider/listings'
 /** Quick picks; a listing saved with another code keeps it as an extra chip. */
 const CURRENCIES = ['SAR', 'AED', 'USD', 'EGP']
 
-/** Provider create / edit listing form (gallery, details, pricing). */
-export function ProviderListingFormScreen({ mode }: { mode: 'create' | 'edit' }) {
+/**
+ * Create / edit listing form (gallery, details, pricing). Provider portal by
+ * default; admin passes `scope="admin"` to pick which provider owns it.
+ */
+export function ProviderListingFormScreen({
+  mode,
+  basePath = DEFAULT_BASE,
+  scope = 'mine',
+}: {
+  mode: 'create' | 'edit'
+  basePath?: string
+  scope?: 'mine' | 'admin'
+}) {
+  const BASE = basePath
+  const isAdmin = scope === 'admin'
+  const [providerOpen, setProviderOpen] = useState(false)
   const { t } = useTranslation()
   const { c } = useWorkerPalette()
   const isAr = useLanguageStore((s) => s.language) === 'ar'
@@ -44,10 +58,13 @@ export function ProviderListingFormScreen({ mode }: { mode: 'create' | 'edit' })
     setQueuedImages,
     categories,
     isCategoriesLoading,
+    selectedProviderId,
+    setSelectedProviderId,
+    providerOptions,
     isBootLoading,
     bootError,
     retry,
-  } = useListingEditor({ mode, listingId, basePath: BASE, isAdmin: false })
+  } = useListingEditor({ mode, listingId, basePath: BASE, isAdmin })
 
   const categoryOptions = useMemo(
     () => categories.map((cat) => ({ value: cat.id, label: (isAr && cat.nameAr) || cat.name })),
@@ -105,6 +122,15 @@ export function ProviderListingFormScreen({ mode }: { mode: 'create' | 'edit' })
       />
 
       <WkSection icon={FileText} title={t('providerPortal.detailsSection')}>
+        {isAdmin ? (
+          <WkSelect
+            label={t('listings.provider')}
+            required
+            value={providerOptions.find((o) => o.value === selectedProviderId)?.label}
+            placeholder={t('listings.selectProvider')}
+            onPress={() => setProviderOpen(true)}
+          />
+        ) : null}
         <WkField
           label={t('common.name')}
           required
@@ -210,6 +236,21 @@ export function ProviderListingFormScreen({ mode }: { mode: 'create' | 'edit' })
         ) : null}
       </WkSection>
 
+      {isAdmin ? (
+        <WkPickerSheet
+          visible={providerOpen}
+          onClose={() => setProviderOpen(false)}
+          title={t('listings.provider')}
+          options={providerOptions}
+          value={selectedProviderId}
+          searchPlaceholder={t('providers.search')}
+          emptyLabel={() => t('pmPortal.noMatches')}
+          onSelect={(option) => {
+            setSelectedProviderId(option.value)
+            setProviderOpen(false)
+          }}
+        />
+      ) : null}
       <WkPickerSheet
         visible={categoryOpen}
         onClose={() => setCategoryOpen(false)}

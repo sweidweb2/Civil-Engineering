@@ -1,21 +1,24 @@
 import type { RequestHandler } from 'express'
 
-import { isPerfLogEnabled, logPerf, runWithPerfContext } from '../logging/perf.js'
+import { isPerfLogEnabled, logPerf } from '../logging/perf.js'
+import { getRequestStore, setRequestRoute } from '../logging/request-als.js'
 
 /**
  * Request wall-clock timing + Server-Timing header.
- * Correlates with prisma/auth logs via requestId in AsyncLocalStorage.
+ * Correlates with prisma/auth logs via requestId in AsyncLocalStorage
+ * (opened by `requestContext`, always — not only when perf logs are on).
  */
 export const perfTiming: RequestHandler = (req, res, next) => {
+  const url = req.originalUrl || req.url
+  setRequestRoute(url)
+
   if (!isPerfLogEnabled()) {
     next()
     return
   }
 
-  const requestId = req.requestId
   const started = performance.now()
   const method = req.method
-  const url = req.originalUrl || req.url
 
   logPerf('http', `→ ${method} ${url}`, { method, url, phase: 'start' })
 
@@ -40,11 +43,12 @@ export const perfTiming: RequestHandler = (req, res, next) => {
       ms,
       phase: 'end',
       slow: ms >= 500,
+      requestId: getRequestStore()?.requestId,
     })
     return originalEnd(...args)
   }) as typeof res.end
 
-  runWithPerfContext({ requestId, route: url }, () => next())
+  next()
 }
 
 export function pushServerTiming(

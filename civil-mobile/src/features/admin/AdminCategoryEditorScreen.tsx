@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { router, useLocalSearchParams } from 'expo-router'
+import { FolderTree } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import {
-  ChoiceField,
-  DangerZone,
-  FormError,
-  FormScreen,
-  Section,
-  TextField,
-  ToggleRow,
-} from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
+  WkChoice,
+  WkDangerZone,
+  WkField,
+  WkFormScreen,
+  WkSection,
+  WkToggle,
+} from '@/features/worker/ui/forms'
+import { WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumOptions } from '@/i18n/labels'
@@ -24,16 +24,14 @@ import {
   listCategories,
   updateCategory,
 } from '@/services/categories'
-import { showBlockingAlert } from '@/services/feedback'
 import { useToastSuccess } from '@/services/toast'
 
 const BASE = '/admin/categories'
 
-type AdminCategoryEditorScreenProps = {
-  mode: 'create' | 'edit'
-}
+type Errors = Partial<Record<'name' | 'sortOrder', string>>
 
-export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenProps) {
+/** Admin category create / edit: names (EN / AR), kind, order, active, delete. */
+export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' }) {
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id?: string }>()
   const categoryId = typeof id === 'string' ? id : id?.[0]
@@ -45,9 +43,10 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
   const [kind, setKind] = useState<CategoryKind>('MATERIAL')
   const [isActive, setIsActive] = useState(true)
   const [sortOrder, setSortOrder] = useState('0')
-  const [error, setError] = useState<string | undefined>()
+  const [errors, setErrors] = useState<Errors>({})
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
   const load = useCallback(async () => {
     if (!categoryId) throw new Error('Category id required')
@@ -70,11 +69,15 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
   }, [category])
 
   async function onSave() {
-    if (!name.trim()) {
-      setError(t('categories.nameRequired'))
+    const e: Errors = {}
+    if (!name.trim()) e.name = t('categories.nameRequired')
+    if (sortOrder.trim() && !/^\d+$/.test(sortOrder.trim()))
+      e.sortOrder = t('adminPortal.wholeNumber')
+    if (Object.keys(e).length) {
+      setErrors(e)
       return
     }
-    setError(undefined)
+    setErrors({})
     setIsSaving(true)
     try {
       const payload = {
@@ -105,13 +108,14 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
     }
   }
 
-  function onDelete() {
+  function askDelete() {
     if (!categoryId || isDeleting) return
-    showBlockingAlert(t('categories.deleteTitle'), t('categories.deleteBody'), {
-      destructive: true,
-      cancelLabel: t('common.cancel'),
-      confirmLabel: t('common.delete'),
+    setConfirm({
+      title: t('categories.deleteTitle'),
+      body: t('categories.deleteBody'),
+      cta: t('common.delete'),
       onConfirm: () => {
+        setConfirm(null)
         void (async () => {
           setIsDeleting(true)
           try {
@@ -130,64 +134,74 @@ export function AdminCategoryEditorScreen({ mode }: AdminCategoryEditorScreenPro
   }
 
   return (
-    <FormScreen
+    <WkFormScreen
       title={mode === 'create' ? t('categories.new') : (category?.name ?? t('categories.category'))}
       backHref={BASE}
-      isLoading={mode === 'edit' && remote.isLoading}
+      isLoading={mode === 'edit' && remote.isLoading && !category}
       error={mode === 'edit' && remote.status === 'error' ? remote.error : undefined}
       onRetry={() => void remote.refetch()}
-      loadingLabel={t('categories.loadingOne')}
+      testID="e2e-admin-category"
       footer={
-        <>
-          <Button
-            className="flex-1"
-            onPress={() => void onSave()}
-            disabled={isSaving}
-            accessibilityState={{ busy: isSaving }}
-          >
-            {isSaving ? <ButtonSpinner /> : null}
-            <ButtonText>
-              {isSaving
-                ? t('common.saving')
-                : mode === 'create'
-                  ? t('categories.create')
-                  : t('common.save')}
-            </ButtonText>
-          </Button>
-        </>
+        <WkButton
+          label={
+            isSaving
+              ? t('common.saving')
+              : mode === 'create'
+                ? t('categories.create')
+                : t('worker.saveChanges')
+          }
+          loading={isSaving}
+          height={54}
+          onPress={() => void onSave()}
+        />
       }
     >
-      <FormError message={error} />
-      <Section title={t('categories.details')}>
-        <TextField label={t('common.name')} required value={name} onChangeText={setName} />
-        <TextField label={t('categories.arabicName')} value={nameAr} onChangeText={setNameAr} />
-        <ChoiceField
+      <WkSection icon={FolderTree} title={t('categories.details')}>
+        <WkField
+          label={t('common.name')}
+          required
+          value={name}
+          onChangeText={(v) => {
+            setName(v)
+            if (errors.name) setErrors((x) => ({ ...x, name: undefined }))
+          }}
+          error={errors.name}
+        />
+        <WkField label={t('categories.arabicName')} value={nameAr} onChangeText={setNameAr} />
+        <WkChoice
           label={t('categories.kind')}
           options={enumOptions(t, 'categoryKind', CATEGORY_KIND_OPTIONS)}
           value={kind}
           onChange={(value) => setKind(value as CategoryKind)}
         />
-        <TextField
+        <WkField
           label={t('categories.sortOrder')}
           value={sortOrder}
-          onChangeText={setSortOrder}
+          onChangeText={(v) => {
+            setSortOrder(v)
+            if (errors.sortOrder) setErrors((x) => ({ ...x, sortOrder: undefined }))
+          }}
+          error={errors.sortOrder}
           keyboardType="number-pad"
+          ltr
         />
-        <ToggleRow label={t('common.active')} value={isActive} onValueChange={setIsActive} />
-      </Section>
+        <WkToggle
+          label={t('common.active')}
+          hint={t('adminPortal.categoryActiveHint')}
+          value={isActive}
+          onChange={setIsActive}
+        />
+      </WkSection>
       {mode === 'edit' ? (
-        <DangerZone title={t('common.dangerZone')} hint={t('categories.deleteBody')}>
-          <Button
-            variant="destructive"
-            onPress={onDelete}
-            disabled={isDeleting}
-            accessibilityState={{ busy: isDeleting }}
-          >
-            {isDeleting ? <ButtonSpinner /> : null}
-            <ButtonText>{t('common.delete')}</ButtonText>
-          </Button>
-        </DangerZone>
+        <WkDangerZone
+          title={t('common.dangerZone')}
+          body={t('categories.deleteBody')}
+          label={t('common.delete')}
+          disabled={isDeleting}
+          onPress={askDelete}
+        />
       ) : null}
-    </FormScreen>
+      <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
+    </WkFormScreen>
   )
 }

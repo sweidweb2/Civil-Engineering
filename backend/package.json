@@ -16,7 +16,10 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:assert-index-safety": "node scripts/assert-index-migration-safety.mjs",
+    "db:verify-indexes": "node scripts/verify-hot-path-indexes.mjs",
     "db:seed": "prisma db seed",
     "audit:deps": "npm audit --audit-level=high",
     "audit:deps:ci": "npm audit --audit-level=critical"

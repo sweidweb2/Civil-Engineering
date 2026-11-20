@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/authenticate.js'
 import { validate } from '../../middleware/validate.js'
 import type { ProjectStagesController } from './project-stages.controller.js'
 import {
+  batchStageSummariesBodySchema,
   projectIdParamsSchema,
   upsertDesignBodySchema,
   upsertGeotechnicalBodySchema,
@@ -21,6 +22,12 @@ export function createProjectStagesRouter(deps: ProjectStagesRouterDeps): Router
   const router = Router({ mergeParams: true })
 
   router.use(authenticate)
+
+  router.post(
+    '/stages/summaries',
+    validate({ body: batchStageSummariesBodySchema }),
+    controller.getSummaries,
+  )
 
   router.get(
     '/:projectId/stages',

@@ -20,10 +20,11 @@ import { uploadQueuedImages } from '@/services/galleryImages'
 import { createProject, PROJECT_TYPE_OPTIONS, type ProjectType } from '@/services/projects'
 import { useToastApiError, useToastSuccess } from '@/services/toast'
 
-const BASE = '/pm/projects'
+const DEFAULT_BASE = '/pm/projects'
 
 /** PM "New project": basics, schedule, photos (uploaded after create). */
-export function PmNewProjectScreen() {
+export function PmNewProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string } = {}) {
+  const BASE = basePath
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()

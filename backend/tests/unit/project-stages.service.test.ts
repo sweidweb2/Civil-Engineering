@@ -73,6 +73,7 @@ function createHarness() {
       materials: null,
       maintenance: null,
     })),
+    findAllByProjectIds: vi.fn(async () => []),
     findGeotechnical: vi.fn(async () => null),
     upsertGeotechnical: vi.fn(async (_projectId, input) => ({
       ...geo,

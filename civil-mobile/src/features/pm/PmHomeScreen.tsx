@@ -33,7 +33,7 @@ import { cacheKeys } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
 import { userFirstName } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
-import { getProjectStagesSummary, type ProjectStagesSummary } from '@/services/project-stages'
+import { getProjectStagesSummaries, type ProjectStagesSummary } from '@/services/project-stages'
 import {
   getProjectSummary,
   listProjects,
@@ -63,17 +63,19 @@ async function loadOverview(): Promise<Overview> {
   if (summary.status === 'rejected' && list.status === 'rejected') throw list.reason
   const projects = list.status === 'fulfilled' ? list.value.data : []
   const carousel = projects.filter((p) => CAROUSEL_STATUSES.includes(p.status)).slice(0, 5)
-  const stages = await Promise.all(
-    carousel.map((p) =>
-      getProjectStagesSummary(p.id)
-        .then((r) => r.data)
-        .catch(() => null),
-    ),
-  )
+  const stageMap =
+    carousel.length === 0
+      ? {}
+      : await getProjectStagesSummaries(carousel.map((p) => p.id))
+          .then((r) => r.data)
+          .catch(() => ({}) as Record<string, ProjectStagesSummary>)
   return {
     summary: summary.status === 'fulfilled' ? summary.value.data : null,
     projects,
-    active: carousel.map((project, i) => ({ project, stages: stages[i] ?? null })),
+    active: carousel.map((project) => ({
+      project,
+      stages: stageMap[project.id] ?? null,
+    })),
   }
 }
 

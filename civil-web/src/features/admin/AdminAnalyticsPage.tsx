@@ -17,44 +17,11 @@ import { PageHeader, STAT_GRID_CLASS, StatCard } from '@/components/layout'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { listListings } from '@/services/listings'
-import { listProjects } from '@/services/projects'
-import { listProviders } from '@/services/providers'
-import { listReviews } from '@/services/reviews'
-import { listUsers, listVerifications } from '@/services/users'
+import { type AdminOverview, getAdminOverview } from '@/services/users'
 
-type DashboardStats = {
-  registeredUsers: number
-  managers: number
-  providers: number
-  workers: number
-  projects: number
-  listings: number
-  reviews: number
-  verificationRequests: number
-}
-
-async function loadDashboard(): Promise<DashboardStats> {
-  const [users, providers, projects, listings, reviews, verifications] = await Promise.all([
-    listUsers(1, 1),
-    listProviders(1, 1),
-    listProjects(1, 1),
-    listListings(1, 1, { counts: false }),
-    listReviews(1, 1),
-    listVerifications({ page: 1, limit: 1 }),
-  ])
-  const providerCounts = providers.meta.statusCounts
-  const reviewCounts = reviews.meta.statusCounts
-  return {
-    registeredUsers: users.meta.total,
-    managers: users.meta.counts.managers,
-    providers: providerCounts.PENDING + providerCounts.APPROVED + providerCounts.SUSPENDED,
-    workers: verifications.meta.counts.workers,
-    projects: projects.meta.total,
-    listings: listings.meta.total,
-    reviews: reviewCounts.PENDING + reviewCounts.ACCEPTED + reviewCounts.REJECTED,
-    verificationRequests: verifications.meta.counts.requested,
-  }
+async function loadDashboard(): Promise<AdminOverview> {
+  const { data } = await getAdminOverview()
+  return data
 }
 
 export function AdminAnalyticsPage() {
@@ -80,11 +47,7 @@ export function AdminAnalyticsPage() {
       >
         {stats ? (
           <div className={STAT_GRID_CLASS}>
-            <StatCard
-              icon={Users}
-              label={t('dashboard.registeredUsers')}
-              value={stats.registeredUsers}
-            />
+            <StatCard icon={Users} label={t('dashboard.registeredUsers')} value={stats.users} />
             <StatCard
               icon={Briefcase}
               label={t('dashboard.projectManagers')}

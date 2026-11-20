@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express'
 
 import type { AppConfig } from '../../config/index.js'
 import { unauthorized, validationError } from '../../errors/app-error.js'
+import { getRequestLogger } from '../../logging/index.js'
 import {
   clearAuthCookies,
   parseCookieHeader,
@@ -82,8 +83,12 @@ export function createAuthController(service: AuthService, config: AppConfig): A
         try {
           const refreshToken = resolveRefreshToken(req)
           await service.logout({ refreshToken })
-        } catch {
+        } catch (error) {
           // Still clear cookies when the client has already discarded tokens.
+          getRequestLogger().warn(
+            { err: error, kind: 'auth.logout_best_effort' },
+            'logout completed without denying refresh token',
+          )
         }
         clearAuthCookies(res, config)
         res.status(204).send()

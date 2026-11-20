@@ -65,9 +65,9 @@ export function PortalShell({ portal, children }: PortalShellProps) {
   }, [portal, t])
 
   const isTopLevel = useMemo(() => {
-    const roots = portal === 'admin' ? [...nav, ...ADMIN_MORE_LINKS] : nav
-    return roots.some((item) => item.href === pathname)
-  }, [nav, pathname, portal])
+    // Admin's More destinations are pushed screens with their own back header.
+    return nav.some((item) => item.href === pathname)
+  }, [nav, pathname])
 
   const items: BottomNavItem[] = useMemo(
     () =>
@@ -95,8 +95,9 @@ export function PortalShell({ portal, children }: PortalShellProps) {
     [nav, pathname, portal, themeColors, t],
   )
 
-  // Worker, provider and PM portals use the green palette and a floating pill tab bar.
-  const isWorker = portal === 'worker' || portal === 'provider' || portal === 'pm'
+  // Worker, provider, PM and admin portals use the green palette and a floating pill tab bar.
+  const isWorker =
+    portal === 'worker' || portal === 'provider' || portal === 'pm' || portal === 'admin'
 
   return (
     <View className={`flex-1 ${isWorker ? 'bg-wk-bg' : 'bg-background'}`}>

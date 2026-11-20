@@ -3,9 +3,14 @@
 ## Database
 
 ```bash
-npm run db:migrate   # apply pending Prisma migrations
-npm run db:seed      # seed
+# From backend/
+npm run db:migrate              # safe migrate deploy (refuses transaction pooler; prod needs ALLOW_PROD_DB_MIGRATE=1)
+npm run db:assert-index-safety  # CI gate: future CREATE INDEX must use CONCURRENTLY
+npm run db:verify-indexes       # confirm hot-path indexes after migrate
+npm run db:seed                 # seed
 ```
+
+Migrate every Supabase project (dev/staging/prod) separately — CD is not wired yet. Set `DIRECT_URL` to direct/session (`:5432`), never transaction pooler (`:6543`).
 
 ## Husky / quality (same as git hooks + CI quality job)
 

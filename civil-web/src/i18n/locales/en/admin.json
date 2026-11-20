@@ -101,6 +101,7 @@
       "errors": "Errors",
       "status": "Status",
       "code": "Code",
+      "requestId": "Request ID",
       "message": "Message",
       "path": "Path",
       "empty": "No errors logged yet."

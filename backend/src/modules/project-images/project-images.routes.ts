@@ -9,6 +9,7 @@ import {
   reorderProjectImagesBodySchema,
   updateProjectImageBodySchema,
   uploadProjectImageBodySchema,
+  uploadProjectImagesBatchBodySchema,
 } from './project-images.schema.js'
 
 const projectIdParamsSchema = z.object({
@@ -45,6 +46,13 @@ export function createProjectImagesRouter(deps: ProjectImagesRouterDeps): Router
     controller.uploadMiddleware,
     validate({ params: projectIdParamsSchema, body: uploadProjectImageBodySchema }),
     controller.uploadProjectImage,
+  )
+  router.post(
+    '/projects/:projectId/images/batch',
+    authenticate,
+    controller.uploadBatchMiddleware,
+    validate({ params: projectIdParamsSchema, body: uploadProjectImagesBatchBodySchema }),
+    controller.uploadProjectImagesBatch,
   )
   router.patch(
     '/images/:imageId',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { FlatList, Linking, RefreshControl, Text, TextInput, View } from 'react-native'
+import { FlatList, RefreshControl, Text, TextInput, View } from 'react-native'
 import { Image } from 'expo-image'
 import {
   BadgeCheck,
@@ -9,9 +9,7 @@ import {
   LayoutGrid,
   type LucideIcon,
   MapPin,
-  MessageCircle,
   Package,
-  Phone,
   Search,
   SearchX,
   Store,
@@ -24,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BottomSheet, useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { cardPrice, useCategoryName } from '@/features/provider/ui/kit'
-import { WkButton, WkError, WkSkeletonCard } from '@/features/worker/ui/kit'
+import { WkButton, WkError, WkSkeletonCard, WkTopBar } from '@/features/worker/ui/kit'
 import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
 import { WkSegmented } from '@/features/worker/ui/settings'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -34,7 +32,7 @@ import { ltr } from '@/lib/rtl'
 import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { type Listing, listListings } from '@/services/listings'
-import { listWorkers, type WorkerProfile } from '@/services/workers'
+import { directoryWorkerName, listWorkers, type WorkerDirectoryItem } from '@/services/workers'
 import { MONO_STYLE } from '@/theme/typography'
 
 const PAGE_SIZE = 20
@@ -42,21 +40,12 @@ type Kind = 'listings' | 'workers'
 
 type Entry =
   | { kind: 'listing'; id: string; listing: Listing }
-  | { kind: 'worker'; id: string; worker: WorkerProfile }
+  | { kind: 'worker'; id: string; worker: WorkerDirectoryItem }
 
 type Fact = { icon: LucideIcon; label: string; value: string; ltr?: boolean }
 
-function workerName(w: WorkerProfile) {
-  const u = w.user
-  return u.displayName || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || 'Worker'
-}
-
-function digits(phone: string) {
-  return phone.replace(/[^\d+]/g, '')
-}
-
 /** PM "Directory" tab: marketplace listings and public workers, with a detail sheet. */
-export function PmDirectoryScreen() {
+export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { c, shadow, isDark } = useWorkerPalette()
@@ -124,14 +113,14 @@ export function PmDirectoryScreen() {
 
   function row(entry: Entry) {
     const isListing = entry.kind === 'listing'
-    const name = isListing ? entry.listing.name : workerName(entry.worker)
+    const name = isListing ? entry.listing.name : directoryWorkerName(entry.worker)
     const sub = isListing
       ? [entry.listing.providerName, categoryName(entry.listing)].filter(Boolean).join(' · ')
       : [entry.worker.headline || entry.worker.primaryTrade, entry.worker.city]
           .filter(Boolean)
           .join(' · ')
-    const photo = isListing ? entry.listing.mainImageUrl : entry.worker.user.avatarUrl
-    const verified = !isListing && entry.worker.user.isVerified
+    const photo = isListing ? entry.listing.mainImageUrl : entry.worker.avatarUrl
+    const verified = !isListing && entry.worker.isVerified
     const typeLabel = isListing
       ? entry.listing.type
         ? enumLabel(t, 'listingType', entry.listing.type)
@@ -290,6 +279,7 @@ export function PmDirectoryScreen() {
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-pm-directory">
+      {backHref ? <WkTopBar title={t('directory.title')} backHref={backHref} /> : null}
       <FlatList
         data={isFirstLoad ? [] : rows}
         keyExtractor={(e) => `${e.kind}:${e.id}`}
@@ -321,7 +311,7 @@ export function PmDirectoryScreen() {
         keyboardDismissMode="on-drag"
         contentContainerClassName="px-5"
         contentContainerStyle={{
-          paddingTop: insets.top + 12,
+          paddingTop: backHref ? 8 : insets.top + 12,
           paddingBottom: WK_TAB_SPACE + insets.bottom,
         }}
         refreshControl={
@@ -351,10 +341,9 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
 
   if (!shown) return null
   const isListing = shown.kind === 'listing'
-  const name = isListing ? shown.listing.name : workerName(shown.worker)
-  const photo = isListing ? shown.listing.mainImageUrl : shown.worker.user.avatarUrl
-  const verified = !isListing && shown.worker.user.isVerified
-  const phone = isListing ? null : shown.worker.user.phone
+  const name = isListing ? shown.listing.name : directoryWorkerName(shown.worker)
+  const photo = isListing ? shown.listing.mainImageUrl : shown.worker.avatarUrl
+  const verified = !isListing && shown.worker.isVerified
 
   let sub = ''
   let facts: Fact[] = []
@@ -394,7 +383,6 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
       },
       { icon: Banknote, label: t('worker.pay'), value: rate },
       { icon: MapPin, label: t('common.city'), value: w.city || '—' },
-      ...(phone ? [{ icon: Phone, label: t('common.phone'), value: phone, ltr: true }] : []),
     ]
   }
 
@@ -453,27 +441,6 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
             </View>
           ))}
         </View>
-        {phone ? (
-          <View className="flex-row gap-2.5">
-            <View className="flex-1">
-              <WkButton
-                variant="soft"
-                icon={Phone}
-                label={t('pmPortal.call')}
-                onPress={() => void Linking.openURL(`tel:${digits(phone)}`)}
-              />
-            </View>
-            <View className="flex-1">
-              <WkButton
-                icon={MessageCircle}
-                label={t('common.whatsapp')}
-                onPress={() =>
-                  void Linking.openURL(`https://wa.me/${digits(phone).replace(/^\+/, '')}`)
-                }
-              />
-            </View>
-          </View>
-        ) : null}
       </View>
     </BottomSheet>
   )

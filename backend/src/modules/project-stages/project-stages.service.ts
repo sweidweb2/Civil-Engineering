@@ -1,4 +1,4 @@
-import type { AuthActor } from '../../authz/index.js'
+import { assertOwnerOrAdmin, type AuthActor } from '../../authz/index.js'
 import { conflict, isUniqueConflictError } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/index.js'
 import {
@@ -15,6 +15,7 @@ import {
 } from './project-stages.completeness.js'
 import type { ProjectStagesRepository } from './project-stages.repository.js'
 import type {
+  BatchStageSummariesBody,
   UpsertDesignBody,
   UpsertGeotechnicalBody,
   UpsertLicensingBody,
@@ -46,8 +47,28 @@ function slot<T>(
   }
 }
 
+function toSummary(rows: {
+  geotechnical: GeotechnicalStudy | null
+  design: ProjectDesign | null
+  licensing: ProjectLicensing | null
+  materials: MaterialProcurement | null
+  maintenance: ProjectMaintenance | null
+}): ProjectStagesSummary {
+  return {
+    geotechnical: slot(rows.geotechnical, isGeotechnicalComplete, geotechnicalMissing),
+    design: slot(rows.design, isDesignComplete, designMissing),
+    licensing: slot(rows.licensing, isLicensingComplete, licensingMissing),
+    materials: slot(rows.materials, isMaterialsComplete, materialsMissing),
+    maintenance: slot(rows.maintenance, isMaintenanceComplete, maintenanceMissing),
+  }
+}
+
 export type ProjectStagesService = {
   getSummary: (projectId: string, actor: AuthActor) => Promise<ProjectStagesSummary>
+  getSummaries: (
+    input: BatchStageSummariesBody,
+    actor: AuthActor,
+  ) => Promise<Record<string, ProjectStagesSummary>>
   getGeotechnical: (projectId: string, actor: AuthActor) => Promise<GeotechnicalStudy | null>
   upsertGeotechnical: (
     projectId: string,
@@ -106,14 +127,22 @@ export function createProjectStagesService(deps: ProjectStagesServiceDeps): Proj
   return {
     async getSummary(projectId, actor) {
       await assertProject(projectId, actor)
-      const rows = await repository.findAllByProjectId(projectId)
-      return {
-        geotechnical: slot(rows.geotechnical, isGeotechnicalComplete, geotechnicalMissing),
-        design: slot(rows.design, isDesignComplete, designMissing),
-        licensing: slot(rows.licensing, isLicensingComplete, licensingMissing),
-        materials: slot(rows.materials, isMaterialsComplete, materialsMissing),
-        maintenance: slot(rows.maintenance, isMaintenanceComplete, maintenanceMissing),
+      return toSummary(await repository.findAllByProjectId(projectId))
+    },
+
+    async getSummaries(input, actor) {
+      const uniqueIds = [...new Set(input.projectIds)]
+      const rows = await repository.findAllByProjectIds(uniqueIds)
+      const data: Record<string, ProjectStagesSummary> = {}
+      for (const row of rows) {
+        try {
+          assertOwnerOrAdmin(actor, row.ownerId)
+        } catch {
+          continue
+        }
+        data[row.projectId] = toSummary(row)
       }
+      return data
     },
 
     async getGeotechnical(projectId, actor) {

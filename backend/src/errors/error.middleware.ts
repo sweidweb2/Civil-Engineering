@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express'
+import { MulterError } from 'multer'
 import { ZodError } from 'zod'
 
 import { getLogger } from '../logging/index.js'
@@ -17,10 +18,24 @@ function shouldPersistError(err: unknown, status: number): boolean {
   return true
 }
 
+function isBodyParserSyntaxError(err: unknown): err is SyntaxError & { status?: number } {
+  return (
+    err instanceof SyntaxError &&
+    typeof err === 'object' &&
+    err !== null &&
+    'status' in err &&
+    (err as { status?: number }).status === 400 &&
+    'body' in err
+  )
+}
+
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const log = getLogger().child({ requestId: req.requestId })
 
   if (err instanceof AppError) {
+    if (err.status >= 500) {
+      log.error({ err, code: err.code, status: err.status }, 'application error')
+    }
     if (shouldPersistError(err, err.status)) {
       getLoggingService().recordErrorSafe({
         requestId: req.requestId ?? null,
@@ -28,7 +43,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
         code: String(err.code),
         message: err.message,
         stack: err.stack ?? null,
-        path: req.originalUrl,
+        path: req.originalUrl.split('?')[0] ?? req.originalUrl,
         method: req.method,
         status: err.status,
       })
@@ -65,6 +80,29 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return
   }
 
+  if (err instanceof MulterError) {
+    const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400
+    res.status(status).json({
+      code: ErrorCodes.VALIDATION_ERROR,
+      message: err.code === 'LIMIT_FILE_SIZE' ? 'Uploaded file is too large' : 'Invalid upload',
+    })
+    return
+  }
+
+  if (
+    isBodyParserSyntaxError(err) ||
+    (typeof err === 'object' &&
+      err !== null &&
+      'type' in err &&
+      (err as { type?: string }).type === 'entity.parse.failed')
+  ) {
+    res.status(400).json({
+      code: ErrorCodes.VALIDATION_ERROR,
+      message: 'Malformed JSON body',
+    })
+    return
+  }
+
   log.error({ err }, 'unhandled error')
 
   const message = err instanceof Error ? err.message : 'Internal server error'
@@ -76,7 +114,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     code: ErrorCodes.INTERNAL_ERROR,
     message,
     stack: stack ?? null,
-    path: req.originalUrl,
+    path: req.originalUrl.split('?')[0] ?? req.originalUrl,
     method: req.method,
     status: 500,
   })

@@ -1,5 +1,5 @@
 import { prisma } from '../../database/prisma.js'
-import type { Prisma } from '../../generated/prisma/client.js'
+import { Prisma } from '../../generated/prisma/client.js'
 import type {
   Notification,
   NotificationsRepository,
@@ -140,13 +140,21 @@ export function createNotificationsRepository(): NotificationsRepository {
     },
 
     async countStates(receiverId) {
-      const scope = receiverId ? { receiverId } : {}
-      const [active, unread, deleted] = await Promise.all([
-        prisma.notification.count({ where: { ...scope, deletedAt: null } }),
-        prisma.notification.count({ where: { ...scope, deletedAt: null, isRead: false } }),
-        prisma.notification.count({ where: { ...scope, deletedAt: { not: null } } }),
-      ])
-      return { active, unread, deleted }
+      const [row] = await prisma.$queryRaw<
+        Array<{ active: number; unread: number; deleted: number }>
+      >`
+        SELECT
+          COUNT(*) FILTER (WHERE "deletedAt" IS NULL)::int AS active,
+          COUNT(*) FILTER (WHERE "deletedAt" IS NULL AND "isRead" = false)::int AS unread,
+          COUNT(*) FILTER (WHERE "deletedAt" IS NOT NULL)::int AS deleted
+        FROM "Notification"
+        ${receiverId ? Prisma.sql`WHERE "receiverId" = ${receiverId}` : Prisma.empty}
+      `
+      return {
+        active: row?.active ?? 0,
+        unread: row?.unread ?? 0,
+        deleted: row?.deleted ?? 0,
+      }
     },
 
     async findById(id) {

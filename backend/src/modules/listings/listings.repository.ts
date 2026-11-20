@@ -1,5 +1,5 @@
 import { prisma } from '../../database/prisma.js'
-import type { ListingStatus, Prisma, RentalUnit } from '../../generated/prisma/client.js'
+import { Prisma, type ListingStatus, type RentalUnit } from '../../generated/prisma/client.js'
 import type { ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
 import type { ListingSnapshot, ListingStatusCounts, ListingTypeCounts } from './listings.types.js'
 
@@ -282,29 +282,18 @@ export function createListingsRepository(): ListingsRepository {
     },
 
     async countByType(providerId) {
-      const groups = await prisma.listing.groupBy({
-        by: ['categoryId'],
-        where: providerId ? { providerId } : undefined,
-        _count: { _all: true },
-      })
+      const rows = await prisma.$queryRaw<Array<{ kind: string; count: number }>>`
+        SELECT c.kind::text AS kind, COUNT(*)::int AS count
+        FROM "Listing" l
+        INNER JOIN "Category" c ON c.id = l."categoryId"
+        WHERE c.kind IN ('MATERIAL'::"CategoryKind", 'EQUIPMENT'::"CategoryKind", 'SERVICE'::"CategoryKind")
+          ${providerId ? Prisma.sql`AND l."providerId" = ${providerId}` : Prisma.empty}
+        GROUP BY c.kind
+      `
       const counts: ListingTypeCounts = { MATERIAL: 0, EQUIPMENT: 0, SERVICE: 0 }
-      if (groups.length === 0) return counts
-
-      const categoryIds = groups
-        .map((group) => group.categoryId)
-        .filter((id): id is string => Boolean(id))
-      if (categoryIds.length === 0) return counts
-
-      const categories = await prisma.category.findMany({
-        where: { id: { in: categoryIds } },
-        select: { id: true, kind: true },
-      })
-      const kindById = new Map(categories.map((category) => [category.id, category.kind]))
-      for (const group of groups) {
-        if (!group.categoryId) continue
-        const kind = kindById.get(group.categoryId)
-        if (kind === 'MATERIAL' || kind === 'EQUIPMENT' || kind === 'SERVICE') {
-          counts[kind] += group._count._all
+      for (const row of rows) {
+        if (row.kind === 'MATERIAL' || row.kind === 'EQUIPMENT' || row.kind === 'SERVICE') {
+          counts[row.kind] = row.count
         }
       }
       return counts

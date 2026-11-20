@@ -9,6 +9,7 @@ import {
   reorderListingImagesBodySchema,
   updateListingImageBodySchema,
   uploadListingImageBodySchema,
+  uploadListingImagesBatchBodySchema,
 } from './listing-images.schema.js'
 
 const listingIdParamsSchema = z.object({
@@ -45,6 +46,13 @@ export function createListingImagesRouter(deps: ListingImagesRouterDeps): Router
     controller.uploadMiddleware,
     validate({ params: listingIdParamsSchema, body: uploadListingImageBodySchema }),
     controller.uploadListingImage,
+  )
+  router.post(
+    '/listings/:listingId/images/batch',
+    authenticate,
+    controller.uploadBatchMiddleware,
+    validate({ params: listingIdParamsSchema, body: uploadListingImagesBatchBodySchema }),
+    controller.uploadListingImagesBatch,
   )
   router.patch(
     '/images/:imageId',

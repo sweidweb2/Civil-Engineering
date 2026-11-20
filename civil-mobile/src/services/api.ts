@@ -162,6 +162,11 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const resolvedTimeoutMs =
     timeoutMs ?? (isFormData ? UPLOAD_REQUEST_TIMEOUT_MS : DEFAULT_REQUEST_TIMEOUT_MS)
 
+  const requestId =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `m-${Date.now().toString(36)}`
+
   const execute = async (token: string | null) => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
@@ -171,6 +176,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         // `multipart/form-data; boundary=…` itself.
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'x-request-id': requestId,
         ...(headers as Record<string, string> | undefined),
       },
     })

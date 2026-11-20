@@ -239,6 +239,7 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/civil_test?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/civil_test?schema=public
       JWT_ACCESS_SECRET: test-access-secret-at-least-32-characters
       JWT_REFRESH_SECRET: test-refresh-secret-at-least-32-characters
     steps:
@@ -254,10 +255,14 @@ jobs:
       - name: Dependency audit (high — report)
         continue-on-error: true
         run: npm run audit:deps
+      - name: Assert index migration safety
+        run: npm run db:assert-index-safety
       - name: Prisma generate + migrate test DB
         run: |
           npx prisma generate
           npx prisma migrate deploy
+      - name: Verify hot-path indexes
+        run: npm run db:verify-indexes
       - name: Unit tests (Vitest)
         run: |
           if npm run | grep -q 'test:unit'; then npm run test:unit; else echo "TODO: npm run test:unit"; fi

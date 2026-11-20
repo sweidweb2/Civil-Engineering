@@ -117,6 +117,14 @@ export function getProjectStagesSummary(projectId: string) {
   return apiRequest<{ data: ProjectStagesSummary }>(`/projects/${projectId}/stages`)
 }
 
+/** One round-trip for several project stage summaries (PM home carousel). */
+export function getProjectStagesSummaries(projectIds: string[]) {
+  return apiRequest<{ data: Record<string, ProjectStagesSummary> }>('/projects/stages/summaries', {
+    method: 'POST',
+    body: JSON.stringify({ projectIds }),
+  })
+}
+
 export function upsertGeotechnical(projectId: string, body: UpsertGeotechnicalInput) {
   return apiRequest<{ data: GeotechnicalStudy }>(`/projects/${projectId}/stages/geotechnical`, {
     method: 'PUT',

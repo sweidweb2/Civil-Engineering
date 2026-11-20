@@ -1,13 +1,11 @@
-import { AsyncLocalStorage } from 'node:async_hooks'
-
 import { getLogger } from './logger.js'
-
-type PerfStore = {
-  requestId?: string
-  route?: string
-}
-
-const perfAls = new AsyncLocalStorage<PerfStore>()
+import {
+  getRequestId,
+  getRequestStore,
+  runWithRequestContext,
+  setRequestRoute,
+  type RequestAlsStore,
+} from './request-als.js'
 
 /** Verbose timing logs — on in development, or when PERF_LOG=true. */
 export function isPerfLogEnabled(): boolean {
@@ -16,17 +14,17 @@ export function isPerfLogEnabled(): boolean {
   return process.env.NODE_ENV !== 'production'
 }
 
-export function runWithPerfContext<T>(store: PerfStore, fn: () => T): T {
-  return perfAls.run(store, fn)
+/** @deprecated Prefer runWithRequestContext — kept for call sites that only need perf fields. */
+export function runWithPerfContext<T>(store: RequestAlsStore, fn: () => T): T {
+  return runWithRequestContext(store, fn)
 }
 
 export function getPerfRequestId(): string | undefined {
-  return perfAls.getStore()?.requestId
+  return getRequestId()
 }
 
 export function setPerfRoute(route: string): void {
-  const store = perfAls.getStore()
-  if (store) store.route = route
+  setRequestRoute(route)
 }
 
 export function logPerf(kind: string, message: string, fields: Record<string, unknown> = {}): void {
@@ -36,8 +34,8 @@ export function logPerf(kind: string, message: string, fields: Record<string, un
   getLogger().info(
     {
       kind: `perf.${kind}`,
-      requestId: getPerfRequestId(),
-      route: perfAls.getStore()?.route,
+      requestId: getRequestId(),
+      route: getRequestStore()?.route,
       slow,
       ...fields,
     },

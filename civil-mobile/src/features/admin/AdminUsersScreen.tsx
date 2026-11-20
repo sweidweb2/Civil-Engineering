@@ -1,9 +1,9 @@
-import { Text } from 'react-native'
 import { router } from 'expo-router'
+import { Users } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar, ListCard, ListScreen, StandardListRow, toneForStatus } from '@/components/kit'
-import { useResourceList } from '@/hooks/useResourceList'
+import { shortDate, USER_TONE } from '@/features/admin/ui'
+import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/features/worker/ui/list'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
@@ -13,36 +13,38 @@ import { listUsers } from '@/services/users'
 const PAGE_SIZE = 20
 const BASE = '/admin/users'
 
+/** Admin "Users" tab. */
 export function AdminUsersScreen() {
   const { t } = useTranslation()
-  const { listProps } = useResourceList(
-    ({ page, query }) => listUsers(page, PAGE_SIZE, query || undefined, false),
-    { pageSize: PAGE_SIZE, cacheKeyPrefix: cacheKeys.users },
-  )
+  const list = usePagedList({
+    cacheKeyPrefix: cacheKeys.users,
+    fetcher: ({ page, query }) => listUsers(page, PAGE_SIZE, query || undefined, false),
+  })
 
   return (
-    <ListScreen
-      title={t('users.title')}
+    <WkListScreen
+      testID="e2e-admin-users"
+      list={list}
       searchPlaceholder={t('users.search')}
-      keyExtractor={(item) => item.id}
-      renderItem={(item) => (
-        <ListCard
-          accessibilityLabel={userDisplayName(item)}
-          leading={<Avatar name={userDisplayName(item)} imageUrl={item.profile?.avatarUrl} />}
-          onPress={() => router.push(`${BASE}/${item.id}` as never)}
-        >
-          <StandardListRow
-            title={userDisplayName(item)}
-            statusLabel={enumLabel(t, 'userStatus', item.status)}
-            statusTone={toneForStatus(item.status)}
-            subtitle={ltr(item.email)}
-            extra={<Text className="text-xs text-ink-2">{enumLabel(t, 'role', item.role)}</Text>}
-          />
-        </ListCard>
-      )}
-      loadingLabel={t('users.loading')}
+      onAdd={() => router.push(`${BASE}/new` as never)}
+      addLabel={t('users.new')}
+      emptyIcon={Users}
       emptyTitle={t('users.empty')}
-      {...listProps}
+      renderItem={(user) => {
+        const name = userDisplayName(user)
+        return (
+          <WkListRow
+            media={<WkMedia photo={user.profile?.avatarUrl} name={name} round hero />}
+            title={name}
+            pill={{ label: enumLabel(t, 'userStatus', user.status), tone: USER_TONE[user.status] }}
+            sub={ltr(user.email)}
+            sub2={[enumLabel(t, 'role', user.role), shortDate(user.createdAt)]
+              .filter(Boolean)
+              .join(' · ')}
+            onPress={() => router.push(`${BASE}/${user.id}` as never)}
+          />
+        )
+      }}
     />
   )
 }

@@ -56,16 +56,19 @@ import { deleteListing, getListingById, type Listing, updateListing } from '@/se
 import { useToastSuccess } from '@/services/toast'
 import { MONO_STYLE } from '@/theme/typography'
 
-const BASE = '/provider/listings'
+const DEFAULT_BASE = '/provider/listings'
 const PHOTO_HEIGHT = 420
 
-function goBack() {
+function goBack(base: string) {
   if (router.canGoBack()) router.back()
-  else router.replace(BASE as never)
+  else router.replace(base as never)
 }
 
 /** Photo-first listing page for the provider: gallery, prices, facts, actions. */
-export function ProviderListingDetailScreen() {
+export function ProviderListingDetailScreen({
+  basePath = DEFAULT_BASE,
+}: { basePath?: string } = {}) {
+  const BASE = basePath
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
@@ -163,7 +166,7 @@ export function ProviderListingDetailScreen() {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('common.goBack')}
-      onPress={goBack}
+      onPress={() => goBack(BASE)}
       className="size-11 items-center justify-center rounded-full active:opacity-70"
       style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}
     >

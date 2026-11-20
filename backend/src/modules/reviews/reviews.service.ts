@@ -7,6 +7,7 @@ import {
   notFound,
   validationError,
 } from '../../errors/app-error.js'
+import { auditActivity } from '../logging/index.js'
 import type { ListingsService } from '../listings/index.js'
 import type { ReviewRecord, ReviewsRepository } from './reviews.repository.js'
 import type { CreateReviewBody, ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
@@ -227,6 +228,15 @@ export function createReviewsService(
         ...input,
         status: admin ? input.status : 'PENDING',
       })
+      if (admin && input.status !== undefined && input.status !== review.status) {
+        auditActivity({
+          userId: actor.id,
+          action: 'reviews.status_change',
+          entity: 'review',
+          entityId: id,
+          meta: { from: review.status, to: input.status },
+        })
+      }
       return toReviewDto(await withListingName(updated))
     },
 
@@ -236,6 +246,12 @@ export function createReviewsService(
         throw forbidden('You can only remove your own reviews')
       }
       await repository.delete(id)
+      auditActivity({
+        userId: actor.id,
+        action: 'reviews.delete',
+        entity: 'review',
+        entityId: id,
+      })
     },
   }
 }

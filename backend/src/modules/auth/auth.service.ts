@@ -3,8 +3,8 @@ import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { conflict, isUniqueConflictError, unauthorized } from '../../errors/app-error.js'
 import { ErrorCodes } from '../../errors/error-codes.js'
 import { purgeExpiredDeniedRefreshTokens } from '../../jobs/index.js'
-import { getLogger } from '../../logging/index.js'
-import type { LoggingService } from '../logging/index.js'
+import { getRequestLogger, hashEmailHint } from '../../logging/index.js'
+import { auditActivity, type LoggingService } from '../logging/index.js'
 import type { AuthRepository, AuthUserRecord } from './auth.repository.js'
 import type { ChangePasswordBody, LoginBody, RefreshBody, RegisterBody } from './auth.schema.js'
 import type { RoleName } from './auth.schema.js'
@@ -95,10 +95,14 @@ function statusForRegisterRole(role: RegisterBody['role']): 'ACTIVE' | 'PENDING'
   return role === 'CLIENT' ? 'ACTIVE' : 'PENDING'
 }
 
+function warnAuthFailure(reason: string, fields: Record<string, unknown> = {}): void {
+  getRequestLogger().warn({ kind: 'auth.failure', reason, ...fields }, `auth failure: ${reason}`)
+}
+
 export function createAuthService(
   repository: AuthRepository,
   config: AppConfig,
-  logging?: LoggingService,
+  _logging?: LoggingService,
 ): AuthService {
   return {
     async register(input, context) {
@@ -127,6 +131,10 @@ export function createAuthService(
           }),
         )
         if (result.outcome === 'device_limit') {
+          warnAuthFailure('registration_device_limit', {
+            emailHint: hashEmailHint(input.email),
+            deviceId: input.deviceId,
+          })
           throw conflict(
             'This device has reached the maximum number of registrations',
             ErrorCodes.REGISTRATION_DEVICE_LIMIT,
@@ -140,16 +148,13 @@ export function createAuthService(
         throw error
       }
 
-      try {
-        await logging?.recordActivity({
-          userId: user.id,
-          action: 'auth.register',
-          entity: 'user',
-          entityId: user.id,
-        })
-      } catch (error) {
-        getLogger().error({ err: error }, 'failed to write register activity')
-      }
+      auditActivity({
+        userId: user.id,
+        action: 'auth.register',
+        entity: 'user',
+        entityId: user.id,
+        meta: { role: user.role, status: user.status },
+      })
 
       const pendingApproval = status === 'PENDING'
       return {
@@ -162,32 +167,35 @@ export function createAuthService(
     async login(input) {
       const user = await repository.findByEmail(input.email)
       if (!user) {
+        warnAuthFailure('bad_credentials', { emailHint: hashEmailHint(input.email) })
         throw unauthorized('Invalid email or password')
       }
 
       const ok = await verifyPassword(input.password, user.passwordHash)
       if (!ok) {
+        warnAuthFailure('bad_credentials', {
+          userId: user.id,
+          emailHint: hashEmailHint(input.email),
+        })
         throw unauthorized('Invalid email or password')
       }
 
       if (user.status === 'PENDING') {
+        warnAuthFailure('account_pending', { userId: user.id })
         throw unauthorized('Account is pending admin approval', ErrorCodes.ACCOUNT_PENDING)
       }
 
       if (user.status !== 'ACTIVE') {
+        warnAuthFailure('account_inactive', { userId: user.id, status: user.status })
         throw unauthorized('Invalid email or password')
       }
 
-      try {
-        await logging?.recordActivity({
-          userId: user.id,
-          action: 'auth.login',
-          entity: 'user',
-          entityId: user.id,
-        })
-      } catch (error) {
-        getLogger().error({ err: error }, 'failed to write login activity')
-      }
+      auditActivity({
+        userId: user.id,
+        action: 'auth.login',
+        entity: 'user',
+        entityId: user.id,
+      })
 
       return {
         user: toUserDto(user),
@@ -200,11 +208,13 @@ export function createAuthService(
       try {
         payload = verifyRefreshToken(config, input.refreshToken)
       } catch {
+        warnAuthFailure('refresh_invalid')
         throw unauthorized('Invalid or expired refresh token')
       }
 
       const user = await repository.findById(payload.sub)
       if (!user || user.status !== 'ACTIVE') {
+        warnAuthFailure('refresh_user_inactive', { userId: payload.sub })
         throw unauthorized('Invalid or expired refresh token')
       }
 
@@ -212,10 +222,12 @@ export function createAuthService(
       // JWT iat (second precision) is not rejected when issued in the same second.
       if (user.refreshInvalidBefore) {
         if (typeof payload.iat !== 'number') {
+          warnAuthFailure('refresh_invalid_before', { userId: user.id })
           throw unauthorized('Invalid or expired refresh token')
         }
         const cutoffSec = Math.floor(user.refreshInvalidBefore.getTime() / 1000)
         if (payload.iat < cutoffSec) {
+          warnAuthFailure('refresh_invalid_before', { userId: user.id })
           throw unauthorized('Invalid or expired refresh token')
         }
       }
@@ -223,6 +235,7 @@ export function createAuthService(
       // Atomic single-use claim — concurrent refreshes of the same jti cannot both win.
       const claim = await claimRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
       if (claim === 'reuse') {
+        warnAuthFailure('refresh_reuse', { userId: user.id })
         throw unauthorized('Invalid or expired refresh token')
       }
 
@@ -237,21 +250,24 @@ export function createAuthService(
       try {
         const payload = verifyRefreshToken(config, input.refreshToken)
         userId = payload.sub
-        await denyRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
+        try {
+          await denyRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
+        } catch (error) {
+          getRequestLogger().warn(
+            { err: error, userId, kind: 'auth.logout_deny_failed' },
+            'failed to deny refresh token on logout',
+          )
+        }
       } catch {
-        // Client still discards tokens; logging is best-effort.
+        // Client still discards tokens; no valid refresh to deny.
       }
 
-      try {
-        await logging?.recordActivity({
-          userId: userId ?? null,
-          action: 'auth.logout',
-          entity: 'user',
-          entityId: userId ?? null,
-        })
-      } catch (error) {
-        getLogger().error({ err: error }, 'failed to write logout activity')
-      }
+      auditActivity({
+        userId: userId ?? null,
+        action: 'auth.logout',
+        entity: 'user',
+        entityId: userId ?? null,
+      })
     },
 
     async changePassword(userId, input) {
@@ -262,22 +278,19 @@ export function createAuthService(
 
       const ok = await verifyPassword(input.currentPassword, user.passwordHash)
       if (!ok) {
+        warnAuthFailure('bad_current_password', { userId })
         throw unauthorized('Current password is incorrect')
       }
 
       const passwordHash = await hashPassword(input.newPassword)
       await repository.updatePasswordHashAndInvalidateRefresh(userId, passwordHash)
 
-      try {
-        await logging?.recordActivity({
-          userId,
-          action: 'auth.change_password',
-          entity: 'user',
-          entityId: userId,
-        })
-      } catch (error) {
-        getLogger().error({ err: error }, 'failed to write change-password activity')
-      }
+      auditActivity({
+        userId,
+        action: 'auth.change_password',
+        entity: 'user',
+        entityId: userId,
+      })
 
       // Re-issue for this device so the caller is not logged out after invalidating others.
       return issueTokens(config, user)

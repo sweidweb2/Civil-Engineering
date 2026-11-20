@@ -1,35 +1,39 @@
 import { useCallback } from 'react'
 import { Text, View } from 'react-native'
+import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import {
   FolderKanban,
+  FolderPlus,
   type LucideIcon,
+  Package,
+  RotateCw,
   Star,
   Store,
   UserCheck,
   UserPlus,
+  Users,
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
+import Animated, { FadeIn } from 'react-native-reanimated'
 
-import { InlineError } from '@/components/feedback/AsyncState'
+import { useTodayCaption } from '@/components/kit'
+import { Pressable } from '@/components/ui/pressable'
+import { ProjectGroupRow } from '@/features/pm/ui/kit'
+import { PhotoScrim, PvSectionHead } from '@/features/provider/ui/kit'
 import {
-  ActionTile,
-  DashboardScroll,
-  HeroMetric,
-  MenuGroup,
-  MenuRow,
-  ProgressRow,
-  QuickActions,
-  ScreenHeader,
-  SectionLabel,
-  SeeAll,
-  useTodayCaption,
-} from '@/components/kit'
+  WkError,
+  WkEyebrow,
+  WkGroup,
+  WkHeroGlow,
+  WkSkeletonCard,
+  WkTabScroll,
+} from '@/features/worker/ui/kit'
+import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { formatCount } from '@/lib/stats'
 import { userFirstName } from '@/lib/user'
+import { errorMessage } from '@/services/feedback'
 import { type AdminOverview, getAdminOverview } from '@/services/users'
 import { useAuthStore } from '@/stores/authStore'
 import { MONO_STYLE } from '@/theme/typography'
@@ -39,37 +43,23 @@ async function loadOverview(): Promise<AdminOverview> {
   const { data } = await getAdminOverview()
   return data
 }
-/** Grouped-list row with a mono count as its one trailing element. */
-function CountRow({
-  icon,
-  label,
-  count,
-  href,
-  attention = false,
-  last = false,
-}: {
-  icon?: LucideIcon
-  label: string
-  count: string
-  href: string
-  attention?: boolean
-  last?: boolean
-}) {
+
+const go = (href: string) => () => router.push(href as never)
+const tab = (href: string) => () => router.replace(href as never)
+
+/** Badge on the hero buttons. */
+function Count({ value, solid }: { value: number; solid?: boolean }) {
   return (
-    <MenuRow
-      icon={icon}
-      label={label}
-      last={last}
-      trailing={
-        <Text
-          className={`text-base ${attention ? 'font-medium text-warning' : 'text-foreground'}`}
-          style={MONO_STYLE}
-        >
-          {count}
-        </Text>
-      }
-      onPress={() => router.push(href as never)}
-    />
+    <View
+      className={`h-[22px] min-w-[22px] items-center justify-center rounded-full px-1.5 ${
+        solid ? 'bg-wk-brand' : ''
+      }`}
+      style={solid ? undefined : { backgroundColor: 'rgba(255,255,255,0.2)' }}
+    >
+      <Text className="text-xs font-semibold text-white" style={{ fontVariant: ['tabular-nums'] }}>
+        {value}
+      </Text>
+    </View>
   )
 }
 
@@ -77,139 +67,236 @@ export function AdminDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const today = useTodayCaption()
+  const { c, shadow } = useWorkerPalette()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin })
-
   const data = remote.status === 'success' ? remote.data : null
-  const isFirstLoad = remote.isLoading && !data
 
-  const attention = [
-    {
-      icon: UserCheck,
-      label: t('dashboard.workerRequests'),
-      count: data?.pendingRequests ?? 0,
-      href: '/admin/queue',
-    },
+  const requests = data?.pendingRequests ?? 0
+  const reviews = data?.pendingReviews ?? 0
+  const heroPhoto = data?.recentProjects.find((p) => p.mainImageUrl)?.mainImageUrl ?? null
+  const heroTitle =
+    requests + reviews > 0
+      ? t('adminPortal.heroWaiting', {
+          requests: t('adminPortal.signups', { count: requests }),
+          reviews: t('adminPortal.reviewsCount', { count: reviews }),
+        })
+      : t('adminPortal.caughtUp')
+
+  const stats: {
+    icon: LucideIcon
+    label: string
+    value?: number
+    hint?: string
+    onPress: () => void
+  }[] = [
+    { icon: Users, label: t('users.title'), value: data?.users, onPress: tab('/admin/users') },
     {
       icon: Store,
-      label: t('dashboard.pendingProviders'),
-      count: data?.pendingProviders ?? 0,
-      href: '/admin/providers',
+      label: t('providers.title'),
+      value: data?.providers,
+      hint: data?.pendingProviders
+        ? t('adminPortal.pendingCount', { count: data.pendingProviders })
+        : undefined,
+      onPress: tab('/admin/providers'),
     },
     {
-      icon: Star,
-      label: t('dashboard.pendingReviews'),
-      count: data?.pendingReviews ?? 0,
-      href: '/admin/reviews',
+      icon: FolderKanban,
+      label: t('projects.title'),
+      value: data?.projects,
+      onPress: tab('/admin/projects'),
     },
-  ]
-  const waiting = data ? attention.reduce((sum, item) => sum + item.count, 0) : null
-  const open = attention.filter((item) => item.count > 0)
-
-  const overview = [
-    { label: t('users.title'), value: data?.users, href: '/admin/users' },
-    { label: t('providers.title'), value: data?.providers, href: '/admin/providers' },
-    { label: t('projects.title'), value: data?.projects, href: '/admin/projects' },
-    { label: t('listings.title'), value: data?.listings, href: '/admin/listings' },
+    {
+      icon: Package,
+      label: t('listings.title'),
+      value: data?.listings,
+      onPress: go('/admin/listings'),
+    },
   ]
 
   return (
-    <View className="flex-1 bg-background" testID="e2e-root">
-      <ScreenHeader
-        caption={today}
-        title={t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
-      />
-
-      <DashboardScroll
-        refreshing={remote.isFetching && Boolean(data)}
-        onRefresh={() => void remote.refetch()}
-      >
-        {remote.status === 'error' && !data ? (
-          <InlineError error={remote.error} onRetry={() => void remote.refetch()} />
-        ) : null}
-
-        <HeroMetric
-          label={t('dashboard.toReview')}
-          value={formatCount(waiting, isFirstLoad)}
-          context={waiting === 0 ? t('dashboard.allClear') : undefined}
-        />
-
-        {open.length > 0 ? (
-          <MenuGroup>
-            {open.map((item, index) => (
-              <CountRow
-                key={item.href}
-                icon={item.icon}
-                label={item.label}
-                count={formatCount(item.count, false)}
-                href={item.href}
-                attention
-                last={index === open.length - 1}
-              />
-            ))}
-          </MenuGroup>
-        ) : null}
-
-        <QuickActions>
-          <ActionTile
-            icon={UserPlus}
-            label={t('users.new')}
-            onPress={() => router.push('/admin/users/new' as never)}
-          />
-          <ActionTile
-            icon={Store}
-            label={t('providers.new')}
-            onPress={() => router.push('/admin/providers/new' as never)}
-          />
-          <ActionTile
-            icon={FolderKanban}
-            label={t('projects.new')}
-            onPress={() => router.push('/admin/projects/new' as never)}
-          />
-        </QuickActions>
-
-        <View className="gap-3">
-          <SectionLabel>{t('dashboard.overview')}</SectionLabel>
-          <MenuGroup>
-            {overview.map((item, index) => (
-              <CountRow
-                key={item.href}
-                label={item.label}
-                count={formatCount(item.value, isFirstLoad)}
-                href={item.href}
-                last={index === overview.length - 1}
-              />
-            ))}
-          </MenuGroup>
+    <WkTabScroll
+      testID="e2e-root"
+      refreshing={remote.isFetching && Boolean(data)}
+      onRefresh={() => void remote.refetch()}
+    >
+      {/* Date + greeting, refresh */}
+      <View className="flex-row items-center justify-between gap-3 px-1 pt-1">
+        <View className="min-w-0 flex-1 gap-1.5">
+          <WkEyebrow>{today}</WkEyebrow>
+          <Text className="text-[15px] font-medium text-wk-ink2" numberOfLines={1}>
+            {t('dashboard.greeting', { name: user ? userFirstName(user) : t('dashboard.there') })}
+          </Text>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('adminPortal.refresh')}
+          onPress={() => void remote.refetch()}
+          className="size-11 items-center justify-center rounded-full bg-wk-sf active:opacity-70"
+          style={shadow}
+        >
+          <RotateCw size={18} color={c.ink2} strokeWidth={1.9} />
+        </Pressable>
+      </View>
 
-        {data && data.recentProjects.length > 0 ? (
-          <View className="gap-3">
-            <SectionLabel
-              action={
-                <SeeAll
-                  label={t('common.seeAll')}
-                  onPress={() => router.push('/admin/projects' as never)}
-                />
-              }
+      {remote.status === 'error' && !data ? (
+        <WkError
+          message={errorMessage(remote.error, t('common.errorGeneric'))}
+          onRetry={() => void remote.refetch()}
+        />
+      ) : null}
+
+      {/* Review hero */}
+      <View className="h-[250px] overflow-hidden rounded-[28px] bg-wk-hero">
+        {heroPhoto ? (
+          <Animated.View entering={FadeIn.duration(500)} style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              source={{ uri: heroPhoto }}
+              style={{ position: 'absolute', inset: 0 }}
+              contentFit="cover"
+              transition={250}
+            />
+            <PhotoScrim
+              id="adminHero"
+              stops={[
+                [0, 0.15],
+                [0.4, 0.35],
+                [1, 0.94],
+              ]}
+            />
+          </Animated.View>
+        ) : (
+          <WkHeroGlow size={320} />
+        )}
+        <View className="absolute inset-x-5 bottom-[18px] gap-3.5">
+          <View className="gap-1.5">
+            <Text
+              className="text-[11px] font-medium uppercase"
+              style={[MONO_STYLE, { color: 'rgba(255,255,255,0.72)' }]}
             >
-              {t('dashboard.recentProjects')}
-            </SectionLabel>
-            <MenuGroup>
-              {data.recentProjects.map((project, index) => (
-                <ProgressRow
-                  key={project.id}
-                  title={project.name}
-                  caption={enumLabel(t, 'projectStatus', project.status)}
-                  value={project.progress}
-                  last={index === data.recentProjects.length - 1}
-                  onPress={() => router.push(`/admin/projects/${project.id}` as never)}
-                />
-              ))}
-            </MenuGroup>
+              {t('adminPortal.needsReview')}
+            </Text>
+            <Text className="text-[22px] font-semibold leading-[27px] text-white">
+              {data ? heroTitle : ' '}
+            </Text>
           </View>
-        ) : null}
-      </DashboardScroll>
-    </View>
+          <View className="flex-row gap-2">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('adminPortal.requests')}: ${requests}`}
+              onPress={go('/admin/queue')}
+              className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-[14px] bg-white active:opacity-85"
+            >
+              <UserCheck size={17} color="#0A1F12" strokeWidth={2} />
+              <Text className="text-sm font-semibold" style={{ color: '#0A1F12' }}>
+                {t('adminPortal.requests')}
+              </Text>
+              <Count value={requests} solid />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('reviews.title')}: ${reviews}`}
+              onPress={go('/admin/reviews')}
+              className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-[14px] border active:opacity-85"
+              style={{
+                borderColor: 'rgba(255,255,255,0.3)',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+              }}
+            >
+              <Star size={16} color="#FFFFFF" strokeWidth={2} />
+              <Text className="text-sm font-semibold text-white">{t('reviews.title')}</Text>
+              <Count value={reviews} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* Stats */}
+      <View className="flex-row flex-wrap gap-2.5">
+        {stats.map((s) => (
+          <Pressable
+            key={s.label}
+            accessibilityRole="button"
+            accessibilityLabel={`${s.label}: ${s.value ?? '—'}`}
+            onPress={s.onPress}
+            className="gap-3.5 rounded-[20px] bg-wk-sf p-4 active:opacity-80"
+            style={[shadow, { width: '48.5%', flexGrow: 1 }]}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="size-9 items-center justify-center rounded-[11px] bg-wk-brand-soft">
+                <s.icon size={18} color={c.brand} strokeWidth={1.9} />
+              </View>
+              {s.hint ? (
+                <Text className="text-[11px] font-medium text-wk-amber" style={MONO_STYLE}>
+                  {s.hint}
+                </Text>
+              ) : null}
+            </View>
+            <View className="gap-1">
+              <Text
+                className="text-[28px] font-semibold leading-8 text-wk-ink"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {s.value ?? '—'}
+              </Text>
+              <Text className="text-[13px] font-medium text-wk-ink2">{s.label}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Quick actions */}
+      <View className="flex-row gap-2.5">
+        {[
+          { icon: UserPlus, label: t('users.new'), href: '/admin/users/new', primary: true },
+          { icon: Store, label: t('providers.new'), href: '/admin/providers/new' },
+          { icon: FolderPlus, label: t('projects.new'), href: '/admin/projects/new' },
+        ].map((q) => (
+          <Pressable
+            key={q.href}
+            accessibilityRole="button"
+            accessibilityLabel={q.label}
+            onPress={go(q.href)}
+            className={`min-h-[92px] flex-1 items-start justify-between gap-2.5 rounded-[18px] p-3.5 active:opacity-85 ${
+              q.primary ? 'bg-wk-ink' : 'bg-wk-sf'
+            }`}
+            style={q.primary ? undefined : shadow}
+          >
+            <View
+              className={`size-[34px] items-center justify-center rounded-[10px] ${
+                q.primary ? 'bg-wk-brand' : 'bg-wk-brand-soft'
+              }`}
+            >
+              <q.icon size={17} color={q.primary ? '#FFFFFF' : c.brand} strokeWidth={2} />
+            </View>
+            <Text
+              className={`text-[13px] font-semibold leading-4 ${q.primary ? 'text-wk-bg' : 'text-wk-ink'}`}
+            >
+              {q.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Recent projects */}
+      {!data && remote.isLoading ? <WkSkeletonCard /> : null}
+      {data && data.recentProjects.length > 0 ? (
+        <View className="gap-2.5">
+          <PvSectionHead
+            label={<WkEyebrow>{t('dashboard.recentProjects')}</WkEyebrow>}
+            action={{ label: t('common.seeAll'), onPress: tab('/admin/projects') }}
+          />
+          <WkGroup>
+            {data.recentProjects.slice(0, 4).map((project) => (
+              <ProjectGroupRow
+                key={project.id}
+                project={project}
+                onPress={go(`/admin/projects/${project.id}`)}
+              />
+            ))}
+          </WkGroup>
+        </View>
+      ) : null}
+    </WkTabScroll>
   )
 }

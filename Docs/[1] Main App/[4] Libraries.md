@@ -183,13 +183,16 @@ cd backend && npm i @prisma/client @prisma/adapter-pg && npm i -D prisma
 ```
 
 - Schema: `backend/prisma/schema.prisma` (domain sections; models TBD)
-- Config: `backend/prisma.config.ts` (`DATABASE_URL`)
+- Config: `backend/prisma.config.ts` (`DIRECT_URL` preferred for CLI, else `DATABASE_URL`)
 - Client: `backend/src/database/` → generated under `src/generated/prisma/`
 - Seed stub: `backend/prisma/seed.ts` (no-op until models exist)
+- Migrate: `npm run db:migrate` wraps deploy (refuses `:6543` / missing `DIRECT_URL` on pooler; prod needs `ALLOW_PROD_DB_MIGRATE=1`)
 
 ```bash
 npm run prisma:generate
 npm run db:migrate
+npm run db:assert-index-safety
+npm run db:verify-indexes
 npm run db:seed
 npm run prisma:studio
 ```

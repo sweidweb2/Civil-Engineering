@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
-import { WkCard, WkTabScroll } from '@/features/worker/ui/kit'
+import { WkBodyScroll, WkCard, WkTabScroll, WkTopBar } from '@/features/worker/ui/kit'
 import {
   WkAccountDetailsCard,
   WkPasswordCard,
@@ -15,17 +15,24 @@ import { initialsOf, userDisplayName } from '@/lib/user'
 import { useAuthStore } from '@/stores/authStore'
 
 /**
- * Account tab on the green palette (worker and PM portals): identity card,
- * details / security tabs, appearance, language, log out.
+ * Account screen on the green palette: identity card, details / security
+ * tabs, appearance, language, log out. A tab in the worker and PM portals;
+ * admin opens it from More, so `backHref` gives it a back header instead.
  */
-export function WorkerAccountScreen({ testID = 'e2e-worker-account' }: { testID?: string }) {
+export function WorkerAccountScreen({
+  testID = 'e2e-worker-account',
+  backHref,
+}: {
+  testID?: string
+  backHref?: string
+}) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<'details' | 'security'>('details')
   const user = useAuthStore((s) => s.user)
   const name = user ? userDisplayName(user) : t('account.title')
 
-  return (
-    <WkTabScroll testID={testID}>
+  const body = (
+    <>
       {/* Identity */}
       <WkCard className="flex-row items-center gap-3.5 rounded-[26px] p-5">
         <View className="size-14 items-center justify-center rounded-full bg-wk-hero">
@@ -55,6 +62,15 @@ export function WorkerAccountScreen({ testID = 'e2e-worker-account' }: { testID?
       {tab === 'details' ? <WkAccountDetailsCard /> : <WkPasswordCard />}
 
       <WkPreferences />
-    </WkTabScroll>
+    </>
+  )
+
+  return backHref ? (
+    <View className="flex-1 bg-wk-bg" testID={testID}>
+      <WkTopBar title={t('account.title')} backHref={backHref} />
+      <WkBodyScroll gap="gap-4">{body}</WkBodyScroll>
+    </View>
+  ) : (
+    <WkTabScroll testID={testID}>{body}</WkTabScroll>
   )
 }

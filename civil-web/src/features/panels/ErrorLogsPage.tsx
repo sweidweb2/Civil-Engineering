@@ -57,7 +57,7 @@ export function ErrorLogsPage() {
         isLoading={remote.isLoading}
         error={remote.isError ? remote.error : undefined}
         onRetry={() => void remote.refetch()}
-        loadingFallback={<TableSkeleton columns={5} />}
+        loadingFallback={<TableSkeleton columns={6} />}
       >
         <DataPanel
           footer={
@@ -70,6 +70,7 @@ export function ErrorLogsPage() {
                 <TableHead>{t('logs.when')}</TableHead>
                 <TableHead>{t('logs.errors.status')}</TableHead>
                 <TableHead>{t('logs.errors.code')}</TableHead>
+                <TableHead>{t('logs.errors.requestId')}</TableHead>
                 <TableHead>{t('logs.errors.message')}</TableHead>
                 <TableHead>{t('logs.errors.path')}</TableHead>
               </TableRow>
@@ -77,7 +78,7 @@ export function ErrorLogsPage() {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={6} className="text-muted-foreground">
                     {t('logs.errors.empty')}
                   </TableCell>
                 </TableRow>
@@ -87,6 +88,12 @@ export function ErrorLogsPage() {
                     <TableCell className="whitespace-nowrap">{formatWhen(row.createdAt)}</TableCell>
                     <TableCell>{row.status ?? '—'}</TableCell>
                     <TableCell className="font-mono text-sm">{row.code ?? '—'}</TableCell>
+                    <TableCell
+                      className="max-w-[10rem] truncate font-mono text-sm"
+                      title={row.requestId ?? undefined}
+                    >
+                      {row.requestId ?? '—'}
+                    </TableCell>
                     <TableCell className="max-w-md truncate" title={row.message}>
                       {row.message}
                     </TableCell>

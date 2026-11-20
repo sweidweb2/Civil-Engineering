@@ -13,6 +13,13 @@ export const projectIdParamsSchema = z.object({
   projectId: resourceIdSchema,
 })
 
+/** Batch stage summaries for PM home carousel (max 20 ids). */
+export const batchStageSummariesBodySchema = z.object({
+  projectIds: z.array(resourceIdSchema).min(1).max(20),
+})
+
+export type BatchStageSummariesBody = z.infer<typeof batchStageSummariesBodySchema>
+
 /** Decimal(18, 4): up to 14 digits before the point and 4 after. Kept as a string. */
 const DECIMAL_PATTERN = /^\d{1,14}(\.\d{1,4})?$/
 

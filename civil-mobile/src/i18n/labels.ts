@@ -4,6 +4,7 @@ export type EnumGroup =
   | 'projectStatus'
   | 'projectType'
   | 'listingType'
+  | 'reviewTarget'
   | 'listingStatus'
   | 'rentalUnit'
   | 'providerStatus'

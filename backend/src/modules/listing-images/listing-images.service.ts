@@ -13,6 +13,7 @@ import type {
   ReorderListingImagesBody,
   UpdateListingImageBody,
   UploadListingImageBody,
+  UploadListingImagesBatchBody,
 } from './listing-images.schema.js'
 import type {
   ListingImage,
@@ -29,6 +30,12 @@ export type ListingImagesService = {
     file: ImageUploadFile & { originalname?: string },
     input: UploadListingImageBody,
   ) => Promise<ListingImageWithUrl>
+  uploadListingImagesBatch: (
+    actor: AuthActor,
+    listingId: string,
+    files: Array<ImageUploadFile & { originalname?: string }>,
+    input: UploadListingImagesBatchBody,
+  ) => Promise<ListingImageWithUrl[]>
   updateListingImage: (
     actor: AuthActor,
     imageId: string,
@@ -142,6 +149,12 @@ export function createListingImagesService(deps: ListingImagesServiceDeps): List
       toListingImageWithUrl(await gallery.get(actor, imageId)),
     uploadListingImage: async (actor, listingId, file, input) =>
       toListingImageWithUrl(await gallery.upload(actor, listingId, file, input)),
+    uploadListingImagesBatch: async (actor, listingId, files, input) =>
+      (
+        await gallery.uploadMany(actor, listingId, files, {
+          firstIsMain: input.firstIsMain,
+        })
+      ).map(toListingImageWithUrl),
     updateListingImage: async (actor, imageId, input) =>
       toListingImageWithUrl(await gallery.update(actor, imageId, input)),
     deleteListingImage: (actor, imageId) => gallery.remove(actor, imageId),

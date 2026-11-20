@@ -93,23 +93,47 @@ export function deleteGalleryImage(kind: GalleryKind, imageId: string) {
   return apiRequest<void>(imagePath(kind, imageId), { method: 'DELETE' })
 }
 
+/** One multipart request for create-form queues (`images` field, first = main). */
+export async function uploadGalleryImagesBatch(
+  kind: GalleryKind,
+  ownerId: string,
+  queue: PickedFile[],
+) {
+  const form = new FormData()
+  for (const picked of queue) {
+    const optimized = await optimizeIfImage(picked)
+    await appendImagePart(form, 'images', optimized)
+  }
+  form.append('firstIsMain', 'true')
+  return apiRequest<{ data: GalleryImage[] }>(`${ownerImagesPath(kind, ownerId)}/batch`, {
+    method: 'POST',
+    body: form,
+  })
+}
+
 /**
  * Uploads images picked before the owner existed (create forms).
- * The first one becomes the main image. Returns how many failed so the caller
- * can tell the user instead of silently dropping photos.
+ * Prefers a single batch request; falls back to per-image on failure.
+ * Returns how many failed so the caller can tell the user.
  */
 export async function uploadQueuedImages(
   kind: GalleryKind,
   ownerId: string,
   queue: PickedFile[],
 ): Promise<number> {
-  let failed = 0
-  for (const [index, picked] of queue.entries()) {
-    try {
-      await uploadGalleryImage(kind, ownerId, picked, { isMain: index === 0 })
-    } catch {
-      failed += 1
+  if (queue.length === 0) return 0
+  try {
+    await uploadGalleryImagesBatch(kind, ownerId, queue)
+    return 0
+  } catch {
+    let failed = 0
+    for (const [index, picked] of queue.entries()) {
+      try {
+        await uploadGalleryImage(kind, ownerId, picked, { isMain: index === 0 })
+      } catch {
+        failed += 1
+      }
     }
+    return failed
   }
-  return failed
 }

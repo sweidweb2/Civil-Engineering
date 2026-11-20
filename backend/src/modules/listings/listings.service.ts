@@ -3,6 +3,7 @@ import { isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
+import { auditActivity } from '../logging/index.js'
 import type { ProvidersService } from '../providers/index.js'
 import type {
   CreateListingRecordInput,
@@ -161,12 +162,14 @@ export function createListingsService(
   }
 
   async function assertRefs(providerId: string | null, categoryId: string | null) {
-    if (providerId) {
-      const provider = await repository.findProvider(providerId)
-      if (!provider) throw notFound('Provider not found', 'LISTING_PROVIDER_NOT_FOUND')
+    const [provider, category] = await Promise.all([
+      providerId ? repository.findProvider(providerId) : Promise.resolve(null),
+      categoryId ? repository.findCategory(categoryId) : Promise.resolve(null),
+    ])
+    if (providerId && !provider) {
+      throw notFound('Provider not found', 'LISTING_PROVIDER_NOT_FOUND')
     }
     if (categoryId) {
-      const category = await repository.findCategory(categoryId)
       if (!category) throw notFound('Category not found', 'LISTING_CATEGORY_NOT_FOUND')
       if (category.scope !== 'PLATFORM' || !category.isActive) {
         throw validationError('Category must be an active platform category')
@@ -403,6 +406,13 @@ export function createListingsService(
       if (outcome === 'missing') {
         throw notFound('Listing not found', 'LISTING_NOT_FOUND')
       }
+      auditActivity({
+        userId: actor.id,
+        action: 'listings.delete',
+        entity: 'listing',
+        entityId: id,
+        meta: { outcome },
+      })
       return { outcome }
     },
 

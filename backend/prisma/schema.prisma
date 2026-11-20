@@ -160,10 +160,13 @@ model WorkerProfile {
   certifications  WorkerCertification[]
   skills          WorkerSkill[]
 
-  @@index([city, country])
-  @@index([availability, isPublic])
+  @@index([isPublic, updatedAt])
+  @@index([isPublic, availability, updatedAt])
   @@index([primaryTrade(ops: raw("gin_trgm_ops"))], map: "worker_profiles_primaryTrade_trgm_idx", type: Gin)
   @@index([city(ops: raw("gin_trgm_ops"))], map: "worker_profiles_city_trgm_idx", type: Gin)
+  @@index([country(ops: raw("gin_trgm_ops"))], map: "worker_profiles_country_trgm_idx", type: Gin)
+  @@index([headline(ops: raw("gin_trgm_ops"))], map: "worker_profiles_headline_trgm_idx", type: Gin)
+  @@index([bio(ops: raw("gin_trgm_ops"))], map: "worker_profiles_bio_trgm_idx", type: Gin)
   @@map("worker_profiles")
 }
 
@@ -249,7 +252,6 @@ model RegistrationAttempt {
   createdAt DateTime @default(now())
 
   @@index([deviceId, createdAt])
-  @@index([ipAddress])
   @@map("registration_attempts")
 }
 
@@ -363,7 +365,8 @@ model File {
 
   @@index([entityType, entityId])
   @@index([uploadedById])
-  @@index([status])
+  @@index([status, updatedAt])
+  @@index([status, createdAt])
   @@map("files")
 }
 
@@ -400,9 +403,11 @@ model Provider {
   categories  Category[]
   listings    Listing[]
 
-  @@index([status])
-  @@index([city, country])
+  @@index([status, createdAt])
+  @@index([createdAt])
   @@index([name(ops: raw("gin_trgm_ops"))], map: "providers_name_trgm_idx", type: Gin)
+  @@index([email(ops: raw("gin_trgm_ops"))], map: "providers_email_trgm_idx", type: Gin)
+  @@index([city(ops: raw("gin_trgm_ops"))], map: "providers_city_trgm_idx", type: Gin)
   @@map("providers")
 }
 
@@ -443,10 +448,14 @@ model Category {
   listings     Listing[]
   workerSkills WorkerSkill[]
 
-  @@index([scope, kind])
+  @@index([scope, kind, sortOrder])
+  @@index([scope, kind, isActive])
   @@index([providerId])
   @@index([parentId])
   @@index([slug])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "categories_name_trgm_idx", type: Gin)
+  @@index([nameAr(ops: raw("gin_trgm_ops"))], map: "categories_nameAr_trgm_idx", type: Gin)
+  @@index([slug(ops: raw("gin_trgm_ops"))], map: "categories_slug_trgm_idx", type: Gin)
   @@map("categories")
 }
 
@@ -493,12 +502,10 @@ model Listing {
   category          Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images            ListingImage[]
 
-  @@index([providerId])
-  @@index([categoryId])
-  @@index([status])
   @@index([updatedAt])
   @@index([status, updatedAt])
   @@index([providerId, status, updatedAt])
+  @@index([categoryId, status, updatedAt])
   @@index([name(ops: raw("gin_trgm_ops"))], map: "listings_name_trgm_idx", type: Gin)
   @@index([brand(ops: raw("gin_trgm_ops"))], map: "listings_brand_trgm_idx", type: Gin)
   @@map("listings")
@@ -514,7 +521,6 @@ model ListingImage {
   updatedAt    DateTime @updatedAt
   listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  @@index([listingId])
   @@index([listingId, displayOrder])
   @@index([listingId, isMain])
   /// Partial unique (one main per listing) — see migration `gallery_one_main_partial_unique`.
@@ -578,14 +584,12 @@ model Project {
   materialProcurement MaterialProcurement?
   maintenance        ProjectMaintenance?
 
-  @@index([ownerId])
   @@index([status])
-  @@index([startDate])
-  @@index([city, country])
-  @@index([createdAt])
-  @@index([archivedAt])
   @@index([ownerId, archivedAt, createdAt])
+  @@index([ownerId, archivedAt, status, createdAt])
   @@index([archivedAt, createdAt])
+  @@index([archivedAt, status, createdAt])
+  @@index([archivedAt, type, createdAt])
   @@index([name(ops: raw("gin_trgm_ops"))], map: "projects_name_trgm_idx", type: Gin)
   @@index([code(ops: raw("gin_trgm_ops"))], map: "projects_code_trgm_idx", type: Gin)
   @@index([city(ops: raw("gin_trgm_ops"))], map: "projects_city_trgm_idx", type: Gin)
@@ -602,7 +606,6 @@ model ProjectImage {
   updatedAt    DateTime @updatedAt
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@index([projectId])
   @@index([projectId, displayOrder])
   @@index([projectId, isMain])
   /// Partial unique (one main per project) — see migration `gallery_one_main_partial_unique`.
@@ -745,9 +748,8 @@ model Notification {
   sender     User?            @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
   receiver   User             @relation("ReceivedNotifications", fields: [receiverId], references: [id], onDelete: Cascade)
 
-  @@index([receiverId, deletedAt])
+  @@index([receiverId, deletedAt, createdAt])
   @@index([receiverId, isRead, deletedAt])
-  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -782,6 +784,8 @@ model Review {
 
   @@unique([authorId, targetType, targetId])
   @@index([status, createdAt])
+  @@index([targetType, createdAt])
+  @@index([status, targetType, createdAt])
   @@index([targetType, targetId])
   @@index([comment(ops: raw("gin_trgm_ops"))], map: "reviews_comment_trgm_idx", type: Gin)
   @@map("reviews")

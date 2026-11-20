@@ -2,6 +2,7 @@ import { prisma } from '../../database/prisma.js'
 import { runInTransaction } from '../../database/transaction.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { validationError } from '../../errors/app-error.js'
+import { Prisma } from '../../generated/prisma/client.js'
 import type { ListingImage, ListingImagesRepository } from './listing-images.types.js'
 
 function mapToListingImage(row: {
@@ -125,16 +126,16 @@ export function createListingImagesRepository(): ListingImagesRepository {
     },
 
     async reorderAtomic(listingId, orderedIds) {
+      if (orderedIds.length === 0) return
       await runInTransaction(async (tx) => {
         await tx.$executeRaw`SELECT id FROM listings WHERE id = ${listingId} FOR UPDATE`
-        for (let index = 0; index < orderedIds.length; index += 1) {
-          const id = orderedIds[index]
-          if (!id) continue
-          await tx.listingImage.updateMany({
-            where: { id, listingId },
-            data: { displayOrder: index },
-          })
-        }
+        const values = orderedIds.map((id, index) => Prisma.sql`(${id}, ${index}::int)`)
+        await tx.$executeRaw`
+          UPDATE listing_images AS li
+          SET "displayOrder" = v.ord, "updatedAt" = NOW()
+          FROM (VALUES ${Prisma.join(values)}) AS v(id, ord)
+          WHERE li.id = v.id AND li."listingId" = ${listingId}
+        `
       })
     },
 

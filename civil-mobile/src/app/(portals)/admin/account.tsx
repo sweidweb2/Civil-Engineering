@@ -1,5 +1,5 @@
-import { AccountScreen } from '@/features/account/AccountScreen'
+import { WorkerAccountScreen } from '@/features/worker/WorkerAccountScreen'
 
 export default function AdminAccount() {
-  return <AccountScreen backHref="/admin/more" />
+  return <WorkerAccountScreen testID="e2e-admin-account" backHref="/admin/more" />
 }

@@ -44,10 +44,14 @@ export type UserAvatarResult = {
 /** Admin dashboard aggregate: counts plus the newest projects (lean list rows). */
 export type AdminOverview = {
   users: number
+  managers: number
+  workers: number
   providers: number
   pendingProviders: number
   projects: number
   listings: number
+  reviews: number
+  verificationRequests: number
   /** Pending registration approvals (managers, providers, workers). */
   pendingRequests: number
   pendingReviews: number

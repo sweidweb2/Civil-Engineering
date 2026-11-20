@@ -1,5 +1,5 @@
-import { PmProjectDetailScreen } from '@/features/pm/PmProjectDetailScreen'
+import { PmProjectScreen } from '@/features/pm/PmProjectScreen'
 
 export default function AdminProjectDetail() {
-  return <PmProjectDetailScreen basePath="/admin/projects" />
+  return <PmProjectScreen basePath="/admin/projects" />
 }

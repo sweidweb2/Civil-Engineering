@@ -1,6 +1,8 @@
 import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz/index.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { getRequestLogger } from '../../logging/index.js'
 import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
+import { auditActivity } from '../logging/index.js'
 import {
   assertAllowedImageUpload,
   type FilesService,
@@ -183,7 +185,11 @@ export function createUsersService(
     try {
       const result = await filesService.downloadUrl(actor, fileId)
       return { user, avatarDownloadUrl: result.downloadUrl }
-    } catch {
+    } catch (error) {
+      getRequestLogger().warn(
+        { err: error, userId: user.id, kind: 'users.avatar_url_failed' },
+        'failed to resolve avatar download URL',
+      )
       return { user, avatarDownloadUrl: null }
     }
   }
@@ -267,21 +273,33 @@ export function createUsersService(
         throw validationError('Admin overview is not configured')
       }
       const { providers, listings, projects, reviews } = adminOverview
-      const [directory, approvals, providerCounts, listingCounts, reviewCounts, recent] =
-        await Promise.all([
-          repository.countDirectory(),
-          repository.countApprovals(),
-          providers.countProvidersByStatus(),
-          listings.countListingsByStatus(),
-          reviews.countReviewsByStatus(),
-          projects.listProjects({ page: 1, limit: RECENT_PROJECTS_LIMIT }, actor),
-        ])
+      const [
+        directory,
+        approvals,
+        verifications,
+        providerCounts,
+        listingCounts,
+        reviewCounts,
+        recent,
+      ] = await Promise.all([
+        repository.countDirectory(),
+        repository.countApprovals(),
+        repository.countVerifications(),
+        providers.countProvidersByStatus(),
+        listings.countListingsByStatus(),
+        reviews.countReviewsByStatus(),
+        projects.listProjects({ page: 1, limit: RECENT_PROJECTS_LIMIT }, actor),
+      ])
       return {
         users: directory.accounts,
+        managers: directory.managers,
+        workers: verifications.workers,
         providers: providerCounts.PENDING + providerCounts.APPROVED + providerCounts.SUSPENDED,
         pendingProviders: providerCounts.PENDING,
         projects: recent.meta.total,
         listings: listingCounts.ACTIVE + listingCounts.INACTIVE,
+        reviews: reviewCounts.PENDING + reviewCounts.ACCEPTED + reviewCounts.REJECTED,
+        verificationRequests: verifications.requested,
         pendingRequests: approvals.pending,
         pendingReviews: reviewCounts.PENDING,
         recentProjects: recent.data,
@@ -309,7 +327,7 @@ export function createUsersService(
       const passwordHash = await hashPassword(input.password)
       const isVerified = input.isVerified ?? false
 
-      return repository.create({
+      const created = await repository.create({
         email: input.email,
         passwordHash,
         role: input.role,
@@ -322,6 +340,14 @@ export function createUsersService(
           phone: input.phone,
         },
       })
+      auditActivity({
+        userId: actor.id,
+        action: 'users.create',
+        entity: 'user',
+        entityId: created.id,
+        meta: { role: created.role },
+      })
+      return created
     },
 
     async updateUser(id, input, actor) {
@@ -370,6 +396,19 @@ export function createUsersService(
       if (input.role !== undefined || input.status !== undefined) {
         invalidateAccessPrincipal(id)
       }
+      if (wantsPrivilegedChange) {
+        auditActivity({
+          userId: actor.id,
+          action: 'users.update_privileged',
+          entity: 'user',
+          entityId: id,
+          meta: {
+            role: input.role,
+            status: input.status,
+            isVerified: input.isVerified,
+          },
+        })
+      }
       return updated
     },
 
@@ -386,8 +425,11 @@ export function createUsersService(
       if (previousFileId && previousFileId !== file.id) {
         try {
           await filesService.softDelete(actor, previousFileId)
-        } catch {
-          // Previous object cleanup is best-effort; new avatar is already linked.
+        } catch (error) {
+          getRequestLogger().warn(
+            { err: error, fileId: previousFileId, kind: 'users.avatar_cleanup_failed' },
+            'failed to soft-delete previous avatar',
+          )
         }
       }
 
@@ -415,8 +457,11 @@ export function createUsersService(
         // Avoid orphan READY files that the PENDING/DELETED sweeper would miss.
         try {
           await filesService.softDelete(actor, uploaded.id)
-        } catch {
-          // Best-effort; original link failure is what the client should see.
+        } catch (cleanupError) {
+          getRequestLogger().warn(
+            { err: cleanupError, fileId: uploaded.id, kind: 'users.avatar_orphan_cleanup_failed' },
+            'failed to soft-delete orphaned avatar upload',
+          )
         }
         throw error
       }
@@ -424,8 +469,11 @@ export function createUsersService(
       if (previousFileId && previousFileId !== uploaded.id) {
         try {
           await filesService.softDelete(actor, previousFileId)
-        } catch {
-          // Best-effort cleanup of the previous avatar object.
+        } catch (error) {
+          getRequestLogger().warn(
+            { err: error, fileId: previousFileId, kind: 'users.avatar_cleanup_failed' },
+            'failed to soft-delete previous avatar',
+          )
         }
       }
 
@@ -439,8 +487,11 @@ export function createUsersService(
       if (previousFileId) {
         try {
           await filesService.softDelete(actor, previousFileId)
-        } catch {
-          // Ignore cleanup failures after clearing the profile link.
+        } catch (error) {
+          getRequestLogger().warn(
+            { err: error, fileId: previousFileId, kind: 'users.avatar_cleanup_failed' },
+            'failed to soft-delete cleared avatar',
+          )
         }
       }
       return { user: updated, avatarDownloadUrl: null }
@@ -459,6 +510,12 @@ export function createUsersService(
       assertSuperBoundary(actor, user.role)
       const updated = await repository.updateStatus(id, 'INACTIVE')
       invalidateAccessPrincipal(id)
+      auditActivity({
+        userId: actor.id,
+        action: 'users.deactivate',
+        entity: 'user',
+        entityId: id,
+      })
       return updated
     },
 
@@ -491,7 +548,7 @@ export function createUsersService(
       }
 
       const passwordHash = await hashPassword(input.password)
-      return repository.create({
+      const created = await repository.create({
         email,
         passwordHash,
         role: input.role,
@@ -503,6 +560,14 @@ export function createUsersService(
           phone: input.phone,
         },
       })
+      auditActivity({
+        userId: actor.id,
+        action: 'users.approval_create',
+        entity: 'user',
+        entityId: created.id,
+        meta: { role: created.role },
+      })
+      return created
     },
 
     async approveUser(id, actor) {
@@ -516,6 +581,12 @@ export function createUsersService(
         throw conflict('Only pending registrations can be approved', 'APPROVAL_NOT_PENDING')
       }
       invalidateAccessPrincipal(id)
+      auditActivity({
+        userId: actor.id,
+        action: 'users.approve',
+        entity: 'user',
+        entityId: id,
+      })
       return updated
     },
 
@@ -530,6 +601,12 @@ export function createUsersService(
         throw conflict('Only active registrations can be unapproved', 'APPROVAL_NOT_ACTIVE')
       }
       invalidateAccessPrincipal(id)
+      auditActivity({
+        userId: actor.id,
+        action: 'users.unapprove',
+        entity: 'user',
+        entityId: id,
+      })
       return updated
     },
 
@@ -549,6 +626,12 @@ export function createUsersService(
         )
       }
       invalidateAccessPrincipal(id)
+      auditActivity({
+        userId: actor.id,
+        action: 'users.approval_delete',
+        entity: 'user',
+        entityId: id,
+      })
     },
 
     async listVerifications(query, actor) {
@@ -580,7 +663,7 @@ export function createUsersService(
       }
 
       const passwordHash = await hashPassword(input.password)
-      return repository.create({
+      const created = await repository.create({
         email,
         passwordHash,
         role: 'WORKER',
@@ -594,6 +677,13 @@ export function createUsersService(
           phone: input.phone,
         },
       })
+      auditActivity({
+        userId: actor.id,
+        action: 'users.verification_create',
+        entity: 'user',
+        entityId: created.id,
+      })
+      return created
     },
 
     async setVerification(id, input, actor) {
@@ -604,7 +694,15 @@ export function createUsersService(
       }
       const verificationStatus = input.verificationStatus as VerificationStatus
       if (user.verificationStatus === verificationStatus) return user
-      return repository.updateVerification(id, verificationStatus)
+      const updated = await repository.updateVerification(id, verificationStatus)
+      auditActivity({
+        userId: actor.id,
+        action: 'users.verification_set',
+        entity: 'user',
+        entityId: id,
+        meta: { verificationStatus },
+      })
+      return updated
     },
 
     async deleteVerification(id, actor) {
@@ -623,6 +721,12 @@ export function createUsersService(
           'VERIFICATION_IN_USE',
         )
       }
+      auditActivity({
+        userId: actor.id,
+        action: 'users.verification_delete',
+        entity: 'user',
+        entityId: id,
+      })
     },
   }
 }

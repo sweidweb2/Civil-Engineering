@@ -3,8 +3,19 @@ import rateLimit from 'express-rate-limit'
 
 import type { AppConfig } from '../config/index.js'
 import { ErrorCodes } from '../errors/error-codes.js'
+import { getRequestLogger } from '../logging/index.js'
+import { clientIp } from '../modules/auth/client-meta.js'
 
-const rateLimitHandler: RequestHandler = (_req, res) => {
+const rateLimitHandler: RequestHandler = (req, res) => {
+  getRequestLogger().warn(
+    {
+      kind: 'security.rate_limited',
+      method: req.method,
+      path: (req.originalUrl || req.url).split('?')[0],
+      ip: clientIp(req),
+    },
+    'rate limit exceeded',
+  )
   res.status(429).json({
     code: ErrorCodes.RATE_LIMITED,
     message: 'Too many requests',

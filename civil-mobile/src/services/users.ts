@@ -81,10 +81,14 @@ export function listUsers(page = 1, limit = 20, q?: string, counts = true) {
 
 export type AdminOverview = {
   users: number
+  managers: number
+  workers: number
   providers: number
   pendingProviders: number
   projects: number
   listings: number
+  reviews: number
+  verificationRequests: number
   pendingRequests: number
   pendingReviews: number
   recentProjects: import('./projects').Project[]

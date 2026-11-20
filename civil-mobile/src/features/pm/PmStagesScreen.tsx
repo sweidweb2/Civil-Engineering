@@ -17,11 +17,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
 import { isIsoDate } from '@/features/pm/projectForm'
-import {
-  draftFromSummary,
-  fieldsForStage,
-  fileFieldsForStage,
-} from '@/features/pm/ProjectStagesScreen'
+import { draftFromSummary, fieldsForStage, fileFieldsForStage } from '@/features/pm/stageFields'
 import { saveStageDraft, type StageDraft } from '@/features/pm/stagePayloads'
 import { type StageState, stageStateOf } from '@/features/pm/ui/kit'
 import { StageDocRow } from '@/features/pm/ui/StageDocRow'
@@ -41,7 +37,7 @@ import {
 import { getProjectById } from '@/services/projects'
 import { useToastSuccess } from '@/services/toast'
 
-const BASE = '/pm/projects'
+const DEFAULT_BASE = '/pm/projects'
 
 const STAGE_ICON: Record<StageKey, LucideIcon> = {
   geotechnical: Mountain,
@@ -156,7 +152,8 @@ function Stepper({
 }
 
 /** PM stages editor: stepper, stage fields, documents, notes; save & next. */
-export function PmStagesScreen() {
+export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string } = {}) {
+  const BASE = basePath
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()

@@ -1,5 +1,5 @@
-import { ProviderListingDetailsScreen } from '@/features/provider/ProviderListingDetailsScreen'
+import { ProviderListingDetailScreen } from '@/features/provider/ProviderListingDetailScreen'
 
-export default function AdminListingDetails() {
-  return <ProviderListingDetailsScreen basePath="/admin/listings" />
+export default function AdminListingDetail() {
+  return <ProviderListingDetailScreen basePath="/admin/listings" />
 }

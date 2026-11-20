@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 
@@ -10,7 +10,8 @@ import {
 import { listingWriteFromForm } from '@/features/provider/listing.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { cacheKeys, invalidateListingCaches } from '@/lib/cacheKeys'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
+import { cacheKeys, cacheTtl, invalidateListingCaches } from '@/lib/cacheKeys'
 import { isListingCategory, listCategories } from '@/services/categories'
 import type { PickedFile } from '@/services/filePicker'
 import { uploadQueuedImages } from '@/services/galleryImages'
@@ -47,6 +48,8 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
   }, [listingId])
   const listingRemote = useRemoteData(loadListing, {
     enabled: mode === 'edit' && Boolean(listingId),
+    cacheKey:
+      mode === 'edit' && listingId ? `${cacheKeys.listingDetail}:${listingId}:edit` : undefined,
   })
 
   const loadCategories = useCallback(
@@ -54,7 +57,10 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
       (await listCategories(1, 100, { includeCounts: false })).data.filter(isListingCategory),
     [],
   )
-  const categoriesRemote = useRemoteData(loadCategories, { cacheKey: cacheKeys.categoriesPicker })
+  const categoriesRemote = useRemoteData(loadCategories, {
+    cacheKey: cacheKeys.categoriesPicker,
+    staleTime: cacheTtl.reference,
+  })
 
   const loadProviders = useCallback(
     async () => (await listProviders(1, 100, undefined, undefined, false)).data,
@@ -63,15 +69,16 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
   const providersRemote = useRemoteData(loadProviders, {
     enabled: isAdmin,
     cacheKey: cacheKeys.providersPicker,
+    staleTime: cacheTtl.picker,
   })
 
   const listingData = listingRemote.status === 'success' ? listingRemote.data.data : null
 
-  useEffect(() => {
-    if (mode !== 'edit' || !listingData) return
-    setForm(formFromListing(listingData))
-    if (listingData.providerId) setSelectedProviderId(listingData.providerId)
-  }, [listingData, mode])
+  // Seed once: the listing is cached and refetches in the background.
+  useSeedOnce(mode === 'edit' ? listingData : null, (listing) => {
+    setForm(formFromListing(listing))
+    if (listing.providerId) setSelectedProviderId(listing.providerId)
+  })
 
   function setField<K extends keyof ListingFormValues>(key: K, value: ListingFormValues[K]) {
     setForm((current) => ({ ...current, [key]: value }))

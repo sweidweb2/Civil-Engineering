@@ -83,7 +83,8 @@ export function useWorkerProfile() {
       else if (options.successMessage !== null) {
         toastSuccess(options.successMessage ?? t('worker.saved'))
       }
-      await remote.refetch({ fresh: true })
+      // Background refresh: keep the CV on screen (no skeleton flash).
+      await remote.refetch()
       return true
     } catch (error) {
       handleApiError(error, t('worker.saveFailed'))

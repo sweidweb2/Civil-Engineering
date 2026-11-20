@@ -190,7 +190,9 @@ export function AdminUserDetailScreen() {
         <>
           <WkCard className="flex-row items-center gap-3.5 rounded-3xl">
             <WkMedia
-              photo={avatarUrl ?? user.profile?.avatarUrl}
+              // `profile.avatarUrl` is the avatar File id: a stable cache key, not a URL.
+              photo={avatarUrl}
+              photoKey={user.profile?.avatarUrl}
               name={name}
               size={60}
               round

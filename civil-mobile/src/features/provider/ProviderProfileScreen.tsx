@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { Camera, Images, MapPin, Phone, Store, Trash2 } from 'lucide-react-native'
@@ -31,9 +31,11 @@ import {
 import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateProviderProfileCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import {
@@ -74,8 +76,9 @@ export function ProviderProfileScreen() {
   const [logoOverride, setLogoOverride] = useState<string | null | undefined>(undefined)
   const logoUrl = logoOverride !== undefined ? logoOverride : remoteLogoUrl
 
-  useEffect(() => {
-    if (!provider) return
+  // Seed once: background refetches (e.g. after a logo upload invalidates
+  // `providers:me`) must not overwrite fields the user is still editing.
+  useSeedOnce(provider, (provider) => {
     setForm({
       name: provider.name ?? '',
       description: provider.description ?? '',
@@ -87,7 +90,7 @@ export function ProviderProfileScreen() {
       city: provider.city ?? '',
       country: provider.country ?? '',
     })
-  }, [provider])
+  })
 
   const set = (key: Key) => (value: string) => {
     setForm((current) => ({ ...current, [key]: value }))
@@ -107,7 +110,7 @@ export function ProviderProfileScreen() {
       await updateProvider(provider.id, companyWriteFromForm(parsed.data))
       invalidateProviderProfileCaches()
       toastSuccess(t('profile.companySaved'))
-      await remote.refetch({ fresh: true })
+      await remote.refetch()
     } catch (err) {
       handleApiError(err, t('profile.companySaveFailed'))
     } finally {
@@ -148,7 +151,7 @@ export function ProviderProfileScreen() {
     <WkTabScroll
       testID="e2e-provider-profile"
       refreshing={remote.isFetching && Boolean(provider)}
-      onRefresh={() => void remote.refetch()}
+      onRefresh={() => remote.refetch()}
     >
       {/* Company card */}
       <View className="overflow-hidden rounded-[26px] bg-wk-sf" style={shadow}>
@@ -166,7 +169,13 @@ export function ProviderProfileScreen() {
             >
               {logoUrl ? (
                 <Image
-                  source={{ uri: logoUrl }}
+                  // Key = stored logo ref; skip it right after an upload until the refetch
+                  // brings the new key (never cache new pixels under the old key).
+                  source={remoteImage(
+                    logoUrl,
+                    logoOverride === undefined ? provider?.logoUrl : null,
+                  )}
+                  cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
                   style={{ position: 'absolute', inset: 0 }}
                   contentFit="cover"
                   transition={150}

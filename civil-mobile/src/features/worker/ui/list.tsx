@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { MONO_STYLE } from '@/theme/typography'
@@ -59,6 +61,7 @@ export function WkListScreen<T extends { id: string }>({
   header?: ReactNode
   testID?: string
 }) {
+  const pull = usePullToRefresh()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { c, shadow, isDark } = useWorkerPalette()
@@ -236,7 +239,7 @@ export function WkListScreen<T extends { id: string }>({
         refreshControl={
           <RefreshControl
             refreshing={list.isFetching && list.rows.length > 0 && list.page === 1}
-            onRefresh={list.refresh}
+            onRefresh={() => pull(list.refresh)}
             tintColor={c.ink3}
             colors={[c.brand]}
           />
@@ -251,6 +254,7 @@ export function WkListScreen<T extends { id: string }>({
 /** Photo, initials or icon in a rounded square / circle. */
 export function WkMedia({
   photo,
+  photoKey,
   name,
   icon: Icon,
   size = 52,
@@ -258,6 +262,8 @@ export function WkMedia({
   hero,
 }: {
   photo?: string | null
+  /** Stable cache key for `photo` (storage key / file id) — see `remoteImage`. */
+  photoKey?: string | null
   /** Initials source when there's no photo. */
   name?: string
   icon?: LucideIcon
@@ -274,10 +280,11 @@ export function WkMedia({
     >
       {photo ? (
         <Image
-          source={{ uri: photo }}
+          source={remoteImage(photo, photoKey)}
           style={{ position: 'absolute', inset: 0 }}
           contentFit="cover"
-          recyclingKey={photo}
+          cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
+          recyclingKey={photoKey ?? photo}
         />
       ) : Icon ? (
         <Icon size={Math.round(size * 0.4)} color={hero ? c.lime : c.ink2} strokeWidth={1.8} />

@@ -9,7 +9,7 @@ import {
   createListingBodySchema,
   updateListingBodySchema,
 } from '../../src/modules/listings/listings.schema.js'
-import { createListingsService } from '../../src/modules/listings/listings.service.js'
+import { createListingsService, toListingDto } from '../../src/modules/listings/listings.service.js'
 
 const admin = { id: 'admin-1', roles: ['ADMIN'] }
 const manager = { id: 'pm-1', roles: ['MANAGER'] }
@@ -342,5 +342,24 @@ describe('listing body schemas', () => {
       priceMax: '2',
     })
     expect(parsed.success).toBe(false)
+  })
+})
+
+describe('toListingDto mainImageKey', () => {
+  it('exposes the stable storage key next to a resolved main image URL', () => {
+    const dto = toListingDto(
+      record({ mainImageStoragePath: 'dev/listings/lst-1/img-1.webp' }),
+      'https://signed.example/img-1.webp?sig=abc',
+    )
+    expect(dto.mainImageUrl).toBe('https://signed.example/img-1.webp?sig=abc')
+    expect(dto.mainImageKey).toBe('dev/listings/lst-1/img-1.webp')
+  })
+
+  it('omits the key when no URL could be resolved', () => {
+    const dto = toListingDto(
+      record({ mainImageStoragePath: 'dev/listings/lst-1/img-1.webp' }),
+      null,
+    )
+    expect(dto.mainImageKey).toBeNull()
   })
 })

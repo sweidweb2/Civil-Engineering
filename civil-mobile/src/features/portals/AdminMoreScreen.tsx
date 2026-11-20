@@ -46,7 +46,7 @@ export function AdminMoreScreen() {
     <WkTabScroll
       testID="e2e-admin-more"
       refreshing={remote.isFetching && Boolean(overview)}
-      onRefresh={() => void remote.refetch()}
+      onRefresh={() => remote.refetch()}
     >
       <Pressable
         accessibilityRole="button"

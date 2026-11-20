@@ -11,8 +11,10 @@ import { Pressable } from '@/components/ui/pressable'
 import { ListingGridCard, ListingGridSkeleton } from '@/features/provider/ui/kit'
 import { WkButton, WkError, WkHeroGlow, WkTopBar } from '@/features/worker/ui/kit'
 import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { mergePageRows } from '@/lib/pagedRows'
 import { errorMessage } from '@/services/feedback'
 import { type Listing, type ListingStatus, listListings } from '@/services/listings'
 import { MONO_STYLE } from '@/theme/typography'
@@ -88,6 +90,7 @@ export function ProviderListingsScreen({
       }),
     [applied, filter, page],
   )
+  const pull = usePullToRefresh()
   const remote = useRemoteData(load, {
     cacheKey: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${page}:${applied}:${filter}`,
   })
@@ -97,8 +100,7 @@ export function ProviderListingsScreen({
     if (!result) return
     setRows((current) => {
       if (result.meta.page === 1) return result.data
-      const seen = new Set(current.map((l) => l.id))
-      return [...current, ...result.data.filter((l) => !seen.has(l.id))]
+      return mergePageRows(current, result.data)
     })
   }, [result])
 
@@ -313,10 +315,7 @@ export function ProviderListingsScreen({
         refreshControl={
           <RefreshControl
             refreshing={remote.isFetching && rows.length > 0 && page === 1}
-            onRefresh={() => {
-              if (page === 1) void remote.refetch()
-              else setPage(1)
-            }}
+            onRefresh={() => pull(() => (page === 1 ? remote.refetch() : setPage(1)))}
             tintColor={c.ink3}
             colors={[c.brand]}
           />

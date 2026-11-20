@@ -32,6 +32,7 @@ import {
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { userFirstName } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { type AdminOverview, getAdminOverview } from '@/services/users'
@@ -74,7 +75,8 @@ export function AdminDashboardScreen() {
 
   const requests = data?.pendingRequests ?? 0
   const reviews = data?.pendingReviews ?? 0
-  const heroPhoto = data?.recentProjects.find((p) => p.mainImageUrl)?.mainImageUrl ?? null
+  const heroProject = data?.recentProjects.find((p) => p.mainImageUrl)
+  const heroPhoto = heroProject?.mainImageUrl ?? null
   const heroTitle =
     requests + reviews > 0
       ? t('adminPortal.heroWaiting', {
@@ -118,7 +120,7 @@ export function AdminDashboardScreen() {
     <WkTabScroll
       testID="e2e-root"
       refreshing={remote.isFetching && Boolean(data)}
-      onRefresh={() => void remote.refetch()}
+      onRefresh={() => remote.refetch()}
     >
       {/* Date + greeting, refresh */}
       <View className="flex-row items-center justify-between gap-3 px-1 pt-1">
@@ -151,7 +153,8 @@ export function AdminDashboardScreen() {
         {heroPhoto ? (
           <Animated.View entering={FadeIn.duration(500)} style={{ position: 'absolute', inset: 0 }}>
             <Image
-              source={{ uri: heroPhoto }}
+              source={remoteImage(heroPhoto, heroProject?.mainImageKey)}
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               style={{ position: 'absolute', inset: 0 }}
               contentFit="cover"
               transition={250}

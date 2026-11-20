@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Pressable } from '@/components/ui/pressable'
 import { PvOptionSheet } from '@/features/provider/ui/kit'
 import { useGalleryImages } from '@/hooks/useGalleryImages'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import type { PickedFile } from '@/services/filePicker'
 import { type GalleryImage, type GalleryKind, MAX_GALLERY_IMAGES } from '@/services/galleryImages'
@@ -112,10 +113,11 @@ export function WkGalleryCard({
         >
           {cover.uri ? (
             <Image
-              source={{ uri: cover.uri }}
+              source={remoteImage(cover.uri, cover.image?.storagePath)}
               style={{ width: '100%', height: '100%' }}
               contentFit="cover"
               transition={150}
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
             />
           ) : null}
           <View
@@ -141,9 +143,10 @@ export function WkGalleryCard({
           >
             {tile.uri ? (
               <Image
-                source={{ uri: tile.uri }}
+                source={remoteImage(tile.uri, tile.image?.storagePath)}
                 style={{ width: '100%', height: '100%' }}
                 contentFit="cover"
+                cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               />
             ) : (
               <View className="flex-1 items-center justify-center">

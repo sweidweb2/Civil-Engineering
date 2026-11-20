@@ -27,6 +27,8 @@ export type Listing = {
   createdAt: string
   updatedAt: string
   mainImageUrl?: string | null
+  /** Stable storage key of the main image: use as the image cache key (URL is re-signed). */
+  mainImageKey?: string | null
 }
 
 export type ListingStatusCounts = {

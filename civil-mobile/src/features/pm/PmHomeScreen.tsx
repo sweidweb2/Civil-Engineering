@@ -30,6 +30,7 @@ import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import { userFirstName } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
@@ -123,7 +124,7 @@ export function PmHomeScreen() {
     <WkTabScroll
       testID="e2e-pm-dashboard"
       refreshing={remote.isFetching && Boolean(data)}
-      onRefresh={() => void remote.refetch()}
+      onRefresh={() => remote.refetch()}
     >
       {/* Date + greeting, new project */}
       <View className="flex-row items-center justify-between gap-3 px-1 pt-1">
@@ -269,7 +270,8 @@ export function PmHomeScreen() {
                     >
                       {project.mainImageUrl ? (
                         <Image
-                          source={{ uri: project.mainImageUrl }}
+                          source={remoteImage(project.mainImageUrl, project.mainImageKey)}
+                          cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
                           style={{ position: 'absolute', inset: 0 }}
                           contentFit="cover"
                           transition={250}

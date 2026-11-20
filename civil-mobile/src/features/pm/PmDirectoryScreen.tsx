@@ -25,9 +25,12 @@ import { cardPrice, useCategoryName } from '@/features/provider/ui/kit'
 import { WkButton, WkError, WkSkeletonCard, WkTopBar } from '@/features/worker/ui/kit'
 import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
 import { WkSegmented } from '@/features/worker/ui/settings'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
+import { mergePageRows } from '@/lib/pagedRows'
 import { ltr } from '@/lib/rtl'
 import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
@@ -93,6 +96,7 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
       page: r.meta.page,
     }
   }, [applied, kind, page])
+  const pull = usePullToRefresh()
   const remote = useRemoteData(load, {
     cacheKey: `${cacheKeys.directory}:pm:${kind}:${page}:${applied}`,
   })
@@ -102,8 +106,7 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
     if (!result) return
     setRows((current) => {
       if (result.page === 1) return result.rows
-      const seen = new Set(current.map((e) => e.id))
-      return [...current, ...result.rows.filter((e) => !seen.has(e.id))]
+      return mergePageRows(current, result.rows)
     })
   }, [result])
 
@@ -119,7 +122,9 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
       : [entry.worker.headline || entry.worker.primaryTrade, entry.worker.city]
           .filter(Boolean)
           .join(' · ')
-    const photo = isListing ? entry.listing.mainImageUrl : entry.worker.avatarUrl
+    // Worker `avatarUrl` is a private File id, not a URL: show initials (like civil-web).
+    const photo = isListing ? entry.listing.mainImageUrl : null
+    const photoKey = isListing ? entry.listing.mainImageKey : null
     const verified = !isListing && entry.worker.isVerified
     const typeLabel = isListing
       ? entry.listing.type
@@ -140,10 +145,11 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
         >
           {photo ? (
             <Image
-              source={{ uri: photo }}
+              source={remoteImage(photo, photoKey)}
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               style={{ position: 'absolute', inset: 0 }}
               contentFit="cover"
-              recyclingKey={photo}
+              recyclingKey={photoKey ?? photo}
             />
           ) : isListing ? (
             <Package size={20} color={c.ink3} strokeWidth={1.7} />
@@ -317,7 +323,7 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
         refreshControl={
           <RefreshControl
             refreshing={remote.isFetching && rows.length > 0 && page === 1}
-            onRefresh={() => (page === 1 ? void remote.refetch() : restart({}))}
+            onRefresh={() => pull(() => (page === 1 ? remote.refetch() : restart({})))}
             tintColor={c.ink3}
             colors={[c.brand]}
           />
@@ -342,7 +348,9 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
   if (!shown) return null
   const isListing = shown.kind === 'listing'
   const name = isListing ? shown.listing.name : directoryWorkerName(shown.worker)
-  const photo = isListing ? shown.listing.mainImageUrl : shown.worker.avatarUrl
+  // Worker `avatarUrl` is a private File id, not a URL: show initials (like civil-web).
+  const photo = isListing ? shown.listing.mainImageUrl : null
+  const photoKey = isListing ? shown.listing.mainImageKey : null
   const verified = !isListing && shown.worker.isVerified
 
   let sub = ''
@@ -392,7 +400,8 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
         <View className="-mx-5 h-[150px] overflow-hidden bg-wk-hero">
           {isListing && photo ? (
             <Image
-              source={{ uri: photo }}
+              source={remoteImage(photo, photoKey)}
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               style={{ width: '100%', height: '100%' }}
               contentFit="cover"
             />
@@ -405,7 +414,8 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
         >
           {photo ? (
             <Image
-              source={{ uri: photo }}
+              source={remoteImage(photo, photoKey)}
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               style={{ position: 'absolute', inset: 0 }}
               contentFit="cover"
             />

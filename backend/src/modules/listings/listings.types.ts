@@ -25,6 +25,11 @@ export type Listing = {
   updatedAt: string
   /** Present on list/detail when a main gallery image exists and storage can resolve a URL. */
   mainImageUrl?: string | null
+  /**
+   * Stable storage key of the main image (unchanged until the image is replaced).
+   * Clients use it as the image cache key: `mainImageUrl` may be re-signed per request.
+   */
+  mainImageKey?: string | null
 }
 
 /** Fields snapshotted into project step input values for CATEGORY fields. */

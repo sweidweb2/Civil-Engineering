@@ -11,9 +11,11 @@ import { Pressable } from '@/components/ui/pressable'
 import { ProjectCard, ProjectCardSkeleton } from '@/features/pm/ui/kit'
 import { WkButton, WkError, WkHeroGlow } from '@/features/worker/ui/kit'
 import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { mergePageRows } from '@/lib/pagedRows'
 import { errorMessage } from '@/services/feedback'
 import {
   getProjectSummary,
@@ -76,6 +78,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
       }),
     [applied, filter, page],
   )
+  const pull = usePullToRefresh()
   const remote = useRemoteData(load, {
     cacheKey: `${cacheKeys.projects}:${basePath}:cards:${page}:${applied}:${filter}`,
   })
@@ -89,8 +92,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
     if (!result) return
     setRows((current) => {
       if (result.meta.page === 1) return result.data
-      const seen = new Set(current.map((p) => p.id))
-      return [...current, ...result.data.filter((p) => !seen.has(p.id))]
+      return mergePageRows(current, result.data)
     })
   }, [result])
 
@@ -292,11 +294,12 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
         refreshControl={
           <RefreshControl
             refreshing={remote.isFetching && rows.length > 0 && page === 1}
-            onRefresh={() => {
-              void summaryRemote.refetch()
-              if (page === 1) void remote.refetch()
-              else restart({})
-            }}
+            onRefresh={() =>
+              pull(() => {
+                void summaryRemote.refetch()
+                return page === 1 ? remote.refetch() : restart({})
+              })
+            }
             tintColor={c.ink3}
             colors={[c.brand]}
           />

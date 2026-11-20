@@ -25,8 +25,9 @@ import { WkChoice, WkField, WkFormScreen, WkSection } from '@/features/worker/ui
 import { WkButton } from '@/features/worker/ui/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { enumLabel, enumOptions } from '@/i18n/labels'
-import { invalidateProjectCaches } from '@/lib/cacheKeys'
+import { cacheKeys, invalidateProjectCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
 import {
   getProjectStagesSummary,
@@ -172,14 +173,20 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
     if (!projectId) return Promise.reject(new Error('Project id required'))
     return getProjectById(projectId)
   }, [projectId])
-  const projectRemote = useRemoteData(loadProject, { enabled: Boolean(projectId) })
+  const projectRemote = useRemoteData(loadProject, {
+    enabled: Boolean(projectId),
+    cacheKey: projectId ? `${cacheKeys.projectDetail}:${projectId}` : undefined,
+  })
   const projectCode = projectRemote.status === 'success' ? projectRemote.data.data.code : null
 
   const loadStages = useCallback(() => {
     if (!projectId) return Promise.reject(new Error('Project id required'))
     return getProjectStagesSummary(projectId)
   }, [projectId])
-  const stagesRemote = useRemoteData(loadStages, { enabled: Boolean(projectId) })
+  const stagesRemote = useRemoteData(loadStages, {
+    enabled: Boolean(projectId),
+    cacheKey: projectId ? `${cacheKeys.projectStages}:${projectId}` : undefined,
+  })
   const summary = stagesRemote.status === 'success' ? stagesRemote.data.data : null
 
   const states = useMemo(
@@ -199,11 +206,16 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
     if (first) setActiveKey(first)
   }, [summary, jumped])
 
-  useEffect(() => {
-    if (!summary) return
-    setDraft(draftFromSummary(summary, activeKey))
-    setErrors({})
-  }, [summary, activeKey])
+  // Seed the draft once per stage: switching stage loads that stage's saved values,
+  // but a background refetch of the (cached) summary must not wipe unsaved edits.
+  useSeedOnce(
+    summary,
+    (s) => {
+      setDraft(draftFromSummary(s, activeKey))
+      setErrors({})
+    },
+    activeKey,
+  )
 
   const index = STAGE_KEYS.indexOf(activeKey)
   const isLast = index === STAGE_KEYS.length - 1

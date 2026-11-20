@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { REMOTE_STALE_MS, remoteCacheGet, remoteCacheSet } from '@/lib/remoteCache'
+import {
+  REMOTE_STALE_MS,
+  remoteCacheFetch,
+  remoteCacheGeneration,
+  remoteCacheGet,
+  remoteCacheKeyMatches,
+  remoteCacheRead,
+  remoteCacheSubscribe,
+} from '@/lib/remoteCache'
 import { useAuthStore } from '@/stores/authStore'
 
 export type RemoteIdle = { status: 'idle' }
@@ -14,12 +22,12 @@ type UseRemoteDataOptions = {
   /** When false, skip the initial fetch. Default true. */
   enabled?: boolean
   /**
-   * Stable cache key (e.g. `providers:me`, `projects:list:1::`). Matching keys
-   * reuse a fresh in-memory result for `staleTime` ms across screens — no
-   * network until the entry expires, is invalidated, or `refetch` is called.
+   * Stable cache key (e.g. `providers:me`, `projects:list:1::`). A fresh entry is
+   * reused with no request; a stale (kept) entry is shown instantly while a
+   * background request refreshes it.
    */
   cacheKey?: string
-  /** How long a successful result stays reusable. Default 30s. */
+  /** How long a successful result stays fresh. Default 30s. */
   staleTime?: number
 }
 
@@ -32,14 +40,23 @@ type RefetchOptions = {
  * Lightweight server-data fetch for a screen/feature.
  * Keeps loading/error/data local — do not dump results into Zustand.
  * Same-key refetch keeps the previous success payload (pull-to-refresh).
- * A changed `cacheKey` drops previous rows unless a fresh cache hit exists.
+ * A changed `cacheKey` drops previous rows unless the cache has that key.
  * In-flight responses are ignored once a newer request (or key) supersedes them.
+ *
+ * Keyed hooks share in-flight requests with other screens using the same key, and
+ * refetch in the background (keeping current data) when their key is invalidated
+ * or when the app returns to the foreground with stale data — so screens left
+ * open under a stack see edits made elsewhere.
+ *
+ * `refetch()` resolves `false` only when the request failed while previous data was
+ * kept on screen (a silent refresh failure the caller may want to report — see
+ * `usePullToRefresh`); otherwise `true`.
  */
 export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
   const { enabled = true, cacheKey, staleTime = REMOTE_STALE_MS } = options
-  const cached = cacheKey ? remoteCacheGet<T>(cacheKey) : undefined
+  const cached = cacheKey ? remoteCacheRead<T>(cacheKey) : undefined
   const [state, setState] = useState<RemoteState<T>>(() =>
-    cached !== undefined ? { status: 'success', data: cached } : { status: 'idle' },
+    cached !== undefined ? { status: 'success', data: cached.data } : { status: 'idle' },
   )
   const [isFetching, setIsFetching] = useState(false)
   const loadRef = useRef(load)
@@ -63,59 +80,92 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     stateRef.current = state
   }, [state])
 
-  // Key/load change: seed from cache, or clear previous rows and abandon in-flight work.
-  // `load` is included so uncached screens (no cacheKey) don't keep the prior entity's data.
+  const show = useCallback((next: RemoteState<T>) => {
+    // Keep the ref in step so a refetch started in the same commit sees this state.
+    stateRef.current = next
+    setState(next)
+  }, [])
+
+  // Key/load change: seed from cache (fresh or stale), or clear previous rows and
+  // abandon in-flight work. `load` is included so uncached screens (no cacheKey)
+  // don't keep the prior entity's data.
   useEffect(() => {
     requestIdRef.current += 1
-    const hit = cacheKey ? remoteCacheGet<T>(cacheKey) : undefined
+    const hit = cacheKey ? remoteCacheRead<T>(cacheKey) : undefined
     if (hit !== undefined) {
       dataKeyRef.current = cacheKey
-      setState({ status: 'success', data: hit })
+      show({ status: 'success', data: hit.data })
       setIsFetching(false)
       return
     }
     dataKeyRef.current = undefined
-    setState(enabled ? { status: 'loading' } : { status: 'idle' })
-  }, [cacheKey, enabled, load])
+    show(enabled ? { status: 'loading' } : { status: 'idle' })
+  }, [cacheKey, enabled, load, show])
 
-  const refetch = useCallback(async (refetchOptions?: RefetchOptions) => {
-    const fresh = refetchOptions?.fresh === true
-    const requestId = ++requestIdRef.current
-    const requestKey = cacheKeyRef.current
-    const hadData =
-      !fresh && stateRef.current.status === 'success' && dataKeyRef.current === requestKey
-        ? (stateRef.current as RemoteSuccess<T>).data
-        : undefined
+  const refetch = useCallback(
+    async (refetchOptions?: RefetchOptions): Promise<boolean> => {
+      const fresh = refetchOptions?.fresh === true
+      const requestId = ++requestIdRef.current
+      const requestKey = cacheKeyRef.current
+      const hadData =
+        !fresh && stateRef.current.status === 'success' && dataKeyRef.current === requestKey
+          ? (stateRef.current as RemoteSuccess<T>).data
+          : undefined
 
-    if (fresh || hadData === undefined) {
-      setState({ status: 'loading' })
-    }
-    setIsFetching(true)
-    try {
-      const data = await loadRef.current()
-      if (requestId !== requestIdRef.current) return
-      dataKeyRef.current = requestKey
-      setState({ status: 'success', data })
-      // Never write cache after logout / session clear (in-flight may still resolve).
-      if (requestKey && useAuthStore.getState().tokens) {
-        remoteCacheSet(requestKey, data, staleTimeRef.current)
+      if (fresh || hadData === undefined) {
+        show({ status: 'loading' })
       }
-    } catch (error) {
-      if (requestId !== requestIdRef.current) return
-      if (hadData !== undefined) {
-        setState({ status: 'success', data: hadData })
-      } else {
+      setIsFetching(true)
+      // A login / logout / session expiry in the meantime makes this result belong to
+      // another session: never show or cache it.
+      const generation = remoteCacheGeneration()
+      try {
+        const data = requestKey
+          ? await remoteCacheFetch(requestKey, () => loadRef.current(), {
+              staleMs: staleTimeRef.current,
+              shouldStore: () => Boolean(useAuthStore.getState().tokens),
+            })
+          : await loadRef.current()
+        if (requestId !== requestIdRef.current) return true
+        if (generation !== remoteCacheGeneration()) return true
+        dataKeyRef.current = requestKey
+        show({ status: 'success', data })
+        return true
+      } catch (error) {
+        if (requestId !== requestIdRef.current) return true
+        if (generation !== remoteCacheGeneration()) return true
+        if (hadData !== undefined) {
+          show({ status: 'success', data: hadData })
+          return false
+        }
         dataKeyRef.current = undefined
-        setState({ status: 'error', error })
+        show({ status: 'error', error })
+        return true
+      } finally {
+        if (requestId === requestIdRef.current) setIsFetching(false)
       }
-    } finally {
-      if (requestId === requestIdRef.current) setIsFetching(false)
-    }
-  }, [])
+    },
+    [show],
+  )
+
+  // Invalidation of this key (or a prefix of it) elsewhere → background refetch.
+  // App back in foreground → refetch only if this key is no longer fresh.
+  // refetch() keeps the current data on screen, so there is no skeleton flash.
+  useEffect(() => {
+    if (!enabled || !cacheKey) return
+    return remoteCacheSubscribe((event) => {
+      if (event.type === 'invalidate') {
+        if (remoteCacheKeyMatches(cacheKey, event.prefix)) void refetch()
+      } else if (remoteCacheGet<T>(cacheKey) === undefined) {
+        void refetch()
+      }
+    })
+  }, [enabled, cacheKey, refetch])
 
   useEffect(() => {
     if (!enabled) return
-    // Fresh cache hit: show it and skip the network until expiry / invalidate / refetch.
+    // Fresh cache hit: show it and skip the network until stale / invalidate / refetch.
+    // Stale hit: already shown by the key effect; refetch() revalidates in the background.
     if (cacheKey && remoteCacheGet<T>(cacheKey) !== undefined) return
     void refetch()
   }, [enabled, refetch, load, cacheKey])

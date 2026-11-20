@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { router } from 'expo-router'
 import { HardHat, Languages, MapPin, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,7 @@ import { WkButton } from '@/features/worker/ui/kit'
 import { useWorkerCategories } from '@/features/worker/useWorkerCategories'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerBasicsSchema, type WorkerBasicsValues } from '@/features/worker/worker.schema'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { type FieldErrors, parseForm } from '@/lib/form'
 
 const EMPTY: WorkerBasicsValues = {
@@ -34,8 +35,8 @@ export function WorkerBasicsScreen() {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  useEffect(() => {
-    if (!profile) return
+  // Seed once: background refetches must not wipe unsaved edits.
+  useSeedOnce(profile, (profile) => {
     setForm({
       headline: profile.headline,
       bio: profile.bio,
@@ -45,7 +46,7 @@ export function WorkerBasicsScreen() {
       city: profile.city,
       country: profile.country,
     })
-  }, [profile])
+  })
 
   async function onSave() {
     const parsed = parseForm(workerBasicsSchema, form)

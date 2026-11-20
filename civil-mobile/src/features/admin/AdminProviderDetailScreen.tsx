@@ -70,6 +70,8 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
   const remoteLogoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
   const [logoOverride, setLogoOverride] = useState<string | null | undefined>(undefined)
   const logoUrl = logoOverride !== undefined ? logoOverride : remoteLogoUrl
+  // Stored logo ref is the cache key; none right after an upload (old key ≠ new pixels).
+  const logoKey = logoOverride === undefined ? provider?.logoUrl : null
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -221,7 +223,7 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
       {provider ? (
         <>
           <WkCard className="flex-row items-center gap-3.5 rounded-3xl">
-            <WkMedia photo={logoUrl} name={provider.name} size={60} hero />
+            <WkMedia photo={logoUrl} photoKey={logoKey} name={provider.name} size={60} hero />
             <View className="min-w-0 flex-1 gap-1">
               <Text
                 className="text-[17px] font-semibold leading-[22px] text-wk-ink"
@@ -245,7 +247,7 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
           <WkSection icon={ImageIcon} title={t('adminPortal.logo')}>
             <View className="flex-row items-center gap-3.5">
               <View>
-                <WkMedia photo={logoUrl} name={provider.name} size={76} hero />
+                <WkMedia photo={logoUrl} photoKey={logoKey} name={provider.name} size={76} hero />
                 {logoPick.isBusy ? (
                   <View
                     className="absolute inset-0 items-center justify-center rounded-[23px]"

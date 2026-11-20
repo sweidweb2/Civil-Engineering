@@ -69,7 +69,7 @@ export function WorkerCvScreen() {
     <WkTabScroll
       testID="e2e-worker-cv"
       refreshing={isFetching && isReady}
-      onRefresh={() => void refetch({ fresh: true })}
+      onRefresh={() => refetch()}
     >
       {error && !profile ? (
         <WkError

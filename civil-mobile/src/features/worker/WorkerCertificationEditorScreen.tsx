@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { router } from 'expo-router'
 import { BadgeCheck, Calendar } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,7 @@ import {
   workerCertificationSchema,
   type WorkerCertificationValues,
 } from '@/features/worker/worker.schema'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import type { WorkerCertificationWrite } from '@/services/workers'
 
@@ -33,9 +34,9 @@ export function WorkerCertificationEditorScreen({ indexParam }: Props) {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
-  useEffect(() => {
-    if (isNew || !profile || Number.isNaN(index) || !profile.certifications[index]) return
-    const item = profile.certifications[index]
+  // Seed once: background refetches must not wipe unsaved edits.
+  const seedItem = isNew || Number.isNaN(index) ? null : profile?.certifications[index]
+  useSeedOnce(seedItem, (item) => {
     setForm({
       name: item.name,
       issuer: item.issuer,
@@ -43,7 +44,7 @@ export function WorkerCertificationEditorScreen({ indexParam }: Props) {
       expiresAt: item.expiresAt,
       credentialId: item.credentialId,
     })
-  }, [index, isNew, profile])
+  })
 
   function toWrite(values: WorkerCertificationValues, sortOrder: number): WorkerCertificationWrite {
     return { ...values, sortOrder }

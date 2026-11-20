@@ -132,7 +132,7 @@ export function AdminVerificationsScreen() {
               : [action(user, 'verify')]
         return (
           <WkListRow
-            media={<WkMedia photo={user.profile?.avatarUrl} name={name} round hero />}
+            media={<WkMedia name={name} round hero />}
             title={name}
             pill={{ label: enumLabel(t, 'verificationStatus', status), tone: TONE[status] }}
             sub={ltr(user.email)}

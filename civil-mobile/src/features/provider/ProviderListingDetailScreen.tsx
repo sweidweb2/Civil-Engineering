@@ -48,7 +48,8 @@ import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
-import { invalidateListingCaches } from '@/lib/cacheKeys'
+import { cacheKeys, invalidateListingCaches } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import { errorMessage } from '@/services/feedback'
 import { listGalleryImages } from '@/services/galleryImages'
@@ -90,18 +91,24 @@ export function ProviderListingDetailScreen({
     ])
     return { listing: listing.data, images: images.data }
   }, [listingId])
-  const remote = useRemoteData(load, { enabled: Boolean(listingId) })
+  const remote = useRemoteData(load, {
+    enabled: Boolean(listingId),
+    cacheKey: listingId ? `${cacheKeys.listingDetail}:${listingId}:view` : undefined,
+  })
   const data = remote.status === 'success' ? remote.data : null
   const listing = data?.listing ?? null
 
   const photos = useMemo(() => {
     if (!data) return []
-    const urls = [...data.images]
+    // `key` = stable storage path, so re-signed URLs still hit the image cache.
+    const shots: { uri: string; key: string | null }[] = [...data.images]
       .sort((a, b) => Number(b.isMain) - Number(a.isMain) || a.displayOrder - b.displayOrder)
-      .map((img) => img.url)
-      .filter((url): url is string => Boolean(url))
-    if (urls.length === 0 && data.listing.mainImageUrl) urls.push(data.listing.mainImageUrl)
-    return urls
+      .filter((img): img is typeof img & { url: string } => Boolean(img.url))
+      .map((img) => ({ uri: img.url, key: img.storagePath }))
+    if (shots.length === 0 && data.listing.mainImageUrl) {
+      shots.push({ uri: data.listing.mainImageUrl, key: data.listing.mainImageKey ?? null })
+    }
+    return shots
   }, [data])
 
   const [index, setIndex] = useState(0)
@@ -237,10 +244,11 @@ export function ProviderListingDetailScreen({
               onMomentumScrollEnd={onPage}
               accessibilityLabel={t('gallery.title')}
             >
-              {photos.map((uri) => (
+              {photos.map(({ uri, key: photoKey }) => (
                 <View key={uri} style={{ width, height: PHOTO_HEIGHT }}>
                   <Image
-                    source={{ uri }}
+                    source={remoteImage(uri, photoKey)}
+                    cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
                     style={{ width: '100%', height: '100%' }}
                     contentFit="cover"
                     transition={200}
@@ -266,7 +274,7 @@ export function ProviderListingDetailScreen({
               className="absolute inset-x-0 flex-row justify-center gap-1.5"
               style={{ bottom: 48 }}
             >
-              {photos.map((uri, i) => (
+              {photos.map(({ uri }, i) => (
                 <View
                   key={uri}
                   className="h-1.5 rounded-[3px]"
@@ -379,7 +387,7 @@ export function ProviderListingDetailScreen({
               className="-mx-5"
               contentContainerClassName="gap-2 px-5"
             >
-              {photos.map((uri, i) => (
+              {photos.map(({ uri, key: photoKey }, i) => (
                 <Pressable
                   key={uri}
                   accessibilityRole="button"
@@ -394,7 +402,8 @@ export function ProviderListingDetailScreen({
                   }`}
                 >
                   <Image
-                    source={{ uri }}
+                    source={remoteImage(uri, photoKey)}
+                    cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
                     style={{ width: '100%', height: '100%' }}
                     contentFit="cover"
                   />

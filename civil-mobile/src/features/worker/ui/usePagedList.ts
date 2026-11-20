@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { mergePageRows } from '@/lib/pagedRows'
 
 /**
  * Paged-list data hook behind `WkListScreen`. Kept free of UI imports so it can be
@@ -61,8 +62,7 @@ export function usePagedList<T extends { id: string }>({
     if (!result) return
     setRows((current) => {
       if (result.meta.page === 1) return result.data
-      const seen = new Set(current.map((r) => r.id))
-      return [...current, ...result.data.filter((r) => !seen.has(r.id))]
+      return mergePageRows(current, result.data)
     })
   }, [result])
 
@@ -88,7 +88,8 @@ export function usePagedList<T extends { id: string }>({
     isFirstLoad: remote.isLoading && rows.length === 0,
     isFetching: remote.isFetching,
     error: remote.status === 'error' ? remote.error : undefined,
-    refresh: () => (page === 1 ? void remote.refetch() : restart({})),
+    /** Pull-to-refresh; resolves `false` if page 1 failed but old rows stayed. */
+    refresh: () => (page === 1 ? remote.refetch() : restart({})),
     /**
      * Re-fetch after a row action (approve, delete…); callers invalidate the cache first.
      * On page 1 the key and loader don't change, so a reset alone would clear the rows

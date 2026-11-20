@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
 import { Image } from 'expo-image'
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { ChevronRight, FileText, MapPin, Milestone, NotebookPen } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -41,8 +41,10 @@ import {
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { enumLabel, enumOptions } from '@/i18n/labels'
-import { invalidateProjectCaches } from '@/lib/cacheKeys'
+import { cacheKeys, invalidateProjectCaches } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import { getProjectStagesSummary, STAGE_KEYS } from '@/services/project-stages'
 import {
@@ -72,25 +74,23 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
     if (!projectId) return Promise.reject(new Error('Project id required'))
     return getProjectById(projectId)
   }, [projectId])
-  const remote = useRemoteData(load, { enabled: Boolean(projectId) })
+  const remote = useRemoteData(load, {
+    enabled: Boolean(projectId),
+    cacheKey: projectId ? `${cacheKeys.projectDetail}:${projectId}` : undefined,
+  })
   const project = remote.status === 'success' ? remote.data.data : null
 
-  // Stages load separately and refresh whenever the screen regains focus
-  // (coming back from the Stages editor), without touching the edit form.
+  // Stages load separately (keyed): saving in the Stages editor invalidates
+  // `projects:stages`, so this refreshes in the background on its own.
   const loadStages = useCallback(() => {
     if (!projectId) return Promise.reject(new Error('Project id required'))
     return getProjectStagesSummary(projectId)
   }, [projectId])
-  const stagesRemote = useRemoteData(loadStages, { enabled: Boolean(projectId) })
+  const stagesRemote = useRemoteData(loadStages, {
+    enabled: Boolean(projectId),
+    cacheKey: projectId ? `${cacheKeys.projectStages}:${projectId}` : undefined,
+  })
   const stages = stagesRemote.status === 'success' ? stagesRemote.data.data : null
-  const focusedOnce = useRef(false)
-  useFocusEffect(
-    useCallback(() => {
-      if (focusedOnce.current) void stagesRemote.refetch()
-      focusedOnce.current = true
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-  )
 
   const [form, setForm] = useState<ProjectFormValues>(EMPTY_PROJECT_FORM)
   const [errors, setErrors] = useState<ProjectFormErrors>({})
@@ -98,9 +98,8 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
   const [isArchiving, setIsArchiving] = useState(false)
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
-  useEffect(() => {
-    if (project) setForm(formFromProject(project))
-  }, [project])
+  // Seed once: the project is cached and refetches in the background.
+  useSeedOnce(project, (p) => setForm(formFromProject(p)))
 
   const set =
     <K extends keyof ProjectFormValues>(key: K) =>
@@ -217,7 +216,8 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
           <View className="h-[230px] overflow-hidden rounded-[26px] bg-wk-hero">
             {project.mainImageUrl ? (
               <Image
-                source={{ uri: project.mainImageUrl }}
+                source={remoteImage(project.mainImageUrl, project.mainImageKey)}
+                cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
                 style={{ position: 'absolute', inset: 0 }}
                 contentFit="cover"
                 transition={200}

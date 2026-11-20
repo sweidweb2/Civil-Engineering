@@ -1,5 +1,6 @@
 export const en = {
   common: {
+    refreshFailed: 'Couldn’t refresh. Showing the last loaded data.',
     dangerZone: 'Danger zone',
     all: 'All',
     active: 'Active',

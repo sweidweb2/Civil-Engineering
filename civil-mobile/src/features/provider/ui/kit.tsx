@@ -17,6 +17,7 @@ import { BottomSheet } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { enumLabel } from '@/i18n/labels'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { intlLocale } from '@/lib/locale'
 import { ltr } from '@/lib/rtl'
 import type { Listing, ListingStatus } from '@/services/listings'
@@ -103,10 +104,13 @@ export function PhotoStatusBadge({ status, small }: { status: ListingStatus; sma
 /** Listing photo, or a quiet placeholder tile when there is none. */
 export function ListingPhoto({
   uri,
+  cacheKey,
   dim,
   iconSize = 28,
 }: {
   uri?: string | null
+  /** Stable image key (`mainImageKey`). */
+  cacheKey?: string | null
   /** Hidden listings are shown slightly faded. */
   dim?: boolean
   iconSize?: number
@@ -121,11 +125,12 @@ export function ListingPhoto({
   }
   return (
     <Image
-      source={{ uri }}
+      source={remoteImage(uri, cacheKey)}
       style={{ position: 'absolute', inset: 0, opacity: dim ? 0.78 : 1 }}
       contentFit="cover"
       transition={180}
-      recyclingKey={uri}
+      cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
+      recyclingKey={cacheKey ?? uri}
     />
   )
 }
@@ -184,7 +189,11 @@ export function ListingGridCard({
         style={shadow}
       >
         <View className="aspect-square bg-wk-sf2">
-          <ListingPhoto uri={listing.mainImageUrl} dim={listing.status !== 'ACTIVE'} />
+          <ListingPhoto
+            uri={listing.mainImageUrl}
+            cacheKey={listing.mainImageKey}
+            dim={listing.status !== 'ACTIVE'}
+          />
           <PhotoStatusBadge status={listing.status} small />
           {listing.rentalPrice && listing.rentalUnit ? (
             <View
@@ -231,7 +240,11 @@ export function ListingRailCard({ listing, onPress }: { listing: Listing; onPres
       style={shadow}
     >
       <View className="h-[150px] bg-wk-sf2">
-        <ListingPhoto uri={listing.mainImageUrl} dim={listing.status !== 'ACTIVE'} />
+        <ListingPhoto
+          uri={listing.mainImageUrl}
+          cacheKey={listing.mainImageKey}
+          dim={listing.status !== 'ACTIVE'}
+        />
         <PhotoStatusBadge status={listing.status} />
       </View>
       <View className="gap-1 px-3.5 pb-3.5 pt-3">

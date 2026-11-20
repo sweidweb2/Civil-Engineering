@@ -129,6 +129,7 @@ export function createProjectsService(
         ...project,
         progress: scheduleProgress(project.startDate, project.endDate),
         mainImageUrl: mainImageStoragePath ? (urlByPath.get(mainImageStoragePath) ?? null) : null,
+        mainImageKey: mainImageStoragePath,
       }))
 
       return {

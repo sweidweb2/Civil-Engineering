@@ -98,7 +98,7 @@ export function WorkerDashboardScreen() {
       await requestWorkerVerification()
       invalidateWorkerCaches()
       toastSuccess(t('workerHome.requestSent'))
-      await refetch({ fresh: true })
+      await refetch()
     } catch (err) {
       handleApiError(err, t('workerHome.requestFailed'))
     } finally {
@@ -173,7 +173,7 @@ export function WorkerDashboardScreen() {
     <WkTabScroll
       testID="e2e-worker-dashboard"
       refreshing={isFetching && isReady}
-      onRefresh={() => void refetch({ fresh: true })}
+      onRefresh={() => refetch()}
     >
       {/* Greeting + availability */}
       <View className="flex-row items-center justify-between gap-3 px-1 pt-1">

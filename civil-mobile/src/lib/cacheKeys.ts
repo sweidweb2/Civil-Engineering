@@ -14,12 +14,29 @@ export const cacheKeys = {
   listingsAdmin: 'listings:admin',
   directory: 'directory:list',
   projects: 'projects:list',
+  /** `projects:detail:<id>` — one project (detail + stages header). */
+  projectDetail: 'projects:detail',
+  /** `projects:stages:<id>` — stage summary for one project. */
+  projectStages: 'projects:stages',
+  /** `listings:detail:<id>:view|edit` — one listing (detail screen / editor). */
+  listingDetail: 'listings:detail',
   users: 'users:list',
   providers: 'providers:list',
   categories: 'categories:list',
   reviews: 'reviews:list',
   queue: 'queue:list',
   verifications: 'verifications:list',
+} as const
+
+/**
+ * How long reference data stays fresh (`useRemoteData` `staleTime`). Lists, dashboards
+ * and details keep the 30s default; admin edits invalidate these keys anyway.
+ */
+export const cacheTtl = {
+  /** Category trees used by pickers: change rarely. */
+  reference: 15 * 60_000,
+  /** Admin provider picker: changes when providers are created / renamed. */
+  picker: 5 * 60_000,
 } as const
 
 /** After listing create/update/delete or listing gallery changes. */
@@ -29,6 +46,7 @@ export function invalidateListingCaches() {
   remoteCacheInvalidate(cacheKeys.listingsMine)
   remoteCacheInvalidate(cacheKeys.listingsAdmin)
   remoteCacheInvalidate(cacheKeys.directory)
+  remoteCacheInvalidate(cacheKeys.listingDetail)
   // Category and provider lists show per-row listing counts.
   remoteCacheInvalidate(cacheKeys.categories)
   remoteCacheInvalidate(cacheKeys.providers)
@@ -39,6 +57,8 @@ export function invalidateProjectCaches() {
   remoteCacheInvalidate(cacheKeys.dashboardPm)
   remoteCacheInvalidate(cacheKeys.dashboardAdmin)
   remoteCacheInvalidate(cacheKeys.projects)
+  remoteCacheInvalidate(cacheKeys.projectDetail)
+  remoteCacheInvalidate(cacheKeys.projectStages)
 }
 
 /** After gallery upload/delete/set-main for a listing or project owner. */

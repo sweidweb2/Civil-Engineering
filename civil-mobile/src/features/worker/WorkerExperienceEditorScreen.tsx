@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { router } from 'expo-router'
 import { AlignLeft, Briefcase, Calendar } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +16,7 @@ import {
   workerExperienceSchema,
   type WorkerExperienceValues,
 } from '@/features/worker/worker.schema'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import type { WorkerExperienceWrite } from '@/services/workers'
 
@@ -42,9 +43,9 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
-  useEffect(() => {
-    if (isNew || !profile || Number.isNaN(index) || !profile.experiences[index]) return
-    const item = profile.experiences[index]
+  // Seed once: background refetches must not wipe unsaved edits.
+  const seedItem = isNew || Number.isNaN(index) ? null : profile?.experiences[index]
+  useSeedOnce(seedItem, (item) => {
     setForm({
       company: item.company,
       roleTitle: item.roleTitle,
@@ -55,7 +56,7 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
       isCurrent: item.isCurrent,
       description: item.description,
     })
-  }, [index, isNew, profile])
+  })
 
   function toWrite(values: WorkerExperienceValues, sortOrder: number): WorkerExperienceWrite {
     return { ...values, sortOrder }

@@ -22,6 +22,7 @@ import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { fulfilledRows } from '@/lib/stats'
 import { errorMessage } from '@/services/feedback'
 import { type Listing, listListings } from '@/services/listings'
@@ -95,7 +96,8 @@ export function ProviderDashboardScreen() {
   const total = data?.total ?? 0
   const live = data?.live ?? 0
   const recent = data?.recent ?? []
-  const heroPhoto = recent.find((l) => l.mainImageUrl)?.mainImageUrl ?? null
+  const heroListing = recent.find((l) => l.mainImageUrl)
+  const heroPhoto = heroListing?.mainImageUrl ?? null
   const banner = provider ? STATUS_BANNER[provider.status] : undefined
 
   const hero = !data
@@ -139,7 +141,7 @@ export function ProviderDashboardScreen() {
     <WkTabScroll
       testID="e2e-provider-dashboard"
       refreshing={remote.isFetching && Boolean(data)}
-      onRefresh={() => void remote.refetch()}
+      onRefresh={() => remote.refetch()}
     >
       {/* Date + company, account status */}
       <View className="flex-row items-center justify-between gap-3 px-1 pt-1">
@@ -180,7 +182,8 @@ export function ProviderDashboardScreen() {
         {heroPhoto ? (
           <Animated.View entering={FadeIn.duration(500)} style={{ position: 'absolute', inset: 0 }}>
             <Image
-              source={{ uri: heroPhoto }}
+              source={remoteImage(heroPhoto, heroListing?.mainImageKey)}
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               style={{ position: 'absolute', inset: 0 }}
               contentFit="cover"
               transition={250}

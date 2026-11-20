@@ -9,11 +9,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AppAlertHost } from '@/components/feedback/AppAlertHost'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
+import { useForegroundRevalidate } from '@/hooks/useForegroundRevalidate'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useThemeStore } from '@/stores/themeStore'
 
 function PushNotificationsBridge() {
   usePushNotifications()
+  return null
+}
+
+/** Refresh stale data on open screens when the app returns to the foreground. */
+function ForegroundRevalidateBridge() {
+  useForegroundRevalidate()
   return null
 }
 
@@ -24,6 +31,7 @@ export default function RootLayout() {
       <GluestackUIProvider mode={themeMode}>
         <ErrorBoundary>
           <PushNotificationsBridge />
+          <ForegroundRevalidateBridge />
           <Stack screenOptions={{ headerShown: false }} />
           <AppAlertHost />
         </ErrorBoundary>

@@ -24,6 +24,7 @@ import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { isRtlLayout } from '@/lib/rtl'
 import { MONO_STYLE } from '@/theme/typography'
 
@@ -105,10 +106,12 @@ export function WkTabScroll({
 }: {
   children: ReactNode
   refreshing?: boolean
-  onRefresh?: () => void
+  /** Return the refetch promise so a failed refresh is reported (see usePullToRefresh). */
+  onRefresh?: () => unknown
   testID?: string
 }) {
   const insets = useSafeAreaInsets()
+  const pull = usePullToRefresh()
   const { c, isDark } = useWorkerPalette()
   useStatusBarStyle(isDark ? 'light' : 'dark')
   return (
@@ -124,7 +127,7 @@ export function WkTabScroll({
           onRefresh ? (
             <RefreshControl
               refreshing={Boolean(refreshing)}
-              onRefresh={onRefresh}
+              onRefresh={() => pull(onRefresh)}
               tintColor={c.ink3}
               colors={[c.brand]}
             />

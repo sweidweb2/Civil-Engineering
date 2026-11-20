@@ -95,6 +95,7 @@ export function toListingDto(record: ListingRecord, mainImageUrl: string | null 
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     mainImageUrl,
+    mainImageKey: mainImageUrl ? record.mainImageStoragePath : null,
   }
 }
 

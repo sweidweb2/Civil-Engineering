@@ -9,6 +9,7 @@ import { Pressable } from '@/components/ui/pressable'
 import { WkPill } from '@/features/worker/ui/kit'
 import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
 import { enumLabel } from '@/i18n/labels'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import type { ProjectStagesSummary, StageKey } from '@/services/project-stages'
 import { STAGE_KEYS } from '@/services/project-stages'
@@ -130,7 +131,16 @@ export function ProgressLine({ value, status }: { value: number; status: Project
 
 /* ─── Photos ───────────────────────────────────────────────────────────── */
 
-export function ProjectThumb({ uri, size }: { uri?: string | null; size: number }) {
+export function ProjectThumb({
+  uri,
+  cacheKey,
+  size,
+}: {
+  uri?: string | null
+  /** Stable image key (`mainImageKey`). */
+  cacheKey?: string | null
+  size: number
+}) {
   const { c } = useWorkerPalette()
   return (
     <View
@@ -139,11 +149,12 @@ export function ProjectThumb({ uri, size }: { uri?: string | null; size: number 
     >
       {uri ? (
         <Image
-          source={{ uri }}
+          source={remoteImage(uri, cacheKey)}
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
           transition={150}
-          recyclingKey={uri}
+          cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
+          recyclingKey={cacheKey ?? uri}
         />
       ) : (
         <FolderKanban size={size * 0.36} color={c.ink3} strokeWidth={1.6} />
@@ -175,7 +186,7 @@ export function ProjectCard({
         className="flex-row gap-3.5 rounded-[22px] bg-wk-sf p-3 active:opacity-90"
         style={shadow}
       >
-        <ProjectThumb uri={project.mainImageUrl} size={80} />
+        <ProjectThumb uri={project.mainImageUrl} cacheKey={project.mainImageKey} size={80} />
         <View className="min-w-0 flex-1 gap-1.5 pe-0.5 pt-0.5">
           <View className="flex-row items-start gap-2">
             <Text
@@ -208,7 +219,7 @@ export function ProjectGroupRow({ project, onPress }: { project: Project; onPres
       onPress={onPress}
       className="flex-row items-center gap-3.5 bg-wk-sf py-3 pe-3.5 ps-3 active:bg-wk-sf2"
     >
-      <ProjectThumb uri={project.mainImageUrl} size={56} />
+      <ProjectThumb uri={project.mainImageUrl} cacheKey={project.mainImageKey} size={56} />
       <View className="min-w-0 flex-1 gap-[7px]">
         <View className="flex-row items-center gap-2">
           <Text className="min-w-0 flex-1 text-[15px] font-semibold text-wk-ink" numberOfLines={1}>

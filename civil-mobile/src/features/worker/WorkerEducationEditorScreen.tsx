@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { router } from 'expo-router'
 import { Calendar, GraduationCap } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { WkDangerZone, WkField, WkFormScreen, WkSection } from '@/features/worke
 import { WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerEducationSchema, type WorkerEducationValues } from '@/features/worker/worker.schema'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import type { WorkerEducationWrite } from '@/services/workers'
 
@@ -30,9 +31,9 @@ export function WorkerEducationEditorScreen({ indexParam }: Props) {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
-  useEffect(() => {
-    if (isNew || !profile || Number.isNaN(index) || !profile.education[index]) return
-    const item = profile.education[index]
+  // Seed once: background refetches must not wipe unsaved edits.
+  const seedItem = isNew || Number.isNaN(index) ? null : profile?.education[index]
+  useSeedOnce(seedItem, (item) => {
     setForm({
       school: item.school,
       degree: item.degree,
@@ -40,7 +41,7 @@ export function WorkerEducationEditorScreen({ indexParam }: Props) {
       startYear: item.startYear,
       endYear: item.endYear,
     })
-  }, [index, isNew, profile])
+  })
 
   function toWrite(values: WorkerEducationValues, sortOrder: number): WorkerEducationWrite {
     return { ...values, sortOrder }

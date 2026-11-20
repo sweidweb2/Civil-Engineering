@@ -9,6 +9,7 @@ import { PickSourceSheet } from '@/components/files/PickSourceSheet'
 import { PressableScale } from '@/components/kit'
 import { useGalleryImages } from '@/hooks/useGalleryImages'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { showBlockingAlert } from '@/services/feedback'
 import type { PickedFile } from '@/services/filePicker'
 import { type GalleryImage, type GalleryKind, MAX_GALLERY_IMAGES } from '@/services/galleryImages'
@@ -109,10 +110,11 @@ export function GalleryImagesField({
           >
             {tile.uri ? (
               <Image
-                source={{ uri: tile.uri }}
+                source={remoteImage(tile.uri, tile.image?.storagePath)}
                 style={{ width: '100%', height: '100%' }}
                 contentFit="cover"
                 transition={150}
+                cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
               />
             ) : (
               <View className="flex-1 items-center justify-center">

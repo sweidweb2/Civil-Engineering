@@ -51,6 +51,11 @@ export type ProjectListItem = {
   createdAt: string
   updatedAt: string
   mainImageUrl?: string | null
+  /**
+   * Stable storage key of the main image (unchanged until the image is replaced).
+   * Clients use it as the image cache key: `mainImageUrl` may be re-signed per request.
+   */
+  mainImageKey?: string | null
 }
 
 /** Repository list row before service attaches a presigned URL. */

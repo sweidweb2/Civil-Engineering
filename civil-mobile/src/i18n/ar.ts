@@ -2,6 +2,7 @@ import type { Messages } from './en'
 
 export const ar: Messages = {
   common: {
+    refreshFailed: 'تعذّر التحديث. نعرض آخر بيانات تم تحميلها.',
     dangerZone: 'منطقة الخطر',
     all: 'الكل',
     active: 'نشط',

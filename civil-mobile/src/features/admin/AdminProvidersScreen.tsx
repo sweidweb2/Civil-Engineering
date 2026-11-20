@@ -7,6 +7,7 @@ import { PROVIDER_TONE } from '@/features/admin/ui'
 import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/features/worker/ui/list'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { isHttpUrl } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import {
   listProviders,
@@ -58,7 +59,10 @@ export function AdminProvidersScreen() {
       emptyTitle={t('providers.empty')}
       renderItem={(p) => (
         <WkListRow
-          media={<WkMedia photo={p.logoUrl} name={p.name} hero />}
+          media={
+            // List rows only have the stored logo ref (usually an R2 key, not a URL).
+            <WkMedia photo={isHttpUrl(p.logoUrl) ? p.logoUrl : null} name={p.name} hero />
+          }
           title={p.name}
           pill={{ label: enumLabel(t, 'providerStatus', p.status), tone: PROVIDER_TONE[p.status] }}
           sub={[p.city, p.country].filter(Boolean).join(', ') || null}

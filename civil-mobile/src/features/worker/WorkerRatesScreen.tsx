@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { router } from 'expo-router'
 import { Banknote, Eye } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import { WkButton } from '@/features/worker/ui/kit'
 import { WORKER_CURRENCIES } from '@/features/worker/ui/sections'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerRatesSchema, type WorkerRatesValues } from '@/features/worker/worker.schema'
+import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { enumOptions } from '@/i18n/labels'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { WORKER_AVAILABILITY_OPTIONS } from '@/services/workers'
@@ -27,8 +28,8 @@ export function WorkerRatesScreen() {
   const [form, setForm] = useState<WorkerRatesValues>(EMPTY)
   const [errors, setErrors] = useState<FieldErrors>({})
 
-  useEffect(() => {
-    if (!profile) return
+  // Seed once: background refetches must not wipe unsaved edits.
+  useSeedOnce(profile, (profile) => {
     setForm({
       hourlyRate: profile.hourlyRate,
       dailyRate: profile.dailyRate,
@@ -37,7 +38,7 @@ export function WorkerRatesScreen() {
       isPublic: profile.isPublic,
       cvUrl: profile.cvUrl,
     })
-  }, [profile])
+  })
 
   async function onSave() {
     const parsed = parseForm(workerRatesSchema, form)

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { cacheKeys } from '@/lib/cacheKeys'
+import { cacheKeys, cacheTtl } from '@/lib/cacheKeys'
 import { listCategories } from '@/services/categories'
 
 export type WorkerTrade = {
@@ -21,7 +21,10 @@ export function useWorkerCategories() {
     () => listCategories(1, 100, { kind: 'WORKER', includeCounts: false }),
     [],
   )
-  const remote = useRemoteData(load, { cacheKey: `${cacheKeys.categoriesPicker}:WORKER` })
+  const remote = useRemoteData(load, {
+    cacheKey: `${cacheKeys.categoriesPicker}:WORKER`,
+    staleTime: cacheTtl.reference,
+  })
 
   const trades: WorkerTrade[] = useMemo(
     () =>

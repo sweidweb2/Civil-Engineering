@@ -7,8 +7,8 @@ import {
   notFound,
   validationError,
 } from '../../errors/app-error.js'
-import { auditActivity } from '../logging/index.js'
 import type { ListingsService } from '../listings/index.js'
+import { auditActivity } from '../logging/index.js'
 import type { ReviewRecord, ReviewsRepository } from './reviews.repository.js'
 import type { CreateReviewBody, ListReviewsQuery, UpdateReviewBody } from './reviews.schema.js'
 import type {

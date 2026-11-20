@@ -8,8 +8,8 @@ export function createLoggingModule() {
   return createLoggingRoutes(controller)
 }
 
-export type { LoggingService } from './logging.service.js'
 export { auditActivity, setAuditActivitySinkForTests } from './audit.js'
 export { createLoggingRepository } from './logging.repository.js'
+export type { LoggingService } from './logging.service.js'
 export { createLoggingService } from './logging.service.js'
 export { getLoggingService, resetLoggingServiceForTests } from './logging.singleton.js'

@@ -2,9 +2,9 @@ import { getLogger } from './logger.js'
 import {
   getRequestId,
   getRequestStore,
+  type RequestAlsStore,
   runWithRequestContext,
   setRequestRoute,
-  type RequestAlsStore,
 } from './request-als.js'
 
 /** Verbose timing logs — on in development, or when PERF_LOG=true. */

@@ -2,7 +2,6 @@ import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { getRequestLogger } from '../../logging/index.js'
 import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
-import { auditActivity } from '../logging/index.js'
 import {
   assertAllowedImageUpload,
   type FilesService,
@@ -12,6 +11,7 @@ import {
   readUploadBytes,
 } from '../files/index.js'
 import type { ListingsService } from '../listings/index.js'
+import { auditActivity } from '../logging/index.js'
 import type { ProjectsService } from '../projects/index.js'
 import type { ProvidersService } from '../providers/index.js'
 import type { ReviewsService } from '../reviews/index.js'

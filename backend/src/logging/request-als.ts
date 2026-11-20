@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash, randomUUID } from 'node:crypto'
-
 import type { Logger } from 'pino'
 
 import { getLogger } from './logger.js'

@@ -1,5 +1,5 @@
 import { prisma } from '../../database/prisma.js'
-import { Prisma, type ListingStatus, type RentalUnit } from '../../generated/prisma/client.js'
+import { type ListingStatus, Prisma, type RentalUnit } from '../../generated/prisma/client.js'
 import type { ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
 import type { ListingSnapshot, ListingStatusCounts, ListingTypeCounts } from './listings.types.js'
 

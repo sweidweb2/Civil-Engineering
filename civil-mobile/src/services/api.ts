@@ -1,3 +1,6 @@
+import i18n from '@/i18n'
+import { isOffline } from '@/services/connectivity'
+
 const API_BASE_URL = (
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 ).replace(/\/$/, '')
@@ -140,7 +143,15 @@ export type ApiRequestOptions = RequestInit & {
   skipAuthRefresh?: boolean
   /** Override the default request timeout (ms). */
   timeoutMs?: number
+  /**
+   * Sent as `Idempotency-Key` on create calls. Reuse the same key when retrying the
+   * same submission so a create that succeeded server-side is not duplicated.
+   */
+  idempotencyKey?: string
 }
+
+/** Error code for writes attempted with no network (handled like any ApiError). */
+export const OFFLINE_ERROR_CODE = 'OFFLINE'
 
 /** Default budget for multipart uploads — aligned with R2 server timeout. */
 export const UPLOAD_REQUEST_TIMEOUT_MS = 60_000
@@ -151,7 +162,13 @@ export function applySessionTokens(tokens: AuthTokens): void {
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { accessToken, skipAuthRefresh, headers, timeoutMs, ...rest } = options
+  const { accessToken, skipAuthRefresh, headers, timeoutMs, idempotencyKey, ...rest } = options
+
+  // Writes are online-only: fail fast with a clear message instead of a timeout.
+  const method = (rest.method ?? 'GET').toUpperCase()
+  if (method !== 'GET' && method !== 'HEAD' && isOffline()) {
+    throw new ApiError(0, i18n.t('offline.writeBlocked'), OFFLINE_ERROR_CODE)
+  }
 
   const resolveToken = (override?: string | null) => {
     if (override !== undefined) return override
@@ -177,6 +194,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         'x-request-id': requestId,
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
         ...(headers as Record<string, string> | undefined),
       },
     })

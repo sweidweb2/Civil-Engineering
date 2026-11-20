@@ -1,6 +1,6 @@
 # Mobile caching plan
 
-**Status:** Phases 0–4 done (3.3 thumbnails and Phase 5 offline remain optional), 2026-11-20
+**Status:** Phases 0–5 done (only 3.3 thumbnails remains, optional), 2026-11-21
 **Date:** 2026-11-20
 **Applies to:** `civil-mobile/` (plus small backend changes, marked **[backend]**)
 **Source:** caching audit of commit `8ef146a`
@@ -247,13 +247,25 @@ What shipped:
 
 ## Phase 5: Offline reading (optional, needs a decision first)
 
+**Status:** Done (2026-11-21). Decision: `Docs/[3] Decisions/[14] Mobile Offline Read Cache.md`.
+
+What shipped, and where it differs from the plan below:
+
+- **Decision:** keep the custom cache (no TanStack Query). New deps: `expo-network`, `expo-file-system` (`npx expo install`, SDK 57).
+- **Offline reads:** `src/lib/offlineSnapshot.ts` saves allow-listed keys (own dashboards, profile/CV, projects + stages, page 1 of own lists, own listing detail, PM directory page 1) to one JSON file per user in `Paths.cache`; ≤ 40 entries, ≤ 7 days. **Changed:** used only as a fallback inside `useRemoteData` when a request fails with a network error and nothing is on screen (`offlineSavedAt` tells the screen it is a saved copy); online behaviour is unchanged. Cleared on logout, session expiry and login. Disabled on web.
+- **Connectivity:** `src/services/connectivity.ts` + `src/hooks/useConnectivityWatch.ts` (mounted in `src/app/_layout.tsx`). Offline = `isConnected === false`. Reconnecting revalidates open screens. `src/components/feedback/OfflineBanner.tsx` in `PortalShell`.
+- **Changed (writes):** instead of disabling every save button, `apiRequest` fails non-GET calls immediately while offline (`ApiError` code `OFFLINE`, `offline.writeBlocked` message) and the existing error handling shows it.
+- **Idempotency [backend]:** `backend/src/middleware/idempotency.ts` on `POST /listings`, `/projects`, `/users` (in-process, 24h, per user; errors not stored; 409 for in-progress or reused-with-different-body). Mobile: `src/lib/idempotency.ts` `useIdempotencyKey` in the listing editor, new project and admin user create screens.
+- Tests: mobile `offlineSnapshot.test.ts`, `offlineReads.test.tsx`, `api.offline.test.ts`; backend `tests/unit/idempotency.middleware.test.ts`.
+- Not verified on a device yet: airplane-mode launch, banner, offline save message, reconnect refresh.
+
 Only start this if the product needs it, for example PMs checking projects on site with poor signal.
 
-- [ ] Write `Docs/[3] Decisions/[14] Mobile Offline Read Cache.md` first. Decide whether to keep the custom hook or adopt TanStack Query + a persister (this is the "justified" point Bedrock mentions).
-- [ ] Scope: **read-only** snapshots of the user's own data: dashboard, `workers:me` / `providers:me`, page 1 of my projects / my listings. Persist with a per-user, versioned key, cleared on logout.
-- [ ] Detect connectivity (`expo-network`) and show an "Offline, showing saved data from <time>" banner.
-- [ ] Writes stay online-only. Disable save buttons while offline.
-- [ ] Add an `Idempotency-Key` header on create calls (listings, projects, users) so a retry after a timeout does not create duplicates [backend support needed].
+- [x] Write `Docs/[3] Decisions/[14] Mobile Offline Read Cache.md` first. Decide whether to keep the custom hook or adopt TanStack Query + a persister (this is the "justified" point Bedrock mentions).
+- [x] Scope: **read-only** snapshots of the user's own data: dashboard, `workers:me` / `providers:me`, page 1 of my projects / my listings. Persist with a per-user, versioned key, cleared on logout.
+- [x] Detect connectivity (`expo-network`) and show an "Offline, showing saved data from <time>" banner.
+- [x] Writes stay online-only. Disable save buttons while offline.
+- [x] Add an `Idempotency-Key` header on create calls (listings, projects, users) so a retry after a timeout does not create duplicates [backend support needed].
 
 ---
 
@@ -266,6 +278,6 @@ Only start this if the product needs it, for example PMs checking projects on si
 | 2     | Stale-while-revalidate, TTLs, foreground refresh, detail keys | M    | No            | ☑ Done    |
 | 3     | Image cache keys (3.1 mobile; 3.2–3.3 backend)                | S–M  | 3.2, 3.3      | ☑ 3.1–3.2 |
 | 4     | Refresh user, hydration gate, `no-store`                      | S    | 4.3           | ☑ Done    |
-| 5     | Offline read cache (optional)                                 | L    | Idempotency   | ☐         |
+| 5     | Offline read cache (optional)                                 | L    | Idempotency   | ☑ Done    |
 
 Each phase: add unit tests next to `tests/unit/remoteCache.test.ts` and run `npm run typecheck && npm run lint && npm test` in `civil-mobile/`.

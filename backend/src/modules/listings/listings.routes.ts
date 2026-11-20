@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { ADMIN_ROLES } from '../../authz/index.js'
 import { authenticate } from '../../middleware/authenticate.js'
 import { authorize } from '../../middleware/authorize.js'
+import { idempotent } from '../../middleware/idempotency.js'
 import { validate } from '../../middleware/validate.js'
 import type { ListingsController } from './listings.controller.js'
 import {
@@ -46,6 +47,7 @@ export function createListingsRoutes(controller: ListingsController): Router {
   router.post(
     '/',
     authorize(...ADMIN_ROLES, 'PROVIDER'),
+    idempotent(),
     validate({ body: createListingBodySchema }),
     controller.create,
   )

@@ -1,4 +1,8 @@
 export const en = {
+  offline: {
+    banner: 'Offline · showing saved data',
+    writeBlocked: 'You’re offline. Connect to the internet and try again.',
+  },
   common: {
     refreshFailed: 'Couldn’t refresh. Showing the last loaded data.',
     dangerZone: 'Danger zone',

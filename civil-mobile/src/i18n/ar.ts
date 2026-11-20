@@ -1,6 +1,10 @@
 import type { Messages } from './en'
 
 export const ar: Messages = {
+  offline: {
+    banner: 'غير متصل · نعرض البيانات المحفوظة',
+    writeBlocked: 'أنت غير متصل بالإنترنت. اتصل ثم حاول مرة أخرى.',
+  },
   common: {
     refreshFailed: 'تعذّر التحديث. نعرض آخر بيانات تم تحميلها.',
     dangerZone: 'منطقة الخطر',

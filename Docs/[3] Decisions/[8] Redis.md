@@ -16,6 +16,7 @@
 | Redis / `ioredis`                               | **None** — dependency and code deleted                                                                                  |
 | Cache helpers (`civil:*` keys, `redis.keys.ts`) | **Removed**                                                                                                             |
 | Rate limiting                                   | **In-process memory** via `express-rate-limit` (per API instance)                                                       |
+| Idempotency keys (create endpoints)             | **In-process memory**, bounded, 24h (per API instance) — see [14] Mobile Offline Read Cache                             |
 | Caching                                         | Not server-side by default. Use **client-side** caching, **CDN** (static assets), and **presigned URLs** (R2) as needed |
 | Job queue (BullMQ)                              | **None** — jobs stay **synchronous** (`backend/src/jobs/` wrappers run inline)                                          |
 | Health                                          | `/api/v1/health/redis` **removed** (DB health only)                                                                     |
@@ -50,3 +51,4 @@ Not locked. Requires a new decision doc before adding any shared store (Redis or
 - [Tech Stack](../[1]%20Main%20App/[1]%20Tech%20Stack.md)
 - [Docker & Infrastructure](./[4]%20Docker%20%26%20Infrastructure.md) — also superseded
 - [Observability](./[7]%20Observability.md)
+- [Mobile Offline Read Cache](./[14]%20Mobile%20Offline%20Read%20Cache.md) — in-process idempotency store

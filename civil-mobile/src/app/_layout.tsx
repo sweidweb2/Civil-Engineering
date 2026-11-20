@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AppAlertHost } from '@/components/feedback/AppAlertHost'
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary'
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider'
+import { useConnectivityWatch } from '@/hooks/useConnectivityWatch'
 import { useForegroundRevalidate } from '@/hooks/useForegroundRevalidate'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useSessionUserSync } from '@/hooks/useSessionUserSync'
@@ -26,6 +27,7 @@ function PushNotificationsBridge() {
 function ForegroundRevalidateBridge() {
   useForegroundRevalidate()
   useSessionUserSync()
+  useConnectivityWatch()
   return null
 }
 

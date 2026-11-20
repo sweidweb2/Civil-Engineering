@@ -12,6 +12,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { cacheKeys, cacheTtl, invalidateListingCaches } from '@/lib/cacheKeys'
+import { useIdempotencyKey } from '@/lib/idempotency'
 import { isListingCategory, listCategories } from '@/services/categories'
 import type { PickedFile } from '@/services/filePicker'
 import { uploadQueuedImages } from '@/services/galleryImages'
@@ -33,6 +34,7 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
   const toastApiError = useToastApiError()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
+  const idempotencyKeyFor = useIdempotencyKey()
 
   const [form, setForm] = useState<ListingFormValues>(EMPTY_LISTING_FORM)
   const [formError, setFormError] = useState<string | undefined>()
@@ -102,7 +104,9 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
     setIsSaving(true)
     try {
       if (mode === 'create') {
-        const created = await createListing(parsed.data)
+        const created = await createListing(parsed.data, {
+          idempotencyKey: idempotencyKeyFor(parsed.data),
+        })
         toastSuccess(t('listings.created'))
         if (queuedImages.length > 0) {
           const failed = await uploadQueuedImages('listing', created.data.id, queuedImages)

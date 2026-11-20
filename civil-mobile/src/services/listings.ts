@@ -80,10 +80,12 @@ export function getListingById(id: string) {
   return apiRequest<{ data: Listing }>(`/listings/${id}`)
 }
 
-export function createListing(input: ListingWriteInput) {
+/** Pass `idempotencyKey` (see `useIdempotencyKey`) so a retried submit cannot duplicate. */
+export function createListing(input: ListingWriteInput, options: { idempotencyKey?: string } = {}) {
   return apiRequest<{ data: Listing }>('/listings', {
     method: 'POST',
     body: JSON.stringify(input),
+    idempotencyKey: options.idempotencyKey,
   })
 }
 

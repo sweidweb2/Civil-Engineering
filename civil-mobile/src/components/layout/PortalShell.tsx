@@ -4,6 +4,7 @@ import { router, usePathname } from 'expo-router'
 import { FolderKanban, Store, UserPlus } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { OfflineBanner } from '@/components/feedback/OfflineBanner'
 import { MenuGroup, MenuRow } from '@/components/kit/primitives'
 import { BottomSheet } from '@/components/kit/sheet'
 import {
@@ -103,6 +104,7 @@ export function PortalShell({ portal, children }: PortalShellProps) {
     <View className={`flex-1 ${isWorker ? 'bg-wk-bg' : 'bg-background'}`}>
       <View className="min-h-0 w-full max-w-[720px] flex-1 self-center">
         <View className="min-h-0 flex-1">{children}</View>
+        <OfflineBanner />
         {isTopLevel && isWorker ? (
           <WorkerTabBar
             items={items}

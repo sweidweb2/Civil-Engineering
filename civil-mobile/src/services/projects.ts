@@ -131,10 +131,15 @@ export function getProjectById(id: string) {
   return apiRequest<{ data: Project }>(`/projects/${id}`)
 }
 
-export function createProject(input: CreateProjectInput) {
+/** Pass `idempotencyKey` (see `useIdempotencyKey`) so a retried submit cannot duplicate. */
+export function createProject(
+  input: CreateProjectInput,
+  options: { idempotencyKey?: string } = {},
+) {
   return apiRequest<{ data: Project }>('/projects', {
     method: 'POST',
     body: JSON.stringify(input),
+    idempotencyKey: options.idempotencyKey,
   })
 }
 

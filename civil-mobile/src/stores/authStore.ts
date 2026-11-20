@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { offlineSnapshotClearAll } from '@/lib/offlineSnapshot'
 import { remoteCacheGeneration, remoteCacheInvalidate } from '@/lib/remoteCache'
 import { ApiError, bindAuthSession } from '@/services/api'
 import type { AuthTokens, AuthUser } from '@/services/auth'
@@ -77,10 +78,12 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (tokens) => set({ tokens }),
       clearSession: () => {
         remoteCacheInvalidate()
+        offlineSnapshotClearAll()
         set({ user: null, tokens: null })
       },
       async login(email, password) {
         remoteCacheInvalidate()
+        offlineSnapshotClearAll()
         const result = await authApi.login(email, password)
         set({ user: result.user, tokens: result.tokens, lastUserSyncAt: Date.now() })
       },
@@ -104,6 +107,8 @@ export const useAuthStore = create<AuthState>()(
           }
         } finally {
           remoteCacheInvalidate()
+          // Saved offline copies are personal data: never leave them for the next user.
+          offlineSnapshotClearAll()
           set({ user: null, tokens: null })
         }
       },

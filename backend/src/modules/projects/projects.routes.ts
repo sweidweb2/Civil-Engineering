@@ -1,6 +1,7 @@
 import { Router } from 'express'
 
 import { authenticate } from '../../middleware/authenticate.js'
+import { idempotent } from '../../middleware/idempotency.js'
 import { validate } from '../../middleware/validate.js'
 import type { ProjectsController } from './projects.controller.js'
 import {
@@ -19,7 +20,7 @@ export function createProjectsRoutes(controller: ProjectsController): Router {
   router.get('/summary', controller.summary)
   router.get('/timeline', controller.timeline)
   router.get('/:id', validate({ params: projectIdParamsSchema }), controller.getById)
-  router.post('/', validate({ body: createProjectBodySchema }), controller.create)
+  router.post('/', idempotent(), validate({ body: createProjectBodySchema }), controller.create)
   router.patch(
     '/:id',
     validate({ params: projectIdParamsSchema, body: updateProjectBodySchema }),

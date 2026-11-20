@@ -103,10 +103,12 @@ export function getUser(id: string) {
   return apiRequest<{ data: User; meta: { avatarDownloadUrl: string | null } }>(`/users/${id}`)
 }
 
-export function createUser(input: CreateUserInput) {
+/** Pass `idempotencyKey` (see `useIdempotencyKey`) so a retried submit cannot duplicate. */
+export function createUser(input: CreateUserInput, options: { idempotencyKey?: string } = {}) {
   return apiRequest<{ data: User }>('/users', {
     method: 'POST',
     body: JSON.stringify(input),
+    idempotencyKey: options.idempotencyKey,
   })
 }
 

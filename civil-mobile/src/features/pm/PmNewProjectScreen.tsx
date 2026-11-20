@@ -16,6 +16,7 @@ import { WkButton } from '@/features/worker/ui/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateProjectCaches } from '@/lib/cacheKeys'
+import { useIdempotencyKey } from '@/lib/idempotency'
 import type { PickedFile } from '@/services/filePicker'
 import { uploadQueuedImages } from '@/services/galleryImages'
 import { createProject, PROJECT_TYPE_OPTIONS, type ProjectType } from '@/services/projects'
@@ -34,6 +35,7 @@ export function PmNewProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: str
   const [errors, setErrors] = useState<ProjectFormErrors>({})
   const [isSaving, setIsSaving] = useState(false)
   const [queuedImages, setQueuedImages] = useState<PickedFile[]>([])
+  const idempotencyKeyFor = useIdempotencyKey()
 
   const set =
     <K extends keyof ProjectFormValues>(key: K) =>
@@ -50,14 +52,15 @@ export function PmNewProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: str
     }
     setIsSaving(true)
     try {
-      const created = await createProject({
+      const input = {
         name: form.name.trim(),
         code: form.code.trim() || undefined,
         description: form.description.trim() || undefined,
         type: form.type || undefined,
         startDate: toApiDate(form.startDate),
         endDate: toApiDate(form.endDate),
-      })
+      }
+      const created = await createProject(input, { idempotencyKey: idempotencyKeyFor(input) })
       toastSuccess(t('projects.created'))
       if (queuedImages.length > 0) {
         const failed = await uploadQueuedImages('project', created.data.id, queuedImages)

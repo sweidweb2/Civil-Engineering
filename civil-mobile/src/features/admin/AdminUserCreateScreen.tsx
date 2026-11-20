@@ -16,6 +16,7 @@ import { WkButton } from '@/features/worker/ui/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'
+import { useIdempotencyKey } from '@/lib/idempotency'
 import type { AuthRole } from '@/services/auth'
 import { useToastSuccess } from '@/services/toast'
 import { AUTH_ROLE_OPTIONS, createUser } from '@/services/users'
@@ -40,6 +41,7 @@ export function AdminUserCreateScreen() {
   const [isVerified, setIsVerified] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
   const [isSaving, setIsSaving] = useState(false)
+  const idempotencyKeyFor = useIdempotencyKey()
 
   async function onCreate() {
     const e: Errors = {}
@@ -54,7 +56,7 @@ export function AdminUserCreateScreen() {
     setErrors({})
     setIsSaving(true)
     try {
-      const created = await createUser({
+      const input = {
         email: email.trim(),
         password,
         role,
@@ -63,7 +65,8 @@ export function AdminUserCreateScreen() {
         lastName: lastName.trim() || undefined,
         displayName: displayName.trim() || undefined,
         phone: phone.trim() || undefined,
-      })
+      }
+      const created = await createUser(input, { idempotencyKey: idempotencyKeyFor(input) })
       invalidateAdminCaches()
       toastSuccess(t('users.created'))
       router.replace(`${BASE}/${created.data.id}` as never)

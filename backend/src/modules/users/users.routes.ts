@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { ADMIN_ROLES } from '../../authz/index.js'
 import { authenticate } from '../../middleware/authenticate.js'
 import { authorize } from '../../middleware/authorize.js'
+import { idempotent } from '../../middleware/idempotency.js'
 import { validate } from '../../middleware/validate.js'
 import type { UsersController } from './users.controller.js'
 import {
@@ -95,6 +96,7 @@ export function createUsersRoutes(controller: UsersController): Router {
   router.post(
     '/',
     authorize(...ADMIN_ROLES),
+    idempotent(),
     validate({ body: createUserBodySchema }),
     controller.create,
   )

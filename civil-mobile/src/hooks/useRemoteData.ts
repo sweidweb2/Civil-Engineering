@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { offlineSnapshotGet, offlineSnapshotPut } from '@/lib/offlineSnapshot'
 import {
   REMOTE_STALE_MS,
   remoteCacheFetch,
@@ -9,6 +10,7 @@ import {
   remoteCacheRead,
   remoteCacheSubscribe,
 } from '@/lib/remoteCache'
+import { ApiError } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 
 export type RemoteIdle = { status: 'idle' }
@@ -51,6 +53,11 @@ type RefetchOptions = {
  * `refetch()` resolves `false` only when the request failed while previous data was
  * kept on screen (a silent refresh failure the caller may want to report — see
  * `usePullToRefresh`); otherwise `true`.
+ *
+ * Offline: successful responses for allow-listed keys are saved to disk
+ * (`offlineSnapshot`). If a request fails with a network error (no server response)
+ * and nothing is on screen, the last saved copy is shown and `offlineSavedAt` is set
+ * to when it was saved; it returns to `null` once live data loads.
  */
 export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
   const { enabled = true, cacheKey, staleTime = REMOTE_STALE_MS } = options
@@ -59,6 +66,8 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     cached !== undefined ? { status: 'success', data: cached.data } : { status: 'idle' },
   )
   const [isFetching, setIsFetching] = useState(false)
+  /** Epoch ms of the saved copy on screen while offline; null when the data is live. */
+  const [offlineSavedAt, setOfflineSavedAt] = useState<number | null>(null)
   const loadRef = useRef(load)
   const cacheKeyRef = useRef(cacheKey)
   const staleTimeRef = useRef(staleTime)
@@ -102,6 +111,10 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     show(enabled ? { status: 'loading' } : { status: 'idle' })
   }, [cacheKey, enabled, load, show])
 
+  useEffect(() => {
+    setOfflineSavedAt(null)
+  }, [cacheKey])
+
   const refetch = useCallback(
     async (refetchOptions?: RefetchOptions): Promise<boolean> => {
       const fresh = refetchOptions?.fresh === true
@@ -130,6 +143,9 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
         if (generation !== remoteCacheGeneration()) return true
         dataKeyRef.current = requestKey
         show({ status: 'success', data })
+        setOfflineSavedAt(null)
+        const userId = useAuthStore.getState().user?.id
+        if (requestKey && userId) void offlineSnapshotPut(userId, requestKey, data)
         return true
       } catch (error) {
         if (requestId !== requestIdRef.current) return true
@@ -137,6 +153,20 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
         if (hadData !== undefined) {
           show({ status: 'success', data: hadData })
           return false
+        }
+        // No server response (offline / timeout) and nothing on screen: show the last
+        // saved copy, if this key is saved for offline reading.
+        const userId = useAuthStore.getState().user?.id
+        if (requestKey && userId && !(error instanceof ApiError)) {
+          const saved = await offlineSnapshotGet(userId, requestKey)
+          if (requestId !== requestIdRef.current) return true
+          if (generation !== remoteCacheGeneration()) return true
+          if (saved) {
+            dataKeyRef.current = requestKey
+            show({ status: 'success', data: saved.data as T })
+            setOfflineSavedAt(saved.savedAt)
+            return true
+          }
         }
         dataKeyRef.current = undefined
         show({ status: 'error', error })
@@ -178,6 +208,8 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     refetch,
     /** True while a request is in flight (including background refresh). */
     isFetching,
+    /** Set while a saved offline copy is shown (epoch ms it was saved), else null. */
+    offlineSavedAt,
     /** True only when there is nothing to show yet. */
     isLoading:
       (!hasData && !isError && (state.status === 'loading' || state.status === 'idle')) ||

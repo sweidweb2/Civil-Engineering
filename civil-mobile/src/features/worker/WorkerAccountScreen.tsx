@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -22,9 +22,12 @@ import { useAuthStore } from '@/stores/authStore'
 export function WorkerAccountScreen({
   testID = 'e2e-worker-account',
   backHref,
+  extra,
 }: {
   testID?: string
   backHref?: string
+  /** Portal-specific rows shown under the identity card (e.g. PM professional profile). */
+  extra?: ReactNode
 }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<'details' | 'security'>('details')
@@ -49,6 +52,8 @@ export function WorkerAccountScreen({
           ) : null}
         </View>
       </WkCard>
+
+      {extra}
 
       <WkSegmented
         options={[

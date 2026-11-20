@@ -5,9 +5,17 @@ import { appendImagePart } from './galleryImages'
 
 export type ProviderStatus = 'PENDING' | 'APPROVED' | 'SUSPENDED'
 
+/** PROVIDER user who manages a company (`/providers/me` resolves by this link). */
+export type ProviderOwner = {
+  id: string
+  email: string
+  displayName: string | null
+}
+
 export type Provider = {
   id: string
   ownerUserId: string | null
+  owner?: ProviderOwner | null
   name: string
   description: string | null
   logoUrl: string | null
@@ -88,6 +96,20 @@ export function listProviders(
   if (status) params.set('status', status)
   if (!counts) params.set('counts', 'false')
   return apiRequest<PaginatedProviders>(`/providers?${params.toString()}`)
+}
+
+/** Active PROVIDER users not yet linked to a company (admin only). */
+export function listProviderOwnerCandidates(q?: string, limit = 100) {
+  const params = new URLSearchParams({ page: '1', limit: String(limit) })
+  if (q) params.set('q', q)
+  return apiRequest<{
+    data: ProviderOwner[]
+    meta: { page: number; limit: number; total: number }
+  }>(`/providers/owner-candidates?${params.toString()}`)
+}
+
+export function ownerLabel(owner: ProviderOwner) {
+  return owner.displayName ? `${owner.displayName} · ${owner.email}` : owner.email
 }
 
 export function getProvider(id: string) {

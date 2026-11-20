@@ -11,6 +11,7 @@ import {
 } from '@/features/account/account.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
+import { invalidateOwnAccountCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { ltr } from '@/lib/rtl'
 import { changePassword } from '@/services/auth'
@@ -87,6 +88,7 @@ export function useAccountDetails() {
             }
           : state.user,
       }))
+      invalidateOwnAccountCaches()
       toastSuccess(t('account.saved'))
     } catch (err) {
       handleApiError(err, t('account.saveFailed'))

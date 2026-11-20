@@ -7,6 +7,7 @@ import {
   EMPTY_PROJECT_FORM,
   type ProjectFormErrors,
   type ProjectFormValues,
+  toApiDate,
   validateProject,
 } from '@/features/pm/projectForm'
 import { WkChoice, WkField, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
@@ -54,8 +55,8 @@ export function PmNewProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: str
         code: form.code.trim() || undefined,
         description: form.description.trim() || undefined,
         type: form.type || undefined,
-        startDate: form.startDate.trim() || null,
-        endDate: form.endDate.trim() || null,
+        startDate: toApiDate(form.startDate),
+        endDate: toApiDate(form.endDate),
       })
       toastSuccess(t('projects.created'))
       if (queuedImages.length > 0) {

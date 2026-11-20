@@ -2,7 +2,9 @@ import {
   cacheKeys,
   invalidateGalleryCaches,
   invalidateListingCaches,
+  invalidateOwnAccountCaches,
   invalidateProviderProfileCaches,
+  invalidateWorkerCaches,
 } from '@/lib/cacheKeys'
 import { remoteCacheGet, remoteCacheInvalidate, remoteCacheSet } from '@/lib/remoteCache'
 
@@ -57,6 +59,40 @@ describe('remoteCache', () => {
     expect(remoteCacheGet(cacheKeys.dashboardProvider)).toBeUndefined()
     expect(remoteCacheGet(`${cacheKeys.providers}:1::`)).toBeUndefined()
     expect(remoteCacheGet(cacheKeys.dashboardAdmin)).toBeUndefined()
+  })
+
+  it('invalidateListingCaches also clears category and provider lists (listing counts)', () => {
+    remoteCacheSet(`${cacheKeys.categories}:wk:1::`, [])
+    remoteCacheSet(`${cacheKeys.providers}:wk:1::`, [])
+    invalidateListingCaches()
+    expect(remoteCacheGet(`${cacheKeys.categories}:wk:1::`)).toBeUndefined()
+    expect(remoteCacheGet(`${cacheKeys.providers}:wk:1::`)).toBeUndefined()
+  })
+
+  it('invalidateProviderProfileCaches also clears the provider picker and directory', () => {
+    remoteCacheSet(cacheKeys.providersPicker, [])
+    remoteCacheSet(`${cacheKeys.directory}:pm:providers:1:`, {})
+    invalidateProviderProfileCaches()
+    expect(remoteCacheGet(cacheKeys.providersPicker)).toBeUndefined()
+    expect(remoteCacheGet(`${cacheKeys.directory}:pm:providers:1:`)).toBeUndefined()
+  })
+
+  it('invalidateWorkerCaches also clears the directory (CV + visibility)', () => {
+    remoteCacheSet(cacheKeys.workersMe, {})
+    remoteCacheSet(`${cacheKeys.directory}:pm:workers:1:`, {})
+    invalidateWorkerCaches()
+    expect(remoteCacheGet(cacheKeys.workersMe)).toBeUndefined()
+    expect(remoteCacheGet(`${cacheKeys.directory}:pm:workers:1:`)).toBeUndefined()
+  })
+
+  it('invalidateOwnAccountCaches clears user lists and directory only', () => {
+    remoteCacheSet(`${cacheKeys.users}:wk:1::`, [])
+    remoteCacheSet(`${cacheKeys.directory}:pm:workers:1:`, {})
+    remoteCacheSet(cacheKeys.workersMe, {})
+    invalidateOwnAccountCaches()
+    expect(remoteCacheGet(`${cacheKeys.users}:wk:1::`)).toBeUndefined()
+    expect(remoteCacheGet(`${cacheKeys.directory}:pm:workers:1:`)).toBeUndefined()
+    expect(remoteCacheGet(cacheKeys.workersMe)).toEqual({})
   })
 
   it('invalidateGalleryCaches routes by kind', () => {

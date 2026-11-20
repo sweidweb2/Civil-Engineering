@@ -173,15 +173,44 @@ export function ProviderListingFormScreen({
       </WkSection>
 
       <WkSection icon={Banknote} title={t('listings.pricing')}>
-        <WkField
-          label={t('providerPortal.salePrice')}
-          value={form.price}
-          onChangeText={(value) => setField('price', value)}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          ltr
-          error={err('price')}
+        <WkToggle
+          label={t('providerPortal.priceRange')}
+          hint={t('providerPortal.priceRangeHint')}
+          value={form.isPriceRange}
+          onChange={(value) => setField('isPriceRange', value)}
         />
+        {form.isPriceRange ? (
+          <>
+            <WkField
+              label={t('providerPortal.minPrice')}
+              value={form.priceMin}
+              onChangeText={(value) => setField('priceMin', value)}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              ltr
+              error={err('priceMin')}
+            />
+            <WkField
+              label={t('providerPortal.maxPrice')}
+              value={form.priceMax}
+              onChangeText={(value) => setField('priceMax', value)}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              ltr
+              error={err('priceMax')}
+            />
+          </>
+        ) : (
+          <WkField
+            label={t('providerPortal.salePrice')}
+            value={form.price}
+            onChangeText={(value) => setField('price', value)}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            ltr
+            error={err('price')}
+          />
+        )}
         <WkChoice
           label={t('listings.currency')}
           options={currencies}

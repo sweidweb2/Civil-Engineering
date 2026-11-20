@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { router, useLocalSearchParams } from 'expo-router'
 import { FolderTree } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,10 @@ import {
   WkDangerZone,
   WkField,
   WkFormScreen,
+  type WkOption,
+  WkPickerSheet,
   WkSection,
+  WkSelect,
   WkToggle,
 } from '@/features/worker/ui/forms'
 import { WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
@@ -21,16 +24,18 @@ import {
   type CategoryKind,
   createCategory,
   deleteCategory,
-  listCategories,
+  getCategory,
+  listParentCandidates,
   updateCategory,
 } from '@/services/categories'
 import { useToastSuccess } from '@/services/toast'
+import { useLanguageStore } from '@/stores/languageStore'
 
 const BASE = '/admin/categories'
 
-type Errors = Partial<Record<'name' | 'sortOrder', string>>
+type Errors = Partial<Record<'name' | 'sortOrder' | 'parentId', string>>
 
-/** Admin category create / edit: names (EN / AR), kind, order, active, delete. */
+/** Admin category create / edit: names (EN / AR), kind, parent, order, active, delete. */
 export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' }) {
   const { t } = useTranslation()
   const { id } = useLocalSearchParams<{ id?: string }>()
@@ -43,6 +48,9 @@ export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' })
   const [kind, setKind] = useState<CategoryKind>('MATERIAL')
   const [isActive, setIsActive] = useState(true)
   const [sortOrder, setSortOrder] = useState('0')
+  /** '' = top-level. Two-level tree: the parent must be top-level and of the same kind. */
+  const [parentId, setParentId] = useState('')
+  const [parentOpen, setParentOpen] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -50,14 +58,29 @@ export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' })
 
   const load = useCallback(async () => {
     if (!categoryId) throw new Error('Category id required')
-    const result = await listCategories(1, 200, { includeCounts: false })
-    const found = result.data.find((item) => item.id === categoryId)
-    if (!found) throw new Error('Category not found')
-    return found
+    return (await getCategory(categoryId)).data
   }, [categoryId])
 
   const remote = useRemoteData(load, { enabled: mode === 'edit' && Boolean(categoryId) })
   const category = remote.status === 'success' ? remote.data : null
+  const hasChildren = (category?.childCount ?? 0) > 0
+
+  const loadParents = useCallback(() => listParentCandidates(kind), [kind])
+  const parents = useRemoteData(loadParents)
+  const parentList = parents.status === 'success' ? parents.data : null
+  const isAr = useLanguageStore((s) => s.language) === 'ar'
+  const parentOptions = useMemo<WkOption[]>(
+    () => [
+      { value: '', label: t('categories.noParent') },
+      ...(parentList ?? [])
+        .filter((p) => p.id !== categoryId)
+        .map((p) => ({ value: p.id, label: (isAr && p.nameAr) || p.name })),
+    ],
+    [parentList, categoryId, isAr, t],
+  )
+  const parentLabel =
+    parentOptions.find((o) => o.value === parentId)?.label ??
+    (parentId ? (isAr && category?.parentNameAr) || category?.parentName : undefined)
 
   useEffect(() => {
     if (!category) return
@@ -66,7 +89,14 @@ export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' })
     setKind(category.kind)
     setIsActive(category.isActive)
     setSortOrder(String(category.sortOrder ?? 0))
+    setParentId(category.parentId ?? '')
   }, [category])
+
+  function changeKind(next: CategoryKind) {
+    setKind(next)
+    // A parent of another kind is rejected by the API.
+    if (next !== kind) setParentId('')
+  }
 
   async function onSave() {
     const e: Errors = {}
@@ -86,6 +116,7 @@ export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' })
         kind,
         isActive,
         sortOrder: Number.parseInt(sortOrder, 10) || 0,
+        parentId: parentId || null,
       }
       if (mode === 'create') {
         const created = await createCategory(payload)
@@ -172,7 +203,14 @@ export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' })
           label={t('categories.kind')}
           options={enumOptions(t, 'categoryKind', CATEGORY_KIND_OPTIONS)}
           value={kind}
-          onChange={(value) => setKind(value as CategoryKind)}
+          onChange={(value) => changeKind(value as CategoryKind)}
+        />
+        <WkSelect
+          label={t('categories.parent')}
+          value={parentLabel}
+          placeholder={t('categories.noParent')}
+          onPress={() => setParentOpen(true)}
+          error={errors.parentId}
         />
         <WkField
           label={t('categories.sortOrder')}
@@ -201,6 +239,21 @@ export function AdminCategoryEditorScreen({ mode }: { mode: 'create' | 'edit' })
           onPress={askDelete}
         />
       ) : null}
+      <WkPickerSheet
+        visible={parentOpen}
+        onClose={() => setParentOpen(false)}
+        title={t('categories.parent')}
+        options={hasChildren ? parentOptions.slice(0, 1) : parentOptions}
+        value={parentId}
+        isLoading={parents.isLoading}
+        searchPlaceholder={t('categories.search')}
+        emptyLabel={() => t('pmPortal.noMatches')}
+        onSelect={(option) => {
+          setParentId(option.value)
+          if (errors.parentId) setErrors((x) => ({ ...x, parentId: undefined }))
+          setParentOpen(false)
+        }}
+      />
       <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
     </WkFormScreen>
   )

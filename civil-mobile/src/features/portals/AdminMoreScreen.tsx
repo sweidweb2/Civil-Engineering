@@ -38,6 +38,7 @@ export function AdminMoreScreen() {
   const overview = remote.status === 'success' ? remote.data : null
   const badge: Partial<Record<string, number>> = {
     queue: overview?.pendingRequests,
+    verifications: overview?.verificationRequests,
     reviews: overview?.pendingReviews,
   }
 

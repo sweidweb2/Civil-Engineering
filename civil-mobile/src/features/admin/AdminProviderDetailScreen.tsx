@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import {
@@ -9,12 +9,21 @@ import {
   Phone,
   Store,
   Trash2,
+  UserRound,
 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { PROVIDER_TONE } from '@/features/admin/ui'
 import { PvOptionSheet } from '@/features/provider/ui/kit'
-import { WkChoice, WkField, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
+import {
+  WkChoice,
+  WkField,
+  WkFormScreen,
+  type WkOption,
+  WkPickerSheet,
+  WkSection,
+  WkSelect,
+} from '@/features/worker/ui/forms'
 import { WkButton, WkCard, WkPill } from '@/features/worker/ui/kit'
 import { WkMedia } from '@/features/worker/ui/list'
 import { useFilePick } from '@/hooks/useFilePick'
@@ -27,7 +36,10 @@ import {
   clearProviderLogo,
   createProvider,
   getProvider,
+  listProviderOwnerCandidates,
+  ownerLabel,
   PROVIDER_STATUS_OPTIONS,
+  type ProviderOwner,
   type ProviderStatus,
   updateProvider,
   uploadProviderLogo,
@@ -69,6 +81,12 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('')
   const [status, setStatus] = useState<ProviderStatus>('PENDING')
+  // '' = no owner. Without an owner the PROVIDER user has no company (`/providers/me` 404s).
+  const [ownerUserId, setOwnerUserId] = useState('')
+  const [ownerOpen, setOwnerOpen] = useState(false)
+  const loadCandidates = useCallback(() => listProviderOwnerCandidates(), [])
+  const candidates = useRemoteData(loadCandidates)
+  const candidateList = candidates.status === 'success' ? candidates.data.data : null
   const [errors, setErrors] = useState<Errors>({})
   const [isSaving, setIsSaving] = useState(false)
 
@@ -84,7 +102,23 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
     setCity(provider.city ?? '')
     setCountry(provider.country ?? '')
     setStatus(provider.status)
+    setOwnerUserId(provider.ownerUserId ?? '')
   }, [provider])
+
+  const currentOwner = provider?.owner ?? null
+  const ownerOptions = useMemo<WkOption[]>(() => {
+    const owners: ProviderOwner[] = []
+    if (currentOwner) owners.push(currentOwner)
+    if (candidateList) {
+      for (const c of candidateList) {
+        if (!owners.some((o) => o.id === c.id)) owners.push(c)
+      }
+    }
+    return [
+      { value: '', label: t('adminPortal.noOwner') },
+      ...owners.map((o) => ({ value: o.id, label: ownerLabel(o) })),
+    ]
+  }, [currentOwner, candidateList, t])
 
   async function onSave() {
     const e: Errors = {}
@@ -107,18 +141,20 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
       city: city.trim() || null,
       country: country.trim() || null,
       status,
+      ownerUserId: ownerUserId || null,
     }
     try {
       if (mode === 'create') {
         const created = await createProvider(payload)
         invalidateAdminCaches()
         toastSuccess(t('providers.created'))
+        void candidates.refetch()
         router.replace(`${BASE}/${created.data.id}` as never)
       } else if (providerId) {
         await updateProvider(providerId, payload)
         invalidateAdminCaches()
         toastSuccess(t('providers.saved'))
-        await remote.refetch()
+        await Promise.all([remote.refetch(), candidates.refetch()])
       }
     } catch (err) {
       handleApiError(err, t(mode === 'create' ? 'providers.createFailed' : 'providers.saveFailed'))
@@ -263,6 +299,18 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
         />
       </WkSection>
 
+      <WkSection icon={UserRound} title={t('adminPortal.ownerSection')}>
+        <WkSelect
+          label={t('adminPortal.ownerAccount')}
+          value={ownerOptions.find((o) => o.value === ownerUserId)?.label}
+          placeholder={t('adminPortal.noOwner')}
+          onPress={() => setOwnerOpen(true)}
+        />
+        <Text className="text-[13px] leading-[18px] text-wk-ink3">
+          {t('adminPortal.ownerHint')}
+        </Text>
+      </WkSection>
+
       <WkSection icon={Phone} title={t('providers.contact')}>
         <WkField
           label={t('common.email')}
@@ -305,6 +353,21 @@ function ProviderFormScreen({ mode }: { mode: Mode }) {
         <WkField label={t('common.city')} value={city} onChangeText={setCity} />
         <WkField label={t('common.country')} value={country} onChangeText={setCountry} />
       </WkSection>
+
+      <WkPickerSheet
+        visible={ownerOpen}
+        onClose={() => setOwnerOpen(false)}
+        title={t('adminPortal.ownerAccount')}
+        options={ownerOptions}
+        value={ownerUserId}
+        isLoading={candidates.isLoading}
+        searchPlaceholder={t('adminPortal.searchOwners')}
+        emptyLabel={() => t('adminPortal.noOwnerCandidates')}
+        onSelect={(option) => {
+          setOwnerUserId(option.value)
+          setOwnerOpen(false)
+        }}
+      />
 
       <PvOptionSheet
         visible={logoPick.sheetOpen}

@@ -17,7 +17,10 @@ export const listingFormSchema = z
       .refine((value) => value.length === 0 || value.length === 3, {
         message: 'Currency must be a 3-letter code',
       }),
+    isPriceRange: z.boolean(),
     price: z.string().trim(),
+    priceMin: z.string().trim(),
+    priceMax: z.string().trim(),
     status: z.enum(['ACTIVE', 'INACTIVE']),
     description: z.string().trim().max(4000),
     brand: z.string().trim().max(120),
@@ -32,7 +35,27 @@ export const listingFormSchema = z
     rentalUnit: z.string(),
   })
   .superRefine((value, ctx) => {
-    if (value.price.length > 0 && !DECIMAL_PATTERN.test(value.price)) {
+    if (value.isPriceRange) {
+      const hasMin = value.priceMin.length > 0
+      const hasMax = value.priceMax.length > 0
+      if (hasMin && !DECIMAL_PATTERN.test(value.priceMin)) {
+        ctx.addIssue({ code: 'custom', message: 'Min price must be a number', path: ['priceMin'] })
+      } else if (hasMax && !DECIMAL_PATTERN.test(value.priceMax)) {
+        ctx.addIssue({ code: 'custom', message: 'Max price must be a number', path: ['priceMax'] })
+      } else if (hasMin !== hasMax) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Enter both min and max prices',
+          path: [hasMin ? 'priceMax' : 'priceMin'],
+        })
+      } else if (hasMin && Number(value.priceMin) > Number(value.priceMax)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Min price cannot exceed max price',
+          path: ['priceMax'],
+        })
+      }
+    } else if (value.price.length > 0 && !DECIMAL_PATTERN.test(value.price)) {
       ctx.addIssue({ code: 'custom', message: 'Price must be a number', path: ['price'] })
     }
     if (value.isForRent) {
@@ -82,9 +105,10 @@ export function listingWriteFromForm(
       categoryId: emptyToNull(value.categoryId),
       unit: emptyToNull(value.unit),
       currency: emptyToNull(value.currency),
-      price: emptyToNull(value.price),
-      priceMin: null,
-      priceMax: null,
+      // Send all three so switching mode clears the other one server-side.
+      price: value.isPriceRange ? null : emptyToNull(value.price),
+      priceMin: value.isPriceRange ? emptyToNull(value.priceMin) : null,
+      priceMax: value.isPriceRange ? emptyToNull(value.priceMax) : null,
       status: value.status,
       description: emptyToNull(value.description),
       brand: emptyToNull(value.brand),

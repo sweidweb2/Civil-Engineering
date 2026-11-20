@@ -19,6 +19,7 @@ export const cacheKeys = {
   categories: 'categories:list',
   reviews: 'reviews:list',
   queue: 'queue:list',
+  verifications: 'verifications:list',
 } as const
 
 /** After listing create/update/delete or listing gallery changes. */
@@ -28,6 +29,9 @@ export function invalidateListingCaches() {
   remoteCacheInvalidate(cacheKeys.listingsMine)
   remoteCacheInvalidate(cacheKeys.listingsAdmin)
   remoteCacheInvalidate(cacheKeys.directory)
+  // Category and provider lists show per-row listing counts.
+  remoteCacheInvalidate(cacheKeys.categories)
+  remoteCacheInvalidate(cacheKeys.providers)
 }
 
 /** After project create/update/archive or project gallery changes. */
@@ -49,6 +53,7 @@ export function invalidateAdminCaches() {
   remoteCacheInvalidate(cacheKeys.users)
   remoteCacheInvalidate(cacheKeys.providers)
   remoteCacheInvalidate(cacheKeys.queue)
+  remoteCacheInvalidate(cacheKeys.verifications)
   remoteCacheInvalidate(cacheKeys.reviews)
   remoteCacheInvalidate(cacheKeys.categories)
   remoteCacheInvalidate(cacheKeys.categoriesPicker)
@@ -63,10 +68,21 @@ export function invalidateProviderProfileCaches() {
   remoteCacheInvalidate(cacheKeys.dashboardProvider)
   remoteCacheInvalidate(cacheKeys.providers)
   remoteCacheInvalidate(cacheKeys.dashboardAdmin)
+  // Name / logo also appear in the admin provider picker and the directory.
+  remoteCacheInvalidate(cacheKeys.providersPicker)
+  remoteCacheInvalidate(cacheKeys.directory)
 }
 
 /** After worker CV create/update/delete. */
 export function invalidateWorkerCaches() {
   remoteCacheInvalidate(cacheKeys.workersMe)
   remoteCacheInvalidate(cacheKeys.dashboardWorker)
+  // CV fields and the public-visibility flag show in the worker directory.
+  remoteCacheInvalidate(cacheKeys.directory)
+}
+
+/** After the signed-in user edits their own name / phone (shown in admin lists and directory). */
+export function invalidateOwnAccountCaches() {
+  remoteCacheInvalidate(cacheKeys.users)
+  remoteCacheInvalidate(cacheKeys.directory)
 }

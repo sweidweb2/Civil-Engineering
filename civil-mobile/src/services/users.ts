@@ -157,6 +157,47 @@ export function listApprovals(query: {
   return apiRequest<PaginatedApprovals>(`/users/approvals?${params.toString()}`)
 }
 
+export type VerificationCounts = {
+  workers: number
+  unverified: number
+  requested: number
+  verified: number
+}
+
+export type PaginatedVerifications = {
+  data: User[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    counts: VerificationCounts
+  }
+}
+
+/** Admin → worker verification list (WORKER users, filtered by verification status). */
+export function listVerifications(query: {
+  status?: VerificationStatus
+  page?: number
+  limit?: number
+  q?: string
+}) {
+  const params = new URLSearchParams({
+    page: String(query.page ?? 1),
+    limit: String(query.limit ?? 20),
+  })
+  if (query.q) params.set('q', query.q)
+  if (query.status) params.set('status', query.status)
+  return apiRequest<PaginatedVerifications>(`/users/verifications?${params.toString()}`)
+}
+
+export function setVerification(id: string, verificationStatus: VerificationStatus) {
+  return apiRequest<{ data: User }>(`/users/${id}/verification`, {
+    method: 'POST',
+    body: JSON.stringify({ verificationStatus }),
+  })
+}
+
 export function approveUser(id: string) {
   return apiRequest<{ data: User }>(`/users/${id}/approve`, { method: 'POST' })
 }

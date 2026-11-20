@@ -5,7 +5,11 @@ export type ListingFormValues = {
   categoryId: string
   unit: string
   currency: string
+  /** Fixed price, or a min–max range (backend accepts exactly one mode). */
+  isPriceRange: boolean
   price: string
+  priceMin: string
+  priceMax: string
   status: ListingStatus
   description: string
   brand: string
@@ -20,7 +24,10 @@ export const EMPTY_LISTING_FORM: ListingFormValues = {
   categoryId: '',
   unit: '',
   currency: 'USD',
+  isPriceRange: false,
   price: '',
+  priceMin: '',
+  priceMax: '',
   status: 'ACTIVE',
   description: '',
   brand: '',
@@ -36,7 +43,10 @@ export function formFromListing(listing: Listing): ListingFormValues {
     categoryId: listing.categoryId ?? '',
     unit: listing.unit ?? '',
     currency: listing.currency ?? 'USD',
-    price: listing.price ?? listing.priceMin ?? '',
+    isPriceRange: listing.price == null && listing.priceMin != null && listing.priceMax != null,
+    price: listing.price ?? '',
+    priceMin: listing.priceMin ?? '',
+    priceMax: listing.priceMax ?? '',
     status: listing.status,
     description: listing.description ?? '',
     brand: listing.brand ?? '',

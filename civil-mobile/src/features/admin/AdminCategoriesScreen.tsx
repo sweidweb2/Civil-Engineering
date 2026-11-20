@@ -49,7 +49,13 @@ export function AdminCategoriesScreen() {
               ? { label: t('common.active'), tone: 'green' }
               : { label: t('common.inactive'), tone: 'neutral' }
           }
-          sub={[enumLabel(t, 'categoryKind', cat.kind), cat.nameAr].filter(Boolean).join(' · ')}
+          sub={[
+            enumLabel(t, 'categoryKind', cat.kind),
+            cat.parentName ? t('categories.under', { parent: cat.parentName }) : null,
+            cat.nameAr,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
           sub2={
             cat.listingCount != null
               ? t('adminPortal.listingCount', { count: cat.listingCount })

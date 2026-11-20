@@ -9,6 +9,8 @@ export type Category = {
   nameAr: string | null
   slug: string
   parentId: string | null
+  parentName?: string | null
+  parentNameAr?: string | null
   isActive: boolean
   sortOrder: number
   childCount?: number
@@ -52,6 +54,24 @@ export function listCategories(
   if (filters?.includeCounts === false) params.set('includeCounts', 'false')
   if (filters?.kind) params.set('kind', filters.kind)
   return apiRequest<PaginatedCategories>(`/categories?${params.toString()}`)
+}
+
+export function getCategory(id: string) {
+  return apiRequest<{ data: Category }>(`/categories/${id}`)
+}
+
+/**
+ * Top-level categories of one kind, i.e. valid parents (backend: same kind,
+ * platform scope, two levels max). Pages through the API's 100-row cap.
+ */
+export async function listParentCandidates(kind: CategoryKind) {
+  const out: Category[] = []
+  for (let page = 1; page <= 20; page += 1) {
+    const r = await listCategories(page, 100, { kind, includeCounts: false })
+    out.push(...r.data.filter((c) => !c.parentId))
+    if (page * 100 >= r.meta.total || r.data.length === 0) break
+  }
+  return out
 }
 
 export function createCategory(input: CategoryWriteInput) {

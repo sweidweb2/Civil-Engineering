@@ -11,6 +11,7 @@ import {
   formFromProject,
   type ProjectFormErrors,
   type ProjectFormValues,
+  toApiDate,
   validateProject,
 } from '@/features/pm/projectForm'
 import {
@@ -119,16 +120,17 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
     try {
       await updateProject(projectId, {
         name: form.name.trim(),
-        code: form.code.trim() || undefined,
-        description: form.description.trim() || undefined,
+        code: form.code.trim(),
+        // '' clears the column (backend maps blank → null); undefined would leave it unchanged.
+        description: form.description.trim(),
         type: form.type || undefined,
         status: form.status,
-        address: form.address.trim() || undefined,
-        city: form.city.trim() || undefined,
-        country: form.country.trim() || undefined,
-        startDate: form.startDate.trim() || null,
-        endDate: form.endDate.trim() || null,
-        notes: form.notes.trim() || undefined,
+        address: form.address.trim(),
+        city: form.city.trim(),
+        country: form.country.trim(),
+        startDate: toApiDate(form.startDate),
+        endDate: toApiDate(form.endDate),
+        notes: form.notes.trim(),
       })
       invalidateProjectCaches()
       toastSuccess(t('projects.saved'))

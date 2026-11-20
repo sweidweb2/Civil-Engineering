@@ -8,5 +8,4 @@ export type {
   RemoteSuccess,
 } from './useRemoteData'
 export { useRemoteData } from './useRemoteData'
-export { useResourceList } from './useResourceList'
 export { useThemeColors } from './useThemeColors'

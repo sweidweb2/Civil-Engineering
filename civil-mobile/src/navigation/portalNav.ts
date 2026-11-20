@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Package,
   Settings,
+  ShieldCheck,
   Star,
   Store,
   UserCheck,
@@ -54,6 +55,12 @@ export const ADMIN_NAV: PortalNavItem[] = [
 /** Destinations listed on Admin → More (not in the bottom bar). */
 export const ADMIN_MORE_LINKS: PortalNavItem[] = [
   { key: 'queue', label: 'Registration requests', href: '/admin/queue', icon: UserCheck },
+  {
+    key: 'verifications',
+    label: 'Worker verification',
+    href: '/admin/verifications',
+    icon: ShieldCheck,
+  },
   { key: 'directory', label: 'Directory', href: '/admin/directory', icon: ContactRound },
   { key: 'listings', label: 'Listings', href: '/admin/listings', icon: Package },
   { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: Star },

@@ -56,6 +56,15 @@ export function isIsoDate(value: string) {
   return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value)
 }
 
+/**
+ * The projects API validates dates with `z.string().datetime()`, which rejects a bare
+ * `YYYY-MM-DD`. Send UTC midnight so the calendar day round-trips through `slice(0, 10)`.
+ */
+export function toApiDate(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed ? `${trimmed}T00:00:00.000Z` : null
+}
+
 /** Field errors for the basics + schedule part of a project form. */
 export function validateProject(t: TFunction, v: ProjectFormValues): ProjectFormErrors {
   const e: ProjectFormErrors = {}
@@ -64,7 +73,8 @@ export function validateProject(t: TFunction, v: ProjectFormValues): ProjectForm
     const value = v[key].trim()
     if (value && !isIsoDate(value)) e[key] = t('pmPortal.dateFormat')
   }
-  if (!e.startDate && !e.endDate && v.startDate && v.endDate && v.endDate < v.startDate) {
+  if (!e.startDate && !e.endDate && v.startDate && v.endDate && v.endDate <= v.startDate) {
+    // Backend requires end strictly after start.
     e.endDate = t('pmPortal.endBeforeStart')
   }
   return e

@@ -17,10 +17,14 @@ export const perfTiming: RequestHandler = (req, res, next) => {
     return
   }
 
+  // CORS preflight — keep Server-Timing quiet; no access noise
+  if (req.method.toUpperCase() === 'OPTIONS') {
+    next()
+    return
+  }
+
   const started = performance.now()
   const method = req.method
-
-  logPerf('http', `→ ${method} ${url}`, { method, url, phase: 'start' })
 
   const timings: string[] = []
   ;(res as { __perfTimings?: string[] }).__perfTimings = timings
@@ -36,12 +40,12 @@ export const perfTiming: RequestHandler = (req, res, next) => {
     } catch {
       // headers may already be sent
     }
-    logPerf('http', `← ${method} ${url} ${res.statusCode} ${ms}ms`, {
+    // One HTTP line per request (no start+end pair, no duplicate pino-http line)
+    logPerf('http', `${method} ${url} ${res.statusCode} ${ms}ms`, {
       method,
       url,
       statusCode: res.statusCode,
       ms,
-      phase: 'end',
       slow: ms >= 500,
       requestId: getRequestStore()?.requestId,
     })

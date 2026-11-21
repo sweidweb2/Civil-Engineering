@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "civil-mobile",
-    "slug": "civil-mobile",
+    "slug": "swds",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -73,6 +73,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4cc889bd-b1a3-41eb-91d8-88a745dd9ce6"
+      }
+    },
+    "owner": "swdss-team"
   }
 }

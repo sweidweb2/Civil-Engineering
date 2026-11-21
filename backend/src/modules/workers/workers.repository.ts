@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import { runInTransaction } from '../../database/transaction.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
 import { conflict, validationError } from '../../errors/app-error.js'
 import type { Prisma, WorkerAvailability } from '../../generated/prisma/client.js'
@@ -303,7 +304,9 @@ export function createWorkersRepository(): WorkersRepository {
       }
 
       const row = await translateUniqueConflict(() =>
-        prisma.$transaction(async (tx) => {
+        // Remote Supabase RTT (~300–500ms/query) blows Prisma's default 5s interactive timeout
+        // when CAS + child replace needs many sequential round-trips.
+        runInTransaction(async (tx) => {
           const categoryIds = document.skills.map((s) => s.categoryId)
           if (categoryIds.length > 0) {
             const found = await tx.category.count({
@@ -376,10 +379,22 @@ export function createWorkersRepository(): WorkersRepository {
             profileId = locked.id
           }
 
-          await tx.workerExperience.deleteMany({ where: { workerProfileId: profileId } })
-          await tx.workerEducation.deleteMany({ where: { workerProfileId: profileId } })
-          await tx.workerCertification.deleteMany({ where: { workerProfileId: profileId } })
-          await tx.workerSkill.deleteMany({ where: { workerProfileId: profileId } })
+          // One round-trip instead of four deleteMany calls (each ~300–400ms over the pooler).
+          await tx.$executeRaw`
+            WITH e AS (
+              DELETE FROM worker_experiences WHERE "workerProfileId" = ${profileId} RETURNING 1
+            ),
+            ed AS (
+              DELETE FROM worker_education WHERE "workerProfileId" = ${profileId} RETURNING 1
+            ),
+            c AS (
+              DELETE FROM worker_certifications WHERE "workerProfileId" = ${profileId} RETURNING 1
+            ),
+            s AS (
+              DELETE FROM worker_skills WHERE "workerProfileId" = ${profileId} RETURNING 1
+            )
+            SELECT 1
+          `
 
           if (document.experiences.length > 0) {
             await tx.workerExperience.createMany({

@@ -63,11 +63,18 @@ function assertAdmin(actor: AuthActor) {
   }
 }
 
-function assertCanView(actor: AuthActor) {
+/** Full catalog (admin/PM/provider) vs worker-trade picker only. */
+type CategoryViewAccess = 'full' | 'worker-trades'
+
+function assertCanView(actor: AuthActor): CategoryViewAccess {
   if (isAdmin(actor.roles) || actor.roles.includes('MANAGER') || actor.roles.includes('PROVIDER')) {
-    return
+    return 'full'
   }
-  throw forbidden('Only admins, project managers, and providers can view categories')
+  // Workers need WORKER categories for CV primary-trade / skills pickers.
+  if (actor.roles.includes('WORKER')) {
+    return 'worker-trades'
+  }
+  throw forbidden('Only admins, project managers, providers, and workers can view categories')
 }
 
 export function createCategoriesService(repository: CategoriesRepository): CategoriesService {
@@ -118,16 +125,23 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
     },
 
     async listCategories(query, actor) {
-      assertCanView(actor)
+      const access = assertCanView(actor)
+      if (access === 'worker-trades') {
+        if (query.kind != null && query.kind !== 'WORKER') {
+          throw forbidden('Workers can only view worker trade categories')
+        }
+      }
+      const effectiveQuery: ListCategoriesQuery =
+        access === 'worker-trades' ? { ...query, kind: 'WORKER' } : query
       const [{ items, total }, kindCounts] = await Promise.all([
-        repository.findMany(query),
+        repository.findMany(effectiveQuery),
         repository.countByKind(),
       ])
       return {
         data: items.map(toCategoryDto),
         meta: {
-          page: query.page,
-          limit: query.limit,
+          page: effectiveQuery.page,
+          limit: effectiveQuery.limit,
           total,
           kindCounts,
         },
@@ -135,8 +149,12 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
     },
 
     async getCategoryById(id, actor) {
-      assertCanView(actor)
-      return toCategoryDto(await loadPlatformOrThrow(id))
+      const access = assertCanView(actor)
+      const category = await loadPlatformOrThrow(id)
+      if (access === 'worker-trades' && category.kind !== 'WORKER') {
+        throw forbidden('Workers can only view worker trade categories')
+      }
+      return toCategoryDto(category)
     },
 
     async createCategory(input, actor) {

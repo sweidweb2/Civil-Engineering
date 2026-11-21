@@ -9,6 +9,7 @@ import { createCategoriesService } from '../../src/modules/categories/categories
 
 const admin = { id: 'admin-1', roles: ['ADMIN'] }
 const client = { id: 'user-1', roles: ['CLIENT'] }
+const worker = { id: 'worker-1', roles: ['WORKER'] }
 
 function record(overrides: Partial<CategoryRecord> = {}): CategoryRecord {
   return {
@@ -57,11 +58,27 @@ function setup(opts?: { existing?: CategoryRecord | null; duplicate?: { id: stri
 }
 
 describe('categoriesService', () => {
-  it('forbids non-admins from listing categories', async () => {
+  it('forbids clients from listing categories', async () => {
     const { service } = setup()
     await expect(service.listCategories({ page: 1, limit: 20 }, client)).rejects.toMatchObject({
       status: 403,
     })
+  })
+
+  it('allows workers to list WORKER trade categories only', async () => {
+    const { service, repository } = setup({
+      existing: record({ kind: 'WORKER', name: 'Welders', nameAr: 'لحّامون' }),
+    })
+    const result = await service.listCategories({ page: 1, limit: 20, kind: 'WORKER' }, worker)
+    expect(result.data).toHaveLength(1)
+    expect(repository.findMany).toHaveBeenCalledWith(expect.objectContaining({ kind: 'WORKER' }))
+  })
+
+  it('forbids workers from listing non-WORKER category kinds', async () => {
+    const { service } = setup()
+    await expect(
+      service.listCategories({ page: 1, limit: 20, kind: 'MATERIAL' }, worker),
+    ).rejects.toMatchObject({ status: 403 })
   })
 
   it('creates a top-level platform category and slugs the name', async () => {

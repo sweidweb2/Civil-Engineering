@@ -24,11 +24,27 @@ const REDACT_PATHS = [
 let rootLogger: Logger | null = null
 
 /**
- * Shared Pino logger — stdout JSON. Never log secrets (see redact paths).
+ * Pretty (human) logs in local/dev terminals. Production/staging stay JSON for aggregators.
+ * Override: LOG_PRETTY=true|false
+ */
+function shouldUsePrettyLogs(env: string): boolean {
+  const override = process.env.LOG_PRETTY
+  if (override === 'true') return true
+  if (override === 'false') return false
+  if (env === 'production' || env === 'staging') return false
+  if (env === 'test') return false
+  return true
+}
+
+/**
+ * Shared Pino logger — pretty multi-line in development, JSON in production.
+ * Never log secrets (see redact paths).
  */
 export function getLogger(): Logger {
   if (!rootLogger) {
     const config = loadConfig()
+    const pretty = shouldUsePrettyLogs(config.env)
+
     rootLogger = pino({
       level: config.logLevel,
       base: { service: 'civil-api' },
@@ -36,6 +52,21 @@ export function getLogger(): Logger {
         paths: REDACT_PATHS,
         remove: true,
       },
+      ...(pretty
+        ? {
+            transport: {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                translateTime: 'HH:MM:ss.l',
+                ignore: 'pid,hostname,service',
+                singleLine: false,
+                messageFormat: '{msg}',
+                errorLikeObjectKeys: ['err', 'error'],
+              },
+            },
+          }
+        : {}),
     })
   }
   return rootLogger

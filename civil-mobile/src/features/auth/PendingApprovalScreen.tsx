@@ -13,17 +13,13 @@ export function PendingApprovalScreen() {
 
   return (
     <AuthLocaleGate>
-      <AuthShell
-        testID="e2e-pending-approval"
-        title={t('auth.pendingTitle')}
-        subtitle={t('auth.pendingWaiting')}
-      >
+      <AuthShell testID="e2e-pending-approval">
         <View className="gap-1.5" accessibilityLabel={t('auth.pendingWaiting')}>
           <Text
             className="text-[20px] font-semibold leading-[26px] text-wk-ink"
             accessibilityRole="header"
           >
-            {t('auth.pendingBadge')}
+            {t('auth.pendingTitle')}
           </Text>
           <Text className="text-[14px] leading-[20px] text-wk-ink2">
             {t('auth.pendingDescription')}

@@ -33,11 +33,7 @@ export function AuthScreen({ initialMode }: { initialMode: AuthMode }) {
 
   return (
     <AuthLocaleGate>
-      <AuthShell
-        testID={isLogin ? 'e2e-login' : 'e2e-register'}
-        title={isLogin ? t('auth.welcomeBack') : t('auth.joinTitle')}
-        subtitle={isLogin ? t('auth.welcomeBackSub') : t('auth.joinSub')}
-      >
+      <AuthShell testID={isLogin ? 'e2e-login' : 'e2e-register'}>
         <AuthSegmented<AuthMode>
           value={mode}
           onChange={setMode}

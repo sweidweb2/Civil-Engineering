@@ -284,8 +284,8 @@ export function createListingsRepository(): ListingsRepository {
     async countByType(providerId) {
       const rows = await prisma.$queryRaw<Array<{ kind: string; count: number }>>`
         SELECT c.kind::text AS kind, COUNT(*)::int AS count
-        FROM "Listing" l
-        INNER JOIN "Category" c ON c.id = l."categoryId"
+        FROM "listings" l
+        INNER JOIN "categories" c ON c.id = l."categoryId"
         WHERE c.kind IN ('MATERIAL'::"CategoryKind", 'EQUIPMENT'::"CategoryKind", 'SERVICE'::"CategoryKind")
           ${providerId ? Prisma.sql`AND l."providerId" = ${providerId}` : Prisma.empty}
         GROUP BY c.kind

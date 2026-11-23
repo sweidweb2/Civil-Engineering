@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Text, type TextInputInstance, View } from 'react-native'
 import { router } from 'expo-router'
 import {
@@ -10,12 +10,10 @@ import {
   Mail,
   UserRound,
 } from 'lucide-react-native'
-import Animated, { Easing, FadeInLeft, FadeInRight } from 'react-native-reanimated'
+import Animated, { FadeIn } from 'react-native-reanimated'
 
-import { Pressable } from '@/components/ui/pressable'
 import { registerSchema } from '@/features/auth/register.schema'
 import { useAuthTranslation } from '@/features/auth/useAuthTranslation'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { type FieldErrors, parseForm } from '@/lib/form'
 import { homePathForRole } from '@/navigation'
@@ -23,31 +21,26 @@ import type { RegisterRole } from '@/services/auth'
 import { useAuthStore } from '@/stores/authStore'
 
 import { EMAIL_SHAPE } from './LoginForm'
-import { AuthButton, AuthField, PasswordChecklist, RoleCard, StepHeader } from './ui'
+import { AuthButton, AuthField, PasswordChecklist, RoleTile } from './ui'
 
-type RoleMeta = {
-  value: RegisterRole
-  icon: LucideIcon
-  title: string
-  description: string
-  instant: boolean
-}
+const ROLES: { value: RegisterRole; icon: LucideIcon; labelKey: string }[] = [
+  { value: 'CLIENT', icon: BriefcaseBusiness, labelKey: 'auth.roleClient' },
+  { value: 'MANAGER', icon: ClipboardList, labelKey: 'auth.roleManagerShort' },
+  { value: 'WORKER', icon: HardHat, labelKey: 'auth.roleWorker' },
+]
 
 /**
- * Two steps: 1) pick the account type (role cards that say up front whether
- * it needs admin approval), 2) name, email and password with a live rule
- * checklist. Submits exactly what the old single form did.
+ * One short form: account type tiles, name, email, password (with live rule
+ * chips). Submits exactly what the previous form did.
  */
 export function RegisterForm() {
   const { t } = useAuthTranslation()
-  const { c } = useWorkerPalette()
   const register = useAuthStore((s) => s.register)
   const handleApiError = useHandleApiError()
   const lastNameRef = useRef<TextInputInstance>(null)
   const emailRef = useRef<TextInputInstance>(null)
   const passwordRef = useRef<TextInputInstance>(null)
 
-  const [step, setStep] = useState<1 | 2>(1)
   const [role, setRole] = useState<RegisterRole>('CLIENT')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -55,34 +48,6 @@ export function RegisterForm() {
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const roles = useMemo<RoleMeta[]>(
-    () => [
-      {
-        value: 'CLIENT',
-        icon: BriefcaseBusiness,
-        title: t('auth.roleClient'),
-        description: t('auth.roleClientDesc'),
-        instant: true,
-      },
-      {
-        value: 'MANAGER',
-        icon: ClipboardList,
-        title: t('auth.roleManager'),
-        description: t('auth.roleManagerDesc'),
-        instant: false,
-      },
-      {
-        value: 'WORKER',
-        icon: HardHat,
-        title: t('auth.roleWorker'),
-        description: t('auth.roleWorkerDesc'),
-        instant: false,
-      },
-    ],
-    [t],
-  )
-  const selected = roles.find((r) => r.value === role) ?? roles[0]
 
   const rules = [
     { label: t('auth.ruleLength'), met: password.length >= 8 },
@@ -125,75 +90,29 @@ export function RegisterForm() {
     }
   }
 
-  const enter = (step === 1 ? FadeInLeft : FadeInRight)
-    .duration(300)
-    .easing(Easing.out(Easing.cubic))
-
-  if (step === 1) {
-    return (
-      <Animated.View key="role" entering={enter} className="gap-5">
-        <StepHeader
-          step={1}
-          total={2}
-          stepLabel={t('auth.stepOf', { step: 1, total: 2 })}
-          title={t('auth.stepRoleTitle')}
-          subtitle={t('auth.stepRoleSub')}
-        />
-        <View className="gap-3" accessibilityRole="radiogroup" accessibilityLabel={t('auth.role')}>
-          {roles.map((r) => (
-            <RoleCard
+  return (
+    <View className="gap-5">
+      <View className="gap-2">
+        <Text className="text-[13px] font-medium text-wk-ink2">{t('auth.role')}</Text>
+        <View className="flex-row gap-2.5" accessibilityRole="radiogroup">
+          {ROLES.map((r) => (
+            <RoleTile
               key={r.value}
               icon={r.icon}
-              title={r.title}
-              description={r.description}
-              access={r.instant ? t('auth.accessInstant') : t('auth.accessApproval')}
-              accessTone={r.instant ? 'green' : 'amber'}
+              label={t(r.labelKey)}
               selected={role === r.value}
               onPress={() => setRole(r.value)}
             />
           ))}
         </View>
-        <AuthButton label={t('auth.continue')} onPress={() => setStep(2)} />
-      </Animated.View>
-    )
-  }
-
-  const SelectedIcon = selected.icon
-
-  return (
-    <Animated.View key="details" entering={enter} className="gap-5">
-      <StepHeader
-        step={2}
-        total={2}
-        stepLabel={t('auth.stepOf', { step: 2, total: 2 })}
-        title={t('auth.stepDetailsTitle')}
-        subtitle={t('auth.stepDetailsSub')}
-        onBack={() => setStep(1)}
-        backLabel={t('auth.back')}
-      />
-
-      {/* Chosen account type, one tap to change. */}
-      <View className="flex-row items-center gap-3 rounded-2xl bg-wk-sf2 py-2.5 pe-2 ps-3">
-        <View className="size-8 items-center justify-center rounded-xl bg-wk-brand">
-          <SelectedIcon size={16} color={c.onBrand} strokeWidth={2} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[12px] text-wk-ink3">{t('auth.role')}</Text>
-          <Text className="text-[14px] font-semibold text-wk-ink" numberOfLines={1}>
-            {selected.title}
-            <Text className={`font-medium ${selected.instant ? 'text-wk-brand' : 'text-wk-amber'}`}>
-              {'  ·  '}
-              {selected.instant ? t('auth.accessInstant') : t('auth.accessApproval')}
+        {role !== 'CLIENT' ? (
+          <Animated.View entering={FadeIn.duration(200)} className="flex-row items-center gap-1.5">
+            <View className="size-1.5 rounded-full bg-wk-amber" />
+            <Text className="text-[12px] font-medium text-wk-amber">
+              {t('auth.accessApproval')}
             </Text>
-          </Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setStep(1)}
-          className="h-9 justify-center rounded-xl px-3 active:bg-wk-sf"
-        >
-          <Text className="text-[13px] font-semibold text-wk-brand">{t('auth.change')}</Text>
-        </Pressable>
+          </Animated.View>
+        ) : null}
       </View>
 
       <View className="flex-row gap-3">
@@ -278,7 +197,7 @@ export function RegisterForm() {
             clearError('password')
           }}
         />
-        <PasswordChecklist rules={rules} />
+        {password ? <PasswordChecklist rules={rules} /> : null}
       </View>
 
       <View className="pt-1">
@@ -289,6 +208,6 @@ export function RegisterForm() {
           onPress={() => void onSubmit()}
         />
       </View>
-    </Animated.View>
+    </View>
   )
 }

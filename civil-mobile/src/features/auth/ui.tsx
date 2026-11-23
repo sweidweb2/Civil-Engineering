@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native'
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   CircleAlert,
@@ -192,28 +191,20 @@ function PulseDot({ color, size = 10 }: { color: string; size?: number }) {
 /* ─── Hero ─────────────────────────────────────────────────────────────── */
 
 /**
- * Deep-green hero: blueprint grid, a structure that draws itself in, the brand
- * lock-up up top and the screen title at the bottom. The form card overlaps
- * its lower edge.
+ * Deep-green illustration band: blueprint grid, a building frame + crane that
+ * draws itself in, and the brand lock-up. No copy — the form sits below it.
  */
-export function AuthHero({
-  brand,
-  title,
-  subtitle,
-}: {
-  brand: string
-  title: string
-  subtitle?: string
-}) {
+export function AuthHero({ brand }: { brand: string }) {
   const { c } = useWorkerPalette()
   const insets = useSafeAreaInsets()
-  const height = insets.top + 300
+  const art = { width: 264, height: 240 }
 
   return (
     <View
       className="overflow-hidden rounded-b-[36px] bg-wk-hero"
-      style={{ height }}
+      style={{ height: insets.top + 300 }}
       accessibilityRole="header"
+      accessibilityLabel={brand}
     >
       {/* Blueprint grid, fading out toward the bottom. */}
       <Svg width="100%" height="100%" style={{ position: 'absolute' }}>
@@ -222,44 +213,26 @@ export function AuthHero({
             <Path d="M24 0 L0 0 0 24" stroke={c.heroLine} strokeWidth={1} fill="none" />
           </Pattern>
           <LinearGradient id="authFade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={c.hero} stopOpacity={0} />
-            <Stop offset="0.85" stopColor={c.hero} stopOpacity={1} />
+            <Stop offset="0.2" stopColor={c.hero} stopOpacity={0} />
+            <Stop offset="1" stopColor={c.hero} stopOpacity={0.9} />
           </LinearGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#authGrid)" />
         <Rect width="100%" height="100%" fill="url(#authFade)" />
       </Svg>
 
-      {/* Lime glow, top-end corner. */}
+      {/* Lime glow behind the structure. */}
       <View
         pointerEvents="none"
-        className="absolute -right-24 -top-24"
-        style={{ width: 340, height: 340 }}
+        className="absolute self-center"
+        style={{ width: 380, height: 380, bottom: -150 }}
       >
-        <Svg width={340} height={340}>
+        <Svg width={380} height={380}>
           <Defs>
             <RadialGlow color={c.lime} />
           </Defs>
-          <Rect width={340} height={340} fill="url(#authGlow)" />
+          <Rect width={380} height={380} fill="url(#authGlow)" />
         </Svg>
-      </View>
-
-      {/* The structure. */}
-      <View
-        pointerEvents="none"
-        className="absolute"
-        style={{ right: 4, top: insets.top + 38, width: 220, height: 200, opacity: 0.75 }}
-        importantForAccessibility="no-hide-descendants"
-        accessibilityElementsHidden
-      >
-        <Svg width={220} height={200} viewBox="0 0 220 200">
-          {STROKES.map((points, index) => (
-            <DrawnStroke key={index} points={points} index={index} color={c.lime} />
-          ))}
-        </Svg>
-        <View className="absolute" style={{ left: 145, top: 50 }}>
-          <PulseDot color={c.lime} />
-        </View>
       </View>
 
       {/* Brand lock-up. */}
@@ -279,20 +252,24 @@ export function AuthHero({
         </Text>
       </Animated.View>
 
-      {/* Title. Re-enters when it changes (mode switch). */}
-      <Animated.View
-        key={title}
-        entering={FadeInDown.duration(420).easing(Easing.out(Easing.cubic))}
-        className="absolute inset-x-6 gap-2"
-        style={{ bottom: 58 }}
+      {/* The structure, centred on the band's floor. */}
+      <View
+        pointerEvents="none"
+        className="absolute self-center"
+        style={{ bottom: 6, width: art.width, height: art.height, opacity: 0.85 }}
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
       >
-        <Text className="text-[32px] font-semibold leading-[38px] text-wk-hero-ink">{title}</Text>
-        {subtitle ? (
-          <Text className="max-w-[300px] text-[15px] leading-[22px] text-wk-hero-mute">
-            {subtitle}
-          </Text>
-        ) : null}
-      </Animated.View>
+        <Svg width={art.width} height={art.height} viewBox="0 0 220 200">
+          {STROKES.map((points, index) => (
+            <DrawnStroke key={index} points={points} index={index} color={c.lime} />
+          ))}
+        </Svg>
+        {/* Load on the crane cable (viewBox 150,52 → scaled 1.2). */}
+        <View className="absolute" style={{ left: 150 * 1.2 - 5, top: 52 * 1.2 - 2 }}>
+          <PulseDot color={c.lime} />
+        </View>
+      </View>
     </View>
   )
 }
@@ -306,14 +283,12 @@ function RadialGlow({ color }: { color: string }) {
   )
 }
 
-/** White card that rises over the hero's bottom edge. */
-export function AuthCard({ children }: { children: ReactNode }) {
-  const { shadow } = useWorkerPalette()
+/** Form area below the hero: flat on the page, no card. */
+export function AuthBody({ children }: { children: ReactNode }) {
   return (
     <Animated.View
-      entering={FadeInDown.duration(520).delay(80).easing(Easing.out(Easing.cubic))}
-      className="-mt-9 mx-4 gap-6 rounded-[28px] bg-wk-sf p-5"
-      style={shadow}
+      entering={FadeInDown.duration(480).delay(80).easing(Easing.out(Easing.cubic))}
+      className="gap-6 px-5 pt-7"
     >
       {children}
     </Animated.View>
@@ -332,7 +307,6 @@ export function AuthSegmented<T extends string>({
   value: T
   onChange: (value: T) => void
 }) {
-  const { shadow } = useWorkerPalette()
   const [width, setWidth] = useState(0)
   const index = Math.max(
     0,
@@ -349,14 +323,14 @@ export function AuthSegmented<T extends string>({
 
   return (
     <View
-      className="h-12 flex-row rounded-2xl bg-wk-sf2 p-1"
+      className="h-[52px] flex-row rounded-2xl bg-wk-sf2 p-1"
       accessibilityRole="tablist"
       onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width - 8)}
     >
       {width > 0 ? (
         <Animated.View
-          className="absolute bottom-1 left-1 top-1 rounded-xl bg-wk-sf"
-          style={[{ width: segment }, shadow, thumb]}
+          className="absolute bottom-1 left-1 top-1 rounded-xl border-[1.5px] border-wk-brand bg-wk-brand-soft"
+          style={[{ width: segment }, thumb]}
         />
       ) : null}
       {options.map((option) => {
@@ -370,7 +344,7 @@ export function AuthSegmented<T extends string>({
             className="flex-1 items-center justify-center"
           >
             <Text
-              className={`text-[14px] ${on ? 'font-semibold text-wk-ink' : 'font-medium text-wk-ink3'}`}
+              className={`text-[14px] ${on ? 'font-semibold text-wk-brand' : 'font-medium text-wk-ink3'}`}
             >
               {option.label}
             </Text>
@@ -510,142 +484,47 @@ export function PasswordChecklist({ rules }: { rules: PasswordRule[] }) {
   )
 }
 
-/* ─── Role card ────────────────────────────────────────────────────────── */
+/* ─── Role tile ────────────────────────────────────────────────────────── */
 
-/** Radio card: icon tile, title + one line, access pill, radio mark. */
-export function RoleCard({
+/** Compact radio tile: icon over a short label. Three sit in a row. */
+export function RoleTile({
   icon: Icon,
-  title,
-  description,
-  access,
-  accessTone,
+  label,
   selected,
   onPress,
 }: {
   icon: LucideIcon
-  title: string
-  description: string
-  access: string
-  accessTone: 'green' | 'amber'
+  label: string
   selected: boolean
   onPress: () => void
 }) {
   const { c } = useWorkerPalette()
   return (
-    <PressScale
-      onPress={onPress}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${title}. ${description}. ${access}`}
-    >
-      <View
-        className={`flex-row items-center gap-3.5 rounded-[20px] border-[1.5px] p-3.5 ${
-          selected ? 'border-wk-brand bg-wk-sf' : 'border-wk-line bg-wk-sf'
-        }`}
-        style={selected ? { boxShadow: `0 0 0 4px ${c.brandSoft}` } : undefined}
+    <View className="min-w-0 flex-1">
+      <PressScale
+        onPress={onPress}
+        accessibilityRole="radio"
+        accessibilityState={{ selected }}
+        accessibilityLabel={label}
       >
         <View
-          className={`size-12 items-center justify-center rounded-2xl ${
-            selected ? 'bg-wk-brand' : 'bg-wk-sf2'
+          className={`min-h-[104px] items-center justify-center gap-3 rounded-2xl border-[1.5px] px-1.5 py-5 ${
+            selected ? 'border-wk-brand bg-wk-brand-soft' : 'border-wk-sf2 bg-wk-sf2'
           }`}
         >
-          <Icon size={22} color={selected ? c.onBrand : c.ink2} strokeWidth={1.9} />
-        </View>
-        <View className="min-w-0 flex-1 gap-1">
-          <View className="flex-row flex-wrap items-center gap-2">
-            <Text className="text-[16px] font-semibold text-wk-ink">{title}</Text>
-            <View
-              className={`h-5 justify-center rounded-full px-2 ${
-                accessTone === 'green' ? 'bg-wk-brand-soft' : 'bg-wk-amber-soft'
-              }`}
-            >
-              <Text
-                className={`text-[11px] font-semibold ${
-                  accessTone === 'green' ? 'text-wk-brand' : 'text-wk-amber'
-                }`}
-              >
-                {access}
-              </Text>
-            </View>
-          </View>
-          <Text className="text-[13px] leading-[18px] text-wk-ink2">{description}</Text>
-        </View>
-        <View
-          className={`size-6 items-center justify-center rounded-full border-2 ${
-            selected ? 'border-wk-brand bg-wk-brand' : 'border-wk-line2'
-          }`}
-        >
-          {selected ? (
-            <Animated.View entering={ZoomIn.duration(180)}>
-              <Check size={13} color={c.onBrand} strokeWidth={3.2} />
-            </Animated.View>
-          ) : null}
-        </View>
-      </View>
-    </PressScale>
-  )
-}
-
-/* ─── Step header ──────────────────────────────────────────────────────── */
-
-export function StepHeader({
-  step,
-  total,
-  stepLabel,
-  title,
-  subtitle,
-  onBack,
-  backLabel,
-}: {
-  step: number
-  total: number
-  stepLabel: string
-  title: string
-  subtitle?: string
-  onBack?: () => void
-  backLabel?: string
-}) {
-  const { c } = useWorkerPalette()
-  return (
-    <View className="gap-3">
-      <View className="flex-row items-center gap-3">
-        {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={backLabel}
-            onPress={onBack}
-            hitSlop={8}
-            className="size-8 items-center justify-center rounded-full bg-wk-sf2 active:opacity-70"
+          <Icon size={22} color={selected ? c.brand : c.ink2} strokeWidth={1.9} />
+          <Text
+            className={`text-center text-[13px] font-semibold ${
+              selected ? 'text-wk-brand' : 'text-wk-ink2'
+            }`}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
           >
-            <ArrowLeft size={16} color={c.ink} strokeWidth={2.2} />
-          </Pressable>
-        ) : null}
-        <Text
-          className="text-[11px] font-medium uppercase text-wk-ink3"
-          style={[MONO_STYLE, MONO_TRACK]}
-        >
-          {stepLabel}
-        </Text>
-        <View className="ms-auto flex-row gap-1">
-          {Array.from({ length: total }, (_, i) => (
-            <View
-              key={i}
-              className={`h-1.5 rounded-full ${i < step ? 'w-6 bg-wk-brand' : 'w-3 bg-wk-line2'}`}
-            />
-          ))}
+            {label}
+          </Text>
         </View>
-      </View>
-      <View className="gap-1">
-        <Text
-          className="text-[20px] font-semibold leading-[26px] text-wk-ink"
-          accessibilityRole="header"
-        >
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text className="text-[14px] leading-[20px] text-wk-ink2">{subtitle}</Text>
-        ) : null}
-      </View>
+      </PressScale>
     </View>
   )
 }

@@ -147,7 +147,7 @@ export function createNotificationsRepository(): NotificationsRepository {
           COUNT(*) FILTER (WHERE "deletedAt" IS NULL)::int AS active,
           COUNT(*) FILTER (WHERE "deletedAt" IS NULL AND "isRead" = false)::int AS unread,
           COUNT(*) FILTER (WHERE "deletedAt" IS NOT NULL)::int AS deleted
-        FROM "Notification"
+        FROM "notifications"
         ${receiverId ? Prisma.sql`WHERE "receiverId" = ${receiverId}` : Prisma.empty}
       `
       return {

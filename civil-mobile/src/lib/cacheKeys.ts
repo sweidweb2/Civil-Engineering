@@ -26,6 +26,7 @@ export const cacheKeys = {
   reviews: 'reviews:list',
   queue: 'queue:list',
   verifications: 'verifications:list',
+  designRequests: 'design-requests:list',
 } as const
 
 /**

@@ -4,6 +4,7 @@ import type { Pool } from 'pg'
 import { type AppConfig, loadConfig } from './config/index.js'
 import { createAuthModule } from './modules/auth/index.js'
 import { createCategoriesModule } from './modules/categories/index.js'
+import { createDesignRequestsModule } from './modules/design-requests/index.js'
 import { createDevicesModule } from './modules/devices/index.js'
 import { buildFilesService, createFilesModule } from './modules/files/index.js'
 import { createHealthRoutes } from './modules/health/health.routes.js'
@@ -43,6 +44,7 @@ export type CompositionRoot = {
   reviews: ExpressRouter
   projects: ExpressRouter
   projectImages: ExpressRouter
+  designRequests: ExpressRouter
   notifications: ExpressRouter
 }
 
@@ -95,6 +97,10 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       return projectsRouter
     })(),
     projectImages: createProjectImagesModule({ ...moduleDeps, projectsService }),
+    designRequests: createDesignRequestsModule({
+      ...moduleDeps,
+      filesService,
+    }),
     notifications: createNotificationsModule(),
   }
 }

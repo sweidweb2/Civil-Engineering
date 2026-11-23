@@ -1,5 +1,4 @@
-import { Platform } from 'react-native'
-
+import { appendUploadPart } from '../lib/appendUploadPart'
 import { optimizeIfImage } from '../lib/optimizeImage'
 import { apiRequest } from './api'
 import type { PickedFile } from './filePicker'
@@ -32,25 +31,13 @@ function imagePath(kind: GalleryKind, imageId: string) {
   return `${CONFIG[kind].basePath}/images/${imageId}`
 }
 
-/**
- * Appends a picked image to a multipart body.
- * React Native accepts `{ uri, name, type }` as a file part; web needs a real Blob.
- */
+/** Appends a picked image to a multipart body (Expo File / web Blob). */
 export async function appendImagePart(
   form: FormData,
   field: string,
   file: { uri: string; mime: string; originalName: string },
 ) {
-  if (Platform.OS === 'web') {
-    const blob = await fetch(file.uri).then((r) => r.blob())
-    form.append(field, blob, file.originalName)
-    return
-  }
-  form.append(field, {
-    uri: file.uri,
-    name: file.originalName,
-    type: file.mime,
-  } as unknown as Blob)
+  await appendUploadPart(form, field, file)
 }
 
 /** Re-encodes (max edge 1920, JPEG) like every other image upload, then builds the form. */

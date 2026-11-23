@@ -5,6 +5,7 @@
 ```bash
 # From backend/
 npm run db:migrate              # safe migrate deploy (refuses transaction pooler; prod needs ALLOW_PROD_DB_MIGRATE=1)
+npm run db:migrate:remote       # same as db:migrate (alias for remote Supabase)
 npm run db:assert-index-safety  # CI gate: future CREATE INDEX must use CONCURRENTLY
 npm run db:verify-indexes       # confirm hot-path indexes after migrate
 npm run db:seed                 # seed

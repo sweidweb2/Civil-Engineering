@@ -14,6 +14,8 @@ import {
   type UpsertDesignInput,
 } from '@/services/project-stages'
 
+import { DesignStageRequestsSection } from '@/features/design-requests/DesignStageRequestsSection'
+
 import { StageBodyShell } from './StageBodyShell'
 import { StageFieldLabel } from './StageFieldLabel'
 import { StageFileCard } from './StageFileCard'
@@ -143,6 +145,8 @@ export function DesignForm({
         </>
       }
     >
+      <DesignStageRequestsSection projectId={projectId} />
+
       <StageSection title={t('stages.sections.designTeam')}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>

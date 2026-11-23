@@ -2,7 +2,8 @@ import { optimizeIfImage } from '@/lib/optimizeImage'
 
 import { apiRequest } from './api'
 
-export type FileEntityType = 'PROJECT' | 'USER' | 'EXPENSE' | 'MATERIAL' | 'WORKER' | 'LISTING'
+export type FileEntityType =
+  'PROJECT' | 'USER' | 'EXPENSE' | 'MATERIAL' | 'WORKER' | 'LISTING' | 'DESIGN_REQUEST'
 
 export type PresignFileResponse = {
   fileId: string

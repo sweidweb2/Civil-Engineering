@@ -17,6 +17,7 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "db:migrate": "node scripts/db-migrate.mjs",
+    "db:migrate:remote": "node scripts/db-migrate.mjs",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:assert-index-safety": "node scripts/assert-index-migration-safety.mjs",
     "db:verify-indexes": "node scripts/verify-hot-path-indexes.mjs",

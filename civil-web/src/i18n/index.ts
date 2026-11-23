@@ -5,6 +5,7 @@ import accountAr from './locales/ar/account.json'
 import adminAr from './locales/ar/admin.json'
 import authAr from './locales/ar/auth.json'
 import commonAr from './locales/ar/common.json'
+import designRequestsAr from './locales/ar/designRequests.json'
 import navAr from './locales/ar/nav.json'
 import notificationsAr from './locales/ar/notifications.json'
 import pmAr from './locales/ar/pm.json'
@@ -15,6 +16,7 @@ import accountEn from './locales/en/account.json'
 import adminEn from './locales/en/admin.json'
 import authEn from './locales/en/auth.json'
 import commonEn from './locales/en/common.json'
+import designRequestsEn from './locales/en/designRequests.json'
 import navEn from './locales/en/nav.json'
 import notificationsEn from './locales/en/notifications.json'
 import pmEn from './locales/en/pm.json'
@@ -32,6 +34,7 @@ export const I18N_NAMESPACES = [
   'provider',
   'notifications',
   'projects',
+  'designRequests',
   'validation',
 ] as const
 
@@ -48,6 +51,7 @@ const resources = {
     provider: providerEn,
     notifications: notificationsEn,
     projects: projectsEn,
+    designRequests: designRequestsEn,
     validation: validationEn,
   },
   ar: {
@@ -60,6 +64,7 @@ const resources = {
     provider: providerAr,
     notifications: notificationsAr,
     projects: projectsAr,
+    designRequests: designRequestsAr,
     validation: validationAr,
   },
 } as const

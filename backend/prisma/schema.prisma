@@ -62,6 +62,7 @@ model User {
   provider             Provider?
   projects             Project[]
   reviews              Review[]
+  designRequests       DesignRequest[]
   sentNotifications    Notification[] @relation("SentNotifications")
   receivedNotifications Notification[] @relation("ReceivedNotifications")
 
@@ -346,6 +347,7 @@ enum FileEntityType {
   MATERIAL
   WORKER
   LISTING
+  DESIGN_REQUEST
 }
 
 model File {
@@ -583,6 +585,7 @@ model Project {
   licensing          ProjectLicensing?
   materialProcurement MaterialProcurement?
   maintenance        ProjectMaintenance?
+  designRequests     DesignRequest[]
 
   @@index([status])
   @@index([ownerId, archivedAt, createdAt])
@@ -718,6 +721,41 @@ model ProjectMaintenance {
   project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_maintenances")
+}
+
+// =============================================================================
+// design_requests — PM → designer (admin) design tickets
+// =============================================================================
+
+enum DesignRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+model DesignRequest {
+  id                   String              @id @default(cuid())
+  subject              String
+  description          String
+  /// Hardcoded design category (ARCHITECTURAL | STRUCTURAL | MEP | …) — not Category table.
+  category             String
+  status               DesignRequestStatus @default(PENDING)
+  neededBy             DateTime
+  requirementFilePath  String?
+  responseFilePath     String?
+  projectId            String?
+  requestedById        String
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  project              Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  requestedBy          User                @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([requestedById, createdAt])
+  @@index([status, createdAt])
+  @@index([projectId, createdAt])
+  @@map("design_requests")
 }
 
 // =============================================================================

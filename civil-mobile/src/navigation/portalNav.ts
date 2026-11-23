@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   MoreHorizontal,
   Package,
+  PenTool,
   Settings,
   ShieldCheck,
   Star,
@@ -65,11 +66,18 @@ export const ADMIN_MORE_LINKS: PortalNavItem[] = [
   { key: 'listings', label: 'Listings', href: '/admin/listings', icon: Package },
   { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: Star },
   { key: 'categories', label: 'Categories', href: '/admin/categories', icon: FolderTree },
+  {
+    key: 'designRequests',
+    label: 'Design requests',
+    href: '/admin/design-requests',
+    icon: PenTool,
+  },
 ]
 
 export const PM_NAV: PortalNavItem[] = [
   { key: 'dashboard', label: 'Home', href: '/pm', icon: Home, end: true },
   { key: 'projects', label: 'Projects', href: '/pm/projects', icon: FolderKanban },
+  { key: 'designRequests', label: 'Designs', href: '/pm/design-requests', icon: PenTool },
   { key: 'directory', label: 'Directory', href: '/pm/directory', icon: ContactRound },
   { key: 'account', label: 'Account', href: '/pm/account', icon: UserRound },
 ]

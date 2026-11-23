@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
+import { DesignStageRequestsBlock } from '@/features/design-requests/DesignStageRequestsBlock'
 import { isIsoDate } from '@/features/pm/projectForm'
 import { draftFromSummary, fieldsForStage, fileFieldsForStage } from '@/features/pm/stageFields'
 import { saveStageDraft, type StageDraft } from '@/features/pm/stagePayloads'
@@ -305,6 +306,13 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
       }
     >
       <Stepper active={activeKey} states={states} onSelect={setActiveKey} />
+
+      {activeKey === 'design' && projectId ? (
+        <DesignStageRequestsBlock
+          projectId={projectId}
+          basePath={BASE.startsWith('/admin') ? '/admin/projects' : '/pm/projects'}
+        />
+      ) : null}
 
       <WkSection icon={StageIcon} title={`${index + 1} · ${enumLabel(t, 'stage', activeKey)}`}>
         <WkChoice

@@ -11,6 +11,9 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { PendingApprovalPage } from '@/features/auth/PendingApprovalPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { ManageCategoriesPage } from '@/features/categories/ManageCategoriesPage'
+import { DesignRequestCreatePage } from '@/features/design-requests/DesignRequestCreatePage'
+import { DesignRequestDetailPage } from '@/features/design-requests/DesignRequestDetailPage'
+import { DesignRequestsListPage } from '@/features/design-requests/DesignRequestsListPage'
 import { NotFoundPage } from '@/features/errors/NotFoundPage'
 import { UnexpectedErrorPage } from '@/features/errors/UnexpectedErrorPage'
 import { HomePage } from '@/features/home/HomePage'
@@ -120,6 +123,8 @@ function App() {
             <Route path="listings/:id" element={<ListingDetailsPage />} />
             <Route path="reviews" element={<ManageReviewsPage />} />
             <Route path="categories" element={<ManageCategoriesPage />} />
+            <Route path="design-requests" element={<DesignRequestsListPage />} />
+            <Route path="design-requests/:id" element={<DesignRequestDetailPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 
@@ -140,6 +145,9 @@ function App() {
             <Route path="projects" element={<ProjectsListPage />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="directory" element={<DirectoryPage />} />
+            <Route path="design-requests" element={<DesignRequestsListPage />} />
+            <Route path="design-requests/new" element={<DesignRequestCreatePage />} />
+            <Route path="design-requests/:id" element={<DesignRequestDetailPage />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

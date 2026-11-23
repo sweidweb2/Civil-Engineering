@@ -13,6 +13,7 @@ import {
   Moon,
   Package,
   Palette,
+  PenTool,
   Settings,
   Star,
   Store,
@@ -341,6 +342,7 @@ export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin/users', labelKey: 'users', icon: Users },
   { to: '/admin/providers', labelKey: 'providers', icon: Store },
   { to: '/admin/projects', labelKey: 'projects', icon: FolderKanban },
+  { to: '/admin/design-requests', labelKey: 'designRequests', icon: PenTool },
   { to: '/admin/directory', labelKey: 'directory', icon: Library },
   { to: '/admin/listings', labelKey: 'listings', icon: Package },
   { to: '/admin/reviews', labelKey: 'reviews', icon: Star },
@@ -350,5 +352,6 @@ export const ADMIN_NAV: PanelNavItem[] = [
 export const PM_NAV: PanelNavItem[] = [
   { to: '/pm/analytics', labelKey: 'analytics', icon: TrendingUp },
   { to: '/pm/projects', labelKey: 'manageProjects', icon: FolderKanban },
+  { to: '/pm/design-requests', labelKey: 'designRequests', icon: PenTool },
   { to: '/pm/directory', labelKey: 'directory', icon: Library },
 ]

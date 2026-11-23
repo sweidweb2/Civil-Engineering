@@ -31,6 +31,7 @@ export function createV1Router(deps: V1Deps = {}): Router {
   router.use('/reviews', modules.reviews)
   router.use('/projects', modules.projects)
   router.use('/project-images', modules.projectImages)
+  router.use('/design-requests', modules.designRequests)
   router.use('/notifications', modules.notifications)
 
   return router

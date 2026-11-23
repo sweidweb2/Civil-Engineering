@@ -1,6 +1,7 @@
 import type { AuthActor } from '../../authz/index.js'
 import { assertSelfOrAdmin, isAdmin } from '../../authz/index.js'
-import { forbidden } from '../../errors/app-error.js'
+import { prisma } from '../../database/prisma.js'
+import { forbidden, notFound } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/index.js'
 import type { FileEntityTypeName } from './files.schema.js'
 
@@ -20,6 +21,19 @@ export async function assertCanAttachToEntity(
     case 'PROJECT':
       await projectsService.assertAccessible(entityId, actor)
       return
+    case 'DESIGN_REQUEST': {
+      const request = await prisma.designRequest.findUnique({
+        where: { id: entityId },
+        select: { requestedById: true },
+      })
+      if (!request) {
+        throw notFound('Design request not found', 'DESIGN_REQUEST_NOT_FOUND')
+      }
+      if (isAdmin(actor.roles) || actor.id === request.requestedById) {
+        return
+      }
+      throw forbidden('Not allowed to attach files to this design request')
+    }
     case 'EXPENSE':
     case 'MATERIAL':
     case 'WORKER':

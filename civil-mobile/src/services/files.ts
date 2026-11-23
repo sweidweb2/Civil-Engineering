@@ -1,9 +1,9 @@
-import { Platform } from 'react-native'
-
+import { appendUploadPart } from '../lib/appendUploadPart'
 import { optimizeIfImage } from '../lib/optimizeImage'
 import { apiRequest } from './api'
 
-export type FileEntityType = 'PROJECT' | 'USER' | 'EXPENSE' | 'MATERIAL' | 'WORKER' | 'LISTING'
+export type FileEntityType =
+  'PROJECT' | 'USER' | 'EXPENSE' | 'MATERIAL' | 'WORKER' | 'LISTING' | 'DESIGN_REQUEST'
 
 export type PresignFileResponse = {
   fileId: string
@@ -61,17 +61,11 @@ export async function uploadFile(input: {
   const body = new FormData()
   body.append('entityType', input.entityType)
   body.append('entityId', input.entityId)
-
-  if (Platform.OS === 'web') {
-    const blob = await fetch(optimized.uri).then((r) => r.blob())
-    body.append('file', blob, optimized.originalName)
-  } else {
-    body.append('file', {
-      uri: optimized.uri,
-      name: optimized.originalName,
-      type: optimized.mime,
-    } as unknown as Blob)
-  }
+  await appendUploadPart(body, 'file', {
+    uri: optimized.uri,
+    mime: optimized.mime,
+    originalName: optimized.originalName,
+  })
 
   return apiRequest<CompleteFileResponse>('/files/upload', {
     method: 'POST',

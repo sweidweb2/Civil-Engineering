@@ -75,6 +75,7 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
     files: createFilesModule({ service: filesService }),
     logging: createLoggingModule(),
     users: createUsersModule({
+      ...moduleDeps,
       filesService,
       adminOverview: {
         providers: providersService,

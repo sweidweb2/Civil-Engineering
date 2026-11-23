@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import * as WebBrowser from 'expo-web-browser'
 import { Camera, FileCheck2, FileUp, FolderOpen, Images, Upload, X } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { ImagePreviewModal } from '@/components/files/ImagePreviewModal'
 import { Pressable } from '@/components/ui/pressable'
 import { PvOptionSheet } from '@/features/provider/ui/kit'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useFilePick } from '@/hooks/useFilePick'
+import { useRemoteFilePreview } from '@/hooks/useRemoteFilePreview'
 import { fileIdFromStorageKey } from '@/lib/fileKey'
 import { getDownloadUrl, uploadFile } from '@/services/files'
-import { useToastSuccess } from '@/services/toast'
+import { useToastApiError, useToastSuccess } from '@/services/toast'
 
 /**
  * One stage document slot: icon tile, label, file name (or "Not uploaded"),
@@ -34,8 +35,11 @@ export function StageDocRow({
   const { t } = useTranslation()
   const { c, shadow } = useWorkerPalette()
   const toastSuccess = useToastSuccess()
+  const toastApiError = useToastApiError()
   const { sheetOpen, setSheetOpen, isBusy, pickAndRun } = useFilePick()
-  const [file, setFile] = useState<{ name: string; url: string } | null>(null)
+  const { openRemoteFile, beginPreview, previewState, closePreview, isOpeningPreview } =
+    useRemoteFilePreview()
+  const [file, setFile] = useState<{ name: string; url: string; mime: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -46,7 +50,7 @@ export function StageDocRow({
     }
     getDownloadUrl(fileId)
       .then((r) => {
-        if (!cancelled) setFile({ name: r.originalName, url: r.downloadUrl })
+        if (!cancelled) setFile({ name: r.originalName, url: r.downloadUrl, mime: r.mime })
       })
       .catch(() => {
         if (!cancelled) setFile(null)
@@ -58,6 +62,7 @@ export function StageDocRow({
 
   const has = Boolean(value)
   const name = file?.name || (has ? t('files.attached') : t('pmPortal.notUploaded'))
+  const opening = isBusy || isOpeningPreview
 
   return (
     <View className="min-h-16 flex-row items-center gap-3 rounded-[14px] bg-wk-sf2 py-2.5 pe-1.5 ps-3">
@@ -75,8 +80,15 @@ export function StageDocRow({
       <Pressable
         accessibilityRole={file?.url ? 'button' : undefined}
         accessibilityLabel={file?.url ? `${t('files.open')} ${name}` : undefined}
-        disabled={!file?.url}
-        onPress={() => file?.url && void WebBrowser.openBrowserAsync(file.url)}
+        disabled={!file?.url || opening}
+        onPress={() => {
+          if (!file?.url) return
+          beginPreview()
+          void openRemoteFile({ url: file.url, mime: file.mime, name: file.name }).catch((e) => {
+            closePreview()
+            toastApiError(e instanceof Error ? e : new Error(t('files.previewFailed')))
+          })
+        }}
         className="min-w-0 flex-1 gap-0.5"
       >
         <Text className="text-[13px] font-medium leading-4 text-wk-ink2" numberOfLines={2}>
@@ -90,7 +102,7 @@ export function StageDocRow({
           {name}
         </Text>
       </Pressable>
-      {isBusy ? (
+      {opening ? (
         <View className="size-11 items-center justify-center">
           <ActivityIndicator size="small" color={c.ink3} />
         </View>
@@ -139,12 +151,14 @@ export function StageDocRow({
                 entityType: 'PROJECT',
                 entityId: projectId,
               })
-              setFile({ name: uploaded.originalName, url: '' })
+              setFile({ name: uploaded.originalName, url: '', mime: uploaded.mime })
               onChange(uploaded.key)
               toastSuccess(t('files.uploaded'))
             }),
         }))}
       />
+
+      <ImagePreviewModal state={previewState} onClose={closePreview} />
     </View>
   )
 }

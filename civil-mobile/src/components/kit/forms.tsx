@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Pressable } from '@/components/ui/pressable'
 import { Switch } from '@/components/ui/switch'
 import { useThemeColors } from '@/hooks/useThemeColors'
+import { useIsAuthLocale } from '@/lib/authLocale'
 import { ltrInputStyle } from '@/lib/rtl'
 import { sizes } from '@/theme/sizes'
 import { TYPE } from '@/theme/typography'
@@ -142,11 +143,12 @@ export function TextField({
 }: TextFieldProps) {
   const colors = useThemeColors()
   const { t } = useTranslation()
+  const isAuthLocale = useIsAuthLocale()
   const [focused, setFocused] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const isSecret = Boolean(input.secureTextEntry)
   const multiline = Boolean(input.multiline)
-  const isLtrContent = isSecret || LTR_KEYBOARDS.has(input.keyboardType)
+  const isLtrContent = isAuthLocale || isSecret || LTR_KEYBOARDS.has(input.keyboardType)
   const borderClass = error
     ? 'border-[1.5px] border-destructive'
     : focused
@@ -171,7 +173,7 @@ export function TextField({
           className={`${TYPE.body} min-w-0 flex-1 text-foreground ${multiline ? '' : 'h-full'}`}
           placeholderTextColor={colors.muted2}
           textAlignVertical={multiline ? 'top' : 'center'}
-          style={isLtrContent ? ltrInputStyle() : undefined}
+          style={isLtrContent ? ltrInputStyle({ forceLeft: isAuthLocale }) : undefined}
           accessibilityLabel={label}
           onFocus={(event) => {
             setFocused(true)

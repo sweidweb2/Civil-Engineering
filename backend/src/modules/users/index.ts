@@ -1,3 +1,6 @@
+import type { AppConfig } from '../../config/index.js'
+import type { StorageService } from '../../storage/index.js'
+import { createAvatarUrlResolver } from '../files/avatar-url-resolver.js'
 import { getFilesService } from '../files/index.js'
 import { createUsersController } from './users.controller.js'
 import { createManagerProfilesController } from './users.manager-profile.controller.js'
@@ -17,6 +20,9 @@ export type UsersModuleDeps = {
   filesService?: UsersFilesGateway
   /** Injected by the composition root; `GET /users/admin-overview` is unavailable without it. */
   adminOverview?: UsersAdminOverviewGateway
+  /** With storage, admin user lists include loadable avatar URLs. */
+  config?: AppConfig
+  storage?: StorageService
 }
 
 export function createUsersModule(deps: UsersModuleDeps = {}) {
@@ -25,6 +31,7 @@ export function createUsersModule(deps: UsersModuleDeps = {}) {
     repository,
     deps.filesService ?? getFilesService(),
     deps.adminOverview,
+    deps.config && deps.storage ? createAvatarUrlResolver(deps.config, deps.storage) : undefined,
   )
   const controller = createUsersController(service)
   return createUsersRoutes(controller)

@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
-import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { ChevronRight, FileText, MapPin, Milestone, NotebookPen } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -16,13 +15,12 @@ import {
 } from '@/features/pm/projectForm'
 import {
   currentStage,
-  PHOTO_DOT,
-  projectStatusLabel,
+  ProgressLine,
+  ProjectPill,
   StageSegments,
   stageStateOf,
   stageStates,
 } from '@/features/pm/ui/kit'
-import { PhotoScrim } from '@/features/provider/ui/kit'
 import {
   WkChoice,
   WkDangerZone,
@@ -31,20 +29,13 @@ import {
   WkSection,
 } from '@/features/worker/ui/forms'
 import { WkGalleryCard } from '@/features/worker/ui/GalleryCard'
-import {
-  flipStyle,
-  WkButton,
-  WkConfirm,
-  type WkConfirmState,
-  WkHeroGlow,
-} from '@/features/worker/ui/kit'
+import { flipStyle, WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { cacheKeys, invalidateProjectCaches } from '@/lib/cacheKeys'
-import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import { getProjectStagesSummary, STAGE_KEYS } from '@/services/project-stages'
 import {
@@ -57,6 +48,7 @@ import {
   updateProject,
 } from '@/services/projects'
 import { useToastSuccess } from '@/services/toast'
+import { MONO_STYLE } from '@/theme/typography'
 
 const DEFAULT_BASE = '/pm/projects'
 
@@ -64,7 +56,7 @@ const DEFAULT_BASE = '/pm/projects'
 export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string } = {}) {
   const BASE = basePath
   const { t } = useTranslation()
-  const { c } = useWorkerPalette()
+  const { c, shadow } = useWorkerPalette()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -97,11 +89,6 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
   const [isSaving, setIsSaving] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
-  /** Gallery cover while detail API mainImageUrl is missing or stale. */
-  const [galleryCover, setGalleryCover] = useState<{
-    url: string | null
-    key: string | null
-  } | null>(null)
 
   // Seed once: the project is cached and refetches in the background.
   useSeedOnce(project, (p) => setForm(formFromProject(p)))
@@ -172,8 +159,6 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
   }
 
   const pct = Math.round(project?.progress ?? 0)
-  const heroUrl = project?.mainImageUrl ?? galleryCover?.url ?? null
-  const heroKey = project?.mainImageKey ?? galleryCover?.key ?? null
   const done = STAGE_KEYS.filter((k) => stageStateOf(stages, k) === 'done').length
   const cur = currentStage(stages)
   const stageLine = !stages
@@ -189,6 +174,19 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
             stage: enumLabel(t, 'stage', cur),
           },
         )
+
+  const metaLine = [
+    project?.type ? enumLabel(t, 'projectType', project.type) : null,
+    project?.city || null,
+    project?.country || null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  const scheduleLine = [project?.startDate, project?.endDate]
+    .filter(Boolean)
+    .map((d) => ltr(String(d).slice(0, 10)))
+    .join(' → ')
 
   const date = {
     placeholder: 'YYYY-MM-DD',
@@ -219,82 +217,41 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
     >
       {project ? (
         <>
-          {/* Summary */}
-          <View className="h-[230px] overflow-hidden rounded-[26px] bg-wk-hero">
-            {heroUrl ? (
-              <Image
-                source={remoteImage(heroUrl, heroKey)}
-                cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
-                style={{ position: 'absolute', inset: 0 }}
-                contentFit="cover"
-                transition={200}
-              />
-            ) : (
-              <WkHeroGlow size={300} />
-            )}
-            <PhotoScrim
-              id="pmSummary"
-              stops={[
-                [0, 0.2],
-                [0.35, 0.1],
-                [1, 0.92],
-              ]}
-            />
-            <View
-              className="absolute start-3.5 top-3.5 h-7 flex-row items-center gap-1.5 rounded-full px-2.5"
-              style={{ backgroundColor: 'rgba(10,12,10,0.55)' }}
-            >
-              <View
-                className="size-1.5 rounded-full"
-                style={{ backgroundColor: PHOTO_DOT[project.status] }}
-              />
-              <Text className="text-xs font-medium text-white">
-                {projectStatusLabel(t, project.status)}
-              </Text>
-            </View>
-            <View className="absolute inset-x-[18px] bottom-4 gap-2.5">
-              <View className="flex-row items-end justify-between gap-3">
-                <View className="min-w-0 flex-1 gap-1">
-                  <Text
-                    className="text-[19px] font-semibold leading-6 text-white"
-                    numberOfLines={2}
-                  >
-                    {project.name}
+          {/* Overview — informative summary (photos live in gallery below). */}
+          <View
+            className="gap-4 rounded-[22px] border border-wk-line bg-wk-sf p-[18px]"
+            style={shadow}
+          >
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="min-w-0 flex-1 gap-2">
+                <ProjectPill status={project.status} />
+                {metaLine ? (
+                  <Text className="text-[14px] leading-5 text-wk-ink2" numberOfLines={2}>
+                    {metaLine}
                   </Text>
-                  <Text
-                    className="text-[13px]"
-                    style={{ color: 'rgba(255,255,255,0.75)' }}
-                    numberOfLines={1}
-                  >
-                    {[project.type ? enumLabel(t, 'projectType', project.type) : null, project.city]
+                ) : null}
+                {project.code || scheduleLine ? (
+                  <Text className="text-[12px] text-wk-ink3" numberOfLines={1}>
+                    {[project.code ? ltr(project.code) : null, scheduleLine || null]
                       .filter(Boolean)
-                      .join(' · ') || '—'}
+                      .join(' · ')}
                   </Text>
-                </View>
+                ) : null}
+              </View>
+              <View className="items-end">
                 <Text
-                  className="font-semibold text-white"
-                  style={{
-                    fontSize: 36,
-                    lineHeight: 44,
-                    fontVariant: ['tabular-nums'],
-                    includeFontPadding: false,
-                  }}
+                  className="text-[32px] font-semibold leading-9 text-wk-ink"
+                  style={{ ...MONO_STYLE, fontVariant: ['tabular-nums'] }}
                 >
                   {pct}
-                  <Text className="text-base" style={{ opacity: 0.7, lineHeight: 44 }}>
-                    %
-                  </Text>
+                  <Text className="text-[15px] font-semibold text-wk-ink3">%</Text>
+                </Text>
+                <Text className="text-[11px] font-medium text-wk-ink3">
+                  {t('projects.progress')}
                 </Text>
               </View>
-              <View
-                className="h-1.5 overflow-hidden rounded-[3px]"
-                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-                accessibilityRole="progressbar"
-                accessibilityValue={{ min: 0, max: 100, now: pct }}
-              >
-                <View className="h-full rounded-[3px] bg-wk-lime" style={{ width: `${pct}%` }} />
-              </View>
             </View>
+            <ProgressLine value={pct} status={project.status} />
           </View>
 
           {/* Stages entry */}
@@ -302,34 +259,29 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
             accessibilityRole="button"
             accessibilityLabel={`${t('stages.title')}. ${stageLine}`}
             onPress={() => router.push(`${BASE}/${project.id}/stages` as never)}
-            className="gap-3.5 rounded-[22px] bg-wk-hero p-[18px] active:opacity-90"
+            className="gap-3.5 rounded-[22px] border border-wk-line bg-wk-sf p-[18px] active:opacity-90"
+            style={shadow}
           >
             <View className="flex-row items-center gap-3">
-              <View
-                className="size-10 items-center justify-center rounded-xl"
-                style={{ backgroundColor: 'rgba(134,227,166,0.16)' }}
-              >
-                <Milestone size={19} color={c.lime} strokeWidth={1.9} />
+              <View className="size-10 items-center justify-center rounded-xl bg-wk-brand-soft">
+                <Milestone size={19} color={c.brand} strokeWidth={1.9} />
               </View>
               <View className="min-w-0 flex-1 gap-0.5">
-                <Text className="text-[15px] font-semibold text-wk-hero-ink">
-                  {t('stages.title')}
-                </Text>
-                <Text className="text-[13px] text-wk-hero-mute" numberOfLines={2}>
+                <Text className="text-[15px] font-semibold text-wk-ink">{t('stages.title')}</Text>
+                <Text className="text-[13px] text-wk-ink2" numberOfLines={2}>
                   {stageLine}
                 </Text>
               </View>
               <View style={flipStyle()}>
-                <ChevronRight size={20} color={c.heroMute} />
+                <ChevronRight size={20} color={c.ink3} />
               </View>
             </View>
-            <StageSegments states={stageStates(stages)} />
+            <StageSegments states={stageStates(stages)} tone="surface" />
           </Pressable>
 
           <WkGalleryCard
             kind="project"
             ownerId={project.id}
-            onCoverChange={setGalleryCover}
             onMainChange={() => void remote.refetch()}
           />
 

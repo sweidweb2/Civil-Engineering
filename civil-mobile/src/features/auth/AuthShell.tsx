@@ -1,75 +1,54 @@
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import type { ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Eyebrow, useStatusBarStyle } from '@/components/kit'
-import { useIsDark } from '@/hooks/useThemeColors'
-import { spacing } from '@/theme/spacing'
-import { TYPE } from '@/theme/typography'
+import { useStatusBarStyle } from '@/components/kit'
+import { useAuthTranslation } from '@/features/auth/useAuthTranslation'
+
+import { AuthCard, AuthHero } from './ui'
 
 /**
- * Onboarding / auth chrome (archetype G): mono eyebrow, large left-aligned
- * headline in the top third, one muted line, the fields, and the primary
- * action pinned at the bottom. No hero art, no carousel.
+ * Auth chrome: deep-green hero (blueprint grid + self-drawing structure) with
+ * the title, and a white card rising over its edge that holds the form.
+ * Always LTR; status bar is light over the hero.
  */
 export function AuthShell({
   title,
   subtitle,
-  compact = false,
   children,
-  footer,
+  below,
   testID,
 }: {
   title: string
   subtitle?: string
-  /** Less top space for long forms. */
-  compact?: boolean
+  /** Card contents. */
   children: ReactNode
-  /** Pinned bottom actions (primary + text button). */
-  footer?: ReactNode
+  /** Optional content under the card (links, notes). */
+  below?: ReactNode
   testID?: string
 }) {
-  const { t } = useTranslation()
+  const { t } = useAuthTranslation()
   const insets = useSafeAreaInsets()
-  const isDark = useIsDark()
-  useStatusBarStyle(isDark ? 'light' : 'dark')
+  useStatusBarStyle('light')
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-background"
+      className="flex-1 bg-wk-bg"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ direction: 'ltr' }}
       testID={testID}
     >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-7 px-5"
-        contentContainerStyle={{
-          paddingTop: insets.top + (compact ? spacing.section : spacing['2xl'] + spacing.lg),
-          paddingBottom: spacing.lg,
-        }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets
       >
-        <View className="gap-3">
-          <Eyebrow>{t('auth.tagline')}</Eyebrow>
-          <Text className={`${TYPE.headline} text-foreground`} accessibilityRole="header">
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text className={`${TYPE.body} text-muted-foreground`}>{subtitle}</Text>
-          ) : null}
-        </View>
-        <View className="gap-4">{children}</View>
+        <AuthHero brand={t('auth.brand')} title={title} subtitle={subtitle} />
+        <AuthCard>{children}</AuthCard>
+        {below ? <View className="px-6 pt-5">{below}</View> : null}
       </ScrollView>
-      {footer ? (
-        <View
-          className="gap-1.5 bg-background px-5 pt-4"
-          style={{ paddingBottom: Math.max(insets.bottom + 8, 20) }}
-        >
-          {footer}
-        </View>
-      ) : null}
     </KeyboardAvoidingView>
   )
 }

@@ -4,6 +4,8 @@ import { remoteCacheInvalidate } from '@/lib/remoteCache'
 export const cacheKeys = {
   providersMe: 'providers:me',
   workersMe: 'workers:me',
+  /** `me:avatar:<userId>` — signed-in user's own avatar URL. */
+  myAvatar: 'me:avatar',
   dashboardAdmin: 'dashboard:admin',
   dashboardPm: 'dashboard:pm',
   dashboardProvider: 'dashboard:provider',

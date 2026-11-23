@@ -31,6 +31,8 @@ export type User = {
   verificationStatus: VerificationStatus
   isVerified: boolean
   profile: UserProfile | null
+  /** Admin list rows only: loadable avatar URL (public or presigned); null when none. */
+  avatarImageUrl?: string | null
   createdAt: string
   updatedAt: string
 }

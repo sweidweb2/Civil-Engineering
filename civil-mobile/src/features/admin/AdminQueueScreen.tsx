@@ -84,7 +84,15 @@ export function AdminQueueScreen() {
           const busy = busyId === user.id
           return (
             <WkListRow
-              media={<WkMedia name={name} round hero />}
+              media={
+                <WkMedia
+                  photo={user.avatarImageUrl ?? null}
+                  photoKey={user.profile?.avatarUrl}
+                  name={name}
+                  round
+                  hero
+                />
+              }
               title={userDisplayLabel(user)}
               pill={{ label: enumLabel(t, 'role', user.role), tone: 'teal' }}
               sub={ltr(user.email)}

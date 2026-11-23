@@ -11,7 +11,7 @@ The mobile app ships English and Arabic. React Native layout direction is contro
 
 ## Decision
 
-1. **Languages:** `en` | `ar` via i18next + Zustand (`languageStore`), persisted in SecureStore. First launch seeds from `expo-localization` when nothing is saved yet.
+1. **Languages:** `en` | `ar` via i18next + Zustand (`languageStore`), persisted in SecureStore. First launch seeds from `expo-localization` when nothing is saved yet. **Auth screens (login / register / pending approval) are always English and LTR**, regardless of the saved language.
 2. **Direction:** `I18nManager.allowRTL` / `forceRTL` on native; `document.documentElement.dir` / `lang` on web. Direction flips call `switchAppLanguage` → confirm → `reloadAppAsync()` on native.
 3. **Selective icon mirroring:** only directional chevrons/arrows via `flipStyle` / `DirectionalIcon`. Do not mirror search, settings, close, plus, check, eye, logos, or media.
 4. **LTR isolation:** emails, phones, URLs, IDs, codes, and numeric amounts use `ltr()` (Unicode isolates) and/or `ltrInputStyle()` on inputs.

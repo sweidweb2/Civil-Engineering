@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { CircleCheck, CircleDashed, Clock, ShieldAlert, ShieldCheck } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { type CvSectionStatus, cvSectionStatuses } from '@/features/worker/cvCompleteness'
 import {
   WkCard,
@@ -87,8 +88,9 @@ export function WorkerCvScreen() {
           {/* Profile + completeness */}
           <WkCard className="gap-5 rounded-[26px] p-5">
             <View className="flex-row items-center gap-3.5">
-              <View className="size-[60px] items-center justify-center rounded-[18px] bg-wk-brand-soft">
+              <View className="size-[60px] items-center justify-center overflow-hidden rounded-[18px] bg-wk-brand-soft">
                 <Text className="text-xl font-semibold text-wk-brand">{initialsOf(name)}</Text>
+                <MyAvatarPhoto />
               </View>
               <View className="min-w-0 flex-1 gap-1">
                 <Text

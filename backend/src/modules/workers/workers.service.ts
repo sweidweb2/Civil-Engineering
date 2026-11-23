@@ -1,6 +1,7 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/roles.js'
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { type AvatarUrlResolver, resolveAvatarUrlsSafe } from '../files/avatar-urls.js'
 import type { WorkersRepository } from './workers.repository.js'
 import type {
   ListWorkersQuery,
@@ -72,11 +73,7 @@ function hasMinimumCv(profile: WorkerProfile | null): boolean {
   )
 }
 
-/**
- * Resolves avatar File ids → loadable image URLs. Ids that are missing, not READY,
- * or fail to sign are simply absent from the map (clients fall back to initials).
- */
-export type AvatarUrlResolver = (fileIds: string[]) => Promise<Map<string, string>>
+export type { AvatarUrlResolver }
 
 export type WorkersServiceDeps = {
   resolveAvatarUrls?: AvatarUrlResolver
@@ -86,14 +83,8 @@ export function createWorkersService(
   repository: WorkersRepository,
   deps: WorkersServiceDeps = {},
 ): WorkersService {
-  async function avatarUrlsFor(fileIds: Array<string | null>): Promise<Map<string, string>> {
-    const ids = [...new Set(fileIds.filter((id): id is string => Boolean(id)))]
-    if (!deps.resolveAvatarUrls || ids.length === 0) return new Map()
-    try {
-      return await deps.resolveAvatarUrls(ids)
-    } catch {
-      return new Map()
-    }
+  function avatarUrlsFor(fileIds: Array<string | null>): Promise<Map<string, string>> {
+    return resolveAvatarUrlsSafe(deps.resolveAvatarUrls, fileIds)
   }
 
   async function withAvatarImage(profile: WorkerProfile): Promise<WorkerProfile> {
@@ -111,7 +102,7 @@ export function createWorkersService(
         repository.findVerificationState(userId),
       ])
       return {
-        profile,
+        profile: profile ? await withAvatarImage(profile) : null,
         verificationStatus: state?.verificationStatus ?? 'UNVERIFIED',
       }
     },

@@ -84,8 +84,31 @@ export function currentStage(summary: ProjectStagesSummary | null): StageKey | n
   return STAGE_KEYS.find((key) => stageStateOf(summary, key) !== 'done') ?? null
 }
 
-/** Five lime segments for dark surfaces (hero cards, photos). */
-export function StageSegments({ states }: { states: StageState[] }) {
+/**
+ * Five stage segments.
+ * `hero` = lime on dark cards; `surface` = brand on light cards (default for forms).
+ */
+export function StageSegments({
+  states,
+  tone = 'hero',
+}: {
+  states: StageState[]
+  tone?: 'hero' | 'surface'
+}) {
+  const { c, isDark } = useWorkerPalette()
+  const colors =
+    tone === 'surface'
+      ? {
+          done: c.brand,
+          started: isDark ? '#2BB062' : '#86C49A',
+          none: c.line2,
+        }
+      : {
+          done: '#86E3A6',
+          started: 'rgba(134,227,166,0.45)',
+          none: 'rgba(255,255,255,0.18)',
+        }
+
   return (
     <View className="flex-row gap-1">
       {states.map((state, i) => (
@@ -94,11 +117,7 @@ export function StageSegments({ states }: { states: StageState[] }) {
           className="h-[5px] flex-1 rounded-[3px]"
           style={{
             backgroundColor:
-              state === 'done'
-                ? '#86E3A6'
-                : state === 'started'
-                  ? 'rgba(134,227,166,0.45)'
-                  : 'rgba(255,255,255,0.18)',
+              state === 'done' ? colors.done : state === 'started' ? colors.started : colors.none,
           }}
         />
       ))}

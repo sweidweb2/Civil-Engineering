@@ -41,11 +41,13 @@ export function ltr(value: string | null | undefined): string {
 /**
  * TextInput style for LTR tokens (email, phone, URL, password, numbers).
  * Keeps writing direction LTR while aligning the caret to the reading edge.
+ * Pass `forceLeft` on auth screens so placeholders stay left even when the
+ * app language is Arabic.
  */
-export function ltrInputStyle(): TextStyle {
+export function ltrInputStyle(options?: { forceLeft?: boolean }): TextStyle {
   return {
     writingDirection: 'ltr',
-    textAlign: isRtlLayout() ? 'right' : 'left',
+    textAlign: options?.forceLeft || !isRtlLayout() ? 'left' : 'right',
   }
 }
 

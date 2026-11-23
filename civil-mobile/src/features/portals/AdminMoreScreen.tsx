@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLogout } from '@/components/LogoutButton'
 import { Pressable } from '@/components/ui/pressable'
+import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import {
   flipStyle,
   WkConfirm,
@@ -55,10 +56,11 @@ export function AdminMoreScreen() {
         className="flex-row items-center gap-3.5 rounded-3xl bg-wk-hero p-[18px] active:opacity-90"
       >
         <View
-          className="size-14 items-center justify-center rounded-full"
+          className="size-14 items-center justify-center overflow-hidden rounded-full"
           style={{ backgroundColor: 'rgba(134,227,166,0.16)' }}
         >
           <Text className="text-[19px] font-semibold text-wk-lime">{initialsOf(name)}</Text>
+          <MyAvatarPhoto />
         </View>
         <View className="min-w-0 flex-1 gap-1">
           <Text className="text-[17px] font-semibold text-wk-hero-ink" numberOfLines={1}>

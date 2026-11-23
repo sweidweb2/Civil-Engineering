@@ -2,6 +2,7 @@ import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz
 import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
 import { getRequestLogger } from '../../logging/index.js'
 import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
+import { type AvatarUrlResolver, resolveAvatarUrlsSafe } from '../files/avatar-urls.js'
 import {
   assertAllowedImageUpload,
   type FilesService,
@@ -164,7 +165,20 @@ export function createUsersService(
   repository: UsersRepository,
   filesService: UsersFilesGateway = unavailableFiles,
   adminOverview?: UsersAdminOverviewGateway,
+  resolveAvatarUrls?: AvatarUrlResolver,
 ): UsersService {
+  /** Admin list rows: one batched lookup for loadable avatar URLs (initials fallback when null). */
+  async function withAvatarImages(users: User[]): Promise<User[]> {
+    const urls = await resolveAvatarUrlsSafe(
+      resolveAvatarUrls,
+      users.map((user) => user.profile?.avatarUrl),
+    )
+    return users.map((user) => {
+      const fileId = user.profile?.avatarUrl
+      return { ...user, avatarImageUrl: fileId ? (urls.get(fileId) ?? null) : null }
+    })
+  }
+
   async function loadOrThrow(id: string): Promise<User> {
     const user = await repository.findById(id)
     if (!user) {
@@ -238,7 +252,7 @@ export function createUsersService(
       const page = query.page ?? 1
       const limit = query.limit ?? 20
       return {
-        data: users,
+        data: await withAvatarImages(users),
         meta: {
           total,
           page,
@@ -528,7 +542,7 @@ export function createUsersService(
         query.counts === false ? Promise.resolve(emptyApprovalCounts) : repository.countApprovals(),
       ])
       return {
-        data: users,
+        data: await withAvatarImages(users),
         meta: {
           total,
           page,
@@ -643,7 +657,7 @@ export function createUsersService(
         repository.countVerifications(),
       ])
       return {
-        data: users,
+        data: await withAvatarImages(users),
         meta: {
           total,
           page,

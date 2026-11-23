@@ -34,7 +34,15 @@ export function AdminUsersScreen() {
         const name = userDisplayName(user)
         return (
           <WkListRow
-            media={<WkMedia name={name} round hero />}
+            media={
+              <WkMedia
+                photo={user.avatarImageUrl ?? null}
+                photoKey={user.profile?.avatarUrl}
+                name={name}
+                round
+                hero
+              />
+            }
             title={userDisplayLabel(user)}
             pill={{ label: enumLabel(t, 'userStatus', user.status), tone: USER_TONE[user.status] }}
             sub={ltr(user.email)}

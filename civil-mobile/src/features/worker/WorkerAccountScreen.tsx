@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react'
 import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
+import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { WkBodyScroll, WkCard, WkTabScroll, WkTopBar } from '@/features/worker/ui/kit'
 import {
   WkAccountDetailsCard,
@@ -38,8 +39,9 @@ export function WorkerAccountScreen({
     <>
       {/* Identity */}
       <WkCard className="flex-row items-center gap-3.5 rounded-[26px] p-5">
-        <View className="size-14 items-center justify-center rounded-full bg-wk-hero">
+        <View className="size-14 items-center justify-center overflow-hidden rounded-full bg-wk-hero">
           <Text className="text-[19px] font-semibold text-wk-lime">{initialsOf(name)}</Text>
+          <MyAvatarPhoto />
         </View>
         <View className="min-w-0 flex-1 gap-1">
           <Text className="text-[17px] font-semibold text-wk-ink" numberOfLines={1}>

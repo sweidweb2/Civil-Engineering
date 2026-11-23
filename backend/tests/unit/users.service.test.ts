@@ -142,6 +142,24 @@ describe('usersService', () => {
     })
   })
 
+  it('adds loadable avatar image URLs to admin list rows (null when unresolved)', async () => {
+    vi.mocked(repository.findMany).mockResolvedValueOnce({
+      users: [
+        makeUser({ id: 'u-a', profile: { ...makeUser().profile!, avatarUrl: 'file-a' } }),
+        makeUser({ id: 'u-b', profile: { ...makeUser().profile!, avatarUrl: 'file-gone' } }),
+        makeUser({ id: 'u-c' }),
+      ],
+      total: 3,
+    })
+    const resolveAvatarUrls = vi.fn(async () => new Map([['file-a', 'https://cdn/a.jpg']]))
+    const service = createUsersService(repository, undefined, undefined, resolveAvatarUrls)
+
+    const page = await service.listUsers({ page: 1, limit: 20, counts: false }, admin)
+
+    expect(resolveAvatarUrls).toHaveBeenCalledWith(['file-a', 'file-gone'])
+    expect(page.data.map((u) => u.avatarImageUrl)).toEqual(['https://cdn/a.jpg', null, null])
+  })
+
   it('skips directory and approval counts when counts=false', async () => {
     const service = createUsersService(repository)
     const users = await service.listUsers({ page: 1, limit: 20, counts: false }, admin)

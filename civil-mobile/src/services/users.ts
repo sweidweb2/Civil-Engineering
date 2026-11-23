@@ -18,8 +18,11 @@ export type User = {
     lastName: string | null
     displayName: string | null
     phone: string | null
+    /** Avatar File id (stable cache key), not a URL. */
     avatarUrl: string | null
   } | null
+  /** Admin list rows only: loadable avatar URL (public or presigned); null when none. */
+  avatarImageUrl?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -101,6 +104,11 @@ export function getAdminOverview() {
 
 export function getUser(id: string) {
   return apiRequest<{ data: User; meta: { avatarDownloadUrl: string | null } }>(`/users/${id}`)
+}
+
+/** Loadable avatar URL for a user (self or admin); null when no avatar is set. */
+export function getUserAvatarUrl(id: string) {
+  return apiRequest<{ data: { avatarDownloadUrl: string | null } }>(`/users/${id}/avatar`)
 }
 
 /** Pass `idempotencyKey` (see `useIdempotencyKey`) so a retried submit cannot duplicate. */

@@ -82,7 +82,7 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       },
     }),
     managerProfiles: createManagerProfilesModule(),
-    workers: createWorkersModule(),
+    workers: createWorkersModule(moduleDeps),
     providers: createProvidersModule({ service: providersService }),
     categories: createCategoriesModule(),
     listings: createListingsModule({ service: listingsService }),

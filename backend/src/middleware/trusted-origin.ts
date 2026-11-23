@@ -29,6 +29,10 @@ function hasBearer(authorization: string | undefined): boolean {
  * `Origin` (or, if absent, `Referer`) must match an allowed CORS origin. Bearer requests and
  * requests with no auth cookies are not ambient-credential requests and are skipped.
  * Covers refresh/logout too, since they accept the refresh cookie.
+ *
+ * Native clients (React Native) often replay Set-Cookie jars with neither Origin nor Referer.
+ * Browsers send Origin on mutating credentialed requests, so missing both is treated as
+ * non-browser and allowed. A present but untrusted Origin/Referer is still rejected.
  */
 export function requireTrustedOrigin(allowedOrigins: readonly string[]): RequestHandler {
   const allowed = new Set(
@@ -51,7 +55,14 @@ export function requireTrustedOrigin(allowedOrigins: readonly string[]): Request
       return
     }
 
-    const source = req.headers.origin ?? req.headers.referer
+    const originHeader = req.headers.origin
+    const refererHeader = req.headers.referer
+    if (originHeader === undefined && refererHeader === undefined) {
+      next()
+      return
+    }
+
+    const source = originHeader ?? refererHeader
     const origin = source ? normalizeOrigin(source) : null
     if (!origin || !allowed.has(origin)) {
       getRequestLogger().warn(

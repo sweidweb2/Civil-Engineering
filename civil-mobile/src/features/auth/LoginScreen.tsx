@@ -29,7 +29,7 @@ export function LoginScreen() {
   }
 
   async function onSubmit() {
-    const parsed = parseForm(loginSchema, { email, password })
+    const parsed = parseForm(loginSchema(t), { email, password })
     if (!parsed.success) {
       setFieldErrors(parsed.fieldErrors)
       return

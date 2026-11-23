@@ -9,7 +9,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
-import { userDisplayName } from '@/lib/user'
+import { userDisplayLabel, userDisplayName } from '@/lib/user'
 import { useToastSuccess } from '@/services/toast'
 import {
   type ApprovalCounts,
@@ -85,9 +85,10 @@ export function AdminQueueScreen() {
           return (
             <WkListRow
               media={<WkMedia name={name} round hero />}
-              title={name}
+              title={userDisplayLabel(user)}
               pill={{ label: enumLabel(t, 'role', user.role), tone: 'teal' }}
               sub={ltr(user.email)}
+              subLtr
               sub2={shortDate(user.createdAt)}
               actions={[
                 pendingTab

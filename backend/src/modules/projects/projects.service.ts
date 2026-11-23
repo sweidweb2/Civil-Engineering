@@ -84,6 +84,16 @@ export function createProjectsService(
     }
   }
 
+  async function presentProjectWithMainImage(project: Project): Promise<Project> {
+    const mainImageStoragePath = await repository.findMainImageStoragePath(project.id)
+    const mainImageUrl = await resolveMainImageUrl(mainImageStoragePath)
+    return {
+      ...presentProject(project),
+      mainImageUrl,
+      mainImageKey: mainImageStoragePath,
+    }
+  }
+
   function assertSchedule(
     startDate: string | null | undefined,
     endDate: string | null | undefined,
@@ -161,7 +171,7 @@ export function createProjectsService(
     },
 
     async getProjectById(id) {
-      return presentProject(await loadOrThrow(id))
+      return presentProjectWithMainImage(await loadOrThrow(id))
     },
 
     assertAccessible,
@@ -182,7 +192,9 @@ export function createProjectsService(
       }
 
       try {
-        return presentProject(await translateUniqueConflict(() => repository.create(payload)))
+        return presentProjectWithMainImage(
+          await translateUniqueConflict(() => repository.create(payload)),
+        )
       } catch (error) {
         if (isUniqueConflictError(error)) {
           throw conflict('Project code already in use', 'CODE_IN_USE')
@@ -206,7 +218,7 @@ export function createProjectsService(
       assertSchedule(startDate, endDate)
 
       try {
-        return presentProject(
+        return presentProjectWithMainImage(
           await translateUniqueConflict(() =>
             repository.update(id, {
               ...input,

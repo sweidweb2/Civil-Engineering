@@ -15,7 +15,7 @@ import { withUniwind } from 'uniwind'
 
 import { Pressable } from '@/components/ui/pressable'
 import { useThemeColors } from '@/hooks/useThemeColors'
-import { isRtlLayout, tracking } from '@/lib/rtl'
+import { flipStyle, tracking } from '@/lib/rtl'
 import { sizes } from '@/theme/sizes'
 import { motion } from '@/theme/spacing'
 import { MONO_STYLE, NUM_STYLE, TYPE } from '@/theme/typography'
@@ -55,14 +55,7 @@ export function DirectionalIcon({
   color: string
   strokeWidth?: number
 }) {
-  return (
-    <Icon
-      size={size}
-      color={color}
-      strokeWidth={strokeWidth}
-      style={{ transform: [{ scaleX: isRtlLayout() ? -1 : 1 }] }}
-    />
-  )
+  return <Icon size={size} color={color} strokeWidth={strokeWidth} style={flipStyle()} />
 }
 
 /**
@@ -249,7 +242,7 @@ export function SegmentedBar({
     .map((segment) => `${segment.label} ${segment.display ?? segment.value}`)
     .join(', ')
   return (
-    <View className="gap-3">
+    <View className="gap-3" style={{ direction: 'ltr' }}>
       <View
         className="flex-row"
         style={{ height: sizes.progress, gap: sizes.segmentGap }}

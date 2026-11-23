@@ -61,7 +61,10 @@ export type WorkerProfileUser = {
   lastName: string | null
   displayName: string | null
   phone: string | null
+  /** Avatar File id (stable cache key), not a URL. */
   avatarUrl: string | null
+  /** Loadable avatar image URL (public or presigned); null when none / unresolvable. */
+  avatarImageUrl?: string | null
 }
 
 /** Full CV payload for worker preview / edit. */
@@ -109,7 +112,10 @@ export type WorkerDirectoryItem = {
   displayName: string | null
   firstName: string | null
   lastName: string | null
+  /** Avatar File id (stable cache key), not a URL. */
   avatarUrl: string | null
+  /** Loadable avatar image URL (public or presigned); null when none / unresolvable. */
+  avatarImageUrl?: string | null
   skillNames: string[]
   createdAt: string
   updatedAt: string

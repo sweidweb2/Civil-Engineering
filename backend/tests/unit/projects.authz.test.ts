@@ -52,6 +52,7 @@ describe('projectsService.assertAccessible', () => {
       })),
       findById: vi.fn(async () => project),
       findByCode: vi.fn(async () => null),
+      findMainImageStoragePath: vi.fn(async () => null),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),

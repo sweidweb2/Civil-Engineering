@@ -92,6 +92,7 @@ function withRequestTimeout(timeoutMs: number, signal?: AbortSignal | null): Abo
 async function exchangeRefreshToken(refreshToken: string): Promise<AuthTokens> {
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
+    credentials: 'omit',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
     signal: createTimeoutSignal(DEFAULT_REQUEST_TIMEOUT_MS),
@@ -187,6 +188,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const execute = async (token: string | null) => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
+      // Bearer + SecureStore only. RN Android still may jar cookies; backend allows
+      // cookie+no-Origin for native. Omit reduces cookie replay when the runtime honors it.
+      credentials: 'omit',
       signal: withRequestTimeout(resolvedTimeoutMs, rest.signal),
       headers: {
         // Multipart bodies must not carry a JSON content type: fetch has to set

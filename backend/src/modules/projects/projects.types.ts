@@ -30,8 +30,13 @@ export type Project = {
   createdAt: string
   updatedAt: string
   archivedAt: string | null
-  /** Present on list responses when a main gallery image exists and storage can presign. */
+  /** Present when a main gallery image exists and storage can presign. */
   mainImageUrl?: string | null
+  /**
+   * Stable storage key of the main image (unchanged until the image is replaced).
+   * Clients use it as the image cache key: `mainImageUrl` may be re-signed per request.
+   */
+  mainImageKey?: string | null
 }
 
 /** Lean list card fields — detail-only columns stay on GET /projects/:id. */

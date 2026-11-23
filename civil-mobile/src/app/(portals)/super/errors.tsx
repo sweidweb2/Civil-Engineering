@@ -1,5 +1,8 @@
+import { useTranslation } from 'react-i18next'
+
 import { PortalPlaceholderScreen } from '@/features/portals/PortalPlaceholderScreen'
 
 export default function SuperErrors() {
-  return <PortalPlaceholderScreen title="Errors" />
+  const { t } = useTranslation()
+  return <PortalPlaceholderScreen title={t('nav.errors')} />
 }

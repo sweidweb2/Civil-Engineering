@@ -99,7 +99,7 @@ export function ProviderProfileScreen() {
 
   async function onSave() {
     if (!provider) return
-    const parsed = parseForm(providerCompanySchema, form)
+    const parsed = parseForm(providerCompanySchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return

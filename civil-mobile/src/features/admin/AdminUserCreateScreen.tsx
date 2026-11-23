@@ -47,7 +47,7 @@ export function AdminUserCreateScreen() {
     const e: Errors = {}
     if (!email.trim()) e.email = t('adminPortal.required')
     else if (!EMAIL.test(email.trim())) e.email = t('adminPortal.validEmail')
-    const pw = passwordSchema.safeParse(password)
+    const pw = passwordSchema(t).safeParse(password)
     if (!pw.success) e.password = pw.error.issues[0]?.message
     if (Object.keys(e).length) {
       setErrors(e)

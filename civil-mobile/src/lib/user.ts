@@ -1,3 +1,8 @@
+import type { TFunction } from 'i18next'
+
+import { enumLabel } from '@/i18n/labels'
+import { ltr } from '@/lib/rtl'
+
 type NamedUser = {
   email: string
   profile?: {
@@ -16,27 +21,25 @@ export function userDisplayName(user: NamedUser): string {
   )
 }
 
-/** Short name for greetings. */
+/** Like `userDisplayName`, but isolates an email fallback for Arabic layouts. */
+export function userDisplayLabel(user: NamedUser): string {
+  const name = userDisplayName(user)
+  return name === user.email ? ltr(name) : name
+}
+
+/** Short name for greetings. Empty string when nothing useful is available. */
 export function userFirstName(user: NamedUser): string {
   return (
     user.profile?.firstName ||
     user.profile?.displayName?.split(' ')[0] ||
     user.email.split('@')[0] ||
-    'there'
+    ''
   )
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER: 'Super admin',
-  ADMIN: 'Administrator',
-  MANAGER: 'Project manager',
-  PROVIDER: 'Provider',
-  WORKER: 'Worker',
-  CLIENT: 'Client',
-}
-
-export function roleLabel(role: string): string {
-  return ROLE_LABELS[role] ?? role
+/** Localized role label; prefers `enums.role.*` keys. */
+export function roleLabel(role: string, t: TFunction): string {
+  return enumLabel(t, 'role', role)
 }
 
 /** Up to two initials ("Najd Equipment & Supply" → "NS"). Skips symbols like "&". */

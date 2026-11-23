@@ -11,8 +11,9 @@ type LanguageState = {
 }
 
 /**
- * The user's language choice, remembered on the device.
- * Nothing reads it for translation yet: the mobile app has no translation files.
+ * Persisted UI language. Drives i18next strings and I18nManager direction
+ * (see `src/i18n/index.ts`). First launch may be seeded from the device locale
+ * via `seedLanguageFromDevice()` in the root layout.
  */
 export const useLanguageStore = create<LanguageState>()(
   persist(
@@ -26,3 +27,23 @@ export const useLanguageStore = create<LanguageState>()(
     },
   ),
 )
+
+const LANGUAGE_STORAGE_KEY = 'civil-mobile-language'
+
+/**
+ * On first launch (nothing saved yet), pick Arabic when the device locale is `ar`.
+ * Safe to call once from root layout; no-ops when a choice is already persisted.
+ */
+export async function seedLanguageFromDevice(): Promise<void> {
+  try {
+    const raw = await authStorage.getItem(LANGUAGE_STORAGE_KEY)
+    if (raw != null && raw !== '') return
+    const { getLocales } = await import('expo-localization')
+    const language: AppLanguage = getLocales()[0]?.languageCode === 'ar' ? 'ar' : 'en'
+    if (language !== useLanguageStore.getState().language) {
+      useLanguageStore.getState().setLanguage(language)
+    }
+  } catch {
+    // Keep the default English if localization is unavailable (tests, web edge cases).
+  }
+}

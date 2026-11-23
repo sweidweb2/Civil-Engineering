@@ -211,6 +211,73 @@ describe('workersService', () => {
     )
   })
 
+  it('adds resolved avatar image URLs to directory rows (null when unresolved)', async () => {
+    const row = {
+      id: 'wp-1',
+      userId: 'worker-1',
+      headline: null,
+      primaryTrade: null,
+      yearsExperience: null,
+      city: null,
+      country: null,
+      hourlyRate: null,
+      dailyRate: null,
+      currency: null,
+      availability: 'AVAILABLE' as const,
+      isPublic: true,
+      verificationStatus: 'VERIFIED' as const,
+      isVerified: true,
+      displayName: null,
+      firstName: null,
+      lastName: null,
+      skillNames: [],
+      createdAt: '2026-11-18T00:00:00.000Z',
+      updatedAt: '2026-11-18T00:00:00.000Z',
+    }
+    vi.mocked(repository.list).mockResolvedValue({
+      data: [
+        { ...row, avatarUrl: 'file-a' },
+        { ...row, id: 'wp-2', avatarUrl: 'file-missing' },
+        { ...row, id: 'wp-3', avatarUrl: null },
+      ],
+      meta: {
+        page: 1,
+        limit: 20,
+        total: 3,
+        totalPages: 1,
+        availabilityCounts: { AVAILABLE: 3, BUSY: 0, UNAVAILABLE: 0 },
+      },
+    })
+    const resolveAvatarUrls = vi.fn(async () => new Map([['file-a', 'https://cdn/a.jpg']]))
+    const service = createWorkersService(repository, { resolveAvatarUrls })
+
+    const page = await service.list({ page: 1, limit: 20, counts: true }, null)
+
+    expect(resolveAvatarUrls).toHaveBeenCalledWith(['file-a', 'file-missing'])
+    expect(page.data.map((r) => r.avatarImageUrl)).toEqual(['https://cdn/a.jpg', null, null])
+  })
+
+  it('adds the avatar image URL to a public profile and tolerates resolver failure', async () => {
+    vi.mocked(repository.findByUserId).mockResolvedValue(
+      makeProfile({ user: { ...makeProfile().user, avatarUrl: 'file-a' } }),
+    )
+    const ok = createWorkersService(repository, {
+      resolveAvatarUrls: async () => new Map([['file-a', 'https://cdn/a.jpg']]),
+    })
+    await expect(ok.getByUserId('worker-1', null)).resolves.toMatchObject({
+      user: { avatarUrl: 'file-a', avatarImageUrl: 'https://cdn/a.jpg' },
+    })
+
+    const failing = createWorkersService(repository, {
+      resolveAvatarUrls: async () => {
+        throw new Error('storage down')
+      },
+    })
+    await expect(failing.getByUserId('worker-1', null)).resolves.toMatchObject({
+      user: { avatarImageUrl: null },
+    })
+  })
+
   it('requests verification for workers with a minimum CV', async () => {
     vi.mocked(repository.findVerificationState).mockResolvedValue({
       role: 'WORKER',

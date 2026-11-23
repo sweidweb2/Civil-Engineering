@@ -40,7 +40,7 @@ export function PmProfileScreen() {
   }
 
   async function onSave() {
-    const parsed = parseForm(managerProfileSchema, form)
+    const parsed = parseForm(managerProfileSchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return

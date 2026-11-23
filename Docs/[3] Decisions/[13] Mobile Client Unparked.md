@@ -23,3 +23,4 @@
 - Update Tech Stack, Bedrock, README, Libraries, and project-core together with this decision.
 - Re-enable the `mobile` job and path-filter wiring in `ci.yml`.
 - Local run: `cd civil-mobile && npm ci` + `.env` from `.env.example` + `npx expo start`.
+- UI languages / RTL: see [Mobile i18n & RTL](./[16]%20Mobile%20i18n%20%26%20RTL.md).

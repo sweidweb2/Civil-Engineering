@@ -39,7 +39,7 @@ export function useToastApiError() {
   const colors = useThemeColors()
   const { t } = useTranslation()
 
-  return function toastApiError(error: unknown, fallback = 'That didn’t go through. Try again.') {
+  return function toastApiError(error: unknown, fallback = t('common.toastFailed')) {
     const message =
       error instanceof ApiError ? error.message : error instanceof Error ? error.message : fallback
 

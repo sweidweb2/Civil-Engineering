@@ -63,7 +63,7 @@ export function WorkerExperienceEditorScreen({ indexParam }: Props) {
   }
 
   async function onSave() {
-    const parsed = parseForm(workerExperienceSchema, {
+    const parsed = parseForm(workerExperienceSchema(t), {
       ...form,
       endDate: form.isCurrent ? null : form.endDate,
     })

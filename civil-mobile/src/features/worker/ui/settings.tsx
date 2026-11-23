@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { useLogout } from '@/components/LogoutButton'
 import { Pressable } from '@/components/ui/pressable'
 import { useAccountDetails, usePasswordChange } from '@/features/account/AccountForms'
-import { directionNeedsRestart } from '@/i18n'
+import { directionNeedsRestart, switchAppLanguage } from '@/i18n'
 import { ltr } from '@/lib/rtl'
 import { type AppLanguage, useLanguageStore } from '@/stores/languageStore'
 import { type ThemeMode, useThemeStore } from '@/stores/themeStore'
@@ -156,13 +156,12 @@ export function WkPreferences() {
   const mode = useThemeStore((s) => s.mode)
   const setMode = useThemeStore((s) => s.setMode)
   const language = useLanguageStore((s) => s.language)
-  const setLanguage = useLanguageStore((s) => s.setLanguage)
   const version = Constants.expoConfig?.version
 
   function chooseLanguage(next: AppLanguage) {
     if (next === language) return
     if (!directionNeedsRestart(next)) {
-      setLanguage(next)
+      void switchAppLanguage(next)
       return
     }
     setConfirm({
@@ -174,7 +173,7 @@ export function WkPreferences() {
       tone: 'brand',
       onConfirm: () => {
         setConfirm(null)
-        setLanguage(next)
+        void switchAppLanguage(next)
       },
     })
   }

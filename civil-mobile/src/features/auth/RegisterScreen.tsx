@@ -41,7 +41,7 @@ export function RegisterScreen() {
   }
 
   async function onSubmit() {
-    const parsed = parseForm(registerSchema, {
+    const parsed = parseForm(registerSchema(t), {
       firstName,
       lastName,
       email,

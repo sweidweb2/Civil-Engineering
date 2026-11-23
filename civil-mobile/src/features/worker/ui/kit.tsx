@@ -25,7 +25,7 @@ import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { isRtlLayout } from '@/lib/rtl'
+import { flipStyle, isRtlLayout } from '@/lib/rtl'
 import { MONO_STYLE } from '@/theme/typography'
 
 import {
@@ -90,10 +90,8 @@ export function WkGroupLabel({ children }: { children: ReactNode }) {
   )
 }
 
-/** Mirrors a directional icon (chevrons, arrows) in RTL. */
-export function flipStyle() {
-  return isRtlLayout() ? { transform: [{ scaleX: -1 }] } : undefined
-}
+/** Re-export: mirrors directional icons (chevrons, arrows) in RTL. */
+export { flipStyle }
 
 /* ─── Screens ──────────────────────────────────────────────────────────── */
 

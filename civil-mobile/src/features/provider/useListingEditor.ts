@@ -94,7 +94,7 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
       return
     }
     // Provider role: backend resolves providerId from the session.
-    const parsed = listingWriteFromForm(form, isAdmin ? selectedProviderId : undefined)
+    const parsed = listingWriteFromForm(form, t, isAdmin ? selectedProviderId : undefined)
     if ('error' in parsed) {
       setFormError(parsed.error)
       setFormErrorField(parsed.field)

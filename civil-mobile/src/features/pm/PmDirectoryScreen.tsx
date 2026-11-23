@@ -122,9 +122,9 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
       : [entry.worker.headline || entry.worker.primaryTrade, entry.worker.city]
           .filter(Boolean)
           .join(' · ')
-    // Worker `avatarUrl` is a private File id, not a URL: show initials (like civil-web).
-    const photo = isListing ? entry.listing.mainImageUrl : null
-    const photoKey = isListing ? entry.listing.mainImageKey : null
+    // Worker `avatarImageUrl` is the loadable URL; `avatarUrl` (File id) is its stable cache key.
+    const photo = isListing ? entry.listing.mainImageUrl : (entry.worker.avatarImageUrl ?? null)
+    const photoKey = isListing ? entry.listing.mainImageKey : entry.worker.avatarUrl
     const verified = !isListing && entry.worker.isVerified
     const typeLabel = isListing
       ? entry.listing.type
@@ -348,9 +348,9 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
   if (!shown) return null
   const isListing = shown.kind === 'listing'
   const name = isListing ? shown.listing.name : directoryWorkerName(shown.worker)
-  // Worker `avatarUrl` is a private File id, not a URL: show initials (like civil-web).
-  const photo = isListing ? shown.listing.mainImageUrl : null
-  const photoKey = isListing ? shown.listing.mainImageKey : null
+  // Worker `avatarImageUrl` is the loadable URL; `avatarUrl` (File id) is its stable cache key.
+  const photo = isListing ? shown.listing.mainImageUrl : (shown.worker.avatarImageUrl ?? null)
+  const photoKey = isListing ? shown.listing.mainImageKey : shown.worker.avatarUrl
   const verified = !isListing && shown.worker.isVerified
 
   let sub = ''
@@ -361,7 +361,7 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
       .filter(Boolean)
       .join(' · ')
     facts = [
-      { icon: Banknote, label: t('listings.price'), value: cardPrice(t, l) },
+      { icon: Banknote, label: t('listings.price'), value: cardPrice(t, l), ltr: true },
       { icon: LayoutGrid, label: t('listings.category'), value: categoryName(l) || '—' },
       { icon: Tag, label: t('listings.brand'), value: l.brand?.trim() || '—' },
       {
@@ -370,6 +370,7 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
         value: l.quantityAvailable
           ? ltr([l.quantityAvailable, l.unit].filter(Boolean).join(' '))
           : '—',
+        ltr: Boolean(l.quantityAvailable),
       },
       { icon: Store, label: t('listings.provider'), value: l.providerName || '—' },
     ]
@@ -377,9 +378,9 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
     const w = shown.worker
     const cur = w.currency?.trim() || ''
     const rate = w.hourlyRate
-      ? t('worker.rateHour', { amount: w.hourlyRate, currency: cur })
+      ? t('worker.rateHour', { amount: ltr(String(w.hourlyRate)), currency: cur })
       : w.dailyRate
-        ? t('worker.rateDay', { amount: w.dailyRate, currency: cur })
+        ? t('worker.rateDay', { amount: ltr(String(w.dailyRate)), currency: cur })
         : '—'
     sub = [w.headline, w.primaryTrade].filter(Boolean).join(' · ')
     facts = [
@@ -388,8 +389,9 @@ function DirectorySheet({ entry, onClose }: { entry: Entry | null; onClose: () =
         icon: Briefcase,
         label: t('worker.yearsExperience'),
         value: w.yearsExperience != null ? String(w.yearsExperience) : '—',
+        ltr: w.yearsExperience != null,
       },
-      { icon: Banknote, label: t('worker.pay'), value: rate },
+      { icon: Banknote, label: t('worker.pay'), value: rate, ltr: rate !== '—' },
       { icon: MapPin, label: t('common.city'), value: w.city || '—' },
     ]
   }

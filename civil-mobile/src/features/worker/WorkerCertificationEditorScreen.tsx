@@ -51,7 +51,7 @@ export function WorkerCertificationEditorScreen({ indexParam }: Props) {
   }
 
   async function onSave() {
-    const parsed = parseForm(workerCertificationSchema, form)
+    const parsed = parseForm(workerCertificationSchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return

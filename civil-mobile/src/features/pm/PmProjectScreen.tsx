@@ -97,6 +97,11 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
   const [isSaving, setIsSaving] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
+  /** Gallery cover while detail API mainImageUrl is missing or stale. */
+  const [galleryCover, setGalleryCover] = useState<{
+    url: string | null
+    key: string | null
+  } | null>(null)
 
   // Seed once: the project is cached and refetches in the background.
   useSeedOnce(project, (p) => setForm(formFromProject(p)))
@@ -167,6 +172,8 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
   }
 
   const pct = Math.round(project?.progress ?? 0)
+  const heroUrl = project?.mainImageUrl ?? galleryCover?.url ?? null
+  const heroKey = project?.mainImageKey ?? galleryCover?.key ?? null
   const done = STAGE_KEYS.filter((k) => stageStateOf(stages, k) === 'done').length
   const cur = currentStage(stages)
   const stageLine = !stages
@@ -214,9 +221,9 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
         <>
           {/* Summary */}
           <View className="h-[230px] overflow-hidden rounded-[26px] bg-wk-hero">
-            {project.mainImageUrl ? (
+            {heroUrl ? (
               <Image
-                source={remoteImage(project.mainImageUrl, project.mainImageKey)}
+                source={remoteImage(heroUrl, heroKey)}
                 cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
                 style={{ position: 'absolute', inset: 0 }}
                 contentFit="cover"
@@ -265,11 +272,16 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
                   </Text>
                 </View>
                 <Text
-                  className="text-4xl font-semibold text-white"
-                  style={{ fontVariant: ['tabular-nums'], lineHeight: 38 }}
+                  className="font-semibold text-white"
+                  style={{
+                    fontSize: 36,
+                    lineHeight: 44,
+                    fontVariant: ['tabular-nums'],
+                    includeFontPadding: false,
+                  }}
                 >
                   {pct}
-                  <Text className="text-base" style={{ opacity: 0.7 }}>
+                  <Text className="text-base" style={{ opacity: 0.7, lineHeight: 44 }}>
                     %
                   </Text>
                 </Text>
@@ -314,7 +326,12 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
             <StageSegments states={stageStates(stages)} />
           </Pressable>
 
-          <WkGalleryCard kind="project" ownerId={project.id} />
+          <WkGalleryCard
+            kind="project"
+            ownerId={project.id}
+            onCoverChange={setGalleryCover}
+            onMainChange={() => void remote.refetch()}
+          />
 
           <WkSection icon={FileText} title={t('pmPortal.basics')}>
             <WkField

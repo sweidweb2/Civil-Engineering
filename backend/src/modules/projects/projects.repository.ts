@@ -40,6 +40,8 @@ export type ProjectsRepository = {
   findTimeline: (ownerId?: string) => Promise<ProjectTimelineRow[]>
   findById: (id: string) => Promise<Project | null>
   findByCode: (code: string) => Promise<Project | null>
+  /** Storage path of the project's `isMain` gallery image, if any. */
+  findMainImageStoragePath: (projectId: string) => Promise<string | null>
   create: (input: CreateProjectInput, db?: DbClient) => Promise<Project>
   update: (id: string, input: UpdateProjectInput) => Promise<Project>
   delete: (id: string) => Promise<void>
@@ -257,6 +259,14 @@ export function createProjectsRepository(): ProjectsRepository {
         where: { code },
       })
       return project ? mapToProject(project) : null
+    },
+
+    async findMainImageStoragePath(projectId) {
+      const image = await prisma.projectImage.findFirst({
+        where: { projectId, isMain: true },
+        select: { storagePath: true },
+      })
+      return image?.storagePath ?? null
     },
 
     async create(input, db: DbClient = prisma) {

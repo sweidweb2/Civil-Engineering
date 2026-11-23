@@ -23,10 +23,11 @@ import Animated, { useAnimatedStyle, withSpring, withTiming } from 'react-native
 
 import { BottomSheet } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
-import { isRtlLayout } from '@/lib/rtl'
+import { isRtlLayout, ltrInputStyle } from '@/lib/rtl'
 import { errorMessage } from '@/services/feedback'
 
 import { WkBodyScroll, WkButton, WkCard, WkError, WkFooter, WkSkeletonCard, WkTopBar } from './kit'
+
 import { useWorkerPalette } from './palette'
 
 /* ─── Screen ───────────────────────────────────────────────────────────── */
@@ -174,9 +175,7 @@ export function WkField({
         className={`rounded-xl border px-3.5 text-[15px] text-wk-ink ${border} ${
           focused ? 'bg-wk-sf' : 'bg-wk-sf2'
         } ${multiline ? 'min-h-[112px] py-3 leading-[22px]' : 'h-12'}`}
-        style={
-          ltr ? { textAlign: isRtlLayout() ? 'right' : 'left', writingDirection: 'ltr' } : undefined
-        }
+        style={ltr ? ltrInputStyle() : undefined}
         onFocus={(e) => {
           setFocused(true)
           input.onFocus?.(e)
@@ -232,7 +231,7 @@ export function WkPasswordField({
           placeholderTextColor={c.ink3}
           accessibilityLabel={label}
           className="h-full min-w-0 flex-1 text-[15px] text-wk-ink"
-          style={{ writingDirection: 'ltr', textAlign: isRtlLayout() ? 'right' : 'left' }}
+          style={ltrInputStyle()}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />

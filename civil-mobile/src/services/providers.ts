@@ -1,3 +1,5 @@
+import { ltr } from '@/lib/rtl'
+
 import { optimizeIfImage } from '../lib/optimizeImage'
 import { apiRequest } from './api'
 import type { PickedFile } from './filePicker'
@@ -109,7 +111,8 @@ export function listProviderOwnerCandidates(q?: string, limit = 100) {
 }
 
 export function ownerLabel(owner: ProviderOwner) {
-  return owner.displayName ? `${owner.displayName} · ${owner.email}` : owner.email
+  const email = ltr(owner.email)
+  return owner.displayName ? `${owner.displayName} · ${email}` : email
 }
 
 export function getProvider(id: string) {

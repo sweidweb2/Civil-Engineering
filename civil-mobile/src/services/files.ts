@@ -1,5 +1,7 @@
+import { Platform } from 'react-native'
+
 import { optimizeIfImage } from '../lib/optimizeImage'
-import { apiRequest, createTimeoutSignal } from './api'
+import { apiRequest } from './api'
 
 export type FileEntityType = 'PROJECT' | 'USER' | 'EXPENSE' | 'MATERIAL' | 'WORKER' | 'LISTING'
 
@@ -25,25 +27,6 @@ export type DownloadUrlResponse = {
   originalName: string
 }
 
-export function presignFile(input: {
-  entityType: FileEntityType
-  entityId: string
-  mime: string
-  size: number
-  originalName: string
-}) {
-  return apiRequest<PresignFileResponse>('/files/presign', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  })
-}
-
-export function completeFile(fileId: string) {
-  return apiRequest<CompleteFileResponse>(`/files/${fileId}/complete`, {
-    method: 'POST',
-  })
-}
-
 export function getDownloadUrl(fileId: string) {
   return apiRequest<DownloadUrlResponse>(`/files/${fileId}/download-url`, {
     method: 'GET',
@@ -57,8 +40,8 @@ export function deleteFile(fileId: string) {
 }
 
 /**
- * Optimize (images) → presign → PUT to R2 → complete.
- * Bytes never go through Express.
+ * Optimize (images) → API multipart → R2 (server-side).
+ * Same path as civil-web and gallery uploads — avoids RN blob PUT to R2 (unreliable on Android).
  */
 export async function uploadFile(input: {
   uri: string
@@ -75,28 +58,23 @@ export async function uploadFile(input: {
     size: input.size,
   })
 
-  const presign = await presignFile({
-    entityType: input.entityType,
-    entityId: input.entityId,
-    mime: optimized.mime,
-    size: optimized.size,
-    originalName: optimized.originalName,
-  })
+  const body = new FormData()
+  body.append('entityType', input.entityType)
+  body.append('entityId', input.entityId)
 
-  const body = await fetch(optimized.uri).then((r) => r.blob())
-  const put = await fetch(presign.uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': optimized.mime,
-    },
-    body,
-    // Direct R2 PUT — keep a hard ceiling so hung storage cannot stall the app.
-    signal: createTimeoutSignal(60_000),
-  })
-
-  if (!put.ok) {
-    throw new Error(`Upload to storage failed (${put.status})`)
+  if (Platform.OS === 'web') {
+    const blob = await fetch(optimized.uri).then((r) => r.blob())
+    body.append('file', blob, optimized.originalName)
+  } else {
+    body.append('file', {
+      uri: optimized.uri,
+      name: optimized.originalName,
+      type: optimized.mime,
+    } as unknown as Blob)
   }
 
-  return completeFile(presign.fileId)
+  return apiRequest<CompleteFileResponse>('/files/upload', {
+    method: 'POST',
+    body,
+  })
 }

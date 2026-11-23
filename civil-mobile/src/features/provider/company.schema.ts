@@ -1,24 +1,27 @@
+import type { TFunction } from 'i18next'
 import { z } from 'zod'
 
-export const providerCompanySchema = z.object({
-  name: z.string().trim().min(1, 'Company name is required').max(120),
-  description: z.string().trim().max(2000),
-  phone: z.string().trim().max(20),
-  whatsapp: z.string().trim().max(20),
-  email: z
-    .string()
-    .trim()
-    .max(160)
-    .refine((value) => value.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
-      message: 'Enter a valid email',
-    }),
-  website: z.string().trim().max(200),
-  address: z.string().trim().max(200),
-  city: z.string().trim().max(80),
-  country: z.string().trim().max(80),
-})
+export function providerCompanySchema(t: TFunction) {
+  return z.object({
+    name: z.string().trim().min(1, t('validation.companyNameRequired')).max(120),
+    description: z.string().trim().max(2000),
+    phone: z.string().trim().max(20),
+    whatsapp: z.string().trim().max(20),
+    email: z
+      .string()
+      .trim()
+      .max(160)
+      .refine((value) => value.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+        message: t('validation.emailInvalid'),
+      }),
+    website: z.string().trim().max(200),
+    address: z.string().trim().max(200),
+    city: z.string().trim().max(80),
+    country: z.string().trim().max(80),
+  })
+}
 
-export type ProviderCompanyValues = z.infer<typeof providerCompanySchema>
+export type ProviderCompanyValues = z.infer<ReturnType<typeof providerCompanySchema>>
 
 export const EMPTY_COMPANY: ProviderCompanyValues = {
   name: '',

@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import { z } from 'zod'
 
 function blankToNull(value: unknown) {
@@ -35,7 +36,7 @@ function year() {
   }, z.number().int().min(1950).max(2100).nullable())
 }
 
-function money() {
+function money(t: TFunction) {
   return z.preprocess(
     (value) => {
       const next = blankToNull(value)
@@ -46,20 +47,25 @@ function money() {
     },
     z
       .string()
-      .regex(/^\d+(\.\d{1,4})?$/, 'Enter a valid amount')
+      .regex(/^\d+(\.\d{1,4})?$/, t('validation.amountInvalid'))
       .max(24)
       .nullable(),
   )
 }
 
-const dateField = z.preprocess(
-  blankToNull,
-  z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
-    .nullable(),
-)
-const urlField = z.preprocess(blankToNull, z.string().url('Enter a valid URL').max(500).nullable())
+function dateField(t: TFunction) {
+  return z.preprocess(
+    blankToNull,
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, t('validation.dateFormat'))
+      .nullable(),
+  )
+}
+
+function urlField(t: TFunction) {
+  return z.preprocess(blankToNull, z.string().url(t('validation.urlInvalid')).max(500).nullable())
+}
 
 export const workerBasicsSchema = z.object({
   headline: text(160),
@@ -71,111 +77,123 @@ export const workerBasicsSchema = z.object({
   country: text(80),
 })
 
-export const workerRatesSchema = z
-  .object({
-    hourlyRate: money(),
-    dailyRate: money(),
-    currency: text(8),
-    availability: z.enum(['AVAILABLE', 'BUSY', 'UNAVAILABLE']),
-    isPublic: z.boolean(),
-    cvUrl: urlField,
-  })
-  .superRefine((value, ctx) => {
-    if ((value.hourlyRate || value.dailyRate) && !value.currency) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Currency is required when a rate is set',
-        path: ['currency'],
-      })
-    }
-  })
+export function workerRatesSchema(t: TFunction) {
+  return z
+    .object({
+      hourlyRate: money(t),
+      dailyRate: money(t),
+      currency: text(8),
+      availability: z.enum(['AVAILABLE', 'BUSY', 'UNAVAILABLE']),
+      isPublic: z.boolean(),
+      cvUrl: urlField(t),
+    })
+    .superRefine((value, ctx) => {
+      if ((value.hourlyRate || value.dailyRate) && !value.currency) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('validation.currencyRequiredWithRate'),
+          path: ['currency'],
+        })
+      }
+    })
+}
 
-export const workerExperienceSchema = z
-  .object({
-    company: z.string().trim().min(1, 'Company is required').max(160),
-    roleTitle: z.string().trim().min(1, 'Role is required').max(160),
-    projectType: text(120),
-    location: text(160),
-    startDate: dateField,
-    endDate: dateField,
-    isCurrent: z.boolean(),
-    description: text(2000),
-  })
-  .superRefine((value, ctx) => {
-    if (value.isCurrent && value.endDate) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Current roles cannot have an end date',
-        path: ['endDate'],
-      })
-    }
-    if (value.startDate && value.endDate && value.endDate < value.startDate) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'End date must be after start date',
-        path: ['endDate'],
-      })
-    }
-  })
+export function workerExperienceSchema(t: TFunction) {
+  return z
+    .object({
+      company: z.string().trim().min(1, t('validation.companyRequired')).max(160),
+      roleTitle: z.string().trim().min(1, t('validation.roleRequired')).max(160),
+      projectType: text(120),
+      location: text(160),
+      startDate: dateField(t),
+      endDate: dateField(t),
+      isCurrent: z.boolean(),
+      description: text(2000),
+    })
+    .superRefine((value, ctx) => {
+      if (value.isCurrent && value.endDate) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('validation.currentRoleNoEndDate'),
+          path: ['endDate'],
+        })
+      }
+      if (value.startDate && value.endDate && value.endDate < value.startDate) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('validation.endAfterStart'),
+          path: ['endDate'],
+        })
+      }
+    })
+}
 
 /** Full list validation used when saving multiple experiences in one PUT. */
-export const workerExperiencesListSchema = z
-  .array(workerExperienceSchema)
-  .max(30)
-  .superRefine((items, ctx) => {
-    if (items.filter((item) => item.isCurrent).length > 1) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Only one experience can be marked as current',
-        path: [],
-      })
-    }
-  })
+export function workerExperiencesListSchema(t: TFunction) {
+  return z
+    .array(workerExperienceSchema(t))
+    .max(30)
+    .superRefine((items, ctx) => {
+      if (items.filter((item) => item.isCurrent).length > 1) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('validation.onlyOneCurrentExperience'),
+          path: [],
+        })
+      }
+    })
+}
 
-export const workerEducationSchema = z
-  .object({
-    school: z.string().trim().min(1, 'School is required').max(160),
-    degree: text(120),
-    field: text(120),
-    startYear: year(),
-    endYear: year(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.startYear != null && value.endYear != null && value.endYear < value.startYear) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'End year must be after start year',
-        path: ['endYear'],
-      })
-    }
-  })
+export function workerEducationSchema(t: TFunction) {
+  return z
+    .object({
+      school: z.string().trim().min(1, t('validation.schoolRequired')).max(160),
+      degree: text(120),
+      field: text(120),
+      startYear: year(),
+      endYear: year(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.startYear != null && value.endYear != null && value.endYear < value.startYear) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('validation.endYearAfterStart'),
+          path: ['endYear'],
+        })
+      }
+    })
+}
 
-export const workerCertificationSchema = z
-  .object({
-    name: z.string().trim().min(1, 'Name is required').max(160),
-    issuer: text(160),
-    issuedAt: dateField,
-    expiresAt: dateField,
-    credentialId: text(120),
-  })
-  .superRefine((value, ctx) => {
-    if (value.issuedAt && value.expiresAt && value.expiresAt < value.issuedAt) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Expiry must be after issue date',
-        path: ['expiresAt'],
-      })
-    }
-  })
+export function workerCertificationSchema(t: TFunction) {
+  return z
+    .object({
+      name: z.string().trim().min(1, t('validation.nameRequired')).max(160),
+      issuer: text(160),
+      issuedAt: dateField(t),
+      expiresAt: dateField(t),
+      credentialId: text(120),
+    })
+    .superRefine((value, ctx) => {
+      if (value.issuedAt && value.expiresAt && value.expiresAt < value.issuedAt) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('validation.expiryAfterIssue'),
+          path: ['expiresAt'],
+        })
+      }
+    })
+}
 
-export const workerSkillItemSchema = z.object({
-  categoryId: z.string().trim().min(1, 'Pick a trade'),
-  level: z.enum(['BASIC', 'INTERMEDIATE', 'EXPERT']),
-})
+export function workerSkillItemSchema(t: TFunction) {
+  return z.object({
+    categoryId: z.string().trim().min(1, t('validation.pickTrade')),
+    level: z.enum(['BASIC', 'INTERMEDIATE', 'EXPERT']),
+  })
+}
 
 export type WorkerBasicsValues = z.infer<typeof workerBasicsSchema>
-export type WorkerRatesValues = z.infer<typeof workerRatesSchema>
-export type WorkerExperienceValues = z.infer<typeof workerExperienceSchema>
-export type WorkerEducationValues = z.infer<typeof workerEducationSchema>
-export type WorkerCertificationValues = z.infer<typeof workerCertificationSchema>
-export type WorkerSkillItemValues = z.infer<typeof workerSkillItemSchema>
+export type WorkerRatesValues = z.infer<ReturnType<typeof workerRatesSchema>>
+export type WorkerExperienceValues = z.infer<ReturnType<typeof workerExperienceSchema>>
+export type WorkerEducationValues = z.infer<ReturnType<typeof workerEducationSchema>>
+export type WorkerCertificationValues = z.infer<ReturnType<typeof workerCertificationSchema>>
+export type WorkerSkillItemValues = z.infer<ReturnType<typeof workerSkillItemSchema>>

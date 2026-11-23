@@ -41,7 +41,7 @@ export function WorkerRatesScreen() {
   })
 
   async function onSave() {
-    const parsed = parseForm(workerRatesSchema, form)
+    const parsed = parseForm(workerRatesSchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return

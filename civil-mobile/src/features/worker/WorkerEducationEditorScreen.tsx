@@ -48,7 +48,7 @@ export function WorkerEducationEditorScreen({ indexParam }: Props) {
   }
 
   async function onSave() {
-    const parsed = parseForm(workerEducationSchema, form)
+    const parsed = parseForm(workerEducationSchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return

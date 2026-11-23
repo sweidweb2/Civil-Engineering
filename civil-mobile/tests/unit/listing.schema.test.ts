@@ -1,10 +1,15 @@
 import { EMPTY_LISTING_FORM, formFromListing } from '@/features/provider/listing.form'
 import { listingFormSchema, listingWriteFromForm } from '@/features/provider/listing.schema'
+import { en } from '@/i18n/en'
 import type { Listing } from '@/services/listings'
+
+import { tFrom } from './tStub'
+
+const t = tFrom(en)
 
 describe('listingFormSchema', () => {
   it('accepts a name-only listing', () => {
-    const result = listingFormSchema.safeParse({
+    const result = listingFormSchema(t).safeParse({
       ...EMPTY_LISTING_FORM,
       name: 'Cement',
     })
@@ -12,7 +17,7 @@ describe('listingFormSchema', () => {
   })
 
   it('rejects an empty name', () => {
-    const result = listingFormSchema.safeParse({
+    const result = listingFormSchema(t).safeParse({
       ...EMPTY_LISTING_FORM,
       name: '',
     })
@@ -20,7 +25,7 @@ describe('listingFormSchema', () => {
   })
 
   it('rejects a non-decimal price', () => {
-    const result = listingFormSchema.safeParse({
+    const result = listingFormSchema(t).safeParse({
       ...EMPTY_LISTING_FORM,
       name: 'Cement',
       price: '12.34567',
@@ -29,7 +34,7 @@ describe('listingFormSchema', () => {
   })
 
   it('requires rental unit when for-rent has a rental price', () => {
-    const result = listingFormSchema.safeParse({
+    const result = listingFormSchema(t).safeParse({
       ...EMPTY_LISTING_FORM,
       name: 'Excavator',
       isForRent: true,
@@ -48,6 +53,7 @@ describe('listingWriteFromForm', () => {
         name: 'Cement',
         currency: 'USD',
       },
+      t,
       'provider-1',
     )
     expect(result).toEqual({
@@ -68,7 +74,7 @@ describe('listing price range', () => {
   const base = { ...EMPTY_LISTING_FORM, name: 'Sand', isPriceRange: true }
 
   it('sends min/max and clears the fixed price', () => {
-    const result = listingWriteFromForm({ ...base, price: '9', priceMin: '10', priceMax: '20' })
+    const result = listingWriteFromForm({ ...base, price: '9', priceMin: '10', priceMax: '20' }, t)
     expect('data' in result && result.data).toMatchObject({
       price: null,
       priceMin: '10',
@@ -77,11 +83,13 @@ describe('listing price range', () => {
   })
 
   it('requires both bounds', () => {
-    expect(listingWriteFromForm({ ...base, priceMin: '10' })).toMatchObject({ field: 'priceMax' })
+    expect(listingWriteFromForm({ ...base, priceMin: '10' }, t)).toMatchObject({
+      field: 'priceMax',
+    })
   })
 
   it('rejects min above max', () => {
-    expect(listingWriteFromForm({ ...base, priceMin: '30', priceMax: '20' })).toMatchObject({
+    expect(listingWriteFromForm({ ...base, priceMin: '30', priceMax: '20' }, t)).toMatchObject({
       field: 'priceMax',
     })
   })

@@ -44,9 +44,15 @@ describe('requireTrustedOrigin middleware', () => {
     expect(res.body.code).toBe('UNTRUSTED_ORIGIN')
   })
 
-  it('rejects cookie-authenticated mutation with no Origin or Referer', async () => {
+  it('allows cookie-authenticated mutation with no Origin or Referer (native clients)', async () => {
     const res = await request(app()).put('/thing').set('Cookie', cookie)
+    expect(res.status).toBe(200)
+  })
+
+  it('rejects cookie-authenticated mutation with opaque Origin null', async () => {
+    const res = await request(app()).put('/thing').set('Cookie', cookie).set('Origin', 'null')
     expect(res.status).toBe(403)
+    expect(res.body.code).toBe('UNTRUSTED_ORIGIN')
   })
 
   it('covers the refresh cookie too', async () => {

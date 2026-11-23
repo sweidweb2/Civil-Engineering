@@ -20,7 +20,7 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
-import { userDisplayName } from '@/lib/user'
+import { userDisplayLabel, userDisplayName } from '@/lib/user'
 import type { AuthRole } from '@/services/auth'
 import { useToastSuccess } from '@/services/toast'
 import {
@@ -165,7 +165,8 @@ export function AdminUserDetailScreen() {
     })
   }
 
-  const name = user ? userDisplayName(user) : t('users.user')
+  const name = user ? userDisplayLabel(user) : t('users.user')
+  const mediaName = user ? userDisplayName(user) : t('users.user')
 
   return (
     <WkFormScreen
@@ -193,7 +194,7 @@ export function AdminUserDetailScreen() {
               // `profile.avatarUrl` is the avatar File id: a stable cache key, not a URL.
               photo={avatarUrl}
               photoKey={user.profile?.avatarUrl}
-              name={name}
+              name={mediaName}
               size={60}
               round
               hero

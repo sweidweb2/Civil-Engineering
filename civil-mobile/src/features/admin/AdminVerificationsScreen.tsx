@@ -10,7 +10,7 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
-import { userDisplayName } from '@/lib/user'
+import { userDisplayLabel, userDisplayName } from '@/lib/user'
 import { useToastSuccess } from '@/services/toast'
 import {
   listVerifications,
@@ -133,9 +133,10 @@ export function AdminVerificationsScreen() {
         return (
           <WkListRow
             media={<WkMedia name={name} round hero />}
-            title={name}
+            title={userDisplayLabel(user)}
             pill={{ label: enumLabel(t, 'verificationStatus', status), tone: TONE[status] }}
             sub={ltr(user.email)}
+            subLtr
             sub2={shortDate(user.createdAt)}
             onPress={() => router.push(`/admin/users/${user.id}` as never)}
             actions={actions}

@@ -60,6 +60,7 @@ function setup(existing: Project | null = makeProject()) {
     })),
     findById: vi.fn(async () => existing),
     findByCode: vi.fn(async (code) => (existing?.code === code ? existing : null)),
+    findMainImageStoragePath: vi.fn(async () => null),
     create: vi.fn(async (input) => makeProject({ ...input, id: 'p-new' })),
     update: vi.fn(async (id, input) => makeProject({ id, ...input })),
     delete: vi.fn(async () => undefined),

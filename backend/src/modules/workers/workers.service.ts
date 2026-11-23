@@ -72,7 +72,38 @@ function hasMinimumCv(profile: WorkerProfile | null): boolean {
   )
 }
 
-export function createWorkersService(repository: WorkersRepository): WorkersService {
+/**
+ * Resolves avatar File ids → loadable image URLs. Ids that are missing, not READY,
+ * or fail to sign are simply absent from the map (clients fall back to initials).
+ */
+export type AvatarUrlResolver = (fileIds: string[]) => Promise<Map<string, string>>
+
+export type WorkersServiceDeps = {
+  resolveAvatarUrls?: AvatarUrlResolver
+}
+
+export function createWorkersService(
+  repository: WorkersRepository,
+  deps: WorkersServiceDeps = {},
+): WorkersService {
+  async function avatarUrlsFor(fileIds: Array<string | null>): Promise<Map<string, string>> {
+    const ids = [...new Set(fileIds.filter((id): id is string => Boolean(id)))]
+    if (!deps.resolveAvatarUrls || ids.length === 0) return new Map()
+    try {
+      return await deps.resolveAvatarUrls(ids)
+    } catch {
+      return new Map()
+    }
+  }
+
+  async function withAvatarImage(profile: WorkerProfile): Promise<WorkerProfile> {
+    const urls = await avatarUrlsFor([profile.user.avatarUrl])
+    const avatarImageUrl = profile.user.avatarUrl
+      ? (urls.get(profile.user.avatarUrl) ?? null)
+      : null
+    return { ...profile, user: { ...profile.user, avatarImageUrl } }
+  }
+
   return {
     async getMine(userId) {
       const [profile, state] = await Promise.all([
@@ -93,7 +124,7 @@ export function createWorkersService(repository: WorkersRepository): WorkersServ
       if (!canViewProfile(profile, actor)) {
         throw forbidden('Worker profile is not public', 'WORKER_PROFILE_NOT_PUBLIC')
       }
-      return forViewer(profile, actor)
+      return withAvatarImage(forViewer(profile, actor))
     },
 
     async upsertMine(userId, input) {
@@ -116,12 +147,20 @@ export function createWorkersService(repository: WorkersRepository): WorkersServ
 
     async list(query, actor) {
       const admin = actor != null && isAdmin(actor.roles)
-      return repository.list({
+      const page = await repository.list({
         ...query,
         publicOnly: !admin,
         // Non-admins cannot filter by verification — public path already forces VERIFIED.
         verificationStatus: admin ? query.verificationStatus : undefined,
       })
+      const urls = await avatarUrlsFor(page.data.map((row) => row.avatarUrl))
+      return {
+        ...page,
+        data: page.data.map((row) => ({
+          ...row,
+          avatarImageUrl: row.avatarUrl ? (urls.get(row.avatarUrl) ?? null) : null,
+        })),
+      }
     },
 
     async requestVerification(userId) {

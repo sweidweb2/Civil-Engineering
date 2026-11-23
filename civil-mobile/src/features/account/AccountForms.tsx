@@ -66,7 +66,7 @@ export function useAccountDetails() {
 
   async function onSave() {
     if (!userId) return
-    const parsed = parseForm(accountProfileSchema, form)
+    const parsed = parseForm(accountProfileSchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return
@@ -161,7 +161,7 @@ export function usePasswordChange() {
   }
 
   async function onSave() {
-    const parsed = parseForm(accountPasswordSchema, form)
+    const parsed = parseForm(accountPasswordSchema(t), form)
     if (!parsed.success) {
       setErrors(parsed.fieldErrors)
       return

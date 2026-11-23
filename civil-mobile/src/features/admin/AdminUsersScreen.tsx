@@ -7,7 +7,7 @@ import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/features/worke
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
-import { userDisplayName } from '@/lib/user'
+import { userDisplayLabel, userDisplayName } from '@/lib/user'
 import { listUsers } from '@/services/users'
 
 const PAGE_SIZE = 20
@@ -35,9 +35,10 @@ export function AdminUsersScreen() {
         return (
           <WkListRow
             media={<WkMedia name={name} round hero />}
-            title={name}
+            title={userDisplayLabel(user)}
             pill={{ label: enumLabel(t, 'userStatus', user.status), tone: USER_TONE[user.status] }}
             sub={ltr(user.email)}
+            subLtr
             sub2={[enumLabel(t, 'role', user.role), shortDate(user.createdAt)]
               .filter(Boolean)
               .join(' · ')}

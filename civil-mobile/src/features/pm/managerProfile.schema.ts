@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import { z } from 'zod'
 
 import type { ManagerProfile, ManagerProfileInput } from '@/services/managerProfiles'
@@ -12,39 +13,62 @@ function text(max: number) {
   return z.preprocess(blankToNull, z.string().max(max).nullable())
 }
 
-const url = z.preprocess(blankToNull, z.string().url('Enter a valid URL').max(500).nullable())
+function url(t: TFunction) {
+  return z.preprocess(blankToNull, z.string().url(t('validation.urlInvalid')).max(500).nullable())
+}
 
-export const managerProfileSchema = z.object({
-  headline: text(160),
-  bio: text(4000),
-  yearsExperience: z.preprocess(
-    (value) => {
-      const next = blankToNull(value)
-      if (typeof next === 'string' && /^\d+$/.test(next)) return Number.parseInt(next, 10)
-      return next
-    },
-    z.number({ message: 'Enter whole years' }).int().min(0).max(80).nullable(),
-  ),
-  specialty: text(200),
-  education: text(2000),
-  certifications: text(2000),
-  skills: text(2000),
-  languages: text(500),
-  city: text(80),
-  country: text(80),
-  website: url,
-  linkedinUrl: url,
-  cvUrl: url,
-  availability: text(500),
-  projectTypes: text(1000),
-}) satisfies z.ZodType<ManagerProfileInput, unknown>
+export function managerProfileSchema(t: TFunction) {
+  return z.object({
+    headline: text(160),
+    bio: text(4000),
+    yearsExperience: z.preprocess(
+      (value) => {
+        const next = blankToNull(value)
+        if (typeof next === 'string' && /^\d+$/.test(next)) return Number.parseInt(next, 10)
+        return next
+      },
+      z
+        .number({ message: t('validation.wholeYears') })
+        .int()
+        .min(0)
+        .max(80)
+        .nullable(),
+    ),
+    specialty: text(200),
+    education: text(2000),
+    certifications: text(2000),
+    skills: text(2000),
+    languages: text(500),
+    city: text(80),
+    country: text(80),
+    website: url(t),
+    linkedinUrl: url(t),
+    cvUrl: url(t),
+    availability: text(500),
+    projectTypes: text(1000),
+  }) satisfies z.ZodType<ManagerProfileInput, unknown>
+}
 
 /** Form state keeps every field as text so inputs stay controlled. */
 export type ManagerProfileForm = Record<keyof ManagerProfileInput, string>
 
-export const MANAGER_PROFILE_FIELDS = Object.keys(
-  managerProfileSchema.shape,
-) as (keyof ManagerProfileInput)[]
+export const MANAGER_PROFILE_FIELDS: (keyof ManagerProfileInput)[] = [
+  'headline',
+  'bio',
+  'yearsExperience',
+  'specialty',
+  'education',
+  'certifications',
+  'skills',
+  'languages',
+  'city',
+  'country',
+  'website',
+  'linkedinUrl',
+  'cvUrl',
+  'availability',
+  'projectTypes',
+]
 
 export function formFromManagerProfile(profile: ManagerProfile | null): ManagerProfileForm {
   const form = {} as ManagerProfileForm

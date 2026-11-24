@@ -511,9 +511,10 @@ export function createWorkersRepository(): WorkersRepository {
       }
 
       const where: Prisma.WorkerProfileWhereInput = { AND: and }
-      const countWhere: Prisma.WorkerProfileWhereInput = {
-        AND: and.filter((clause) => !('availability' in clause) && !('specialty' in clause)),
-      }
+      const countAnd = and.filter(
+        (clause) => !('availability' in clause) && !('specialty' in clause),
+      )
+      const countWhere: Prisma.WorkerProfileWhereInput = { AND: countAnd }
 
       const skip = (filters.page - 1) * filters.limit
       const includeCounts = filters.counts !== false
@@ -557,7 +558,7 @@ export function createWorkersRepository(): WorkersRepository {
           ? prisma.workerProfile.groupBy({
               by: ['specialty'],
               where: {
-                AND: [...(countWhere.AND ?? []), { specialty: { not: null } }],
+                AND: [...countAnd, { specialty: { not: null } }],
               },
               _count: { _all: true },
             })

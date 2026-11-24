@@ -1,5 +1,5 @@
-import Constants from 'expo-constants'
 import { Platform } from 'react-native'
+import Constants from 'expo-constants'
 
 import i18n from '@/i18n'
 import { isOffline } from '@/services/connectivity'

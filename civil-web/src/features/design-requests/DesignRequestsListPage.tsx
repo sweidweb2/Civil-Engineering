@@ -8,7 +8,6 @@ import { TableSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader, TablePager } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -29,10 +28,11 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { PAGE_SIZE, pageCount } from '@/lib/text'
+import { cn } from '@/lib/utils'
 import {
+  DESIGN_REQUEST_STATUS_OPTIONS,
   designCategoryLabel,
   type DesignRequestStatus,
-  DESIGN_REQUEST_STATUS_OPTIONS,
   designRequestStatusLabel,
   listDesignRequests,
 } from '@/services/design-requests'

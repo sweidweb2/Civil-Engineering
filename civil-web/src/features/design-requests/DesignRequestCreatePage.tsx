@@ -8,7 +8,6 @@ import { AsyncState } from '@/components/feedback/async-state'
 import { DetailSkeleton } from '@/components/feedback/skeletons'
 import { PageHeader } from '@/components/layout'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -21,15 +20,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { stageDateToIso } from '@/features/projects/lib/stage-dates'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
-import { stageDateToIso } from '@/features/projects/lib/stage-dates'
+import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
 import {
   createDesignRequest,
-  type DesignCategory,
   DESIGN_CATEGORY_OPTIONS,
+  type DesignCategory,
   getDesignerContact,
 } from '@/services/design-requests'
 import { listProjects } from '@/services/projects'

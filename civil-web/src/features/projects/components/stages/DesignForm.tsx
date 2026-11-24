@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { DesignStageRequestsSection } from '@/features/design-requests/DesignStageRequestsSection'
 import { designChecklist, missingCount } from '@/features/projects/lib/stage-completeness'
 import { parseStageDate, stageDateToIso } from '@/features/projects/lib/stage-dates'
 import {
@@ -13,8 +14,6 @@ import {
   upsertDesign,
   type UpsertDesignInput,
 } from '@/services/project-stages'
-
-import { DesignStageRequestsSection } from '@/features/design-requests/DesignStageRequestsSection'
 
 import { StageBodyShell } from './StageBodyShell'
 import { StageFieldLabel } from './StageFieldLabel'

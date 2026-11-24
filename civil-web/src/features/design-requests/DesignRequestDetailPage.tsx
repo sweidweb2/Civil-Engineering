@@ -19,12 +19,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { fileIdFromStorageKey } from '@/features/projects/lib/stage-file-key'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useRemoteData } from '@/hooks/useRemoteData'
-import { fileIdFromStorageKey } from '@/features/projects/lib/stage-file-key'
 import { portalBaseFromPath } from '@/lib/homePath'
+import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
 import {
   canCancelDesignRequest,

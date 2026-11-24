@@ -1,0 +1,60 @@
+﻿# Dependencies
+**/node_modules/
+
+# Builds / output / caches
+**/dist/
+**/dist-ssr/
+**/build/
+**/coverage/
+**/web-build/
+**/.next/
+**/.expo/
+**/.cache/
+**/.turbo/
+**/.parcel-cache/
+**/*.tsbuildinfo
+.metro-health-check*
+
+# Native / Expo generated
+civil-mobile/ios/
+civil-mobile/android/
+civil-mobile/.kotlin/
+civil-mobile/expo-env.d.ts
+
+# Test / e2e artifacts
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/playwright/.cache/
+**/playwright/.auth/
+backend/tests/e2e/.embedded-pg/
+
+# Logs & temp
+**/logs/
+**/*.log
+tmp/
+temp/
+
+# Local data dumps
+docker-data/
+postgres-data/
+redis-data/
+*.sql.gz
+
+# Secrets / credentials (keep out of indexing)
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.jks
+Docs/[1] Main App/[5] Credentials/**
+!Docs/[1] Main App/[5] Credentials/README.md
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/

@@ -18,5 +18,5 @@ export function tFrom(catalog: Messages): TFunction {
     }
     if (typeof node !== 'string') return key
     return node.replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(options?.[name] ?? ''))
-  }) as TFunction
+  }) as unknown as TFunction
 }

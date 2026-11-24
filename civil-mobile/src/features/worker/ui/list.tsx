@@ -194,7 +194,7 @@ export function WkListScreen<T extends { id: string }>({
           </View>
         ) : null}
       </Animated.View>
-    ) : null
+    ) : undefined
 
   return (
     <View className="flex-1 bg-wk-bg" testID={testID}>
@@ -227,7 +227,7 @@ export function WkListScreen<T extends { id: string }>({
                 onPress={list.loadMore}
               />
             </View>
-          ) : null
+          ) : undefined
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

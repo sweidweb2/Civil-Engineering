@@ -262,7 +262,7 @@ export function ProviderListingsScreen({
           </View>
         </View>
       </Animated.View>
-    ) : null
+    ) : undefined
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-provider-listings">
@@ -303,7 +303,7 @@ export function ProviderListingsScreen({
                 onPress={() => setPage((p) => p + 1)}
               />
             </View>
-          ) : null
+          ) : undefined
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

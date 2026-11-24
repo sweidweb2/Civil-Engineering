@@ -12,7 +12,9 @@ import { useAuthStore } from '@/stores/authStore'
 export function useSessionUserSync() {
   const isHydrated = useAuthStore((s) => s.isHydrated)
   const userId = useAuthStore((s) => s.user?.id)
-  const previous = useRef<AppStateStatus>(AppState.currentState)
+  const previous = useRef<AppStateStatus>(
+    (AppState.currentState as AppStateStatus | null | undefined) ?? 'active',
+  )
 
   useEffect(() => {
     if (!isHydrated || !userId) return

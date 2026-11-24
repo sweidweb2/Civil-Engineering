@@ -466,7 +466,7 @@ export function SelectField({
                 active={value === ''}
                 onPress={() => choose('')}
               />
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
             <Text className={`${TYPE.bodySm} py-6 text-muted-foreground`}>

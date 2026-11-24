@@ -281,7 +281,7 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
           </View>
         ) : null}
       </View>
-    ) : null
+    ) : undefined
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-pm-directory">
@@ -311,7 +311,7 @@ export function PmDirectoryScreen({ backHref }: { backHref?: string } = {}) {
                 onPress={() => setPage((p) => p + 1)}
               />
             </View>
-          ) : null
+          ) : undefined
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

@@ -338,7 +338,7 @@ export function PagedList<T>({
               colors={[colors.ink]}
             />
           }
-          ListHeaderComponent={header ? <>{header}</> : null}
+          ListHeaderComponent={header ? <>{header}</> : undefined}
           ListEmptyComponent={<EmptyState {...empty} />}
           ListFooterComponent={
             <Pager page={page} totalPages={totalPages} onChange={onPageChange} />

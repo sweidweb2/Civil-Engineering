@@ -10,7 +10,9 @@ import { useAuthStore } from '@/stores/authStore'
  * so a quick app switch makes no requests. Mount once, in the root layout.
  */
 export function useForegroundRevalidate() {
-  const previous = useRef<AppStateStatus>(AppState.currentState)
+  const previous = useRef<AppStateStatus>(
+    (AppState.currentState as AppStateStatus | null | undefined) ?? 'active',
+  )
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {

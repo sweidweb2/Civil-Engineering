@@ -3,6 +3,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   ScrollView,
+  type ScrollViewInstance,
   Text,
   useWindowDimensions,
   View,
@@ -112,7 +113,7 @@ export function ProviderListingDetailScreen({
   }, [data])
 
   const [index, setIndex] = useState(0)
-  const pager = useRef<ScrollView>(null)
+  const pager = useRef<ScrollViewInstance>(null)
   const [busy, setBusy] = useState<'status' | 'delete' | null>(null)
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 

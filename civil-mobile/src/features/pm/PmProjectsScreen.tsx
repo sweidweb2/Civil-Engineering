@@ -254,7 +254,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
           </View>
         </View>
       </Animated.View>
-    ) : null
+    ) : undefined
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-pm-projects">
@@ -282,7 +282,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
                 onPress={() => setPage((p) => p + 1)}
               />
             </View>
-          ) : null
+          ) : undefined
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

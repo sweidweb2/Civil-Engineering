@@ -10,8 +10,8 @@ import { WkButton, WkError, WkSkeletonCard, WkTopBar } from '@/features/worker/u
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { type DesignOffer, listDesignOffers } from '@/services/design-offers'
 import { errorMessage } from '@/services/feedback'
-import { listDesignOffers, type DesignOffer } from '@/services/design-offers'
 
 const PAGE_SIZE = 20
 

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { DesignOffersGridScreen } from '@/features/design-offers/DesignOffersGridScreen'
 import { DesignRequestsListScreen } from '@/features/design-requests/DesignRequestsListScreen'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
-import { useStatusBarStyle } from '@/components/kit'
 
 type Tab = 'requests' | 'offers'
 

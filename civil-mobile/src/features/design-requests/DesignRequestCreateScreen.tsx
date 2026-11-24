@@ -21,7 +21,7 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
-import { formatOfferPrice, listDesignOffers, type DesignOffer } from '@/services/design-offers'
+import { type DesignOffer, formatOfferPrice, listDesignOffers } from '@/services/design-offers'
 import {
   createDesignRequest,
   DESIGN_CATEGORY_OPTIONS,

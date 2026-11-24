@@ -59,9 +59,9 @@ import { getProjectStagesSummary, STAGE_KEYS } from '@/services/project-stages'
 import {
   archiveProject,
   getProjectById,
+  type Project,
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
-  type Project,
   type ProjectStatus,
   type ProjectType,
   updateProject,

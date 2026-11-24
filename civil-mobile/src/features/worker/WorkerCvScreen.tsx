@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { type CvSectionStatus, cvSectionStatuses } from '@/features/worker/cvCompleteness'
+import { specialtyLabel } from '@/features/worker/specialties'
 import {
   WkCard,
   WkError,
@@ -18,7 +19,6 @@ import {
 } from '@/features/worker/ui/kit'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { AVAILABILITY_TONE, CV_SECTION_META, VERIFICATION_KEY } from '@/features/worker/ui/sections'
-import { specialtyLabel } from '@/features/worker/specialties'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'

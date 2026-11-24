@@ -4,15 +4,15 @@ import type { AppConfig } from '../../config/index.js'
 import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
 import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
-import type { FilesService } from '../files/files.service.js'
 import type { AllowedFileMime } from '../files/files.schema.js'
+import type { FilesService } from '../files/files.service.js'
 import type { NotificationsRepository } from '../notifications/notifications.types.js'
+import type { DesignRequestsRepository } from './design-requests.repository.js'
 import type {
   CreateDesignRequestBody,
   ListDesignRequestsQuery,
   UpdateDesignRequestStatusBody,
 } from './design-requests.schema.js'
-import type { DesignRequestsRepository } from './design-requests.repository.js'
 import type {
   DesignerContact,
   DesignRequestRecord,
@@ -247,7 +247,7 @@ export function createDesignRequestsService(
         throw forbidden('Only project managers can create design requests')
       }
 
-      let projectId: string | null = input.projectId ?? null
+      const projectId: string | null = input.projectId ?? null
       if (projectId) {
         const project = await repository.findOwnedProject(projectId, userId)
         if (!project) {

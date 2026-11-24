@@ -5,7 +5,7 @@ import { upsertWorkerProfileBodySchema } from '../../src/modules/workers/workers
 const fullBody = {
   headline: null,
   bio: null,
-  primaryTrade: null,
+  specialty: null,
   yearsExperience: null,
   languages: null,
   city: null,
@@ -43,7 +43,7 @@ describe('upsertWorkerProfileBodySchema', () => {
     const parsed = upsertWorkerProfileBodySchema.parse({
       ...fullBody,
       headline: 'Steel fixer',
-      primaryTrade: 'Rebar',
+      specialty: 'steel-fixing',
       yearsExperience: 8,
       city: 'Beirut',
       country: 'Lebanon',

@@ -37,6 +37,7 @@ export function WkGalleryCard({
   onMainChange,
   onCoverChange,
   disabled = false,
+  previewHeight = 180,
 }: {
   kind: GalleryKind
   ownerId?: string
@@ -46,6 +47,8 @@ export function WkGalleryCard({
   /** Live cover from the gallery list (url + storage key) for parent hero fallback. */
   onCoverChange?: (cover: { url: string | null; key: string | null } | null) => void
   disabled?: boolean
+  /** Height of the large preview frame. */
+  previewHeight?: number
 }) {
   const { t } = useTranslation()
   const { c } = useWorkerPalette()
@@ -138,7 +141,8 @@ export function WkGalleryCard({
           accessibilityLabel={t('gallery.imageActions')}
           disabled={disabled || isBusy}
           onPress={() => setActionsOpen(true)}
-          className="h-[180px] overflow-hidden rounded-2xl bg-wk-sf2 active:opacity-90"
+          className="overflow-hidden rounded-2xl bg-wk-sf2 active:opacity-90"
+          style={{ height: previewHeight }}
         >
           {selected.uri ? (
             <Image

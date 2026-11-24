@@ -1,5 +1,5 @@
-import { DesignRequestsListScreen } from '@/features/design-requests/DesignRequestsListScreen'
+import { PmDesignsHubScreen } from '@/features/design-requests/PmDesignsHubScreen'
 
 export default function PmDesignRequests() {
-  return <DesignRequestsListScreen basePath="/pm/design-requests" />
+  return <PmDesignsHubScreen />
 }

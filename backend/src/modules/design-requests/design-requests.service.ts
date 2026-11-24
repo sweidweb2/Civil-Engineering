@@ -6,6 +6,7 @@ import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { AllowedFileMime } from '../files/files.schema.js'
 import type { FilesService } from '../files/files.service.js'
+import type { DesignOffersService } from '../design-offers/index.js'
 import type { NotificationsRepository } from '../notifications/notifications.types.js'
 import type { DesignRequestsRepository } from './design-requests.repository.js'
 import type {
@@ -63,6 +64,7 @@ export type DesignRequestsServiceDeps = {
   filesService?: FilesService
   storage?: StorageService
   config?: AppConfig
+  designOffers?: DesignOffersService
 }
 
 function toIso(date: Date): string {
@@ -91,7 +93,7 @@ function canTransition(
 export function createDesignRequestsService(
   deps: DesignRequestsServiceDeps,
 ): DesignRequestsService {
-  const { repository, notifications, filesService, storage, config } = deps
+  const { repository, notifications, filesService, storage, config, designOffers } = deps
 
   async function resolveFileUrl(storagePath: string | null): Promise<string | null> {
     if (!storagePath || !storage || !config) return null
@@ -103,9 +105,10 @@ export function createDesignRequestsService(
   }
 
   async function toResponse(record: DesignRequestRecord): Promise<DesignRequestResponse> {
-    const [requirementFileUrl, responseFileUrl] = await Promise.all([
+    const [requirementFileUrl, responseFileUrl, designOfferImageUrl] = await Promise.all([
       resolveFileUrl(record.requirementFilePath),
       resolveFileUrl(record.responseFilePath),
+      resolveFileUrl(record.designOfferImagePath),
     ])
     return {
       id: record.id,
@@ -120,6 +123,9 @@ export function createDesignRequestsService(
       responseFileUrl,
       projectId: record.projectId,
       projectName: record.projectName,
+      designOfferId: record.designOfferId,
+      designOfferTitle: record.designOfferTitle,
+      designOfferImageUrl,
       requestedById: record.requestedById,
       requestedByEmail: record.requestedByEmail,
       requestedByName: record.requestedByName,
@@ -258,12 +264,21 @@ export function createDesignRequestsService(
         }
       }
 
+      const designOfferId: string | null = input.designOfferId ?? null
+      if (designOfferId) {
+        if (!designOffers) {
+          throw validationError('Design offers are not configured')
+        }
+        await designOffers.requireActiveOffer(designOfferId)
+      }
+
       let record = await repository.create({
         subject: input.subject,
         description: input.description,
         category: input.category,
         neededBy: input.neededBy,
         projectId,
+        designOfferId,
         requestedById: userId,
       })
 

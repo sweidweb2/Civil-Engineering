@@ -23,6 +23,7 @@ function record(overrides: Partial<CategoryRecord> = {}): CategoryRecord {
     parentId: null,
     parentName: null,
     parentNameAr: null,
+    imagePath: null,
     isActive: true,
     sortOrder: 0,
     childCount: 0,
@@ -52,9 +53,10 @@ function setup(opts?: { existing?: CategoryRecord | null; duplicate?: { id: stri
     findDuplicate: vi.fn(async () => opts?.duplicate ?? null),
     create: vi.fn(async (input) => record({ ...input, id: 'cat-new' })),
     update: vi.fn(async (id, input) => record({ id, ...input, slug: input.slug ?? 'cement' })),
+    updateImagePath: vi.fn(async (id, imagePath) => record({ id, imagePath })),
     delete: vi.fn(async () => undefined),
   }
-  return { repository, service: createCategoriesService(repository) }
+  return { repository, service: createCategoriesService({ repository }) }
 }
 
 describe('categoriesService', () => {

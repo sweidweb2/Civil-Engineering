@@ -26,6 +26,7 @@ import { useRemoteData } from '@/hooks/useRemoteData'
 import { portalBaseFromPath } from '@/lib/homePath'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/services/api'
+import { formatOfferPrice, listDesignOffers } from '@/services/design-offers'
 import {
   createDesignRequest,
   DESIGN_CATEGORY_OPTIONS,
@@ -42,12 +43,14 @@ export function DesignRequestCreatePage() {
   const [searchParams] = useSearchParams()
   const portal = portalBaseFromPath(location.pathname)
   const prefilledProjectId = searchParams.get('projectId') ?? ''
+  const prefilledOfferId = searchParams.get('designOfferId') ?? ''
 
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState<DesignCategory | ''>('')
   const [neededBy, setNeededBy] = useState<Date | undefined>()
   const [projectId, setProjectId] = useState(prefilledProjectId)
+  const [designOfferId, setDesignOfferId] = useState(prefilledOfferId)
   const [file, setFile] = useState<File | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -71,7 +74,14 @@ export function DesignRequestCreatePage() {
     queryKey: ['design-requests', 'create-projects'],
   })
 
+  const offersRemote = useRemoteData(
+    () => listDesignOffers({ page: 1, limit: 100, activeOnly: true }),
+    { queryKey: ['design-offers', 'create-picker'] },
+  )
+
   const projects = projectsRemote.status === 'success' ? projectsRemote.data.data : []
+  const offers = offersRemote.status === 'success' ? offersRemote.data.data : []
+  const selectedOffer = offers.find((offer) => offer.id === designOfferId) ?? null
 
   const submit = async () => {
     const parsed = schema.safeParse({
@@ -98,6 +108,7 @@ export function DesignRequestCreatePage() {
         category: parsed.data.category as DesignCategory,
         neededBy: stageDateToIso(parsed.data.neededBy),
         projectId: projectId || null,
+        designOfferId: designOfferId || null,
         file,
       })
       toast.success(t('designRequests:created'))
@@ -130,17 +141,20 @@ export function DesignRequestCreatePage() {
       />
 
       <AsyncState
-        isLoading={contactRemote.isLoading || projectsRemote.isLoading}
+        isLoading={contactRemote.isLoading || projectsRemote.isLoading || offersRemote.isLoading}
         error={
           contactRemote.isError
             ? contactRemote.error
             : projectsRemote.isError
               ? projectsRemote.error
-              : undefined
+              : offersRemote.isError
+                ? offersRemote.error
+                : undefined
         }
         onRetry={() => {
           void contactRemote.refetch()
           void projectsRemote.refetch()
+          void offersRemote.refetch()
         }}
         loadingFallback={<DetailSkeleton />}
       >
@@ -162,6 +176,42 @@ export function DesignRequestCreatePage() {
         ) : null}
 
         <div className="grid max-w-2xl gap-4">
+          <Field>
+            <Label>{t('designRequests:fields.designOffer')}</Label>
+            <Select
+              value={designOfferId || '__none__'}
+              onValueChange={(value) =>
+                setDesignOfferId(value === '__none__' || !value ? '' : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('designRequests:placeholders.offerOptional')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">{t('designRequests:noOffer')}</SelectItem>
+                {offers.map((offer) => (
+                  <SelectItem key={offer.id} value={offer.id}>
+                    {offer.title} · {formatOfferPrice(offer)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedOffer?.imageUrl ? (
+              <img
+                src={selectedOffer.imageUrl}
+                alt=""
+                className="mt-2 h-40 w-full rounded-lg object-cover"
+              />
+            ) : selectedOffer ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t('designRequests:offerNoImage')}
+              </p>
+            ) : null}
+            {selectedOffer ? (
+              <p className="mt-2 text-sm text-muted-foreground">{selectedOffer.description}</p>
+            ) : null}
+          </Field>
+
           <Field>
             <Label htmlFor="dr-subject">{t('designRequests:fields.subject')}</Label>
             <Input

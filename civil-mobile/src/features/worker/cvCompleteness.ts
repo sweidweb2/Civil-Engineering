@@ -3,7 +3,7 @@ import type { WorkerProfile } from '@/services/workers'
 /** The fields completeness reads; satisfied by both a loaded profile and a write payload. */
 export type CvShape = Pick<
   WorkerProfile,
-  'headline' | 'primaryTrade' | 'city' | 'yearsExperience' | 'hourlyRate' | 'dailyRate'
+  'headline' | 'specialty' | 'city' | 'yearsExperience' | 'hourlyRate' | 'dailyRate'
 > & {
   experiences: readonly unknown[]
   education: readonly unknown[]
@@ -24,7 +24,7 @@ export type CvSectionStatus = {
 export function cvSectionStatuses(profile: CvShape | null): CvSectionStatus[] {
   const hasBasics = Boolean(
     profile?.headline ||
-    profile?.primaryTrade ||
+    profile?.specialty ||
     profile?.city ||
     (profile?.yearsExperience != null && profile.yearsExperience > 0),
   )

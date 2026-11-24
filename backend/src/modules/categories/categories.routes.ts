@@ -41,6 +41,13 @@ export function createCategoriesRoutes(controller: CategoriesController): Router
     validate({ params: categoryIdParamsSchema, body: updateCategoryBodySchema }),
     controller.update,
   )
+  router.post(
+    '/:id/image',
+    authorize(...ADMIN_ROLES),
+    validate({ params: categoryIdParamsSchema }),
+    controller.imageUploadMiddleware,
+    controller.uploadImage,
+  )
   router.delete(
     '/:id',
     authorize(...ADMIN_ROLES),

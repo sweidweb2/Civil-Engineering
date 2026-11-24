@@ -73,7 +73,7 @@ export type WorkerProfile = {
   userId: string
   headline: string | null
   bio: string | null
-  primaryTrade: string | null
+  specialty: string | null
   yearsExperience: number | null
   languages: string | null
   city: string | null
@@ -98,7 +98,7 @@ export type WorkerDirectoryItem = {
   id: string
   userId: string
   headline: string | null
-  primaryTrade: string | null
+  specialty: string | null
   yearsExperience: number | null
   city: string | null
   country: string | null
@@ -135,5 +135,7 @@ export type PaginatedWorkers = {
     total: number
     totalPages: number
     availabilityCounts: WorkerAvailabilityCounts
+    /** Worker counts keyed by specialty id (null/empty specialties omitted). */
+    specialtyCounts: Record<string, number>
   }
 }

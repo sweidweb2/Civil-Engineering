@@ -343,6 +343,7 @@ export const ADMIN_NAV: PanelNavItem[] = [
   { to: '/admin/providers', labelKey: 'providers', icon: Store },
   { to: '/admin/projects', labelKey: 'projects', icon: FolderKanban },
   { to: '/admin/design-requests', labelKey: 'designRequests', icon: PenTool },
+  { to: '/admin/design-offers', labelKey: 'designOffers', icon: Palette },
   { to: '/admin/directory', labelKey: 'directory', icon: Library },
   { to: '/admin/listings', labelKey: 'listings', icon: Package },
   { to: '/admin/reviews', labelKey: 'reviews', icon: Star },

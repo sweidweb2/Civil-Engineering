@@ -379,9 +379,9 @@ export function AuthField({ label, icon: Icon, error, valid, inputRef, ...input 
     <View className="gap-2">
       <Text className="text-[13px] font-medium text-wk-ink2">{label}</Text>
       <View
-        className={`h-14 flex-row items-center gap-3 rounded-2xl border-[1.5px] ps-4 ${border} ${
-          focused ? 'bg-wk-sf' : 'bg-wk-sf2'
-        } ${secret || valid ? 'pe-1' : 'pe-4'}`}
+        className={`h-14 flex-row items-center gap-3 rounded-2xl border-[1.5px] bg-wk-sf ps-4 ${border} ${
+          secret || valid ? 'pe-1' : 'pe-4'
+        }`}
         style={focused ? { boxShadow: `0 0 0 4px ${error ? c.redSoft : c.brandSoft}` } : undefined}
       >
         <Icon size={19} color={tint} strokeWidth={1.9} />

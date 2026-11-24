@@ -1,0 +1,38 @@
+{
+  "title": "Design offers",
+  "documentTitle": "Design offers",
+  "documentTitleNew": "New design offer",
+  "documentTitleEdit": "Edit design offer",
+  "description": "Packages project managers can attach when requesting a design.",
+  "newOffer": "New offer",
+  "empty": "No design offers yet.",
+  "search": "Search offers",
+  "fields": {
+    "title": "Title",
+    "description": "Description",
+    "priceStart": "Price from",
+    "priceEnd": "Price to",
+    "currency": "Currency",
+    "sortOrder": "Sort order",
+    "active": "Active",
+    "image": "Image"
+  },
+  "placeholders": {
+    "title": "e.g. Full architectural package",
+    "description": "What this package includes"
+  },
+  "activeHint": "Inactive offers are hidden from the PM catalog.",
+  "create": "Create offer",
+  "save": "Save offer",
+  "created": "Design offer created",
+  "saved": "Design offer saved",
+  "deleted": "Design offer deleted",
+  "couldNotSave": "Could not save design offer",
+  "couldNotDelete": "Could not delete design offer",
+  "couldNotLoad": "Could not load design offers",
+  "delete": "Delete offer",
+  "confirmDelete": "Delete this offer? Existing requests keep their data.",
+  "backToList": "Back to offers",
+  "inactive": "Inactive",
+  "browseHint": "Choose a package to start a design request."
+}

@@ -1,9 +1,19 @@
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { ChevronRight, FileText, MapPin, Milestone, NotebookPen } from 'lucide-react-native'
+import {
+  CalendarRange,
+  ChevronRight,
+  FileText,
+  type LucideIcon,
+  MapPin,
+  Milestone,
+  NotebookPen,
+} from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
+import Animated, { FadeInDown } from 'react-native-reanimated'
 
+import { BottomSheet } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import {
   EMPTY_PROJECT_FORM,
@@ -15,7 +25,8 @@ import {
 } from '@/features/pm/projectForm'
 import {
   currentStage,
-  ProgressLine,
+  PROJECT_BAR,
+  PROJECT_TONE,
   ProjectPill,
   StageSegments,
   stageStateOf,
@@ -29,7 +40,14 @@ import {
   WkSection,
 } from '@/features/worker/ui/forms'
 import { WkGalleryCard } from '@/features/worker/ui/GalleryCard'
-import { flipStyle, WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
+import {
+  flipStyle,
+  WkButton,
+  WkConfirm,
+  type WkConfirmState,
+  WkEyebrow,
+  WkPill,
+} from '@/features/worker/ui/kit'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -43,6 +61,7 @@ import {
   getProjectById,
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
+  type Project,
   type ProjectStatus,
   type ProjectType,
   updateProject,
@@ -175,14 +194,7 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
           },
         )
 
-  const metaLine = [
-    project?.type ? enumLabel(t, 'projectType', project.type) : null,
-    project?.city || null,
-    project?.country || null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
+  const locationLine = [project?.city, project?.country].filter(Boolean).join(', ')
   const scheduleLine = [project?.startDate, project?.endDate]
     .filter(Boolean)
     .map((d) => ltr(String(d).slice(0, 10)))
@@ -217,42 +229,20 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
     >
       {project ? (
         <>
-          {/* Overview — informative summary (photos live in gallery below). */}
-          <View
-            className="gap-4 rounded-[22px] border border-wk-line bg-wk-sf p-[18px]"
-            style={shadow}
-          >
-            <View className="flex-row items-start justify-between gap-3">
-              <View className="min-w-0 flex-1 gap-2">
-                <ProjectPill status={project.status} />
-                {metaLine ? (
-                  <Text className="text-[14px] leading-5 text-wk-ink2" numberOfLines={2}>
-                    {metaLine}
-                  </Text>
-                ) : null}
-                {project.code || scheduleLine ? (
-                  <Text className="text-[12px] text-wk-ink3" numberOfLines={1}>
-                    {[project.code ? ltr(project.code) : null, scheduleLine || null]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                ) : null}
-              </View>
-              <View className="items-end">
-                <Text
-                  className="text-[32px] font-semibold leading-9 text-wk-ink"
-                  style={{ ...MONO_STYLE, fontVariant: ['tabular-nums'] }}
-                >
-                  {pct}
-                  <Text className="text-[15px] font-semibold text-wk-ink3">%</Text>
-                </Text>
-                <Text className="text-[11px] font-medium text-wk-ink3">
-                  {t('projects.progress')}
-                </Text>
-              </View>
-            </View>
-            <ProgressLine value={pct} status={project.status} />
-          </View>
+          <WkGalleryCard
+            kind="project"
+            ownerId={project.id}
+            previewHeight={220}
+            onMainChange={() => void remote.refetch()}
+          />
+
+          <ProjectOverviewCard
+            project={project}
+            pct={pct}
+            stageLine={stageLine}
+            locationLine={locationLine}
+            scheduleLine={scheduleLine}
+          />
 
           {/* Stages entry */}
           <Pressable
@@ -278,12 +268,6 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
             </View>
             <StageSegments states={stageStates(stages)} tone="surface" />
           </Pressable>
-
-          <WkGalleryCard
-            kind="project"
-            ownerId={project.id}
-            onMainChange={() => void remote.refetch()}
-          />
 
           <WkSection icon={FileText} title={t('pmPortal.basics')}>
             <WkField
@@ -371,5 +355,137 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
 
       <WkConfirm state={confirm} onCancel={() => setConfirm(null)} />
     </WkFormScreen>
+  )
+}
+
+type OverviewFact = { icon: LucideIcon; label: string; value: string; ltr?: boolean }
+
+/** Compact project identity + progress + key facts (below the gallery). */
+function ProjectOverviewCard({
+  project,
+  pct,
+  stageLine,
+  locationLine,
+  scheduleLine,
+}: {
+  project: Project
+  pct: number
+  stageLine: string
+  locationLine: string
+  scheduleLine: string
+}) {
+  const { t } = useTranslation()
+  const { c, shadow } = useWorkerPalette()
+  const tone = PROJECT_TONE[project.status]
+  const [tip, setTip] = useState<OverviewFact | null>(null)
+
+  const facts: OverviewFact[] = [
+    ...(locationLine || project.address?.trim()
+      ? [
+          {
+            icon: MapPin,
+            label: t('common.location'),
+            value: [project.address?.trim() || null, locationLine || null]
+              .filter(Boolean)
+              .join(' · '),
+          },
+        ]
+      : []),
+    ...(scheduleLine
+      ? [
+          {
+            icon: CalendarRange,
+            label: t('projects.schedule'),
+            value: scheduleLine,
+            ltr: true,
+          },
+        ]
+      : []),
+  ]
+
+  return (
+    <>
+      <Animated.View
+        entering={FadeInDown.duration(360).delay(40)}
+        className="mt-1 overflow-hidden rounded-[22px] border border-wk-line bg-wk-sf"
+        style={shadow}
+      >
+        <View className="gap-4 px-4 pb-4 pt-5">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <ProjectPill status={project.status} />
+            {project.type ? (
+              <WkPill label={enumLabel(t, 'projectType', project.type)} tone="neutral" />
+            ) : null}
+          </View>
+
+          <View className="gap-3">
+            <View className="flex-row items-end justify-between gap-3">
+              <View className="min-w-0 flex-1 gap-1">
+                <WkEyebrow>{t('projects.progress')}</WkEyebrow>
+                <Text className="text-[14px] leading-5 text-wk-ink2" numberOfLines={2}>
+                  {stageLine}
+                </Text>
+              </View>
+              <Text
+                className="text-[36px] font-semibold leading-none text-wk-ink"
+                style={{ ...MONO_STYLE, fontVariant: ['tabular-nums'] }}
+                accessibilityLabel={`${t('projects.progress')} ${pct}%`}
+              >
+                {pct}
+                <Text className="text-[15px] font-semibold text-wk-ink3">%</Text>
+              </Text>
+            </View>
+            <View className="h-2 overflow-hidden rounded-full bg-wk-sf2">
+              <View
+                className={`h-full rounded-full ${PROJECT_BAR[tone]}`}
+                style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+              />
+            </View>
+          </View>
+        </View>
+
+        {facts.length > 0 ? (
+          <View className="gap-px border-t border-wk-line bg-wk-line">
+            {facts.map((fact) => {
+              const display = fact.ltr ? ltr(fact.value) : fact.value
+              return (
+                <Pressable
+                  key={fact.label}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${fact.label}: ${fact.value}`}
+                  onPress={() => setTip(fact)}
+                  className="min-h-[52px] flex-row items-center gap-3 bg-wk-sf px-4 active:bg-wk-sf2"
+                >
+                  <View className="size-9 shrink-0 items-center justify-center rounded-xl bg-wk-sf2">
+                    <fact.icon size={16} color={c.ink3} strokeWidth={1.9} />
+                  </View>
+                  <Text className="shrink-0 text-[13px] text-wk-ink3">{fact.label}</Text>
+                  <Text
+                    className="min-w-0 flex-1 text-end text-[14px] font-medium text-wk-ink"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {display}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        ) : null}
+      </Animated.View>
+
+      <BottomSheet
+        visible={Boolean(tip)}
+        onClose={() => setTip(null)}
+        title={tip?.label}
+        maxHeightRatio={0.4}
+      >
+        {tip ? (
+          <Text className="pb-2 text-[16px] leading-6 text-wk-ink">
+            {tip.ltr ? ltr(tip.value) : tip.value}
+          </Text>
+        ) : null}
+      </BottomSheet>
+    </>
   )
 }

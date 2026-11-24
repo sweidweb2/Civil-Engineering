@@ -27,6 +27,7 @@ export type CategoryRecord = {
   parentId: string | null
   parentName: string | null
   parentNameAr: string | null
+  imagePath: string | null
   isActive: boolean
   sortOrder: number
   childCount: number
@@ -60,6 +61,7 @@ export type CategoriesRepository = {
   }) => Promise<{ id: string } | null>
   create: (input: CreateCategoryRecordInput) => Promise<CategoryRecord>
   update: (id: string, input: UpdateCategoryBody & { slug?: string }) => Promise<CategoryRecord>
+  updateImagePath: (id: string, imagePath: string | null) => Promise<CategoryRecord>
   delete: (id: string) => Promise<void>
 }
 
@@ -75,6 +77,7 @@ function toRecord(row: CategoryRow): CategoryRecord {
     parentId: row.parentId,
     parentName: row.parent?.name ?? null,
     parentNameAr: row.parent?.nameAr ?? null,
+    imagePath: row.imagePath,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     childCount: row._count.children,
@@ -96,6 +99,7 @@ function toLeanRecord(row: CategoryLeanRow): CategoryRecord {
     parentId: row.parentId,
     parentName: row.parent?.name ?? null,
     parentNameAr: row.parent?.nameAr ?? null,
+    imagePath: row.imagePath,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     childCount: 0,
@@ -229,6 +233,15 @@ export function createCategoriesRepository(): CategoriesRepository {
           include: categoryInclude,
         }),
       )
+      return toRecord(row)
+    },
+
+    async updateImagePath(id, imagePath) {
+      const row = await prisma.category.update({
+        where: { id },
+        data: { imagePath },
+        include: categoryInclude,
+      })
       return toRecord(row)
     },
 

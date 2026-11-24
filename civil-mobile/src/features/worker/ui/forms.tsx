@@ -171,9 +171,9 @@ export function WkField({
         accessibilityLabel={label}
         placeholderTextColor={c.ink3}
         textAlignVertical={multiline ? 'top' : 'center'}
-        className={`rounded-xl border px-3.5 text-[15px] text-wk-ink ${border} ${
-          focused ? 'bg-wk-sf' : 'bg-wk-sf2'
-        } ${multiline ? 'min-h-[112px] py-3 leading-[22px]' : 'h-12'}`}
+        className={`rounded-xl border bg-wk-sf px-3.5 text-[15px] text-wk-ink ${border} ${
+          multiline ? 'min-h-[112px] py-3 leading-[22px]' : 'h-12'
+        }`}
         style={ltr ? ltrInputStyle() : undefined}
         onFocus={(e) => {
           setFocused(true)
@@ -215,11 +215,7 @@ export function WkPasswordField({
   return (
     <View className="gap-2">
       <FieldLabel label={label} required={required} />
-      <View
-        className={`h-12 flex-row items-center rounded-xl border ps-3.5 ${border} ${
-          focused ? 'bg-wk-sf' : 'bg-wk-sf2'
-        }`}
-      >
+      <View className={`h-12 flex-row items-center rounded-xl border bg-wk-sf ps-3.5 ${border}`}>
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -276,7 +272,7 @@ export function WkSelect({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value || placeholder}`}
         onPress={onPress}
-        className={`h-12 flex-row items-center justify-between gap-2 rounded-xl border bg-wk-sf2 pe-3 ps-3.5 active:bg-wk-sf ${
+        className={`h-12 flex-row items-center justify-between gap-2 rounded-xl border bg-wk-sf pe-3 ps-3.5 active:opacity-90 ${
           error ? 'border-wk-red' : 'border-wk-line'
         }`}
       >
@@ -449,7 +445,7 @@ export function WkPickerSheet({
 
   return (
     <BottomSheet visible={visible} onClose={onClose} title={title} maxHeightRatio={0.78}>
-      <View className="mb-3 h-12 flex-row items-center gap-2.5 rounded-xl border border-wk-line bg-wk-sf2 px-3.5">
+      <View className="mb-3 h-12 flex-row items-center gap-2.5 rounded-xl border border-wk-line bg-wk-sf px-3.5">
         <Search size={17} color={c.ink3} strokeWidth={1.9} />
         <TextInput
           value={query}

@@ -5,8 +5,12 @@
   "documentTitleDetail": "طلب تصميم",
   "descriptionPm": "اطلب تصاميم من المصمم وتابع الردود.",
   "descriptionAdmin": "راجع ونفّذ طلبات التصميم من مديري المشاريع.",
+  "tabRequests": "طلباتي",
+  "tabOffers": "عروض التصميم",
   "newRequest": "طلب جديد",
   "empty": "لا توجد طلبات تصميم بعد.",
+  "noOffer": "بدون عرض",
+  "offerNoImage": "لا توجد صورة لهذا العرض",
   "couldNotLoad": "تعذر تحميل طلبات التصميم",
   "couldNotLoadDetail": "تعذر تحميل طلب التصميم",
   "couldNotLoadContact": "تعذر تحميل بيانات المصمم",
@@ -26,6 +30,7 @@
     "category": "الفئة",
     "neededBy": "مطلوب بحلول",
     "project": "المشروع",
+    "designOffer": "عرض التصميم",
     "requirementFile": "ملف المتطلبات",
     "responseFile": "ملف الرد"
   },
@@ -35,7 +40,8 @@
     "category": "اختر فئة",
     "neededBy": "اختر تاريخاً",
     "projectOptional": "اختياري — ربط بمشروع",
-    "noProject": "بدون مشروع"
+    "noProject": "بدون مشروع",
+    "offerOptional": "اختياري — اختر باقة"
   },
   "designerContact": "بيانات المصمم",
   "designerContactHint": "يمكنك أيضاً التواصل مع المصمم مباشرة عند الحاجة.",

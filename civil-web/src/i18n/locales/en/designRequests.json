@@ -5,8 +5,12 @@
   "documentTitleDetail": "Design request",
   "descriptionPm": "Request designs from the designer and track responses.",
   "descriptionAdmin": "Review and fulfill design requests from project managers.",
+  "tabRequests": "My requests",
+  "tabOffers": "Design offers",
   "newRequest": "New request",
   "empty": "No design requests yet.",
+  "noOffer": "No offer",
+  "offerNoImage": "This offer has no image",
   "couldNotLoad": "Could not load design requests",
   "couldNotLoadDetail": "Could not load this design request",
   "couldNotLoadContact": "Could not load designer contact",
@@ -26,6 +30,7 @@
     "category": "Category",
     "neededBy": "Needed by",
     "project": "Project",
+    "designOffer": "Design offer",
     "requirementFile": "Requirement file",
     "responseFile": "Response file"
   },
@@ -35,7 +40,8 @@
     "category": "Select a category",
     "neededBy": "Select a date",
     "projectOptional": "Optional — link to a project",
-    "noProject": "No project"
+    "noProject": "No project",
+    "offerOptional": "Optional — choose a package"
   },
   "designerContact": "Designer contact",
   "designerContactHint": "You can also reach the designer directly if needed.",

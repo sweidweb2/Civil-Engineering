@@ -70,7 +70,7 @@ function urlField(t: TFunction) {
 export const workerBasicsSchema = z.object({
   headline: text(160),
   bio: text(4000),
-  primaryTrade: text(120),
+  specialty: text(120),
   yearsExperience: years(),
   languages: text(500),
   city: text(80),

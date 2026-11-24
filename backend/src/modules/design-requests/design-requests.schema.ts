@@ -34,6 +34,11 @@ const neededBySchema = z.coerce.date().refine(
   { message: 'neededBy must be today or a future date' },
 )
 
+const optionalDesignOfferId = z.preprocess((value) => {
+  if (value === '' || value === null || value === undefined) return null
+  return value
+}, z.string().trim().min(1).nullable().optional())
+
 /** JSON create body (no file). */
 export const createDesignRequestBodySchema = z.object({
   subject: z.string().trim().min(1).max(200),
@@ -41,6 +46,7 @@ export const createDesignRequestBodySchema = z.object({
   category: designCategorySchema,
   neededBy: neededBySchema,
   projectId: optionalProjectId,
+  designOfferId: optionalDesignOfferId,
 })
 
 /**
@@ -53,6 +59,7 @@ export const createDesignRequestFieldsSchema = z.object({
   category: designCategorySchema,
   neededBy: neededBySchema,
   projectId: optionalProjectId,
+  designOfferId: optionalDesignOfferId,
 })
 
 export const listDesignRequestsQuerySchema = paginationQuerySchema.extend({

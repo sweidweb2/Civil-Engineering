@@ -15,6 +15,9 @@ export const ENTITY_KEY_SEGMENT: Record<string, string> = {
   MATERIAL: 'materials',
   WORKER: 'workers',
   LISTING: 'listings',
+  DESIGN_REQUEST: 'design-requests',
+  DESIGN_OFFER: 'design-offers',
+  CATEGORY: 'categories',
 }
 
 export function storageEnvSegment(env: AppConfig['env']): string {

@@ -82,7 +82,7 @@ function mapProfile(row: ProfileRow): WorkerProfile {
     userId: row.userId,
     headline: row.headline,
     bio: row.bio,
-    primaryTrade: row.primaryTrade,
+    specialty: row.specialty,
     yearsExperience: row.yearsExperience,
     languages: row.languages,
     city: row.city,
@@ -171,7 +171,7 @@ function mapDirectoryItem(
     id: row.id,
     userId: row.userId,
     headline: row.headline,
-    primaryTrade: row.primaryTrade,
+    specialty: row.specialty,
     yearsExperience: row.yearsExperience,
     city: row.city,
     country: row.country,
@@ -290,7 +290,7 @@ export function createWorkersRepository(): WorkersRepository {
       const scalars = {
         headline: document.headline,
         bio: document.bio,
-        primaryTrade: document.primaryTrade,
+        specialty: document.specialty,
         yearsExperience: document.yearsExperience,
         languages: document.languages,
         city: document.city,
@@ -492,12 +492,15 @@ export function createWorkersRepository(): WorkersRepository {
       if (filters.categoryId) {
         and.push({ skills: { some: { categoryId: filters.categoryId } } })
       }
+      if (filters.specialty) {
+        and.push({ specialty: filters.specialty })
+      }
       if (filters.q) {
         const q = filters.q
         and.push({
           OR: [
             { headline: { contains: q, mode: 'insensitive' } },
-            { primaryTrade: { contains: q, mode: 'insensitive' } },
+            { specialty: { contains: q, mode: 'insensitive' } },
             { city: { contains: q, mode: 'insensitive' } },
             { bio: { contains: q, mode: 'insensitive' } },
             { user: { profile: { displayName: { contains: q, mode: 'insensitive' } } } },
@@ -509,13 +512,13 @@ export function createWorkersRepository(): WorkersRepository {
 
       const where: Prisma.WorkerProfileWhereInput = { AND: and }
       const countWhere: Prisma.WorkerProfileWhereInput = {
-        AND: and.filter((clause) => !('availability' in clause)),
+        AND: and.filter((clause) => !('availability' in clause) && !('specialty' in clause)),
       }
 
       const skip = (filters.page - 1) * filters.limit
       const includeCounts = filters.counts !== false
 
-      const [total, rows, availabilityGroups] = await Promise.all([
+      const [total, rows, availabilityGroups, specialtyGroups] = await Promise.all([
         prisma.workerProfile.count({ where }),
         prisma.workerProfile.findMany({
           where,
@@ -550,11 +553,25 @@ export function createWorkersRepository(): WorkersRepository {
               _count: { _all: true },
             })
           : Promise.resolve([] as { availability: WorkerAvailability; _count: { _all: number } }[]),
+        includeCounts
+          ? prisma.workerProfile.groupBy({
+              by: ['specialty'],
+              where: {
+                AND: [...(countWhere.AND ?? []), { specialty: { not: null } }],
+              },
+              _count: { _all: true },
+            })
+          : Promise.resolve([] as { specialty: string | null; _count: { _all: number } }[]),
       ])
 
       const availabilityCounts = emptyAvailabilityCounts()
       for (const group of availabilityGroups) {
         availabilityCounts[group.availability] = group._count._all
+      }
+
+      const specialtyCounts: Record<string, number> = {}
+      for (const group of specialtyGroups) {
+        if (group.specialty) specialtyCounts[group.specialty] = group._count._all
       }
 
       return {
@@ -565,6 +582,7 @@ export function createWorkersRepository(): WorkersRepository {
           total,
           totalPages: total === 0 ? 0 : Math.ceil(total / filters.limit),
           availabilityCounts,
+          specialtyCounts,
         },
       }
     },

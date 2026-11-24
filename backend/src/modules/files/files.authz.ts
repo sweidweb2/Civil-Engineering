@@ -34,6 +34,32 @@ export async function assertCanAttachToEntity(
       }
       throw forbidden('Not allowed to attach files to this design request')
     }
+    case 'DESIGN_OFFER': {
+      if (!isAdmin(actor.roles)) {
+        throw forbidden('Only admins can attach files to design offers')
+      }
+      const offer = await prisma.designOffer.findUnique({
+        where: { id: entityId },
+        select: { id: true },
+      })
+      if (!offer) {
+        throw notFound('Design offer not found', 'DESIGN_OFFER_NOT_FOUND')
+      }
+      return
+    }
+    case 'CATEGORY': {
+      if (!isAdmin(actor.roles)) {
+        throw forbidden('Only admins can attach files to categories')
+      }
+      const category = await prisma.category.findUnique({
+        where: { id: entityId },
+        select: { id: true, scope: true },
+      })
+      if (!category || category.scope !== 'PLATFORM') {
+        throw notFound('Category not found', 'CATEGORY_NOT_FOUND')
+      }
+      return
+    }
     case 'EXPENSE':
     case 'MATERIAL':
     case 'WORKER':

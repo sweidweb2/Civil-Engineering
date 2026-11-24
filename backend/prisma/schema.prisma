@@ -139,8 +139,8 @@ model WorkerProfile {
   userId          String             @unique
   headline        String?
   bio             String?
-  /// Primary trade label (free text); structured trades live in WorkerSkill → Category.
-  primaryTrade    String?
+  /// Specialty key from the client specialty dictionary; structured trades live in WorkerSkill → Category.
+  specialty       String?
   yearsExperience Int?
   languages       String?
   city            String?
@@ -163,7 +163,7 @@ model WorkerProfile {
 
   @@index([isPublic, updatedAt])
   @@index([isPublic, availability, updatedAt])
-  @@index([primaryTrade(ops: raw("gin_trgm_ops"))], map: "worker_profiles_primaryTrade_trgm_idx", type: Gin)
+  @@index([specialty(ops: raw("gin_trgm_ops"))], map: "worker_profiles_specialty_trgm_idx", type: Gin)
   @@index([city(ops: raw("gin_trgm_ops"))], map: "worker_profiles_city_trgm_idx", type: Gin)
   @@index([country(ops: raw("gin_trgm_ops"))], map: "worker_profiles_country_trgm_idx", type: Gin)
   @@index([headline(ops: raw("gin_trgm_ops"))], map: "worker_profiles_headline_trgm_idx", type: Gin)
@@ -348,6 +348,8 @@ enum FileEntityType {
   WORKER
   LISTING
   DESIGN_REQUEST
+  DESIGN_OFFER
+  CATEGORY
 }
 
 model File {
@@ -440,6 +442,8 @@ model Category {
   nameAr     String?
   slug       String
   parentId   String?
+  /// Optional catalog illustration (R2 key); clients use resolved imageUrl.
+  imagePath  String?
   isActive   Boolean       @default(true)
   sortOrder  Int           @default(0)
   createdAt  DateTime      @default(now())
@@ -724,6 +728,29 @@ model ProjectMaintenance {
 }
 
 // =============================================================================
+// design_offers — admin catalog packages PMs can attach to a design request
+// =============================================================================
+
+model DesignOffer {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  priceStart  Decimal  @db.Decimal(18, 4)
+  priceEnd    Decimal  @db.Decimal(18, 4)
+  currency    String   @default("USD")
+  imagePath   String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  requests    DesignRequest[]
+
+  @@index([isActive, sortOrder])
+  @@index([sortOrder])
+  @@map("design_offers")
+}
+
+// =============================================================================
 // design_requests — PM → designer (admin) design tickets
 // =============================================================================
 
@@ -746,15 +773,18 @@ model DesignRequest {
   requirementFilePath  String?
   responseFilePath     String?
   projectId            String?
+  designOfferId        String?
   requestedById        String
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   project              Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  designOffer          DesignOffer?        @relation(fields: [designOfferId], references: [id], onDelete: SetNull)
   requestedBy          User                @relation(fields: [requestedById], references: [id], onDelete: Restrict)
 
   @@index([requestedById, createdAt])
   @@index([status, createdAt])
   @@index([projectId, createdAt])
+  @@index([designOfferId])
   @@map("design_requests")
 }
 

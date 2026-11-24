@@ -11,6 +11,8 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { PendingApprovalPage } from '@/features/auth/PendingApprovalPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { ManageCategoriesPage } from '@/features/categories/ManageCategoriesPage'
+import { DesignOfferEditorPage } from '@/features/design-offers/DesignOfferEditorPage'
+import { DesignOffersListPage } from '@/features/design-offers/DesignOffersListPage'
 import { DesignRequestCreatePage } from '@/features/design-requests/DesignRequestCreatePage'
 import { DesignRequestDetailPage } from '@/features/design-requests/DesignRequestDetailPage'
 import { DesignRequestsListPage } from '@/features/design-requests/DesignRequestsListPage'
@@ -125,6 +127,9 @@ function App() {
             <Route path="categories" element={<ManageCategoriesPage />} />
             <Route path="design-requests" element={<DesignRequestsListPage />} />
             <Route path="design-requests/:id" element={<DesignRequestDetailPage />} />
+            <Route path="design-offers" element={<DesignOffersListPage />} />
+            <Route path="design-offers/new" element={<DesignOfferEditorPage mode="create" />} />
+            <Route path="design-offers/:id" element={<DesignOfferEditorPage mode="edit" />} />
             <Route path="notifications" element={<NotificationsInboxPage />} />
           </Route>
 

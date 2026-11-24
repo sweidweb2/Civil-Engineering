@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { router } from 'expo-router'
 import { HardHat, Languages, MapPin, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { specialtyLabel, specialtyOptions } from '@/features/worker/specialties'
 import {
   WkField,
   WkFormScreen,
@@ -11,7 +12,6 @@ import {
   WkSelect,
 } from '@/features/worker/ui/forms'
 import { WkButton } from '@/features/worker/ui/kit'
-import { useWorkerCategories } from '@/features/worker/useWorkerCategories'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerBasicsSchema, type WorkerBasicsValues } from '@/features/worker/worker.schema'
 import { useSeedOnce } from '@/hooks/useSeedOnce'
@@ -20,7 +20,7 @@ import { type FieldErrors, parseForm } from '@/lib/form'
 const EMPTY: WorkerBasicsValues = {
   headline: null,
   bio: null,
-  primaryTrade: null,
+  specialty: null,
   yearsExperience: null,
   languages: null,
   city: null,
@@ -28,9 +28,8 @@ const EMPTY: WorkerBasicsValues = {
 }
 
 export function WorkerBasicsScreen() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { profile, isReady, isLoading, error, refetch, isSaving, saveMerged } = useWorkerProfile()
-  const { trades, labelForName, isLoading: tradesLoading } = useWorkerCategories()
   const [form, setForm] = useState<WorkerBasicsValues>(EMPTY)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -40,7 +39,7 @@ export function WorkerBasicsScreen() {
     setForm({
       headline: profile.headline,
       bio: profile.bio,
-      primaryTrade: profile.primaryTrade,
+      specialty: profile.specialty,
       yearsExperience: profile.yearsExperience,
       languages: profile.languages,
       city: profile.city,
@@ -62,11 +61,17 @@ export function WorkerBasicsScreen() {
   const set = <K extends keyof WorkerBasicsValues>(key: K, value: WorkerBasicsValues[K]) =>
     setForm((c) => ({ ...c, [key]: value }))
 
-  // A trade typed before the picker existed may not match a category: keep it selectable.
-  const tradeOptions = trades.map((tr) => ({ value: tr.name, label: tr.label }))
-  if (form.primaryTrade && !trades.some((tr) => tr.name === form.primaryTrade)) {
-    tradeOptions.unshift({ value: form.primaryTrade, label: form.primaryTrade })
-  }
+  const options = useMemo(() => {
+    const next = specialtyOptions(i18n.language)
+    // Legacy free-text values stay selectable until the worker re-picks from the list.
+    if (form.specialty && !next.some((item) => item.value === form.specialty)) {
+      next.unshift({
+        value: form.specialty,
+        label: specialtyLabel(form.specialty, i18n.language) || form.specialty,
+      })
+    }
+    return next
+  }, [form.specialty, i18n.language])
 
   return (
     <WkFormScreen
@@ -102,12 +107,12 @@ export function WorkerBasicsScreen() {
         />
       </WkSection>
 
-      <WkSection icon={HardHat} title={t('worker.tradeSection')}>
+      <WkSection icon={HardHat} title={t('worker.specialtySection')}>
         <WkSelect
-          label={t('worker.primaryTrade')}
-          value={labelForName(form.primaryTrade)}
-          placeholder={t('worker.chooseTrade')}
-          error={errors.primaryTrade}
+          label={t('worker.specialty')}
+          value={specialtyLabel(form.specialty, i18n.language)}
+          placeholder={t('worker.chooseSpecialty')}
+          error={errors.specialty}
           onPress={() => setPickerOpen(true)}
         />
         <WkField
@@ -162,16 +167,15 @@ export function WorkerBasicsScreen() {
       <WkPickerSheet
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        title={t('worker.chooseTrade')}
-        options={tradeOptions}
-        value={form.primaryTrade}
-        isLoading={tradesLoading}
-        searchPlaceholder={t('worker.searchTrades')}
+        title={t('worker.chooseSpecialty')}
+        options={options}
+        value={form.specialty}
+        searchPlaceholder={t('worker.searchSpecialties')}
         emptyLabel={(query) =>
-          query ? t('worker.noTradesMatch', { query }) : t('worker.noTrades')
+          query ? t('worker.noSpecialtiesMatch', { query }) : t('worker.noSpecialties')
         }
         onSelect={(option) => {
-          set('primaryTrade', option.value)
+          set('specialty', option.value)
           setPickerOpen(false)
         }}
       />

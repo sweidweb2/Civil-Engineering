@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   MoreHorizontal,
   Package,
+  Palette,
   PenTool,
   Settings,
   ShieldCheck,
@@ -71,6 +72,12 @@ export const ADMIN_MORE_LINKS: PortalNavItem[] = [
     label: 'Design requests',
     href: '/admin/design-requests',
     icon: PenTool,
+  },
+  {
+    key: 'designOffers',
+    label: 'Design offers',
+    href: '/admin/design-offers',
+    icon: Palette,
   },
 ]
 

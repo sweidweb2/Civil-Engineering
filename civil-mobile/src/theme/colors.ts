@@ -3,19 +3,19 @@
  * className (icon colors, RefreshControl tints, SVG fills). Mirrors the RGB
  * variables in `civil-mobile/global.css`. Change both together.
  *
- * Near-monochrome: warm neutrals + ink. `accent` (the brand green) is the
- * only accent and is reserved for meaning. Legacy keys (primary, text,
- * textMuted, error…) alias the roles so older call sites keep resolving.
+ * Light 60-30-10: white page, cool neutrals, brand green accent only.
+ * Legacy keys (primary, text, textMuted, error…) alias the roles so older
+ * call sites keep resolving.
  */
 
 const light = {
-  bg: '#F6F5F1',
+  bg: '#FFFFFF',
   surface: '#FFFFFF',
-  surface2: '#F6F5F1',
+  surface2: '#F5F5F6',
   surfaceInverse: '#15171A',
-  line: '#E4E2DC',
-  lineSubtle: '#EEECE7',
-  lineStrong: '#D1CEC6',
+  line: '#E4E5E7',
+  lineSubtle: '#F2F2F3',
+  lineStrong: '#D1D3D6',
   ink: '#15171A',
   ink2: '#3A3D42',
   muted: '#5E6168',
@@ -25,7 +25,7 @@ const light = {
   data3: '#A3A6AC',
   accent: '#15803D',
   onAccent: '#FFFFFF',
-  onInverse: '#F6F5F1',
+  onInverse: '#FFFFFF',
   onInverseMuted: '#A9ACB2',
   /** Accent readable on `surfaceInverse` (toast actions). */
   accentOnInverse: '#6CCF8E',

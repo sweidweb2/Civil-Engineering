@@ -34,13 +34,16 @@ export const PROJECT_TONE: Record<ProjectStatus, WkTone> = {
 }
 
 /** Bar fill per status (literal classes so Tailwind sees them). */
-const BAR: Record<WkTone, string> = {
+export const PROJECT_BAR: Record<WkTone, string> = {
   green: 'bg-wk-brand',
   amber: 'bg-wk-amber',
   teal: 'bg-wk-teal',
   red: 'bg-wk-red',
   neutral: 'bg-wk-ink3',
 }
+
+/** @deprecated Prefer `PROJECT_BAR`. */
+const BAR = PROJECT_BAR
 
 /** Dot colors for chips laid over photos (always on a dark translucent chip). */
 export const PHOTO_DOT: Record<ProjectStatus, string> = {

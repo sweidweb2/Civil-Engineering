@@ -67,7 +67,7 @@ function hasMinimumCv(profile: WorkerProfile | null): boolean {
   if (!profile) return false
   return Boolean(
     profile.headline ||
-    profile.primaryTrade ||
+    profile.specialty ||
     profile.skills.length > 0 ||
     profile.experiences.length > 0,
   )

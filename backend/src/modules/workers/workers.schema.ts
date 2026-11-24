@@ -16,6 +16,8 @@ export const listWorkersQuerySchema = paginationQuerySchema.extend({
   city: z.string().trim().max(80).optional(),
   country: z.string().trim().max(80).optional(),
   categoryId: z.string().trim().min(1).optional(),
+  /** Exact specialty key from the client specialty dictionary. */
+  specialty: z.string().trim().min(1).max(120).optional(),
   availability: workerAvailabilitySchema.optional(),
   /** Admin-only filter; ignored for non-admins (public path forces VERIFIED). */
   verificationStatus: verificationStatusSchema.optional(),
@@ -160,7 +162,7 @@ export const upsertWorkerProfileBodySchema = z
   .object({
     headline: putText(160),
     bio: putText(4000),
-    primaryTrade: putText(120),
+    specialty: putText(120),
     yearsExperience: putYears(),
     languages: putText(500),
     city: putText(80),

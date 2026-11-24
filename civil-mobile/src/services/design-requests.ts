@@ -54,6 +54,9 @@ export type DesignRequest = {
   responseFileUrl: string | null
   projectId: string | null
   projectName: string | null
+  designOfferId: string | null
+  designOfferTitle: string | null
+  designOfferImageUrl: string | null
   requestedById: string
   requestedByEmail: string
   requestedByName: string
@@ -85,6 +88,7 @@ export type CreateDesignRequestInput = {
   category: DesignCategory
   neededBy: string
   projectId?: string | null
+  designOfferId?: string | null
   file?: { uri: string; mime: string; name: string } | null
 }
 
@@ -129,6 +133,7 @@ export async function createDesignRequest(input: CreateDesignRequestInput) {
       category: input.category,
       neededBy: input.neededBy,
       projectId: input.projectId ?? null,
+      designOfferId: input.designOfferId ?? null,
     }),
   }).then((res) => res.data)
 

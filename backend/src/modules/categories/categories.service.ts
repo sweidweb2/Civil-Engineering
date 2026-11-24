@@ -1,13 +1,19 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
+import type { AppConfig } from '../../config/index.js'
 import {
   conflict,
   forbidden,
   isUniqueConflictError,
   notFound,
+  unauthorized,
   validationError,
 } from '../../errors/app-error.js'
+import { getRequestLogger } from '../../logging/index.js'
 import { auditActivity } from '../logging/index.js'
+import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
+import type { AllowedFileMime } from '../files/files.schema.js'
+import type { FilesService } from '../files/files.service.js'
 import type { CategoriesRepository, CategoryRecord } from './categories.repository.js'
 import type {
   CategoryKind,
@@ -17,14 +23,28 @@ import type {
 } from './categories.schema.js'
 import type { Category, PaginatedCategories } from './categories.types.js'
 
+const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
 export type CategoriesService = {
   listCategories: (query: ListCategoriesQuery, actor: AuthActor) => Promise<PaginatedCategories>
   getCategoryById: (id: string, actor: AuthActor) => Promise<Category>
   createCategory: (input: CreateCategoryBody, actor: AuthActor) => Promise<Category>
   updateCategory: (id: string, input: UpdateCategoryBody, actor: AuthActor) => Promise<Category>
+  uploadImage: (
+    id: string,
+    actor: AuthActor,
+    file: { mime: AllowedFileMime; originalName: string; body: Buffer },
+  ) => Promise<Category>
   deleteCategory: (id: string, actor: AuthActor) => Promise<void>
   /** Internal lookup for other modules (no actor); throws CATEGORY_NOT_FOUND. */
   requirePlatformCategory: (id: string) => Promise<{ id: string; isActive: boolean }>
+}
+
+export type CategoriesServiceDeps = {
+  repository: CategoriesRepository
+  filesService?: FilesService
+  storage?: StorageService
+  config?: AppConfig
 }
 
 export function categorySlug(name: string): string {
@@ -38,7 +58,7 @@ export function categorySlug(name: string): string {
   return slug || 'category'
 }
 
-export function toCategoryDto(record: CategoryRecord): Category {
+export function toCategoryDto(record: CategoryRecord, imageUrl: string | null = null): Category {
   return {
     id: record.id,
     kind: record.kind,
@@ -48,6 +68,8 @@ export function toCategoryDto(record: CategoryRecord): Category {
     parentId: record.parentId,
     parentName: record.parentName,
     parentNameAr: record.parentNameAr,
+    imagePath: record.imagePath,
+    imageUrl,
     isActive: record.isActive,
     sortOrder: record.sortOrder,
     childCount: record.childCount,
@@ -77,7 +99,22 @@ function assertCanView(actor: AuthActor): CategoryViewAccess {
   throw forbidden('Only admins, project managers, providers, and workers can view categories')
 }
 
-export function createCategoriesService(repository: CategoriesRepository): CategoriesService {
+export function createCategoriesService(deps: CategoriesServiceDeps): CategoriesService {
+  const { repository, filesService, storage, config } = deps
+
+  async function resolveImageUrl(imagePath: string | null): Promise<string | null> {
+    if (!imagePath || !storage || !config) return null
+    try {
+      return await resolvePublicOrPresignedUrl({ config, storage, storagePath: imagePath })
+    } catch {
+      return null
+    }
+  }
+
+  async function toDto(record: CategoryRecord): Promise<Category> {
+    return toCategoryDto(record, await resolveImageUrl(record.imagePath))
+  }
+
   async function loadPlatformOrThrow(id: string): Promise<CategoryRecord> {
     const category = await repository.findById(id)
     if (!category || category.scope !== 'PLATFORM') {
@@ -115,6 +152,18 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
     }
   }
 
+  async function deleteStorageKey(key: string | null): Promise<void> {
+    if (!key || !storage) return
+    try {
+      await storage.deleteObject(key)
+    } catch (error) {
+      getRequestLogger().warn(
+        { err: error, key, kind: 'categories.delete_object_failed' },
+        'failed to delete category storage object',
+      )
+    }
+  }
+
   return {
     async requirePlatformCategory(id) {
       const category = await repository.findPlatformById(id)
@@ -137,8 +186,9 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
         repository.findMany(effectiveQuery),
         repository.countByKind(),
       ])
+      const data = await Promise.all(items.map((item) => toDto(item)))
       return {
-        data: items.map(toCategoryDto),
+        data,
         meta: {
           page: effectiveQuery.page,
           limit: effectiveQuery.limit,
@@ -154,7 +204,7 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
       if (access === 'worker-trades' && category.kind !== 'WORKER') {
         throw forbidden('Workers can only view worker trade categories')
       }
-      return toCategoryDto(category)
+      return toDto(category)
     },
 
     async createCategory(input, actor) {
@@ -173,7 +223,7 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
           isActive: input.isActive ?? true,
           sortOrder: input.sortOrder ?? 0,
         })
-        return toCategoryDto(created)
+        return toDto(created)
       } catch (error) {
         if (isUniqueConflictError(error)) {
           throw conflict('A category with this name already exists here', 'CATEGORY_NAME_TAKEN')
@@ -216,13 +266,37 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
           kind: input.kind,
           parentId: input.parentId,
         })
-        return toCategoryDto(updated)
+        return toDto(updated)
       } catch (error) {
         if (isUniqueConflictError(error)) {
           throw conflict('A category with this name already exists here', 'CATEGORY_NAME_TAKEN')
         }
         throw error
       }
+    },
+
+    async uploadImage(id, actor, file) {
+      if (!actor.id) throw unauthorized()
+      assertAdmin(actor)
+      if (!filesService) {
+        throw validationError('File uploads are not configured')
+      }
+      if (!IMAGE_MIMES.has(file.mime)) {
+        throw validationError('Category image must be JPEG, PNG, or WebP')
+      }
+      const existing = await loadPlatformOrThrow(id)
+      const uploaded = await filesService.uploadBytes(actor, {
+        entityType: 'CATEGORY',
+        entityId: id,
+        mime: file.mime,
+        originalName: file.originalName,
+        body: file.body,
+      })
+      const record = await repository.updateImagePath(id, uploaded.key)
+      if (existing.imagePath && existing.imagePath !== uploaded.key) {
+        await deleteStorageKey(existing.imagePath)
+      }
+      return toDto(record)
     },
 
     async deleteCategory(id, actor) {
@@ -235,6 +309,7 @@ export function createCategoriesService(repository: CategoriesRepository): Categ
         )
       }
       await repository.delete(id)
+      await deleteStorageKey(category.imagePath)
       auditActivity({
         userId: actor.id,
         action: 'categories.delete',

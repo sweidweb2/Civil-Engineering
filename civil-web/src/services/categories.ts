@@ -13,6 +13,8 @@ export type Category = {
   parentId: string | null
   parentName: string | null
   parentNameAr: string | null
+  imagePath: string | null
+  imageUrl: string | null
   isActive: boolean
   sortOrder: number
   childCount: number

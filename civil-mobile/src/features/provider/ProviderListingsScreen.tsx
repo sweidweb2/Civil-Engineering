@@ -36,17 +36,24 @@ function toRows(items: Listing[]): Listing[][] {
 /**
  * Listings photo grid with search and Live / Hidden filters.
  * Provider "Listings" tab by default; admin reuses it (all providers) as a
- * pushed screen with `scope="admin"` and a back header.
+ * pushed screen with `scope="admin"` and a back header — optionally scoped
+ * to one marketplace category.
  */
 export function ProviderListingsScreen({
   basePath = '/provider/listings',
   scope = 'mine',
   backHref,
+  categoryId,
+  title,
 }: {
   basePath?: string
   scope?: 'mine' | 'admin'
   /** Shows a back header (pushed screen) instead of the tab layout. */
   backHref?: string
+  /** When set, only listings in this category are shown. */
+  categoryId?: string
+  /** Override the top-bar title (e.g. category name). */
+  title?: string
 } = {}) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
@@ -68,6 +75,12 @@ export function ProviderListingsScreen({
     setRows([])
   }, [])
 
+  // Switching category (admin browse) clears the previous grid.
+  useEffect(() => {
+    setPage(1)
+    setRows([])
+  }, [categoryId])
+
   // Home stat tiles deep-link here with ?status=…
   useEffect(() => {
     if (params.status !== undefined) restart({ filter: parseFilter(params.status) })
@@ -86,13 +99,14 @@ export function ProviderListingsScreen({
       listListings(page, PAGE_SIZE, {
         q: applied || undefined,
         status: filter === 'ALL' ? undefined : filter,
+        categoryId: categoryId || undefined,
         counts: false,
       }),
-    [applied, filter, page],
+    [applied, categoryId, filter, page],
   )
   const pull = usePullToRefresh()
   const remote = useRemoteData(load, {
-    cacheKey: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${page}:${applied}:${filter}`,
+    cacheKey: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${categoryId ?? 'all'}:${page}:${applied}:${filter}`,
   })
   const result = remote.status === 'success' ? remote.data : null
 
@@ -104,7 +118,8 @@ export function ProviderListingsScreen({
     })
   }, [result])
 
-  const counts = result?.meta.statusCounts
+  // Status chip counts are global (not category-scoped) — hide them in a category view.
+  const counts = categoryId ? undefined : result?.meta.statusCounts
   const total = result?.meta.total ?? 0
   const allCount = counts ? counts.ACTIVE + counts.INACTIVE : null
   const isFirstLoad = remote.isLoading && rows.length === 0
@@ -117,7 +132,7 @@ export function ProviderListingsScreen({
     { value: 'INACTIVE', label: t('providerHome.hidden'), count: counts?.INACTIVE ?? null },
   ]
 
-  const noneAtAll = allCount === 0
+  const noneAtAll = !categoryId && allCount === 0
   const clearAll = () => {
     setQuery('')
     restart({ applied: '', filter: 'ALL' })
@@ -230,16 +245,22 @@ export function ProviderListingsScreen({
         </View>
         <View className="items-start gap-2 px-[22px] pb-[22px] pt-5">
           <Text className="text-[17px] font-semibold text-wk-ink">
-            {noneAtAll ? t('providerPortal.emptyFirstTitle') : t('providerPortal.noMatchTitle')}
+            {noneAtAll
+              ? t('providerPortal.emptyFirstTitle')
+              : categoryId && !applied && filter === 'ALL'
+                ? t('pmPortal.categoryListingsEmpty')
+                : t('providerPortal.noMatchTitle')}
           </Text>
           <Text className="text-[15px] leading-[22px] text-wk-ink2">
             {noneAtAll
               ? t('providerPortal.emptyFirstBody')
               : applied
                 ? t('providerPortal.noMatchQuery', { query: applied })
-                : filter === 'ACTIVE'
-                  ? t('providerPortal.noLive')
-                  : t('providerPortal.noHidden')}
+                : categoryId && filter === 'ALL'
+                  ? t('pmPortal.categoryListingsEmptyHint')
+                  : filter === 'ACTIVE'
+                    ? t('providerPortal.noLive')
+                    : t('providerPortal.noHidden')}
           </Text>
           <View className="mt-2">
             {noneAtAll ? (
@@ -268,7 +289,7 @@ export function ProviderListingsScreen({
     <View className="flex-1 bg-wk-bg" testID="e2e-provider-listings">
       {backHref ? (
         <WkTopBar
-          title={t('listings.title')}
+          title={title || t('listings.title')}
           backHref={backHref}
           count={total ? String(total) : undefined}
         />

@@ -3,7 +3,8 @@ import type { Pool } from 'pg'
 
 import { type AppConfig, loadConfig } from './config/index.js'
 import { createAuthModule } from './modules/auth/index.js'
-import { createCategoriesModule } from './modules/categories/index.js'
+import { createCategoriesModule, getCategoriesService } from './modules/categories/index.js'
+import { createDesignOffersModule, getDesignOffersService } from './modules/design-offers/index.js'
 import { createDesignRequestsModule } from './modules/design-requests/index.js'
 import { createDevicesModule } from './modules/devices/index.js'
 import { buildFilesService, createFilesModule } from './modules/files/index.js'
@@ -44,6 +45,7 @@ export type CompositionRoot = {
   reviews: ExpressRouter
   projects: ExpressRouter
   projectImages: ExpressRouter
+  designOffers: ExpressRouter
   designRequests: ExpressRouter
   notifications: ExpressRouter
 }
@@ -87,7 +89,11 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
     managerProfiles: createManagerProfilesModule(),
     workers: createWorkersModule(moduleDeps),
     providers: createProvidersModule({ service: providersService }),
-    categories: createCategoriesModule(),
+    categories: createCategoriesModule({
+      ...moduleDeps,
+      filesService,
+      service: getCategoriesService({ ...moduleDeps, filesService }),
+    }),
     listings: createListingsModule({ service: listingsService }),
     listingImages: createListingImagesModule({ ...moduleDeps, listingsService }),
     reviews: createReviewsModule({ service: reviewsService }),
@@ -98,9 +104,15 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       return projectsRouter
     })(),
     projectImages: createProjectImagesModule({ ...moduleDeps, projectsService }),
+    designOffers: createDesignOffersModule({
+      ...moduleDeps,
+      filesService,
+      service: getDesignOffersService({ ...moduleDeps, filesService }),
+    }),
     designRequests: createDesignRequestsModule({
       ...moduleDeps,
       filesService,
+      designOffers: getDesignOffersService({ ...moduleDeps, filesService }),
     }),
     notifications: createNotificationsModule(),
   }

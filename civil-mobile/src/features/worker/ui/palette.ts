@@ -1,26 +1,24 @@
 import { useIsDark } from '@/hooks/useThemeColors'
 
 /**
- * Worker-portal palette (resources/workers/Workers Portal.dc.html).
+ * Portal palette (shared across PM / provider / worker / admin screens).
  *
- * Scoped to the worker portal only: green brand on warm off-white, a deep
- * green hero card with lime highlights, soft tinted pills. Mirrors the
- * `--wk-*` variables in `civil-mobile/global.css` (use `bg-wk-*` /
- * `text-wk-*` classes there); this object is for props that cannot take a
- * className (icon colors, SVG strokes, placeholder colors). Change both together.
+ * Light: 60 white / 30 cool neutrals / 10 brand green. Mirrors `--wk-*` in
+ * `civil-mobile/global.css` (use `bg-wk-*` / `text-wk-*` there); this object
+ * is for props that cannot take a className. Change both together.
  *
  * Translucent values in the design (lines, soft tints, hero mutes) are
  * pre-composited onto their usual surface so they stay opaque tokens.
  */
 const light = {
-  bg: '#F4F3EF',
+  bg: '#FFFFFF',
   sf: '#FFFFFF',
-  sf2: '#F0EFEA',
+  sf2: '#F5F5F6',
   ink: '#141614',
   ink2: '#545853',
   ink3: '#8A8D87',
-  line: '#ECECEC',
-  line2: '#D9DAD9',
+  line: '#E8E9EB',
+  line2: '#D6D8DB',
   brand: '#15803D',
   brandSoft: '#E3F1E7',
   onBrand: '#FFFFFF',
@@ -38,7 +36,7 @@ const light = {
   teal: '#0E6F86',
   tealSoft: '#E0F0F4',
   tab: '#1A1C1A',
-  tabInk: '#F4F3EF',
+  tabInk: '#FFFFFF',
   scrim: 'rgba(10,12,10,0.42)',
 }
 
@@ -76,7 +74,11 @@ export type WorkerPalette = typeof light
 
 /** Soft card elevation from the design. Dark mode swaps it for a hairline ring. */
 const SHADOW = {
-  light: { boxShadow: '0 1px 2px rgba(20,22,20,0.04), 0 10px 28px -8px rgba(20,22,20,0.08)' },
+  // Include a light upward cast so white cards separate from a white page top edge.
+  light: {
+    boxShadow:
+      '0 -2px 8px -4px rgba(20,22,20,0.07), 0 1px 2px rgba(20,22,20,0.04), 0 10px 28px -8px rgba(20,22,20,0.08)',
+  },
   dark: { boxShadow: '0 0 0 1px rgba(255,255,255,0.04)' },
 } as const
 

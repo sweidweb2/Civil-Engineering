@@ -361,72 +361,74 @@ export function WkListRow({
 }) {
   const { c, shadow } = useWorkerPalette()
   return (
-    <View className="overflow-hidden rounded-[20px] bg-wk-sf" style={shadow}>
-      <Pressable
-        accessibilityRole={onPress ? 'button' : undefined}
-        accessibilityLabel={accessibilityLabel ?? title}
-        disabled={!onPress}
-        onPress={onPress}
-        className="flex-row items-center gap-3.5 py-3 pe-3.5 ps-3 active:bg-wk-sf2"
-      >
-        {media}
-        <View className="min-w-0 flex-1 gap-[5px]">
-          <View className="flex-row items-center gap-2">
-            <Text
-              className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-wk-ink"
-              numberOfLines={1}
-            >
-              {title}
-            </Text>
-            {pill ? <WkPill label={pill.label} tone={pill.tone} /> : null}
+    <View className="rounded-[20px]" style={shadow}>
+      <View className="overflow-hidden rounded-[20px] bg-wk-sf">
+        <Pressable
+          accessibilityRole={onPress ? 'button' : undefined}
+          accessibilityLabel={accessibilityLabel ?? title}
+          disabled={!onPress}
+          onPress={onPress}
+          className="flex-row items-center gap-3.5 py-3 pe-3.5 ps-3 active:bg-wk-sf2"
+        >
+          {media}
+          <View className="min-w-0 flex-1 gap-[5px]">
+            <View className="flex-row items-center gap-2">
+              <Text
+                className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-wk-ink"
+                numberOfLines={1}
+              >
+                {title}
+              </Text>
+              {pill ? <WkPill label={pill.label} tone={pill.tone} /> : null}
+            </View>
+            {sub ? (
+              <Text
+                className="text-[13px] text-wk-ink2"
+                numberOfLines={1}
+                style={subLtr ? { writingDirection: 'ltr' } : undefined}
+              >
+                {sub}
+              </Text>
+            ) : null}
+            {sub2 ? (
+              <Text
+                className="text-[11px] font-medium text-wk-ink3"
+                style={MONO_STYLE}
+                numberOfLines={1}
+              >
+                {sub2}
+              </Text>
+            ) : null}
+            {rating != null ? <WkStars rating={rating} /> : null}
+            {extra}
           </View>
-          {sub ? (
-            <Text
-              className="text-[13px] text-wk-ink2"
-              numberOfLines={1}
-              style={subLtr ? { writingDirection: 'ltr' } : undefined}
-            >
-              {sub}
-            </Text>
+          {onPress ? (
+            <View style={flipStyle()}>
+              <ChevronRight size={18} color={c.ink3} strokeWidth={1.9} />
+            </View>
           ) : null}
-          {sub2 ? (
-            <Text
-              className="text-[11px] font-medium text-wk-ink3"
-              style={MONO_STYLE}
-              numberOfLines={1}
-            >
-              {sub2}
-            </Text>
-          ) : null}
-          {rating != null ? <WkStars rating={rating} /> : null}
-          {extra}
-        </View>
-        {onPress ? (
-          <View style={flipStyle()}>
-            <ChevronRight size={18} color={c.ink3} strokeWidth={1.9} />
+        </Pressable>
+        {body ? (
+          <Text className="px-4 pb-3 text-[15px] leading-[22px] text-wk-ink2">{body}</Text>
+        ) : null}
+        {actions && actions.length > 0 ? (
+          <View className="flex-row gap-2 px-3 pb-3">
+            {actions.map((a) => (
+              <View key={a.key} style={{ flex: a.flex ?? 1 }}>
+                <WkButton
+                  label={a.label}
+                  icon={a.icon}
+                  variant={a.variant ?? 'soft'}
+                  height={44}
+                  disabled={a.disabled}
+                  loading={a.loading}
+                  onPress={a.onPress}
+                />
+              </View>
+            ))}
           </View>
         ) : null}
-      </Pressable>
-      {body ? (
-        <Text className="px-4 pb-3 text-[15px] leading-[22px] text-wk-ink2">{body}</Text>
-      ) : null}
-      {actions && actions.length > 0 ? (
-        <View className="flex-row gap-2 px-3 pb-3">
-          {actions.map((a) => (
-            <View key={a.key} style={{ flex: a.flex ?? 1 }}>
-              <WkButton
-                label={a.label}
-                icon={a.icon}
-                variant={a.variant ?? 'soft'}
-                height={44}
-                disabled={a.disabled}
-                loading={a.loading}
-                onPress={a.onPress}
-              />
-            </View>
-          ))}
-        </View>
-      ) : null}
+      </View>
     </View>
   )
 }

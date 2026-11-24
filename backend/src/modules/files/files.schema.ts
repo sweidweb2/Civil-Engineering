@@ -8,6 +8,8 @@ export const fileEntityTypeSchema = z.enum([
   'WORKER',
   'LISTING',
   'DESIGN_REQUEST',
+  'DESIGN_OFFER',
+  'CATEGORY',
 ])
 
 export const ALLOWED_FILE_MIMES = [

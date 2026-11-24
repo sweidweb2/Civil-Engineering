@@ -11,7 +11,7 @@ function makeProfile(overrides: Partial<WorkerProfile> = {}): WorkerProfile {
     userId: 'worker-1',
     headline: 'Welder',
     bio: null,
-    primaryTrade: 'Welding',
+    specialty: 'welders',
     yearsExperience: 5,
     languages: null,
     city: 'Beirut',
@@ -48,7 +48,7 @@ function fullPut(overrides: Partial<UpsertWorkerProfileBody> = {}): UpsertWorker
   return {
     headline: null,
     bio: null,
-    primaryTrade: null,
+    specialty: null,
     yearsExperience: null,
     languages: null,
     city: null,
@@ -198,6 +198,7 @@ describe('workersService', () => {
         total: 0,
         totalPages: 0,
         availabilityCounts: { AVAILABLE: 0, BUSY: 0, UNAVAILABLE: 0 },
+        specialtyCounts: {},
       },
     })
     const service = createWorkersService(repository)
@@ -216,7 +217,7 @@ describe('workersService', () => {
       id: 'wp-1',
       userId: 'worker-1',
       headline: null,
-      primaryTrade: null,
+      specialty: null,
       yearsExperience: null,
       city: null,
       country: null,
@@ -246,6 +247,7 @@ describe('workersService', () => {
         total: 3,
         totalPages: 1,
         availabilityCounts: { AVAILABLE: 3, BUSY: 0, UNAVAILABLE: 0 },
+        specialtyCounts: { welders: 3 },
       },
     })
     const resolveAvatarUrls = vi.fn(async () => new Map([['file-a', 'https://cdn/a.jpg']]))

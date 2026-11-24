@@ -18,6 +18,8 @@ type DesignRequestsListScreenProps = {
   basePath: '/pm/design-requests' | '/admin/design-requests'
   backHref?: string
   isAdmin?: boolean
+  /** Inside PM Designs hub — skip the duplicate top bar. */
+  hubEmbedded?: boolean
 }
 
 const STATUS_TONE: Record<DesignRequestStatus, 'green' | 'amber' | 'red' | 'neutral' | 'teal'> = {
@@ -33,6 +35,7 @@ export function DesignRequestsListScreen({
   basePath,
   backHref,
   isAdmin = false,
+  hubEmbedded = false,
 }: DesignRequestsListScreenProps) {
   const { t } = useTranslation()
   const list = usePagedList({
@@ -49,8 +52,8 @@ export function DesignRequestsListScreen({
   return (
     <WkListScreen
       list={list}
-      title={t('designRequests.title')}
-      backHref={backHref}
+      title={hubEmbedded ? undefined : t('designRequests.title')}
+      backHref={hubEmbedded ? undefined : backHref}
       searchPlaceholder={t('designRequests.title')}
       onAdd={isAdmin ? undefined : () => router.push(`${basePath}/new` as never)}
       addLabel={t('designRequests.newRequest')}
@@ -74,6 +77,7 @@ export function DesignRequestsListScreen({
             designCategoryLabel(row.category),
             new Date(row.neededBy).toLocaleDateString(),
             row.projectName,
+            row.designOfferTitle,
             isAdmin ? row.requestedByName : null,
           ]
             .filter(Boolean)

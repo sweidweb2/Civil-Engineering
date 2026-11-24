@@ -10,6 +10,7 @@ import type {
 
 const requestInclude = {
   project: { select: { id: true, name: true } },
+  designOffer: { select: { id: true, title: true, imagePath: true } },
   requestedBy: {
     select: {
       id: true,
@@ -46,6 +47,9 @@ function toRecord(row: RequestRow): DesignRequestRecord {
     responseFilePath: row.responseFilePath,
     projectId: row.projectId,
     projectName: row.project?.name ?? null,
+    designOfferId: row.designOfferId,
+    designOfferTitle: row.designOffer?.title ?? null,
+    designOfferImagePath: row.designOffer?.imagePath ?? null,
     requestedById: row.requestedById,
     requestedByEmail: row.requestedBy.email,
     requestedByName: personName(row.requestedBy.profile, row.requestedBy.email),
@@ -110,6 +114,7 @@ export function createDesignRequestsRepository(): DesignRequestsRepository {
           category: data.category,
           neededBy: data.neededBy,
           projectId: data.projectId,
+          designOfferId: data.designOfferId,
           requestedById: data.requestedById,
           requirementFilePath: data.requirementFilePath ?? null,
         },

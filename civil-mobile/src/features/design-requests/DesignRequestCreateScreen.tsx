@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
+import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import { Camera, FileUp, FolderOpen, Images, Mail, Phone } from 'lucide-react-native'
+import { Camera, FileUp, FolderOpen, Images, LayoutGrid, Mail, Phone } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
@@ -18,7 +19,9 @@ import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
+import { formatOfferPrice, listDesignOffers, type DesignOffer } from '@/services/design-offers'
 import {
   createDesignRequest,
   DESIGN_CATEGORY_OPTIONS,
@@ -38,12 +41,16 @@ function todayIsoDate(): string {
   return `${y}-${m}-${day}`
 }
 
-/** PM create form: subject, description, category, neededBy, optional project + file. */
+/** PM create form: subject, description, category, neededBy, optional project/offer + file. */
 export function DesignRequestCreateScreen() {
   const { t } = useTranslation()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
-  const params = useLocalSearchParams<{ projectId?: string }>()
+  const params = useLocalSearchParams<{ projectId?: string; designOfferId?: string }>()
+  const prefilledOfferId =
+    typeof params.designOfferId === 'string'
+      ? params.designOfferId
+      : (params.designOfferId?.[0] ?? '')
   const { sheetOpen, setSheetOpen, isBusy, pickAndRun } = useFilePick()
 
   const [subject, setSubject] = useState('')
@@ -51,22 +58,38 @@ export function DesignRequestCreateScreen() {
   const [category, setCategory] = useState<DesignCategory>('ARCHITECTURAL')
   const [neededBy, setNeededBy] = useState(todayIsoDate())
   const [projectId, setProjectId] = useState(params.projectId ?? '')
+  const [designOfferId, setDesignOfferId] = useState(prefilledOfferId)
   const [file, setFile] = useState<{ uri: string; mime: string; name: string } | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [projectPickerOpen, setProjectPickerOpen] = useState(false)
+  const [offerPickerOpen, setOfferPickerOpen] = useState(false)
 
   const loadContact = useCallback(() => getDesignerContact(), [])
   const loadProjects = useCallback(() => listProjects({ page: 1, limit: 100 }), [])
+  const loadOffers = useCallback(
+    () => listDesignOffers({ page: 1, limit: 100, activeOnly: true }),
+    [],
+  )
   const contactRemote = useRemoteData(loadContact, {
     cacheKey: `${cacheKeys.designRequests}:contact`,
   })
   const projectsRemote = useRemoteData(loadProjects, {
     cacheKey: `${cacheKeys.designRequests}:projects`,
   })
+  const offersRemote = useRemoteData(loadOffers, {
+    cacheKey: `${cacheKeys.designOffers}:picker`,
+  })
 
   const contact = contactRemote.status === 'success' ? contactRemote.data : null
   const projects = projectsRemote.status === 'success' ? projectsRemote.data.data : []
+  const offers: DesignOffer[] = offersRemote.status === 'success' ? offersRemote.data.data : []
+
+  useEffect(() => {
+    if (prefilledOfferId) setDesignOfferId(prefilledOfferId)
+  }, [prefilledOfferId])
+
+  const selectedOffer = offers.find((offer) => offer.id === designOfferId) ?? null
 
   const projectOptions = useMemo(
     () => [
@@ -75,8 +98,20 @@ export function DesignRequestCreateScreen() {
     ],
     [projects, t],
   )
+  const offerOptions = useMemo(
+    () => [
+      { value: '', label: t('designRequests.noOffer') },
+      ...offers.map((offer) => ({
+        value: offer.id,
+        label: `${offer.title} · ${formatOfferPrice(offer)}`,
+      })),
+    ],
+    [offers, t],
+  )
   const selectedProjectLabel =
     projectOptions.find((option) => option.value === projectId)?.label ?? null
+  const selectedOfferLabel =
+    offerOptions.find((option) => option.value === designOfferId)?.label ?? null
 
   const submit = async () => {
     const next: Record<string, string> = {}
@@ -94,6 +129,7 @@ export function DesignRequestCreateScreen() {
         category,
         neededBy: `${neededBy.trim()}T00:00:00.000Z`,
         projectId: projectId || null,
+        designOfferId: designOfferId || null,
         file,
       })
       toastSuccess(t('designRequests.created'))
@@ -109,7 +145,7 @@ export function DesignRequestCreateScreen() {
     <WkFormScreen
       title={t('designRequests.newRequest')}
       backHref={BASE}
-      isLoading={contactRemote.isLoading || projectsRemote.isLoading}
+      isLoading={contactRemote.isLoading || projectsRemote.isLoading || offersRemote.isLoading}
       footer={
         <View className="px-5 pb-2">
           <Pressable
@@ -139,6 +175,33 @@ export function DesignRequestCreateScreen() {
           </View>
         </WkSection>
       ) : null}
+
+      <WkSection icon={LayoutGrid} title={t('designRequests.designOffer')}>
+        <WkSelect
+          label={t('designRequests.designOffer')}
+          value={selectedOfferLabel}
+          placeholder={t('designRequests.offerPlaceholder')}
+          onPress={() => setOfferPickerOpen(true)}
+        />
+        {selectedOffer?.imageUrl ? (
+          <View className="mt-1 overflow-hidden rounded-[16px] border border-wk-line bg-wk-sf2">
+            <Image
+              source={remoteImage(selectedOffer.imageUrl, selectedOffer.imagePath)}
+              style={{ width: '100%', height: 160 }}
+              contentFit="cover"
+              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
+              recyclingKey={selectedOffer.imagePath ?? selectedOffer.id}
+            />
+          </View>
+        ) : selectedOffer ? (
+          <Text className="text-[12px] text-wk-ink3">{t('designRequests.offerNoImage')}</Text>
+        ) : null}
+        {selectedOffer ? (
+          <Text className="text-[13px] leading-[19px] text-wk-ink2" numberOfLines={4}>
+            {selectedOffer.description}
+          </Text>
+        ) : null}
+      </WkSection>
 
       <WkSection icon={FileUp} title={t('designRequests.details')}>
         <WkField
@@ -203,6 +266,21 @@ export function DesignRequestCreateScreen() {
         onSelect={(option) => {
           setProjectId(option.value)
           setProjectPickerOpen(false)
+        }}
+      />
+
+      <WkPickerSheet
+        visible={offerPickerOpen}
+        onClose={() => setOfferPickerOpen(false)}
+        title={t('designRequests.designOffer')}
+        options={offerOptions}
+        value={designOfferId}
+        isLoading={offersRemote.isLoading}
+        searchPlaceholder={t('designOffers.search')}
+        emptyLabel={(query) => (query ? t('designOffers.emptySearch') : t('designOffers.empty'))}
+        onSelect={(option) => {
+          setDesignOfferId(option.value)
+          setOfferPickerOpen(false)
         }}
       />
 

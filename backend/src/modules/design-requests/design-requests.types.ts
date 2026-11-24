@@ -24,6 +24,9 @@ export type DesignRequestRecord = {
   responseFilePath: string | null
   projectId: string | null
   projectName: string | null
+  designOfferId: string | null
+  designOfferTitle: string | null
+  designOfferImagePath: string | null
   requestedById: string
   requestedByEmail: string
   requestedByName: string
@@ -33,13 +36,14 @@ export type DesignRequestRecord = {
 
 export type DesignRequestResponse = Omit<
   DesignRequestRecord,
-  'neededBy' | 'createdAt' | 'updatedAt'
+  'neededBy' | 'createdAt' | 'updatedAt' | 'designOfferImagePath'
 > & {
   neededBy: string
   createdAt: string
   updatedAt: string
   requirementFileUrl: string | null
   responseFileUrl: string | null
+  designOfferImageUrl: string | null
 }
 
 export type DesignerContact = {
@@ -54,6 +58,7 @@ export type CreateDesignRequestData = {
   category: DesignCategory
   neededBy: Date
   projectId: string | null
+  designOfferId: string | null
   requestedById: string
   requirementFilePath?: string | null
 }

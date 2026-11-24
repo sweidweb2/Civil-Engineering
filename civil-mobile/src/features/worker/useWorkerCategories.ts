@@ -7,13 +7,13 @@ import { listCategories } from '@/services/categories'
 
 export type WorkerTrade = {
   id: string
-  /** Canonical (English) name — what Basics stores as `primaryTrade`. */
+  /** Canonical (English) name — used when matching skills to categories. */
   name: string
   /** Name in the current UI language. */
   label: string
 }
 
-/** Active WORKER categories: the trade list for Skills and the Basics trade picker. */
+/** Active WORKER categories: the trade list for the Skills picker. */
 export function useWorkerCategories() {
   const { i18n } = useTranslation()
   const isAr = i18n.language?.startsWith('ar') ?? false

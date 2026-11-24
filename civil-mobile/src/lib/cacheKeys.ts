@@ -29,6 +29,7 @@ export const cacheKeys = {
   queue: 'queue:list',
   verifications: 'verifications:list',
   designRequests: 'design-requests:list',
+  designOffers: 'design-offers:list',
 } as const
 
 /**

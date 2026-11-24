@@ -18,7 +18,7 @@ import {
 } from '@/features/worker/ui/kit'
 import { useWorkerPalette } from '@/features/worker/ui/palette'
 import { AVAILABILITY_TONE, CV_SECTION_META, VERIFICATION_KEY } from '@/features/worker/ui/sections'
-import { useWorkerCategories } from '@/features/worker/useWorkerCategories'
+import { specialtyLabel } from '@/features/worker/specialties'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'
@@ -40,7 +40,6 @@ export function WorkerCvScreen() {
   const { t, i18n } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const { c } = useWorkerPalette()
-  const { labelForName } = useWorkerCategories()
   const { profile, verificationStatus, isReady, error, refetch, isFetching } = useWorkerProfile()
 
   const sections = cvSectionStatuses(profile)
@@ -100,7 +99,7 @@ export function WorkerCvScreen() {
                   {profile?.headline || name}
                 </Text>
                 <Text className="text-[13px] text-wk-ink2" numberOfLines={1}>
-                  {[labelForName(profile?.primaryTrade), profile?.city]
+                  {[specialtyLabel(profile?.specialty, i18n.language), profile?.city]
                     .filter(Boolean)
                     .join(' · ') || t('worker.cvHint')}
                 </Text>

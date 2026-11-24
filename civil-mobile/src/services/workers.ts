@@ -69,7 +69,7 @@ export type WorkerProfile = {
   userId: string
   headline: string | null
   bio: string | null
-  primaryTrade: string | null
+  specialty: string | null
   yearsExperience: number | null
   languages: string | null
   city: string | null
@@ -94,7 +94,7 @@ export type WorkerDirectoryItem = {
   id: string
   userId: string
   headline: string | null
-  primaryTrade: string | null
+  specialty: string | null
   yearsExperience: number | null
   city: string | null
   country: string | null
@@ -156,7 +156,7 @@ export type WorkerSkillWrite = {
 export type WorkerProfileWriteInput = {
   headline: string | null
   bio: string | null
-  primaryTrade: string | null
+  specialty: string | null
   yearsExperience: number | null
   languages: string | null
   city: string | null
@@ -190,7 +190,7 @@ export const WORKER_SKILL_LEVEL_OPTIONS: { value: WorkerSkillLevel; label: strin
 export const EMPTY_WORKER_WRITE: WorkerProfileWriteInput = {
   headline: null,
   bio: null,
-  primaryTrade: null,
+  specialty: null,
   yearsExperience: null,
   languages: null,
   city: null,
@@ -213,7 +213,7 @@ export function profileToWrite(profile: WorkerProfile): WorkerProfileWriteInput 
   return {
     headline: profile.headline,
     bio: profile.bio,
-    primaryTrade: profile.primaryTrade,
+    specialty: profile.specialty,
     yearsExperience: profile.yearsExperience,
     languages: profile.languages,
     city: profile.city,
@@ -297,17 +297,33 @@ export function getWorkerByUserId(userId: string) {
 
 export type PaginatedWorkers = {
   data: WorkerDirectoryItem[]
-  meta: { page: number; limit: number; total: number; totalPages: number }
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    specialtyCounts?: Record<string, number>
+  }
 }
 
 /** Public marketplace list: non-admins only see public, verified workers. */
-export function listWorkers(params: { page?: number; limit?: number; q?: string } = {}) {
+export function listWorkers(
+  params: {
+    page?: number
+    limit?: number
+    q?: string
+    specialty?: string
+    /** When true, meta includes specialtyCounts (slightly heavier). */
+    counts?: boolean
+  } = {},
+) {
   const search = new URLSearchParams({
     page: String(params.page ?? 1),
     limit: String(params.limit ?? 20),
-    counts: 'false',
+    counts: params.counts ? 'true' : 'false',
   })
   if (params.q?.trim()) search.set('q', params.q.trim())
+  if (params.specialty?.trim()) search.set('specialty', params.specialty.trim())
   return apiRequest<PaginatedWorkers>(`/workers?${search.toString()}`)
 }
 

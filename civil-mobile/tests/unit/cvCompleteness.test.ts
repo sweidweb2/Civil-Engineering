@@ -7,7 +7,7 @@ function makeProfile(overrides: Partial<WorkerProfile> = {}): WorkerProfile {
     userId: 'worker-1',
     headline: null,
     bio: null,
-    primaryTrade: null,
+    specialty: null,
     yearsExperience: null,
     languages: null,
     city: null,

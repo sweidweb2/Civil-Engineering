@@ -1,5 +1,5 @@
-import { ProviderListingsScreen } from '@/features/provider/ProviderListingsScreen'
+import { AdminListingsScreen } from '@/features/admin/AdminListingsScreen'
 
 export default function AdminListingsRoute() {
-  return <ProviderListingsScreen basePath="/admin/listings" scope="admin" backHref="/admin/more" />
+  return <AdminListingsScreen />
 }

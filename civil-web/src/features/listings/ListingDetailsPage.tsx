@@ -130,6 +130,8 @@ export function ListingDetailsPage() {
               parentId: null,
               parentName: null,
               parentNameAr: null,
+              imagePath: null,
+              imageUrl: null,
               isActive: true,
               sortOrder: 0,
               childCount: 0,

@@ -1,5 +1,6 @@
 import type { AppConfig } from '../../config/index.js'
 import type { StorageService } from '../../storage/index.js'
+import type { DesignOffersService } from '../design-offers/index.js'
 import type { FilesService } from '../files/files.service.js'
 import { createNotificationsRepository } from '../notifications/notifications.repository.js'
 import { createDesignRequestsController } from './design-requests.controller.js'
@@ -14,6 +15,7 @@ export type DesignRequestsModuleDeps = {
   config?: AppConfig
   storage?: StorageService
   filesService?: FilesService
+  designOffers?: DesignOffersService
   service?: DesignRequestsService
 }
 
@@ -26,6 +28,7 @@ export function buildDesignRequestsService(
     filesService: deps.filesService,
     storage: deps.storage,
     config: deps.config,
+    designOffers: deps.designOffers,
   })
 }
 

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { PAGE_SIZE, pageCount } from '@/lib/text'
-import { formatOfferPrice, listDesignOffers, type DesignOffer } from '@/services/design-offers'
+import { type DesignOffer, formatOfferPrice, listDesignOffers } from '@/services/design-offers'
 
 type DesignOffersGridProps = {
   mode: 'admin' | 'pm'

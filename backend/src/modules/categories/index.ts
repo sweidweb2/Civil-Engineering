@@ -5,9 +5,9 @@ import { createCategoriesController } from './categories.controller.js'
 import { createCategoriesRepository } from './categories.repository.js'
 import { createCategoriesRoutes } from './categories.routes.js'
 import {
-  createCategoriesService,
   type CategoriesService,
   type CategoriesServiceDeps,
+  createCategoriesService,
 } from './categories.service.js'
 
 export type CategoriesModuleDeps = {

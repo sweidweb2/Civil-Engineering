@@ -10,10 +10,10 @@ import {
   validationError,
 } from '../../errors/app-error.js'
 import { getRequestLogger } from '../../logging/index.js'
-import { auditActivity } from '../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { AllowedFileMime } from '../files/files.schema.js'
 import type { FilesService } from '../files/files.service.js'
+import { auditActivity } from '../logging/index.js'
 import type { CategoriesRepository, CategoryRecord } from './categories.repository.js'
 import type {
   CategoryKind,

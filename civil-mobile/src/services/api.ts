@@ -1,9 +1,35 @@
+import Constants from 'expo-constants'
+import { Platform } from 'react-native'
+
 import i18n from '@/i18n'
 import { isOffline } from '@/services/connectivity'
 
-const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api/v1'
-).replace(/\/$/, '')
+/**
+ * Dev API host must be the machine running the backend — not `localhost` on a
+ * physical device/emulator. Prefer Metro's LAN host so IP churn does not break login.
+ */
+function resolveApiBaseUrl(): string {
+  const fromEnv = (process.env.EXPO_PUBLIC_API_BASE_URL ?? '').replace(/\/$/, '')
+
+  if (__DEV__) {
+    const hostUri = Constants.expoConfig?.hostUri
+    const metroHost =
+      typeof hostUri === 'string' && hostUri.length > 0 ? hostUri.split(':')[0] : undefined
+
+    if (metroHost && metroHost !== 'localhost' && metroHost !== '127.0.0.1') {
+      return `http://${metroHost}:3000/api/v1`
+    }
+
+    // Android emulator loopback to the host machine
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:3000/api/v1'
+    }
+  }
+
+  return fromEnv || 'http://localhost:3000/api/v1'
+}
+
+const API_BASE_URL = resolveApiBaseUrl()
 
 export type ApiErrorBody = {
   code?: string

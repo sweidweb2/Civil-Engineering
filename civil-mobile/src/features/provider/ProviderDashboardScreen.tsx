@@ -115,7 +115,7 @@ export function ProviderDashboardScreen() {
             live > 0
               ? t('providerPortal.heroLive', { live, total })
               : t('providerPortal.heroNoneLive'),
-          body: live > 0 ? t('providerPortal.heroLiveBody') : t('providerPortal.heroNoneLiveBody'),
+          body: live > 0 ? null : t('providerPortal.heroNoneLiveBody'),
           cta: t('providerPortal.viewListings'),
           icon: LayoutGrid,
           onPress: () => toListings(),
@@ -213,12 +213,14 @@ export function ProviderDashboardScreen() {
                 {t('providerPortal.storefront')}
               </Text>
               <Text className="text-2xl font-semibold leading-7 text-white">{hero.title}</Text>
-              <Text
-                className="text-[13px] leading-[19px]"
-                style={{ color: 'rgba(255,255,255,0.78)' }}
-              >
-                {hero.body}
-              </Text>
+              {hero.body ? (
+                <Text
+                  className="text-[13px] leading-[19px]"
+                  style={{ color: 'rgba(255,255,255,0.78)' }}
+                >
+                  {hero.body}
+                </Text>
+              ) : null}
             </View>
             <Pressable
               accessibilityRole="button"

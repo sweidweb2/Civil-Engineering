@@ -5,12 +5,12 @@ import '@/stores/authStore'
 
 import { useEffect } from 'react'
 import { Text, TextInput, View } from 'react-native'
-import { NotoSansArabic_400Regular } from '@expo-google-fonts/noto-sans-arabic/400Regular'
-import { NotoSansArabic_500Medium } from '@expo-google-fonts/noto-sans-arabic/500Medium'
-import { NotoSansArabic_600SemiBold } from '@expo-google-fonts/noto-sans-arabic/600SemiBold'
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import { NotoSansArabic_400Regular } from '@expo-google-fonts/noto-sans-arabic/400Regular'
+import { NotoSansArabic_500Medium } from '@expo-google-fonts/noto-sans-arabic/500Medium'
+import { NotoSansArabic_600SemiBold } from '@expo-google-fonts/noto-sans-arabic/600SemiBold'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { AppAlertHost } from '@/components/feedback/AppAlertHost'
@@ -47,9 +47,9 @@ function ForegroundRevalidateBridge() {
 function applyArabicTextDefaults(isArabic: boolean) {
   const style = isArabic ? arabicDefaultTextStyle() : undefined
   // React Native still honors defaultProps for Text/TextInput style merge.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   ;(Text as any).defaultProps = { ...(Text as any).defaultProps, style }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   ;(TextInput as any).defaultProps = { ...(TextInput as any).defaultProps, style }
 }
 

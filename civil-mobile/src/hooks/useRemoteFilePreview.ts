@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { Platform } from 'react-native'
-import * as WebBrowser from 'expo-web-browser'
 import { File, Paths } from 'expo-file-system'
+import * as WebBrowser from 'expo-web-browser'
 
 import type { FilePreviewOverlayState } from '@/components/files/ImagePreviewModal'
 

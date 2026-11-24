@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
+import { AndroidImportance } from 'expo-notifications'
 import { router } from 'expo-router'
 
 import type { DevicePlatform } from '@/services/devices'
@@ -77,7 +78,7 @@ export async function registerPushForUser(accessToken: string): Promise<string |
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
+        importance: AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
       })
     }

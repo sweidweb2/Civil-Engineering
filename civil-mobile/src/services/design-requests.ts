@@ -6,7 +6,7 @@ export type DesignCategory =
 
 export type DesignRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED'
 
-export const DESIGN_CATEGORY_OPTIONS: Array<{ value: DesignCategory; label: string }> = [
+export const DESIGN_CATEGORY_OPTIONS: { value: DesignCategory; label: string }[] = [
   { value: 'ARCHITECTURAL', label: 'Architectural' },
   { value: 'STRUCTURAL', label: 'Structural' },
   { value: 'MEP', label: 'MEP' },
@@ -16,10 +16,10 @@ export const DESIGN_CATEGORY_OPTIONS: Array<{ value: DesignCategory; label: stri
   { value: 'OTHER', label: 'Other' },
 ]
 
-export const DESIGN_REQUEST_STATUS_OPTIONS: Array<{
+export const DESIGN_REQUEST_STATUS_OPTIONS: {
   value: DesignRequestStatus
   label: string
-}> = [
+}[] = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'IN_PROGRESS', label: 'In progress' },
   { value: 'COMPLETED', label: 'Completed' },

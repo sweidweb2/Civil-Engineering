@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next'
 import { usePagedList, WkListRow, WkListScreen } from '@/features/worker/ui/list'
 import { cacheKeys } from '@/lib/cacheKeys'
 import {
+  DESIGN_REQUEST_STATUS_OPTIONS,
   designCategoryLabel,
   type DesignRequestStatus,
-  DESIGN_REQUEST_STATUS_OPTIONS,
   designRequestStatusLabel,
   listDesignRequests,
 } from '@/services/design-requests'

@@ -21,8 +21,8 @@ import { cacheKeys } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
 import {
   createDesignRequest,
-  type DesignCategory,
   DESIGN_CATEGORY_OPTIONS,
+  type DesignCategory,
   getDesignerContact,
 } from '@/services/design-requests'
 import { listProjects } from '@/services/projects'

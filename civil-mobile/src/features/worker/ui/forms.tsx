@@ -27,7 +27,6 @@ import { isRtlLayout, ltrInputStyle } from '@/lib/rtl'
 import { errorMessage } from '@/services/feedback'
 
 import { WkBodyScroll, WkButton, WkCard, WkError, WkFooter, WkSkeletonCard, WkTopBar } from './kit'
-
 import { useWorkerPalette } from './palette'
 
 /* ─── Screen ───────────────────────────────────────────────────────────── */

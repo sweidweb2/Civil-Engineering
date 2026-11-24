@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, Modal, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Image } from 'expo-image'
 import { X } from 'lucide-react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export type FilePreviewOverlayState =
   | null

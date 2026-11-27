@@ -1,4 +1,5 @@
 import type { AuthActor } from '../../authz/index.js'
+import { conflict, validationError } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/index.js'
 import type { ProjectProductivityRepository } from './project-productivity.repository.js'
 import type { UpsertProductivityHoursBody } from './project-productivity.schema.js'
@@ -6,6 +7,14 @@ import type { ProjectProductivityHourEntry } from './project-productivity.types.
 
 function utcToday(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * Latest day a client may log: its *local* today can be up to UTC+14, i.e. one
+ * calendar day ahead of UTC. Anything later is a future day and is rejected.
+ */
+function latestLoggableDay(): string {
+  return new Date(Date.now() + 24 * 60 * 60_000).toISOString().slice(0, 10)
 }
 
 export type ProjectProductivityService = {
@@ -38,9 +47,17 @@ export function createProjectProductivityService(
     },
 
     async upsert(projectId, body, actor) {
-      await assertProject(projectId, actor)
+      const project = await assertProject(projectId, actor)
+      if (project.status === 'CANCELLED') {
+        throw conflict('Cannot log hours on a cancelled project', 'PROJECT_CANCELLED')
+      }
       const date = body.date ?? utcToday()
-      return repository.upsert(projectId, date, body.hours)
+      if (date > latestLoggableDay()) {
+        throw validationError('Hours cannot be logged for a future day', {
+          code: 'PRODUCTIVITY_FUTURE_DATE',
+        })
+      }
+      return repository.upsert(projectId, date, body.hours, body.expectedUpdatedAt)
     },
   }
 }

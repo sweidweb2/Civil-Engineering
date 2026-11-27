@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { ADMIN_ROLES } from '../../authz/index.js'
 import { authenticate } from '../../middleware/authenticate.js'
 import { authorize } from '../../middleware/authorize.js'
+import { idempotent } from '../../middleware/idempotency.js'
 import { validate } from '../../middleware/validate.js'
 import type { DesignRequestsController } from './design-requests.controller.js'
 import {
@@ -32,7 +33,14 @@ export function createDesignRequestsRoutes(controller: DesignRequestsController)
     controller.getById,
   )
 
-  router.post('/', authorize('MANAGER'), controller.optionalUploadMiddleware, controller.create)
+  // Idempotency after the upload parser so form fields and file bytes are hashed.
+  router.post(
+    '/',
+    authorize('MANAGER'),
+    controller.optionalUploadMiddleware,
+    idempotent(),
+    controller.create,
+  )
 
   router.patch(
     '/:id/status',

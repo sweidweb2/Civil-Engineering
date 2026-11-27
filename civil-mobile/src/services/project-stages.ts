@@ -1,5 +1,5 @@
 import { apiRequest } from './api'
-import { getProjectById, type Project } from './projects'
+import { getProjectById, type PaginatedProjects, type Project } from './projects'
 
 export type ProjectStageStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD'
 
@@ -179,6 +179,16 @@ export function getProjectStagesSummaries(projectIds: string[]) {
     method: 'POST',
     body: JSON.stringify({ projectIds }),
   })
+}
+
+/** Page 1 of own projects + status summary + each listed project's stage summary. */
+export type ProjectsOverview = PaginatedProjects & {
+  stages: Record<string, ProjectStagesSummary>
+}
+
+/** PM home in one round-trip (`GET /projects/stages/overview`). */
+export function getProjectsOverview(limit = 20) {
+  return apiRequest<ProjectsOverview>(`/projects/stages/overview?limit=${limit}`)
 }
 
 export function upsertGeotechnical(projectId: string, body: UpsertGeotechnicalInput) {

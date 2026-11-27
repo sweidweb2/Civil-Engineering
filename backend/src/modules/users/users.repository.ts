@@ -113,7 +113,7 @@ export type UsersRepository = {
   update: (
     id: string,
     input: UpdateUserInput,
-    options?: { deleteWorkerProfile?: boolean },
+    options?: { hideWorkerProfile?: boolean },
   ) => Promise<User>
   updateStatus: (id: string, status: UserStatus) => Promise<User>
   /**
@@ -496,7 +496,7 @@ export function createUsersRepository(): UsersRepository {
       }
 
       const hasProfileData = Object.values(profileData).some((val) => val !== undefined)
-      const deleteWorkerProfile = options?.deleteWorkerProfile === true
+      const hideWorkerProfile = options?.hideWorkerProfile === true
 
       const user = await runInTransaction(async (tx) => {
         const updated = await tx.user.update({
@@ -518,8 +518,12 @@ export function createUsersRepository(): UsersRepository {
           include: { profile: true },
         })
 
-        if (deleteWorkerProfile) {
-          await tx.workerProfile.deleteMany({ where: { userId: id } })
+        if (hideWorkerProfile) {
+          // Leaving the WORKER role hides the CV from the directory but keeps it:
+          // a mistaken role change must not destroy experience / certifications /
+          // uploaded documents. Re-granting WORKER lets the user publish it again.
+          // No-op when the user has no worker profile.
+          await tx.workerProfile.updateMany({ where: { userId: id }, data: { isPublic: false } })
         }
 
         return updated

@@ -1,12 +1,14 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { parseAuthActor } from '../../auth/auth-actor.js'
+import type { StagesOverviewQuery } from './project-stages.schema.js'
 import type { ProjectStagesService } from './project-stages.service.js'
 
 export type ProjectStagesController = {
   getSummary: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getDetail: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getSummaries: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  getOverview: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getGeotechnical: (req: Request, res: Response, next: NextFunction) => Promise<void>
   upsertGeotechnical: (req: Request, res: Response, next: NextFunction) => Promise<void>
   getDesign: (req: Request, res: Response, next: NextFunction) => Promise<void>
@@ -35,6 +37,14 @@ export function createProjectStagesController(
       try {
         const data = await service.getDetail(String(req.params.projectId), parseAuthActor(req))
         res.status(200).json({ data })
+      } catch (error) {
+        next(error)
+      }
+    },
+    async getOverview(req, res, next) {
+      try {
+        const query = req.query as unknown as StagesOverviewQuery
+        res.status(200).json(await service.getOverview(query, parseAuthActor(req)))
       } catch (error) {
         next(error)
       }

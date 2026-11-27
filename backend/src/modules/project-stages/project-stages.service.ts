@@ -1,6 +1,7 @@
 import { assertOwnerOrAdmin, type AuthActor } from '../../authz/index.js'
 import { conflict, isUniqueConflictError } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/index.js'
+import type { ListProjectsQuery } from '../projects/projects.schema.js'
 import type { Project } from '../projects/projects.types.js'
 import {
   designMissing,
@@ -17,6 +18,7 @@ import {
 import type { ProjectStagesRepository } from './project-stages.repository.js'
 import type {
   BatchStageSummariesBody,
+  StagesOverviewQuery,
   UpsertDesignBody,
   UpsertGeotechnicalBody,
   UpsertLicensingBody,
@@ -69,8 +71,18 @@ export type ProjectWithStages = {
   stages: ProjectStagesSummary
 }
 
+type ProjectList = Awaited<ReturnType<ProjectsService['listProjects']>>
+
+/** Project list page + status summary + each listed project's stage summary. */
+export type ProjectsOverview = ProjectList & { stages: Record<string, ProjectStagesSummary> }
+
 export type ProjectStagesService = {
   getSummary: (projectId: string, actor: AuthActor) => Promise<ProjectStagesSummary>
+  /**
+   * PM home in one round-trip: page 1 of the actor's projects (owner-scoped, admins see
+   * all) with the status summary and every listed project's stage summary.
+   */
+  getOverview: (query: StagesOverviewQuery, actor: AuthActor) => Promise<ProjectsOverview>
   /** Project + stage summary in one round-trip (authz project load once). */
   getDetail: (projectId: string, actor: AuthActor) => Promise<ProjectWithStages>
   getSummaries: (
@@ -158,6 +170,16 @@ export function createProjectStagesService(deps: ProjectStagesServiceDeps): Proj
           }),
         }
       }
+    },
+
+    async getOverview(query, actor) {
+      const listQuery = { page: 1, limit: query.limit, includeSummary: true } as ListProjectsQuery
+      const list = await projectsService.listProjects(listQuery, actor)
+      // Rows come from the actor's own scope (listProjects), so no per-row authz is needed.
+      const rows = await repository.findAllByProjectIds(list.data.map((project) => project.id))
+      const stages: Record<string, ProjectStagesSummary> = {}
+      for (const row of rows) stages[row.projectId] = toSummary(row)
+      return { ...list, stages }
     },
 
     async getSummaries(input, actor) {

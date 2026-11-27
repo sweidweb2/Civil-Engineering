@@ -2,6 +2,7 @@ import { prisma } from '../../database/prisma.js'
 import type { DbClient } from '../../database/transaction.js'
 import { conflict } from '../../errors/app-error.js'
 import type { ProjectStatus, ProjectType } from '../../generated/prisma/client.js'
+import { projectProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
 import type { Project, ProjectListRow } from './projects.types.js'
 
@@ -182,18 +183,22 @@ export function createProjectsRepository(): ProjectsRepository {
 
     async summarize(ownerId) {
       const where = { archivedAt: null, ...(ownerId ? { ownerId } : {}) }
-      const [groups, aggregate] = await Promise.all([
+      // Progress is computed live (it depends on today's date and status), so the
+      // stored `progress` column — written only on create/update — must not be
+      // averaged: it drifts from what every card shows.
+      const [groups, schedules] = await Promise.all([
         prisma.project.groupBy({
           by: ['status'],
           where,
           _count: { _all: true },
         }),
-        prisma.project.aggregate({
+        prisma.project.findMany({
           where,
-          _count: { _all: true },
-          _avg: { progress: true },
+          select: { startDate: true, endDate: true, status: true, updatedAt: true },
         }),
       ])
+      const now = new Date()
+      const progressSum = schedules.reduce((sum, row) => sum + projectProgress(row, now), 0)
 
       const counts: Record<ProjectStatus, number> = {
         DRAFT: 0,
@@ -209,8 +214,8 @@ export function createProjectsRepository(): ProjectsRepository {
       }
 
       return {
-        total: aggregate._count._all,
-        averageProgress: Math.round(aggregate._avg.progress ?? 0),
+        total: schedules.length,
+        averageProgress: schedules.length ? Math.round(progressSum / schedules.length) : 0,
         counts,
       }
     },
@@ -249,8 +254,10 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async findById(id) {
-      const project = await prisma.project.findUnique({
-        where: { id },
+      // Archived projects are gone for every caller (detail, stages, hours, images,
+      // files): an archived id must not stay editable or be re-archived.
+      const project = await prisma.project.findFirst({
+        where: { id, archivedAt: null },
       })
       return project ? mapToProject(project) : null
     },
@@ -348,8 +355,9 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async delete(id) {
-      await prisma.project.update({
-        where: { id },
+      // Conditional so a concurrent second archive cannot overwrite the first timestamp.
+      await prisma.project.updateMany({
+        where: { id, archivedAt: null },
         data: { archivedAt: new Date() },
       })
     },

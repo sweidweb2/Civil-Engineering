@@ -15,6 +15,8 @@ export type UpsertProductivityHoursInput = {
   hours: string
   /** Local calendar day `YYYY-MM-DD`. */
   date: string
+  /** `updatedAt` of the day's entry the user saw, or `null` if there was none. */
+  expectedUpdatedAt?: string | null
 }
 
 export function listProjectProductivityHours(projectId: string) {
@@ -52,8 +54,32 @@ export function localTodayIso(): string {
  */
 const HOURS_PATTERN = /^(?:24(?:\.0)?|(?:\d|[1]\d|2[0-3])(?:\.\d)?)$/
 
+const ARABIC_INDIC_ZERO = 0x0660
+const EXTENDED_ARABIC_INDIC_ZERO = 0x06f0
+
+/**
+ * Arabic keyboards type `٨٫٥`, `۸٫۵` or `8,5`: map Arabic-Indic / Persian digits to
+ * ASCII and the Arabic decimal separator / comma to `.` before validating.
+ */
+export function normalizeHoursInput(raw: string): string {
+  let out = ''
+  for (const ch of raw.trim()) {
+    const code = ch.charCodeAt(0)
+    if (code >= ARABIC_INDIC_ZERO && code <= ARABIC_INDIC_ZERO + 9) {
+      out += String(code - ARABIC_INDIC_ZERO)
+    } else if (code >= EXTENDED_ARABIC_INDIC_ZERO && code <= EXTENDED_ARABIC_INDIC_ZERO + 9) {
+      out += String(code - EXTENDED_ARABIC_INDIC_ZERO)
+    } else if (ch === '٫' || ch === ',' || ch === '،') {
+      out += '.'
+    } else {
+      out += ch
+    }
+  }
+  return out
+}
+
 export function validateHoursInput(raw: string): string | null {
-  const value = raw.trim()
+  const value = normalizeHoursInput(raw)
   if (!value) return 'required'
   if (!HOURS_PATTERN.test(value)) {
     const n = Number(value)

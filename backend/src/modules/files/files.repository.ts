@@ -20,6 +20,15 @@ export type FilesRepository = {
   /** READY only if still PENDING — returns null when raced with delete/complete. */
   markReady: (id: string, size: number) => Promise<FileRecord | null>
   markDeleted: (id: string) => Promise<FileRecord>
+  /**
+   * Soft-delete live (PENDING/READY) rows of one entity by storage key. Returns the
+   * rows that flipped, for R2 cleanup.
+   */
+  markDeletedByKeys: (
+    entityType: FileEntityTypeName,
+    entityId: string,
+    keys: string[],
+  ) => Promise<Array<{ id: string; key: string }>>
   /** Soft-deleted rows still needing R2 cleanup (oldest first). */
   listDeleted: (take: number) => Promise<Array<{ id: string; key: string }>>
   /** Stale PENDING uploads that never completed. */
@@ -70,6 +79,23 @@ export function createFilesRepository(): FilesRepository {
         where: { id },
         data: { status: 'DELETED' satisfies FileStatusName },
       }) as Promise<FileRecord>
+    },
+
+    async markDeletedByKeys(entityType, entityId, keys) {
+      if (keys.length === 0) return []
+      const where = {
+        entityType,
+        entityId,
+        key: { in: keys },
+        status: { in: ['PENDING', 'READY'] satisfies FileStatusName[] },
+      }
+      const rows = await prisma.file.findMany({ where, select: { id: true, key: true } })
+      if (rows.length === 0) return []
+      await prisma.file.updateMany({
+        where: { ...where, id: { in: rows.map((row) => row.id) } },
+        data: { status: 'DELETED' satisfies FileStatusName },
+      })
+      return rows
     },
 
     async listDeleted(take) {

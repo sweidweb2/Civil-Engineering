@@ -11,7 +11,7 @@ import {
   remoteCacheRead,
   remoteCacheSubscribe,
 } from '@/lib/remoteCache'
-import { ApiError } from '@/services/api'
+import { isServerUnreachable } from '@/lib/serverReachability'
 import { isOffline } from '@/services/connectivity'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -74,8 +74,8 @@ type RefetchOptions = {
  * When nothing is on screen yet, the last saved copy is shown if the request is still
  * pending after `SAVED_COPY_GRACE_MS` (immediately when offline), or if it fails
  * without a server response. `offlineSavedAt` is then set to when the copy was saved;
- * it returns to `null` once live data loads. A real server error (`ApiError`) still
- * replaces the saved copy with the error.
+ * it returns to `null` once live data loads. A real server answer (`ApiError` other than
+ * 502 / 503 / 504, see `isServerUnreachable`) still replaces the saved copy with the error.
  */
 export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
   const { enabled = true, cacheKey, staleTime = REMOTE_STALE_MS, persist = false } = options
@@ -94,6 +94,9 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   /** Cache key that `state` currently belongs to (prevents cross-page hadData). */
   const dataKeyRef = useRef<string | undefined>(cached !== undefined ? cacheKey : undefined)
   const requestIdRef = useRef(0)
+  /** Saved-copy timer of the request in flight; cleared on unmount. */
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const mountedRef = useRef(true)
   /**
    * Start unfocused; `useFocusEffect` sets true when the host screen is active.
    * Avoids a same-tick invalidate refetch before focus is known.
@@ -117,6 +120,14 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   useEffect(() => {
     stateRef.current = state
   }, [state])
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      clearTimeout(graceTimerRef.current)
+    }
+  }, [])
 
   const show = useCallback((next: RemoteState<T>) => {
     // Keep the ref in step so a refetch started in the same commit sees this state.
@@ -181,12 +192,19 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
         showingSaved = true
       }
       // Nothing on screen: show the saved copy if the request is slow (or we are offline).
+      clearTimeout(graceTimerRef.current)
       const graceTimer =
         persistKey && hadData === undefined
           ? setTimeout(
               () => {
+                if (!mountedRef.current) return
                 void readSaved().then((entry) => {
-                  if (entry && isCurrent() && stateRef.current.status === 'loading') {
+                  if (
+                    entry &&
+                    mountedRef.current &&
+                    isCurrent() &&
+                    stateRef.current.status === 'loading'
+                  ) {
                     showSaved(entry)
                   }
                 })
@@ -194,6 +212,7 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
               isOffline() ? 0 : SAVED_COPY_GRACE_MS,
             )
           : undefined
+      graceTimerRef.current = graceTimer
 
       try {
         const data = requestKey
@@ -214,10 +233,11 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
           show({ status: 'success', data: hadData })
           return false
         }
-        // A server answer (`ApiError`) is shown even over a saved copy; with no server
-        // response (offline / timeout), show the last saved copy if this key has one.
-        if (!(error instanceof ApiError)) {
+        // A real server answer is shown even over a saved copy; with no answer from the
+        // API (offline / timeout / gateway down), show the last saved copy if there is one.
+        if (isServerUnreachable(error)) {
           if (showingSaved) return true
+          if (!mountedRef.current) return true
           const entry = await readSaved()
           if (!isCurrent()) return true
           if (entry) {
@@ -231,6 +251,7 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
         return true
       } finally {
         if (graceTimer) clearTimeout(graceTimer)
+        if (graceTimerRef.current === graceTimer) graceTimerRef.current = undefined
         if (requestId === requestIdRef.current) setIsFetching(false)
       }
     },

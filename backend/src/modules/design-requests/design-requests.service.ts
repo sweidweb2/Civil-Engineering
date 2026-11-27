@@ -1,7 +1,13 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
-import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
+import {
+  conflict,
+  forbidden,
+  notFound,
+  unauthorized,
+  validationError,
+} from '../../errors/app-error.js'
 import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { DesignOffersService } from '../design-offers/index.js'
@@ -199,14 +205,45 @@ export function createDesignRequestsService(
     }
   }
 
-  async function deleteStorageKey(key: string | null): Promise<void> {
-    if (!key || !storage) return
+  function changedElsewhere() {
+    return conflict(
+      'Design request was changed elsewhere; reload and try again',
+      'DESIGN_REQUEST_CHANGED',
+    )
+  }
+
+  /**
+   * Release files no longer referenced by the request: soft-delete their `files` rows
+   * and remove the objects (deleting only the object would leave READY rows that
+   * presign URLs to missing objects and that the sweeper never collects).
+   */
+  async function releaseKeys(requestId: string, keys: Array<string | null>): Promise<void> {
+    const live = keys.filter((key): key is string => Boolean(key))
+    if (live.length === 0) return
     try {
-      await storage.deleteObject(key)
+      if (filesService) {
+        await filesService.releaseByKeys('DESIGN_REQUEST', requestId, live)
+        return
+      }
+      if (storage) {
+        for (const key of live) await storage.deleteObject(key)
+      }
     } catch (error) {
       getRequestLogger().warn(
-        { err: error, key, kind: 'design_requests.delete_object_failed' },
-        'failed to delete design request storage object',
+        { err: error, requestId, kind: 'design_requests.release_files_failed' },
+        'failed to release design request files',
+      )
+    }
+  }
+
+  /** Compensate a create that failed after the row was written; never swallow silently. */
+  async function rollbackCreate(id: string): Promise<void> {
+    try {
+      await repository.delete(id)
+    } catch (error) {
+      getRequestLogger().error(
+        { err: error, designRequestId: id, kind: 'design_requests.create_rollback_failed' },
+        'failed to remove design request after its file upload failed',
       )
     }
   }
@@ -285,7 +322,7 @@ export function createDesignRequestsService(
 
       if (file) {
         if (!filesService) {
-          await repository.delete(record.id)
+          await rollbackCreate(record.id)
           throw validationError('File uploads are not available')
         }
         try {
@@ -296,15 +333,20 @@ export function createDesignRequestsService(
             originalName: file.originalName,
             body: file.body,
           })
+          const createdId = record.id
           record = await linkUploadedFile({
             actor,
             filesService,
             fileId: uploaded.id,
             kind: 'design_requests.create',
-            link: () => repository.updateRequirementPath(record.id, uploaded.key),
+            link: async () => {
+              const linked = await repository.updateRequirementPath(createdId, uploaded.key)
+              if (!linked) throw changedElsewhere()
+              return linked
+            },
           })
         } catch (error) {
-          await repository.delete(record.id).catch(() => undefined)
+          await rollbackCreate(record.id)
           throw error
         }
       }
@@ -332,7 +374,10 @@ export function createDesignRequestsService(
         throw validationError('Only pending requests can be cancelled')
       }
 
-      const updated = await repository.updateStatus(id, input.status)
+      // Conditional on the status validated above, so a concurrent cancel / complete
+      // cannot both pass the transition check and overwrite each other.
+      const updated = await repository.updateStatus(id, record.status, input.status)
+      if (!updated) throw changedElsewhere()
       if (admin) {
         void notifyPmOfStatus(userId, updated, input.status)
       }
@@ -369,7 +414,13 @@ export function createDesignRequestsService(
           filesService,
           fileId: uploaded.id,
           kind: 'design_requests.requirement',
-          link: () => repository.updateRequirementPath(record.id, uploaded.key),
+          // Still PENDING with no file: a concurrent upload or status change loses here
+          // and its uploaded file is soft-deleted by linkUploadedFile.
+          link: async () => {
+            const linked = await repository.updateRequirementPath(record.id, uploaded.key)
+            if (!linked) throw changedElsewhere()
+            return linked
+          },
         }),
       )
     },
@@ -401,10 +452,17 @@ export function createDesignRequestsService(
         filesService,
         fileId: uploaded.id,
         kind: 'design_requests.response',
-        link: () => repository.updateResponsePath(record.id, uploaded.key),
+        link: async () => {
+          const linked = await repository.updateResponsePath(record.id, uploaded.key, {
+            statuses: ['PENDING', 'IN_PROGRESS'],
+            previousPath: previousKey,
+          })
+          if (!linked) throw changedElsewhere()
+          return linked
+        },
       })
       if (previousKey && previousKey !== uploaded.key) {
-        void deleteStorageKey(previousKey)
+        void releaseKeys(record.id, [previousKey])
       }
       return toResponse(updated)
     },
@@ -421,9 +479,9 @@ export function createDesignRequestsService(
         throw validationError('Cannot delete a design request while it is in progress')
       }
 
-      await repository.delete(id)
-      void deleteStorageKey(record.requirementFilePath)
-      void deleteStorageKey(record.responseFilePath)
+      const deleted = await repository.delete(id, DELETABLE)
+      if (!deleted) throw changedElsewhere()
+      void releaseKeys(id, [record.requirementFilePath, record.responseFilePath])
     },
   }
 }

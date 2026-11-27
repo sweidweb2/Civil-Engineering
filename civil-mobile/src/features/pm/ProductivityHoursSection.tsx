@@ -13,9 +13,11 @@ import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { remoteCacheInvalidate } from '@/lib/remoteCache'
 import { ltr } from '@/lib/rtl'
+import { ApiError } from '@/services/api'
 import {
   listProjectProductivityHours,
   localTodayIso,
+  normalizeHoursInput,
   type ProjectProductivityHourEntry,
   upsertProjectProductivityHours,
   validateHoursInput,
@@ -25,28 +27,48 @@ import { MONO_STYLE } from '@/theme/typography'
 
 const CHART_HEIGHT = 168
 const PAD = { top: 12, right: 8, bottom: 28, left: 28 }
+/** Calendar window drawn (one slot per day, gaps included) so bars never overflow. */
+const CHART_DAYS = 30
+
+/** `count` calendar days ending at `endIso` (inclusive), oldest first, as `YYYY-MM-DD`. */
+function lastCalendarDays(endIso: string, count: number): string[] {
+  const end = Date.parse(`${endIso}T00:00:00.000Z`)
+  if (!Number.isFinite(end)) return []
+  const days: string[] = []
+  for (let i = count - 1; i >= 0; i -= 1) {
+    days.push(new Date(end - i * 86_400_000).toISOString().slice(0, 10))
+  }
+  return days
+}
 
 function formatAxisDate(iso: string): string {
   const [, m, d] = iso.split('-')
   return m && d ? `${m}/${d}` : iso
 }
 
-function ProductivityHoursChart({ entries }: { entries: ProjectProductivityHourEntry[] }) {
+function ProductivityHoursChart({
+  entries,
+  today,
+}: {
+  entries: ProjectProductivityHourEntry[]
+  today: string
+}) {
   const { t } = useTranslation()
   const { c } = useWkPalette()
   const { width: windowWidth } = useWindowDimensions()
   const chartWidth = Math.max(280, Math.min(windowWidth - 72, 520))
 
-  const points = useMemo(
-    () =>
-      entries.map((e) => ({
-        date: e.date,
-        hours: Number(e.hours),
-      })),
-    [entries],
-  )
+  // One slot per calendar day ending today: unlogged days stay empty instead of
+  // collapsing, so the chart reflects time, not just the number of entries.
+  const points = useMemo(() => {
+    const byDate = new Map(entries.map((e) => [e.date, Number(e.hours)]))
+    return lastCalendarDays(today, CHART_DAYS).map((date) => ({
+      date,
+      hours: byDate.get(date) ?? 0,
+    }))
+  }, [entries, today])
 
-  if (points.length === 0) {
+  if (entries.length === 0) {
     return (
       <View className="items-center justify-center rounded-xl border border-dashed border-wk-line bg-wk-sf2 px-4 py-8">
         <Text className="text-center text-[13px] leading-5 text-wk-ink3">
@@ -60,8 +82,8 @@ function ProductivityHoursChart({ entries }: { entries: ProjectProductivityHourE
   const yMax = Math.min(24, Math.ceil(maxHours))
   const innerW = chartWidth - PAD.left - PAD.right
   const innerH = CHART_HEIGHT - PAD.top - PAD.bottom
-  const gap = points.length > 1 ? Math.min(8, innerW / points.length / 4) : 0
-  const barW = Math.max(4, (innerW - gap * Math.max(0, points.length - 1)) / points.length)
+  const gap = points.length > 1 ? Math.min(4, innerW / points.length / 4) : 0
+  const barW = Math.max(1, (innerW - gap * Math.max(0, points.length - 1)) / points.length)
   const first = points[0]!
   const last = points[points.length - 1]!
 
@@ -112,7 +134,7 @@ function ProductivityHoursChart({ entries }: { entries: ProjectProductivityHourE
               y={y}
               width={barW}
               height={Math.max(h, p.hours > 0 ? 2 : 0)}
-              rx={3}
+              rx={Math.min(3, barW / 2)}
               fill={c.brand}
               opacity={0.9}
             />
@@ -182,22 +204,41 @@ export function ProductivityHoursSection({ projectId }: { projectId: string }) {
   }
 
   async function onSave() {
-    const code = validateHoursInput(hoursToday)
+    const hours = normalizeHoursInput(hoursToday)
+    const code = validateHoursInput(hours)
     if (code) {
       setError(hoursErrorMessage(code))
+      return
+    }
+    // Read the day at press time: a screen left open past midnight must not write
+    // today's hours onto yesterday (the label re-renders, the closure may not).
+    const day = localTodayIso()
+    if (day !== today) {
+      // Day rolled over since render: reload so the field shows the new day first.
+      await remote.refetch()
       return
     }
     setIsSaving(true)
     setError(undefined)
     try {
       await upsertProjectProductivityHours(projectId, {
-        hours: hoursToday.trim(),
-        date: today,
+        hours,
+        date: day,
+        // Version of the entry this screen showed (null = none): a concurrent edit
+        // by another manager / admin gets a 409 instead of being silently overwritten.
+        expectedUpdatedAt: todayEntry?.updatedAt ?? null,
       })
+      setHoursToday(hours)
       remoteCacheInvalidate(cacheKeys.projectProductivity)
       toastSuccess(t('pmPortal.productivitySaved'))
       await remote.refetch()
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'PRODUCTIVITY_VERSION_CONFLICT') {
+        setError(t('pmPortal.productivityConflict'))
+        remoteCacheInvalidate(cacheKeys.projectProductivity)
+        await remote.refetch()
+        return
+      }
       handleApiError(err, t('pmPortal.productivitySaveFailed'))
     } finally {
       setIsSaving(false)
@@ -228,7 +269,7 @@ export function ProductivityHoursSection({ projectId }: { projectId: string }) {
         variant="soft"
         onPress={() => void onSave()}
       />
-      <ProductivityHoursChart entries={entries} />
+      <ProductivityHoursChart entries={entries} today={today} />
     </WkSection>
   )
 }

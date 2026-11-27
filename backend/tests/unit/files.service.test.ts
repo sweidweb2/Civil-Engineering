@@ -50,6 +50,7 @@ describe('filesService', () => {
         }),
       ),
       findById: vi.fn(async () => file),
+      markDeletedByKeys: vi.fn(async () => []),
       markReady: vi.fn(async (id, size) => pendingFile({ id, size, status: 'READY' })),
       markDeleted: vi.fn(async (id) => pendingFile({ id, status: 'DELETED' })),
       listDeleted: vi.fn(async () => []),

@@ -169,10 +169,31 @@ export function createPrismaIdempotencyStore(options: { ttlMs?: number } = {}): 
 
 const defaultStore = createPrismaIdempotencyStore()
 
-function hashBody(body: unknown) {
-  return createHash('sha256')
-    .update(stableStringify(body ?? null))
-    .digest('hex')
+type UploadedFileLike = { buffer?: Buffer; originalname?: string; mimetype?: string }
+
+/**
+ * Hash the parsed body plus any multipart file(s) so a retry with the same key but a
+ * different attachment is rejected instead of replaying the first create.
+ */
+function hashBody(body: unknown, files: UploadedFileLike[] = []) {
+  const hash = createHash('sha256').update(stableStringify(body ?? null))
+  for (const file of files) {
+    hash.update(JSON.stringify(['file', file.originalname ?? '', file.mimetype ?? '']))
+    if (file.buffer) hash.update(file.buffer)
+  }
+  return hash.digest('hex')
+}
+
+function uploadedFiles(req: { file?: unknown; files?: unknown }): UploadedFileLike[] {
+  const out: UploadedFileLike[] = []
+  if (req.file) out.push(req.file as UploadedFileLike)
+  if (Array.isArray(req.files)) out.push(...(req.files as UploadedFileLike[]))
+  else if (req.files && typeof req.files === 'object') {
+    for (const list of Object.values(req.files as Record<string, UploadedFileLike[]>)) {
+      out.push(...list)
+    }
+  }
+  return out
 }
 
 async function resolveGet(store: IdempotencyStore, scope: string) {
@@ -180,8 +201,30 @@ async function resolveGet(store: IdempotencyStore, scope: string) {
 }
 
 /**
+ * How long a `pending` claim blocks retries. It must outlive the slowest create
+ * (transaction maxWait + timeout, multipart uploads) so a client that timed out
+ * cannot slip a duplicate in while the first request is still committing, yet be
+ * short enough that a crashed process does not block the key for a whole day.
+ */
+export const IDEMPOTENCY_PENDING_LEASE_MS = 2 * 60_000
+
+function pendingLeaseMs(store: IdempotencyStore) {
+  return Math.min(IDEMPOTENCY_PENDING_LEASE_MS, store.ttlMs)
+}
+
+/** One retry for a transient DB blip before giving up on recording the outcome. */
+async function persistDone(store: IdempotencyStore, scope: string, entry: Entry) {
+  try {
+    await store.set(scope, entry)
+  } catch {
+    await store.set(scope, entry)
+  }
+}
+
+/**
  * Mount on a POST route **after** `authenticate` (keys are scoped per user) and
- * **before** `validate` (the raw body is hashed).
+ * **before** `validate` (the raw body is hashed). On multipart routes mount it
+ * **after** the upload parser so form fields and file bytes are part of the hash.
  */
 export function idempotent(
   store: IdempotencyStore = defaultStore,
@@ -202,7 +245,7 @@ export function idempotent(
       }
 
       const scope = `${req.user?.id ?? 'anonymous'} ${req.method} ${req.baseUrl}${req.path} ${key}`
-      const bodyHash = hashBody(req.body)
+      const bodyHash = hashBody(req.body, uploadedFiles(req))
       const existing = await resolveGet(store, scope)
 
       if (existing) {
@@ -229,7 +272,7 @@ export function idempotent(
         return
       }
 
-      const began = await store.tryBegin(scope, bodyHash, now() + store.ttlMs)
+      const began = await store.tryBegin(scope, bodyHash, now() + pendingLeaseMs(store))
       if (!began) {
         const raced = await resolveGet(store, scope)
         if (raced?.bodyHash && raced.bodyHash !== bodyHash) {
@@ -257,14 +300,47 @@ export function idempotent(
 
       void maybePurgeExpiredIdempotencyKeys()
 
+      let outcomeHandled = false
       const originalJson = res.json.bind(res) as Response['json']
-      res.json = ((body: unknown) => {
-        // Persist before the client sees the body so a crash mid-flight cannot
-        // leave a pending key that blocks legitimate retries without a replay.
+
+      // Handlers that answer without `res.json` (e.g. `res.status(204).end()`): record
+      // the outcome once the response was fully sent. `finish` does not fire when the
+      // client disconnected first; the pending lease then guards the retry instead.
+      res.on('finish', () => {
+        if (outcomeHandled) return
+        outcomeHandled = true
         void (async () => {
           try {
             if (res.statusCode >= 200 && res.statusCode < 300) {
-              await store.set(scope, {
+              await persistDone(store, scope, {
+                state: 'done',
+                bodyHash,
+                expiresAt: now() + store.ttlMs,
+                status: res.statusCode,
+                body: null,
+              })
+            } else {
+              await store.delete(scope)
+            }
+          } catch (error) {
+            getRequestLogger().warn(
+              { err: error, scope, kind: 'idempotency.persist_failed' },
+              'failed to persist idempotency outcome',
+            )
+          }
+        })()
+      })
+
+      res.json = ((body: unknown) => {
+        outcomeHandled = true
+        // Persist before the client sees the body. The outcome is recorded even when
+        // the client already disconnected (timeout): that is exactly the case where
+        // the retry must get a replay instead of running the create a second time.
+        void (async () => {
+          const success = res.statusCode >= 200 && res.statusCode < 300
+          try {
+            if (success) {
+              await persistDone(store, scope, {
                 state: 'done',
                 bodyHash,
                 expiresAt: now() + store.ttlMs,
@@ -275,23 +351,17 @@ export function idempotent(
               await store.delete(scope)
             }
           } catch (error) {
+            // Keep the pending lease on a failed success write: retries get
+            // IDEMPOTENCY_IN_PROGRESS until it expires rather than a duplicate create.
             getRequestLogger().warn(
               { err: error, scope, kind: 'idempotency.persist_failed' },
               'failed to persist idempotency outcome',
             )
-            await Promise.resolve(store.delete(scope)).catch(() => undefined)
           }
           originalJson(body)
         })()
         return res
       }) as Response['json']
-
-      res.on('close', () => {
-        void (async () => {
-          const current = await resolveGet(store, scope)
-          if (current?.state === 'pending') await store.delete(scope)
-        })()
-      })
 
       next()
     })().catch(next)

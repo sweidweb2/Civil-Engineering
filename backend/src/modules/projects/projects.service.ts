@@ -10,7 +10,7 @@ import {
 } from '../../errors/app-error.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { ProjectsRepository } from './projects.repository.js'
-import { scheduleProgress } from './projects.schedule.js'
+import { projectProgress } from './projects.schedule.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
 import type { Project, ProjectListItem, ProjectStatus } from './projects.types.js'
 
@@ -83,7 +83,7 @@ export function createProjectsService(
   function presentProject(project: Project): Project {
     return {
       ...project,
-      progress: scheduleProgress(project.startDate, project.endDate),
+      progress: projectProgress(project),
     }
   }
 
@@ -143,7 +143,7 @@ export function createProjectsService(
 
       const data: ProjectListItem[] = projects.map(({ mainImageStoragePath, ...project }) => ({
         ...project,
-        progress: scheduleProgress(project.startDate, project.endDate),
+        progress: projectProgress(project),
         mainImageUrl: mainImageStoragePath ? (urlByPath.get(mainImageStoragePath) ?? null) : null,
         mainImageKey: mainImageStoragePath,
       }))
@@ -171,7 +171,7 @@ export function createProjectsService(
       return {
         data: rows.map((row) => ({
           ...row,
-          progress: scheduleProgress(row.startDate, row.endDate),
+          progress: projectProgress(row),
         })),
         meta: { total: rows.length },
       }
@@ -195,7 +195,8 @@ export function createProjectsService(
       const payload = {
         ...input,
         ownerId,
-        progress: scheduleProgress(input.startDate, input.endDate),
+        // New projects start as DRAFT (schema default): not started yet.
+        progress: projectProgress({ ...input, status: 'DRAFT' }),
       }
 
       try {
@@ -229,7 +230,12 @@ export function createProjectsService(
           await translateUniqueConflict(() =>
             repository.update(id, {
               ...input,
-              progress: scheduleProgress(startDate, endDate),
+              progress: projectProgress({
+                startDate,
+                endDate,
+                status: input.status ?? current.status,
+                updatedAt: new Date(),
+              }),
             }),
           ),
         )

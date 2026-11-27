@@ -21,12 +21,15 @@ import { Platform } from 'react-native'
  */
 
 /**
- * Bumped when the on-disk layout or persisted payload shapes change; old folders and
- * files are deleted on the next clear and never read.
+ * Bumped when the on-disk layout or persisted payload shapes change. The previous
+ * single-file layout (v2) is migrated once on first load; older files are deleted on clear.
  */
 const DIR_PREFIX = 'offline-snapshot-v3-'
+const LEGACY_V2_PREFIX = 'offline-snapshot-v2-'
+/** Payload format of v2 files that may be migrated (older ones hold other shapes). */
+const LEGACY_V2_VERSION = 2
 /** Leftover single-file snapshots from earlier versions, deleted on clear. */
-const LEGACY_FILE_PREFIXES = ['offline-snapshot-v1-', 'offline-snapshot-v2-'] as const
+const LEGACY_FILE_PREFIXES = ['offline-snapshot-v1-', LEGACY_V2_PREFIX] as const
 const INDEX_FILE = 'index.json'
 
 export const OFFLINE_MAX_ENTRIES = 40
@@ -35,6 +38,8 @@ export const OFFLINE_MAX_AGE_MS = 7 * 24 * 60 * 60_000
 type Entry = { data: unknown; savedAt: number }
 /** Index file: cache key → epoch ms the entry was saved (insertion order = save order). */
 type IndexFile = { userId: string; keys: Record<string, number> }
+/** v2 layout: one file per user holding every entry. */
+type LegacyFile = { version: number; userId: string; entries: Record<string, Entry> }
 
 /** Where snapshots live. Default: expo-file-system cache directory (native only). */
 export type OfflineSnapshotStorage = {
@@ -44,6 +49,9 @@ export type OfflineSnapshotStorage = {
   writeEntry: (userId: string, key: string, text: string) => Promise<void>
   removeEntry: (userId: string, key: string) => void
   clearAll: () => void
+  /** The user's v2 single-file snapshot, if one is left over (migrated once). */
+  readLegacy?: (userId: string) => Promise<string | null>
+  removeLegacy?: (userId: string) => void
 }
 
 const safe = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, '_')
@@ -64,6 +72,8 @@ function createFileStorage(): OfflineSnapshotStorage {
     return directory
   }
   const file = (userId: string, name: string) => new (fs().File)(dir(userId), name)
+  const legacyFile = (userId: string) =>
+    new (fs().File)(fs().Paths.cache, `${LEGACY_V2_PREFIX}${safe(userId)}.json`)
   const readText = async (userId: string, name: string) => {
     const target = file(userId, name)
     return target.exists ? await target.text() : null
@@ -75,6 +85,14 @@ function createFileStorage(): OfflineSnapshotStorage {
     writeEntry: (userId, key, text) => file(userId, entryFileName(key)).write(text),
     removeEntry(userId, key) {
       const target = file(userId, entryFileName(key))
+      if (target.exists) target.delete()
+    },
+    async readLegacy(userId) {
+      const target = legacyFile(userId)
+      return target.exists ? await target.text() : null
+    },
+    removeLegacy(userId) {
+      const target = legacyFile(userId)
       if (target.exists) target.delete()
     },
     clearAll() {
@@ -121,8 +139,9 @@ async function ensureLoaded(userId: string, retried = false): Promise<void> {
     const startedAt = generation
     loading = (async () => {
       const index = new Map<string, number>()
+      let text: string | null = null
       try {
-        const text = storage ? await storage.readIndex(userId) : null
+        text = storage ? await storage.readIndex(userId) : null
         const parsed = text ? (JSON.parse(text) as IndexFile) : null
         if (parsed?.userId === userId) {
           for (const [key, savedAt] of Object.entries(parsed.keys)) {
@@ -132,7 +151,12 @@ async function ensureLoaded(userId: string, retried = false): Promise<void> {
       } catch {
         // Corrupt or unreadable index: start empty; the next save replaces it.
       }
-      if (startedAt === generation) loaded = { userId, index, entries: new Map() }
+      // No index yet: carry over a v2 single-file snapshot from before the update.
+      const migrated = text === null ? await readLegacyEntries(userId) : null
+      if (startedAt !== generation) return
+      const state: Loaded = { userId, index, entries: new Map() }
+      loaded = state
+      if (migrated) migrateLegacy(state, migrated)
     })().finally(() => {
       loading = null
     })
@@ -167,6 +191,48 @@ function enqueueWrite(task: () => void | Promise<void>): Promise<void> {
 /** Resolves once queued disk writes have finished (tests). */
 export function offlineSnapshotSettled() {
   return writes
+}
+
+/**
+ * Fresh entries of the user's v2 file, oldest first and capped, or null when there is
+ * none (or it is unreadable / another version / another user's).
+ */
+async function readLegacyEntries(userId: string): Promise<[string, Entry][] | null> {
+  if (!storage?.readLegacy) return null
+  try {
+    const text = await storage.readLegacy(userId)
+    if (text === null) return null
+    const parsed = JSON.parse(text) as LegacyFile
+    if (parsed?.version !== LEGACY_V2_VERSION || parsed.userId !== userId) return []
+    return Object.entries(parsed.entries ?? {})
+      .filter(([, entry]) => typeof entry?.savedAt === 'number' && isFresh(entry.savedAt))
+      .sort(([, a], [, b]) => a.savedAt - b.savedAt)
+      .slice(-OFFLINE_MAX_ENTRIES)
+  } catch {
+    return [] // Corrupt: nothing to keep, but still delete it below.
+  }
+}
+
+/** Adopt migrated v2 entries in memory, then write them in the v3 layout and drop the v2 file. */
+function migrateLegacy(state: Loaded, migrated: [string, Entry][]) {
+  for (const [key, entry] of migrated) {
+    state.index.set(key, entry.savedAt)
+    state.entries.set(key, entry)
+  }
+  const { userId } = state
+  void enqueueWrite(async () => {
+    if (!storage || loaded !== state) return
+    for (const [key, entry] of migrated) {
+      await storage.writeEntry(userId, key, JSON.stringify(entry.data))
+    }
+    if (loaded !== state) return
+    if (migrated.length > 0) {
+      const file: IndexFile = { userId, keys: Object.fromEntries(state.index) }
+      await storage.writeIndex(userId, JSON.stringify(file))
+    }
+    // Only once the new copy is on disk, so a failed write keeps the old file for next time.
+    storage.removeLegacy?.(userId)
+  })
 }
 
 /** Remember a successful response for offline reading. The caller decides what to persist. */

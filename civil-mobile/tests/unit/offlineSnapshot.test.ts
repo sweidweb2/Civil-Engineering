@@ -154,6 +154,64 @@ describe('offline snapshot store', () => {
     expect(mem.files.size).toBe(0)
   })
 
+  describe('v2 single-file migration', () => {
+    const v2 = (userId: string, entries: Record<string, { data: unknown; savedAt: number }>) =>
+      JSON.stringify({ version: 2, userId, entries })
+
+    it('carries fresh v2 entries over, writes them in the new layout and drops the old file', async () => {
+      const now = Date.now()
+      mem.files.set(
+        mem.legacyPath('u1'),
+        v2('u1', {
+          'dashboard:pm': { data: { total: 3 }, savedAt: now - 1000 },
+          'workers:me': { data: 'stale', savedAt: now - OFFLINE_MAX_AGE_MS - 1 },
+        }),
+      )
+      expect((await offlineSnapshotGet('u1', 'dashboard:pm'))?.data).toEqual({ total: 3 })
+      expect(await offlineSnapshotGet('u1', 'workers:me')).toBeUndefined()
+      await offlineSnapshotSettled()
+
+      expect(mem.files.has(mem.legacyPath('u1'))).toBe(false)
+      setOfflineSnapshotStorage(mem.storage) // restart: read from the new layout only
+      expect((await offlineSnapshotGet('u1', 'dashboard:pm'))?.data).toEqual({ total: 3 })
+    })
+
+    it('ignores a v2 file of another user or payload version, and deletes it', async () => {
+      mem.files.set(
+        mem.legacyPath('u1'),
+        v2('u2', { 'dashboard:pm': { data: 1, savedAt: Date.now() } }),
+      )
+      expect(await offlineSnapshotGet('u1', 'dashboard:pm')).toBeUndefined()
+      await offlineSnapshotSettled()
+      expect(mem.files.has(mem.legacyPath('u1'))).toBe(false)
+    })
+
+    it('keeps the v2 file when writing the new copy fails, to retry next launch', async () => {
+      mem.files.set(
+        mem.legacyPath('u1'),
+        v2('u1', { 'dashboard:pm': { data: 1, savedAt: Date.now() } }),
+      )
+      mem.storage.writeEntry = async () => {
+        throw new Error('disk full')
+      }
+      expect((await offlineSnapshotGet('u1', 'dashboard:pm'))?.data).toBe(1)
+      await offlineSnapshotSettled()
+      expect(mem.files.has(mem.legacyPath('u1'))).toBe(true)
+    })
+
+    it('does not migrate once the new index exists', async () => {
+      await offlineSnapshotPut('u1', 'workers:me', 'v3')
+      await offlineSnapshotSettled()
+      mem.files.set(
+        mem.legacyPath('u1'),
+        v2('u1', { 'dashboard:pm': { data: 1, savedAt: Date.now() } }),
+      )
+      setOfflineSnapshotStorage(mem.storage)
+      expect(await offlineSnapshotGet('u1', 'dashboard:pm')).toBeUndefined()
+      expect((await offlineSnapshotGet('u1', 'workers:me'))?.data).toBe('v3')
+    })
+  })
+
   it('treats a corrupt entry file as missing', async () => {
     await offlineSnapshotPut('u1', 'dashboard:pm', 2)
     await offlineSnapshotSettled()

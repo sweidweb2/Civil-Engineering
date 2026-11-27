@@ -300,19 +300,32 @@ describe('usersService', () => {
     expect(repository.update).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ role: 'MANAGER', status: 'INACTIVE' }),
-      { deleteWorkerProfile: false },
+      { hideWorkerProfile: true },
     )
   })
 
-  it('deletes the worker CV when the account leaves the WORKER role', async () => {
+  it('hides (does not delete) the worker CV when the account leaves the WORKER role', async () => {
     vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER' }))
     const service = createUsersService(repository)
     await service.updateUser('user-1', { role: 'CLIENT' }, admin)
     expect(repository.update).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ role: 'CLIENT' }),
-      { deleteWorkerProfile: true },
+      { hideWorkerProfile: true },
     )
+  })
+
+  it('does not touch the worker CV when the role stays WORKER or is not changed', async () => {
+    vi.mocked(repository.findById).mockResolvedValue(makeUser({ role: 'WORKER' }))
+    const service = createUsersService(repository)
+    await service.updateUser('user-1', { role: 'WORKER' }, admin)
+    expect(repository.update).toHaveBeenLastCalledWith('user-1', expect.anything(), {
+      hideWorkerProfile: false,
+    })
+    await service.updateUser('user-1', { firstName: 'A' }, admin)
+    expect(repository.update).toHaveBeenLastCalledWith('user-1', expect.anything(), {
+      hideWorkerProfile: false,
+    })
   })
 
   it('preserves REQUESTED verification when isVerified is set false', async () => {

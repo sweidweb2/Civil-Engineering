@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { router } from 'expo-router'
 import { BadgeCheck, ShieldCheck, ShieldOff, X } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/components/wk/
 import type { WkTone } from '@/components/wk/palette'
 import { shortDate } from '@/features/admin/ui'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
+import { useLatestCallback } from '@/hooks/useLatestCallback'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys, invalidateAdminCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
@@ -69,30 +70,69 @@ export function AdminVerificationsScreen() {
     }
   }
 
-  function action(user: User, key: 'verify' | 'reject' | 'revoke') {
-    const next: VerificationStatus = key === 'verify' ? 'VERIFIED' : 'UNVERIFIED'
-    const shared = {
-      key,
-      loading: busy?.id === user.id && busy.next === next,
-      disabled: busy !== null,
-      onPress: () => void run(user.id, next),
-    }
-    if (key === 'verify') {
+  // Stable handle so search keystrokes do not re-render every row.
+  const runLatest = useLatestCallback(run)
+  const action = useCallback(
+    (user: User, key: 'verify' | 'reject' | 'revoke') => {
+      const next: VerificationStatus = key === 'verify' ? 'VERIFIED' : 'UNVERIFIED'
+      const shared = {
+        key,
+        loading: busy?.id === user.id && busy.next === next,
+        disabled: busy !== null,
+        onPress: () => void runLatest(user.id, next),
+      }
+      if (key === 'verify') {
+        return {
+          ...shared,
+          label: t('verifications.verify'),
+          icon: BadgeCheck,
+          variant: 'brand' as const,
+          flex: 1.4,
+        }
+      }
       return {
         ...shared,
-        label: t('verifications.verify'),
-        icon: BadgeCheck,
-        variant: 'brand' as const,
-        flex: 1.4,
+        label: t(key === 'reject' ? 'verifications.reject' : 'verifications.revoke'),
+        icon: key === 'reject' ? X : ShieldOff,
+        variant: 'dangerSoft' as const,
       }
-    }
-    return {
-      ...shared,
-      label: t(key === 'reject' ? 'verifications.reject' : 'verifications.revoke'),
-      icon: key === 'reject' ? X : ShieldOff,
-      variant: 'dangerSoft' as const,
-    }
-  }
+    },
+    [busy, runLatest, t],
+  )
+
+  const renderRow = useCallback(
+    (user: User) => {
+      const name = userDisplayName(user)
+      const status = user.verificationStatus ?? 'UNVERIFIED'
+      const actions =
+        status === 'REQUESTED'
+          ? [action(user, 'verify'), action(user, 'reject')]
+          : status === 'VERIFIED'
+            ? [action(user, 'revoke')]
+            : [action(user, 'verify')]
+      return (
+        <WkListRow
+          media={
+            <WkMedia
+              photo={user.avatarImageUrl ?? null}
+              photoKey={user.profile?.avatarUrl}
+              name={name}
+              round
+              hero
+            />
+          }
+          title={userDisplayLabel(user)}
+          pill={{ label: enumLabel(t, 'verificationStatus', status), tone: TONE[status] }}
+          sub={ltr(user.email)}
+          subLtr
+          sub2={shortDate(user.createdAt)}
+          onPress={() => router.push(`/admin/users/${user.id}` as never)}
+          actions={actions}
+        />
+      )
+    },
+    [action, t],
+  )
 
   return (
     <WkListScreen
@@ -121,36 +161,7 @@ export function AdminVerificationsScreen() {
       emptyIcon={ShieldCheck}
       emptyTitle={t(`verifications.empty.${filter}`)}
       emptyBody={filter === 'REQUESTED' ? t('verifications.emptyHint') : undefined}
-      renderItem={(user) => {
-        const name = userDisplayName(user)
-        const status = user.verificationStatus ?? 'UNVERIFIED'
-        const actions =
-          status === 'REQUESTED'
-            ? [action(user, 'verify'), action(user, 'reject')]
-            : status === 'VERIFIED'
-              ? [action(user, 'revoke')]
-              : [action(user, 'verify')]
-        return (
-          <WkListRow
-            media={
-              <WkMedia
-                photo={user.avatarImageUrl ?? null}
-                photoKey={user.profile?.avatarUrl}
-                name={name}
-                round
-                hero
-              />
-            }
-            title={userDisplayLabel(user)}
-            pill={{ label: enumLabel(t, 'verificationStatus', status), tone: TONE[status] }}
-            sub={ltr(user.email)}
-            subLtr
-            sub2={shortDate(user.createdAt)}
-            onPress={() => router.push(`/admin/users/${user.id}` as never)}
-            actions={actions}
-          />
-        )
-      }}
+      renderItem={renderRow}
     />
   )
 }

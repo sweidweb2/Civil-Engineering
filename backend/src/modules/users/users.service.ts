@@ -406,8 +406,9 @@ export function createUsersService(
           user.verificationStatus === 'REQUESTED' ? 'REQUESTED' : 'UNVERIFIED'
       }
 
-      const leavingWorkerRole =
-        user.role === 'WORKER' && input.role !== undefined && input.role !== 'WORKER'
+      // Decided from the requested role only (not the role read above, which can be
+      // stale under a concurrent edit): any non-WORKER role hides a worker CV.
+      const hideWorkerProfile = input.role !== undefined && input.role !== 'WORKER'
 
       const updated = await repository.update(
         id,
@@ -423,7 +424,7 @@ export function createUsersService(
             phone: input.phone,
           },
         },
-        { deleteWorkerProfile: leavingWorkerRole },
+        { hideWorkerProfile },
       )
       if (input.role !== undefined || input.status !== undefined) {
         invalidateAccessPrincipal(id)

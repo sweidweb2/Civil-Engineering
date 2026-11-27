@@ -19,6 +19,7 @@ import {
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
 import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
+import { loadOverview } from '@/features/pm/pmOverview'
 import {
   currentStage,
   PHOTO_DOT,
@@ -33,67 +34,12 @@ import { cacheKeys } from '@/lib/cacheKeys'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import { userFirstName } from '@/lib/user'
-import { ApiError } from '@/services/api'
 import { errorMessage } from '@/services/feedback'
-import { getProjectStagesSummaries, type ProjectStagesSummary } from '@/services/project-stages'
-import {
-  listProjects,
-  type Project,
-  type ProjectStatus,
-  type ProjectSummary,
-} from '@/services/projects'
+import type { ProjectStatus } from '@/services/projects'
 import { useAuthStore } from '@/stores/authStore'
 import { MONO_STYLE } from '@/theme/typography'
 
-const CAROUSEL_STATUSES: ProjectStatus[] = ['IN_PROGRESS', 'APPROVED', 'PLANNING']
 const CARD_WIDTH = 296
-
-type Overview = {
-  summary: ProjectSummary | null
-  projects: Project[]
-  /** Carousel projects with their stage summaries (null when that call failed). */
-  active: { project: Project; stages: ProjectStagesSummary | null }[]
-}
-
-/** List + status summary; if the server fails (5xx), retry the list alone so it still renders. */
-async function loadProjectsWithSummary(): Promise<{
-  projects: Project[]
-  summary: ProjectSummary | null
-}> {
-  try {
-    const list = await listProjects({ page: 1, limit: 20, includeSummary: true })
-    return { projects: list.data, summary: list.summary }
-  } catch (error) {
-    // Offline / timeout / 4xx: a second request would fail the same way.
-    if (!(error instanceof ApiError) || error.status < 500) throw error
-    const list = await listProjects({ page: 1, limit: 20 })
-    return { projects: list.data, summary: null }
-  }
-}
-
-/**
- * List + status summary in one request, then stage summaries for the carousel.
- * Stage summaries soft-fail so the rest of the dashboard still renders.
- */
-async function loadOverview(): Promise<Overview> {
-  const { projects, summary } = await loadProjectsWithSummary()
-
-  const carousel = projects.filter((p) => CAROUSEL_STATUSES.includes(p.status)).slice(0, 5)
-  const stageMap =
-    carousel.length === 0
-      ? {}
-      : await getProjectStagesSummaries(carousel.map((p) => p.id))
-          .then((r) => r.data)
-          .catch(() => ({}) as Record<string, ProjectStagesSummary>)
-  return {
-    summary,
-    projects,
-    active: carousel.map((project) => ({
-      project,
-      stages: stageMap[project.id] ?? null,
-    })),
-  }
-}
 
 const toProjects = (status?: ProjectStatus) =>
   router.replace((status ? `/pm/projects?status=${status}` : '/pm/projects') as never)

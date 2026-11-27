@@ -20,6 +20,13 @@ export const batchStageSummariesBodySchema = z.object({
 
 export type BatchStageSummariesBody = z.infer<typeof batchStageSummariesBodySchema>
 
+/** PM home overview: page 1 of the actor's projects with stage summaries (max 20). */
+export const stagesOverviewQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(20).default(20),
+})
+
+export type StagesOverviewQuery = z.infer<typeof stagesOverviewQuerySchema>
+
 /** Decimal(18, 4): up to 14 digits before the point and 4 after. Kept as a string. */
 const DECIMAL_PATTERN = /^\d{1,14}(\.\d{1,4})?$/
 

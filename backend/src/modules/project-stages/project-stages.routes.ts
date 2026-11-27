@@ -6,6 +6,7 @@ import type { ProjectStagesController } from './project-stages.controller.js'
 import {
   batchStageSummariesBodySchema,
   projectIdParamsSchema,
+  stagesOverviewQuerySchema,
   upsertDesignBodySchema,
   upsertGeotechnicalBodySchema,
   upsertLicensingBodySchema,
@@ -22,6 +23,12 @@ export function createProjectStagesRouter(deps: ProjectStagesRouterDeps): Router
   const router = Router({ mergeParams: true })
 
   router.use(authenticate)
+
+  router.get(
+    '/stages/overview',
+    validate({ query: stagesOverviewQuerySchema }),
+    controller.getOverview,
+  )
 
   router.post(
     '/stages/summaries',

@@ -88,6 +88,21 @@ describe('apiRequest', () => {
     expect(session.cleared).toBe(true)
   })
 
+  it('keeps the session when the refresh call hits a network error or 5xx', async () => {
+    const session = { access: 'old', refresh: 'r1', cleared: false }
+    bind(session)
+    fetchMock
+      .mockResolvedValueOnce(res(401, {}))
+      .mockRejectedValueOnce(new TypeError('Network request failed'))
+    await expect(apiRequest('/projects')).rejects.toMatchObject({ status: 401 })
+
+    fetchMock.mockResolvedValueOnce(res(401, {})).mockResolvedValueOnce(res(503, {}))
+    await expect(apiRequest('/projects')).rejects.toMatchObject({ status: 401 })
+
+    expect(session.cleared).toBe(false)
+    expect(session.refresh).toBe('r1')
+  })
+
   it('does not attempt a refresh for auth endpoints', async () => {
     bind({ access: 'a', refresh: 'r', cleared: false })
     fetchMock.mockResolvedValueOnce(res(401, { error: { message: 'Invalid credentials' } }))

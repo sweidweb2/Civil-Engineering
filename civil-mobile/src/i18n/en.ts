@@ -950,6 +950,8 @@ export const en = {
     productivityEmpty: 'No hours logged yet. Save today’s hours to start the chart.',
     productivitySaved: 'Hours saved',
     productivitySaveFailed: 'Could not save hours',
+    productivityConflict:
+      'Hours for today were just changed by someone else. Review the latest value and save again.',
     productivityHoursRequired: 'Enter hours worked today',
     productivityHoursFormat: 'Use a number with at most one decimal place',
     productivityHoursRange: 'Hours must be between 0 and 24',

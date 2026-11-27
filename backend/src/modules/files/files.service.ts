@@ -18,6 +18,16 @@ export type FilesService = {
   complete: (actor: AuthActor, fileId: string) => Promise<FileRecord>
   downloadUrl: (actor: AuthActor, fileId: string) => Promise<DownloadUrlResult>
   softDelete: (actor: AuthActor, fileId: string) => Promise<FileRecord>
+  /**
+   * Trusted (caller already authorized the entity): release attachments whose storage
+   * keys are no longer referenced — soft-delete the `files` rows *and* remove the
+   * objects, so no READY row is left pointing at a deleted object.
+   */
+  releaseByKeys: (
+    entityType: PresignFileBody['entityType'],
+    entityId: string,
+    keys: Array<string | null | undefined>,
+  ) => Promise<void>
   /** READY file attached to entity — used when linking avatars / attachments. */
   requireReadyAttachment: (
     fileId: string,
@@ -187,6 +197,24 @@ export function createFilesService(deps: FilesServiceDeps): FilesService {
       await deleteStorageObject({ fileId: deleted.id, key: deleted.key })
       void maybePurgeDeletedFileObjects()
       return deleted
+    },
+
+    async releaseByKeys(entityType, entityId, keys) {
+      const unique = [...new Set(keys.filter((key): key is string => Boolean(key)))]
+      if (unique.length === 0) return
+      const released = await repository.markDeletedByKeys(entityType, entityId, unique)
+      for (const row of released) {
+        try {
+          await deleteStorageObject({ fileId: row.id, key: row.key })
+        } catch (error) {
+          // Row is DELETED: the purge job retries the object delete later.
+          getRequestLogger().warn(
+            { err: error, fileId: row.id, kind: 'files.release_object_failed' },
+            'failed to delete released file object',
+          )
+        }
+      }
+      void maybePurgeDeletedFileObjects()
     },
 
     async requireReadyAttachment(fileId, entityType, entityId) {

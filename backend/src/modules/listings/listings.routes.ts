@@ -29,12 +29,16 @@ export function createListingsRoutes(controller: ListingsController): Router {
   router.post(
     '/bulk-price-adjust',
     authorize(...ADMIN_ROLES, 'PROVIDER'),
+    // A retried percentage increase must not be applied twice.
+    idempotent(),
     validate({ body: bulkPriceAdjustBodySchema }),
     controller.bulkAdjustPrices,
   )
   router.post(
     '/import',
     authorize(...ADMIN_ROLES, 'PROVIDER'),
+    // A retried import must not create every row a second time.
+    idempotent(),
     validate({ body: importListingsBodySchema }),
     controller.importListings,
   )

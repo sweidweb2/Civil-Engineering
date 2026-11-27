@@ -147,24 +147,40 @@ async function exchangeRefreshToken(refreshToken: string): Promise<AuthTokens> {
   return { accessToken: data.accessToken, refreshToken: data.refreshToken }
 }
 
+/** The refresh token itself was refused (invalid, expired, reused, account suspended). */
+function isSessionRejected(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.status === 400 || error.status === 401 || error.status === 403)
+  )
+}
+
 async function tryRefreshSession(): Promise<boolean> {
   if (refreshInFlight) {
     return refreshInFlight
   }
 
   refreshInFlight = (async () => {
-    const refreshToken = authSession?.getRefreshToken()
-    if (!refreshToken || !authSession) {
-      return false
-    }
-
     try {
-      const tokens = await exchangeRefreshToken(refreshToken)
-      authSession.setTokens(tokens)
-      return true
-    } catch {
-      authSession.clearSession()
-      return false
+      const session = authSession
+      const refreshToken = session?.getRefreshToken()
+      if (!refreshToken || !session) {
+        return false
+      }
+
+      try {
+        const tokens = await exchangeRefreshToken(refreshToken)
+        session.setTokens(tokens)
+        return true
+      } catch (error) {
+        // Only a definitive server rejection ends the session. A timeout, 5xx or a
+        // dropped connection on a weak site signal must not log the user out (and wipe
+        // their offline snapshots): keep the tokens and let the next call retry.
+        if (isSessionRejected(error)) {
+          session.clearSession()
+        }
+        return false
+      }
     } finally {
       refreshInFlight = null
     }

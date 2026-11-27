@@ -1,9 +1,5 @@
 import { prisma } from '../../database/prisma.js'
-import {
-  DEFAULT_TX_MAX_WAIT_MS,
-  DEFAULT_TX_TIMEOUT_MS,
-  runInTransaction,
-} from '../../database/transaction.js'
+import { runInTransaction } from '../../database/transaction.js'
 import { conflict } from '../../errors/app-error.js'
 import { type ListingStatus, Prisma, type RentalUnit } from '../../generated/prisma/client.js'
 import type { ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
@@ -71,22 +67,6 @@ export type ListingChoiceFilters = {
   q?: string
 }
 
-export type ListingPriceFields = {
-  id: string
-  price: string | null
-  priceMin: string | null
-  priceMax: string | null
-  rentalPrice: string | null
-}
-
-export type ListingPriceUpdate = {
-  id: string
-  price: string | null
-  priceMin: string | null
-  priceMax: string | null
-  rentalPrice: string | null
-}
-
 export type ListingsRepository = {
   findMany: (query: ListListingsQuery) => Promise<{ items: ListingRecord[]; total: number }>
   countByType: (providerId?: string) => Promise<ListingTypeCounts>
@@ -115,8 +95,6 @@ export type ListingsRepository = {
       kind: 'MATERIAL' | 'EQUIPMENT' | 'SERVICE'
     }>
   >
-  findPriceFieldsByProviderId: (providerId: string) => Promise<ListingPriceFields[]>
-  updatePrices: (updates: ListingPriceUpdate[]) => Promise<void>
   /**
    * Single-statement bulk price adjust under a transaction (row locks via UPDATE).
    * Avoids N sequential updates that overrun client/DB timeouts and encourage double-apply retries.
@@ -396,44 +374,6 @@ export function createListingsRepository(): ListingsRepository {
         slug: row.slug,
         kind: row.kind as 'MATERIAL' | 'EQUIPMENT' | 'SERVICE',
       }))
-    },
-
-    async findPriceFieldsByProviderId(providerId) {
-      const rows = await prisma.listing.findMany({
-        where: { providerId },
-        select: {
-          id: true,
-          price: true,
-          priceMin: true,
-          priceMax: true,
-          rentalPrice: true,
-        },
-      })
-      return rows.map((row) => ({
-        id: row.id,
-        price: decimalToString(row.price),
-        priceMin: decimalToString(row.priceMin),
-        priceMax: decimalToString(row.priceMax),
-        rentalPrice: decimalToString(row.rentalPrice),
-      }))
-    },
-
-    async updatePrices(updates) {
-      if (updates.length === 0) return
-      await prisma.$transaction(
-        updates.map((update) =>
-          prisma.listing.update({
-            where: { id: update.id },
-            data: {
-              price: update.price,
-              priceMin: update.priceMin,
-              priceMax: update.priceMax,
-              rentalPrice: update.rentalPrice,
-            },
-          }),
-        ),
-        { maxWait: DEFAULT_TX_MAX_WAIT_MS, timeout: DEFAULT_TX_TIMEOUT_MS },
-      )
     },
 
     async adjustProviderPrices(input) {

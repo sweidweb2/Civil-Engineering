@@ -18,7 +18,7 @@ import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
-import { LIST_PERF, useStableListHeader } from '@/lib/listPerf'
+import { LIST_PERF } from '@/lib/listPerf'
 import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { MONO_STYLE } from '@/theme/typography'
@@ -208,7 +208,6 @@ export function WkListScreen<T extends { id: string }>({
       </Animated.View>
     ) : undefined
 
-  const listHeader = useStableListHeader(top)
   // Stable while the caller's `renderItem` is stable (`useCallback`), so rows skip
   // re-rendering on search keystrokes (see `LIST_PERF.strictMode`).
   const renderListItem = useCallback(
@@ -231,7 +230,7 @@ export function WkListScreen<T extends { id: string }>({
         {...LIST_PERF}
         renderItem={renderListItem}
         ItemSeparatorComponent={WkListGap}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={top}
         ListEmptyComponent={empty}
         ListFooterComponent={
           <PagedListFooter

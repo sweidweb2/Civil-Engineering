@@ -65,9 +65,16 @@ function createHarness() {
     return { ...project, mainImageUrl: null, mainImageKey: null }
   })
 
+  const listProjects = vi.fn(async () => ({
+    data: [{ id: 'p1' }, { id: 'p2' }],
+    meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
+    summary: { total: 2 },
+  }))
+
   const projectsService = {
     assertAccessible,
     getAccessibleProject,
+    listProjects,
   } as unknown as ProjectsService
 
   const repository: ProjectStagesRepository = {
@@ -96,10 +103,38 @@ function createHarness() {
   }
 
   const service = createProjectStagesService({ repository, projectsService })
-  return { service, repository, assertAccessible, getAccessibleProject }
+  return { service, repository, assertAccessible, getAccessibleProject, listProjects }
 }
 
 describe('projectStagesService', () => {
+  it('getOverview returns page 1 with the summary and the stages of each listed project', async () => {
+    const { service, repository, listProjects } = createHarness()
+    vi.mocked(repository.findAllByProjectIds).mockResolvedValueOnce([
+      {
+        projectId: 'p1',
+        ownerId: 'owner-1',
+        geotechnical: geo,
+        design: null,
+        licensing: null,
+        materials: null,
+        maintenance: null,
+      },
+    ])
+    const actor = { id: 'owner-1', roles: ['MANAGER'] as const }
+
+    const result = await service.getOverview({ limit: 20 }, { ...actor, roles: [...actor.roles] })
+
+    expect(listProjects).toHaveBeenCalledWith(
+      { page: 1, limit: 20, includeSummary: true },
+      { id: 'owner-1', roles: ['MANAGER'] },
+    )
+    expect(repository.findAllByProjectIds).toHaveBeenCalledWith(['p1', 'p2'])
+    expect(result.data.map((project) => project.id)).toEqual(['p1', 'p2'])
+    expect(result.summary).toEqual({ total: 2 })
+    expect(Object.keys(result.stages)).toEqual(['p1'])
+    expect(result.stages.p1?.geotechnical.exists).toBe(true)
+  })
+
   it('returns incomplete summary slots when no rows exist', async () => {
     const { service } = createHarness()
     const summary: ProjectStagesSummary = await service.getSummary('p1', {

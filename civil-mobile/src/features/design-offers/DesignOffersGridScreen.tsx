@@ -12,7 +12,6 @@ import { WkSearchAddButton, WkSearchField } from '@/components/wk/SearchField'
 import { usePagedList } from '@/components/wk/usePagedList'
 import { DesignOfferGridCard } from '@/features/design-offers/DesignOfferGridCard'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { useStableListHeader } from '@/lib/listPerf'
 import { type DesignOffer, listDesignOffers } from '@/services/design-offers'
 import { errorMessage } from '@/services/feedback'
 
@@ -119,13 +118,11 @@ export function DesignOffersGridScreen({
       </View>
     ) : undefined
 
-  const listHeader = useStableListHeader(header)
-
   const body = (
     <WkGrid
       data={list.isFirstLoad ? [] : list.rows}
       renderCard={renderOffer}
-      ListHeaderComponent={listHeader}
+      ListHeaderComponent={header}
       ListEmptyComponent={empty}
       ListFooterComponent={
         <PagedListFooter

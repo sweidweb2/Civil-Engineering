@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { useCallback, useState } from 'react'
+import { FlatList, type ListRenderItemInfo, RefreshControl, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { useLocalSearchParams } from 'expo-router'
 import { BadgeCheck, HardHat, SearchX } from 'lucide-react-native'
@@ -61,51 +61,69 @@ export function PmSpecialtyWorkersScreen({
     },
   })
 
-  function workerRow(worker: WorkerDirectoryItem) {
-    const name = directoryWorkerName(worker)
-    const sub = [worker.headline, worker.city].filter(Boolean).join(' · ')
-    const photo = worker.avatarImageUrl ?? null
-    const photoKey = worker.avatarUrl
-    return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={name}
-        onPress={() => setOpen({ kind: 'worker', id: worker.id, worker })}
-        className="min-h-[76px] flex-row items-center gap-3.5 bg-wk-sf px-3.5 py-3 active:bg-wk-sf2"
-      >
-        <View className="size-[52px] items-center justify-center overflow-hidden rounded-full bg-wk-hero">
-          {photo ? (
-            <Image
-              source={remoteImage(photo, photoKey)}
-              cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
-              style={{ position: 'absolute', inset: 0 }}
-              contentFit="cover"
-              recyclingKey={photoKey ?? photo}
-            />
-          ) : (
-            <Text className="text-[17px] font-semibold text-wk-lime">{initialsOf(name)}</Text>
-          )}
-        </View>
-        <View className="min-w-0 flex-1 gap-1">
-          <View className="flex-row items-center gap-1.5">
-            <Text
-              className="min-w-0 shrink text-[15px] font-semibold text-wk-ink"
-              numberOfLines={1}
-            >
-              {name}
-            </Text>
-            {worker.isVerified ? <BadgeCheck size={15} color={c.brand} strokeWidth={2} /> : null}
+  const workerRow = useCallback(
+    (worker: WorkerDirectoryItem) => {
+      const name = directoryWorkerName(worker)
+      const sub = [worker.headline, worker.city].filter(Boolean).join(' · ')
+      const photo = worker.avatarImageUrl ?? null
+      const photoKey = worker.avatarUrl
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={name}
+          onPress={() => setOpen({ kind: 'worker', id: worker.id, worker })}
+          className="min-h-[76px] flex-row items-center gap-3.5 bg-wk-sf px-3.5 py-3 active:bg-wk-sf2"
+        >
+          <View className="size-[52px] items-center justify-center overflow-hidden rounded-full bg-wk-hero">
+            {photo ? (
+              <Image
+                source={remoteImage(photo, photoKey)}
+                cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
+                style={{ position: 'absolute', inset: 0 }}
+                contentFit="cover"
+                recyclingKey={photoKey ?? photo}
+              />
+            ) : (
+              <Text className="text-[17px] font-semibold text-wk-lime">{initialsOf(name)}</Text>
+            )}
           </View>
-          <Text className="text-[13px] text-wk-ink2" numberOfLines={1}>
-            {sub || '—'}
-          </Text>
-        </View>
-        <View className="h-[22px] justify-center rounded-full bg-wk-sf2 px-2">
-          <Text className="text-[11px] font-medium text-wk-ink2">{t('pmPortal.worker')}</Text>
-        </View>
-      </Pressable>
-    )
-  }
+          <View className="min-w-0 flex-1 gap-1">
+            <View className="flex-row items-center gap-1.5">
+              <Text
+                className="min-w-0 shrink text-[15px] font-semibold text-wk-ink"
+                numberOfLines={1}
+              >
+                {name}
+              </Text>
+              {worker.isVerified ? <BadgeCheck size={15} color={c.brand} strokeWidth={2} /> : null}
+            </View>
+            <Text className="text-[13px] text-wk-ink2" numberOfLines={1}>
+              {sub || '—'}
+            </Text>
+          </View>
+          <View className="h-[22px] justify-center rounded-full bg-wk-sf2 px-2">
+            <Text className="text-[11px] font-medium text-wk-ink2">{t('pmPortal.worker')}</Text>
+          </View>
+        </Pressable>
+      )
+    },
+    [c, t],
+  )
+
+  const rowCount = list.rows.length
+  // Re-created only when the row count changes (first/last rounding), not per keystroke.
+  const renderWorker = useCallback(
+    ({ item, index }: ListRenderItemInfo<WorkerDirectoryItem>) => (
+      <View
+        className={`overflow-hidden ${index === 0 ? 'rounded-t-[22px]' : ''} ${
+          index === rowCount - 1 ? 'rounded-b-[22px]' : 'border-b border-wk-line'
+        }`}
+      >
+        {workerRow(item)}
+      </View>
+    ),
+    [rowCount, workerRow],
+  )
 
   const header = (
     <View className="gap-3.5 pb-3.5">
@@ -174,15 +192,7 @@ export function PmSpecialtyWorkersScreen({
         data={list.isFirstLoad ? [] : list.rows}
         keyExtractor={(worker) => worker.id}
         {...LIST_PERF}
-        renderItem={({ item, index }) => (
-          <View
-            className={`overflow-hidden ${index === 0 ? 'rounded-t-[22px]' : ''} ${
-              index === list.rows.length - 1 ? 'rounded-b-[22px]' : 'border-b border-wk-line'
-            }`}
-          >
-            {workerRow(item)}
-          </View>
-        )}
+        renderItem={renderWorker}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={

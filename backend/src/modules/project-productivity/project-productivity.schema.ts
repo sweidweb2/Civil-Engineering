@@ -19,6 +19,11 @@ export const upsertProductivityHoursBodySchema = z.object({
   ),
   /** Local calendar day `YYYY-MM-DD`. Defaults to UTC today when omitted. */
   date: z.string().date().optional(),
+  /**
+   * Optimistic-concurrency token: `updatedAt` of the day's entry the client saw, or
+   * `null` when it saw none. Omit for last-write-wins (older clients).
+   */
+  expectedUpdatedAt: z.string().datetime({ offset: true }).nullable().optional(),
 })
 
 export type UpsertProductivityHoursBody = z.infer<typeof upsertProductivityHoursBodySchema>

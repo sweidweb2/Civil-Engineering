@@ -17,7 +17,6 @@ import { UserGridCard } from '@/features/admin/UserGridCard'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { useStableListHeader } from '@/lib/listPerf'
 import type { AuthRole } from '@/services/auth'
 import { errorMessage } from '@/services/feedback'
 import { listUsers, type User, USER_ROLE_CATEGORIES } from '@/services/users'
@@ -138,8 +137,6 @@ export function AdminRoleUsersScreen() {
       </View>
     ) : undefined
 
-  const listHeader = useStableListHeader(header)
-
   if (!role) {
     return (
       <View className="flex-1 bg-wk-bg" testID="e2e-admin-role-users">
@@ -177,7 +174,7 @@ export function AdminRoleUsersScreen() {
       <WkGrid
         data={list.isFirstLoad ? [] : list.rows}
         renderCard={renderUser}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={
           <PagedListFooter

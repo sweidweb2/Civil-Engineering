@@ -181,4 +181,45 @@ describe('useRemoteData offline reads', () => {
     expect(ref.current.offlineSavedAt).toBeNull()
     await unmount()
   })
+
+  it.each([502, 503, 504])(
+    'treats a %i gateway error as unreachable and shows the saved copy',
+    async (status) => {
+      await offlineSnapshotPut('u1', 'dashboard:pm', 'saved')
+      const load = jest.fn().mockRejectedValue(new ApiError(status, 'Bad Gateway'))
+      const { ref, unmount } = await mount(load, 'dashboard:pm')
+      expect(dataOf(ref.current)).toBe('saved')
+      await unmount()
+    },
+  )
+
+  it('still shows a 500 as an error', async () => {
+    await offlineSnapshotPut('u1', 'dashboard:pm', 'saved')
+    const load = jest.fn().mockRejectedValue(new ApiError(500, 'Internal'))
+    const { ref, unmount } = await mount(load, 'dashboard:pm')
+    expect(ref.current.status).toBe('error')
+    await unmount()
+  })
+
+  it('does no saved-copy work after the screen unmounts, but still saves a late response', async () => {
+    await offlineSnapshotPut('u1', 'dashboard:pm', 'saved')
+    await offlineSnapshotSettled()
+    jest.useFakeTimers()
+    const request = deferred<string>()
+    const { seen, unmount } = await mount(() => request.promise, 'dashboard:pm')
+    await unmount()
+    await act(async () => {
+      jest.advanceTimersByTime(SAVED_COPY_GRACE_MS)
+    })
+    expect(seen).not.toContain('saved')
+
+    // The response lands after the user left: it is still saved for offline reading.
+    await act(async () => request.resolve('late'))
+    jest.useRealTimers()
+    await offlineSnapshotSettled()
+    remoteCacheInvalidate()
+    const offline = await mount(jest.fn().mockRejectedValue(networkDown()), 'dashboard:pm')
+    expect(dataOf(offline.ref.current)).toBe('late')
+    await offline.unmount()
+  })
 })

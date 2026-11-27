@@ -942,6 +942,7 @@ export const ar: Messages = {
     productivityEmpty: 'لا توجد ساعات مسجّلة بعد. احفظ ساعات اليوم لبدء الرسم البياني.',
     productivitySaved: 'تم حفظ الساعات',
     productivitySaveFailed: 'تعذّر حفظ الساعات',
+    productivityConflict: 'غيّر شخص آخر ساعات اليوم للتو. راجع القيمة الأحدث ثم احفظ مرة أخرى.',
     productivityHoursRequired: 'أدخل ساعات العمل اليوم',
     productivityHoursFormat: 'استخدم رقمًا بمنزلة عشرية واحدة كحد أقصى',
     productivityHoursRange: 'يجب أن تكون الساعات بين 0 و 24',

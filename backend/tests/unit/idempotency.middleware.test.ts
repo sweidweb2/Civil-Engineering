@@ -119,6 +119,55 @@ describe('idempotent() middleware', () => {
     expect((await firstDone).status).toBe(201)
   })
 
+  it('replays instead of duplicating when the client timed out mid-request', async () => {
+    ctx = buildApp({ slow: true })
+    // Client gives up before the handler finishes (closes the socket).
+    await request(ctx.app)
+      .post('/things')
+      .set('Idempotency-Key', KEY)
+      .send({ name: 'a' })
+      .timeout(50)
+      .catch(() => undefined)
+    // Retry while the first request is still running: blocked, not re-executed.
+    const during = await request(ctx.app)
+      .post('/things')
+      .set('Idempotency-Key', KEY)
+      .send({ name: 'a' })
+    expect(during.status).toBe(409)
+    expect(during.body.error.code).toBe('IDEMPOTENCY_IN_PROGRESS')
+
+    ctx.release()
+    await new Promise((r) => setTimeout(r, 50))
+
+    const retry = await request(ctx.app)
+      .post('/things')
+      .set('Idempotency-Key', KEY)
+      .send({ name: 'a' })
+    expect(retry.status).toBe(201)
+    expect(retry.headers[IDEMPOTENCY_REPLAYED_HEADER]).toBe('true')
+    expect(ctx.created()).toBe(1)
+  })
+
+  it('records outcomes of handlers that do not use res.json', async () => {
+    let calls = 0
+    const store = createIdempotencyStore({ ttlMs: 60_000 })
+    const app = express()
+    app.use(express.json())
+    app.use((req, _res, next) => {
+      req.user = { id: 'u1', roles: ['ADMIN'] }
+      next()
+    })
+    app.post('/noop', idempotent(store), (_req, res) => {
+      calls += 1
+      res.status(204).end()
+    })
+    await request(app).post('/noop').set('Idempotency-Key', KEY).send({ a: 1 })
+    await new Promise((r) => setTimeout(r, 20))
+    const retry = await request(app).post('/noop').set('Idempotency-Key', KEY).send({ a: 1 })
+    expect(retry.status).toBe(204)
+    expect(calls).toBe(1)
+  })
+
   it('rejects malformed keys', async () => {
     const res = await request(ctx.app)
       .post('/things')

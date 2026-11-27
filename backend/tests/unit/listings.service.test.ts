@@ -75,20 +75,6 @@ function setup(opts?: {
         kind: 'MATERIAL' as const,
       },
     ]),
-    findPriceFieldsByProviderId: vi.fn(async () =>
-      listing
-        ? [
-            {
-              id: listing.id,
-              price: listing.price,
-              priceMin: listing.priceMin,
-              priceMax: listing.priceMax,
-              rentalPrice: listing.rentalPrice,
-            },
-          ]
-        : [],
-    ),
-    updatePrices: vi.fn(async () => undefined),
     adjustProviderPrices: vi.fn(async () => ({
       updated: listing && listing.price != null ? 1 : 0,
       skipped: listing && listing.price == null ? 1 : 0,
@@ -326,12 +312,19 @@ describe('listing body schemas', () => {
   })
 
   it('accepts an update that sets the rental pair together', () => {
-    const parsed = updateListingBodySchema.safeParse({ rentalPrice: '12', rentalUnit: 'DAY' })
+    const parsed = updateListingBodySchema.safeParse({
+      rentalPrice: '12',
+      rentalUnit: 'DAY',
+      expectedUpdatedAt: '2026-01-01T00:00:00.000Z',
+    })
     expect(parsed.success).toBe(true)
   })
 
   it('accepts an update that leaves the rental pair unchanged', () => {
-    const parsed = updateListingBodySchema.safeParse({ name: 'Cement' })
+    const parsed = updateListingBodySchema.safeParse({
+      name: 'Cement',
+      expectedUpdatedAt: '2026-01-01T00:00:00.000Z',
+    })
     expect(parsed.success).toBe(true)
   })
 

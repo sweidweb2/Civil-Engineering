@@ -15,7 +15,6 @@ import { UserRoleCategoryCard } from '@/features/admin/UserRoleCategoryCard'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { useStableListHeader } from '@/lib/listPerf'
 import { errorMessage } from '@/services/feedback'
 import { listUsers, USER_ROLE_CATEGORIES, type UserRoleCounts } from '@/services/users'
 import { MONO_STYLE } from '@/theme/typography'
@@ -118,14 +117,12 @@ export function AdminUsersScreen() {
       </View>
     ) : undefined
 
-  const listHeader = useStableListHeader(header)
-
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-admin-users">
       <WkGrid
         data={isFirstLoad ? [] : cards}
         renderCard={renderRole}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={header}
         ListEmptyComponent={empty}
         contentContainerClassName="px-5"
         contentContainerStyle={{

@@ -1,12 +1,12 @@
-import { useMemo } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { useCallback } from 'react'
+import { RefreshControl, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Plus, SearchX, Users } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
-import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkButton, WkError, WkTopBar } from '@/components/wk/kit'
 import { PagedListFooter } from '@/components/wk/PagedListFooter'
 import { useWkPalette } from '@/components/wk/palette'
@@ -17,8 +17,7 @@ import { UserGridCard } from '@/features/admin/UserGridCard'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { LIST_PERF, useStableListHeader } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
+import { useStableListHeader } from '@/lib/listPerf'
 import type { AuthRole } from '@/services/auth'
 import { errorMessage } from '@/services/feedback'
 import { listUsers, type User, USER_ROLE_CATEGORIES } from '@/services/users'
@@ -57,7 +56,12 @@ export function AdminRoleUsersScreen() {
     },
   })
 
-  const gridRows = useMemo(() => toPairs(list.rows), [list.rows])
+  const renderUser = useCallback(
+    (user: User) => (
+      <UserGridCard user={user} onPress={() => router.push(`${BASE}/${user.id}` as never)} />
+    ),
+    [],
+  )
 
   const header = (
     <View className="gap-3.5 pb-3.5">
@@ -170,23 +174,9 @@ export function AdminRoleUsersScreen() {
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-admin-role-users">
       <WkTopBar title={title} backHref={BASE} />
-      <FlatList
-        data={list.isFirstLoad ? [] : gridRows}
-        keyExtractor={(row) => row.map((user) => user.id).join(':')}
-        {...LIST_PERF}
-        renderItem={({ item: row }) => (
-          <WkGridRow>
-            {row.map((user) => (
-              <UserGridCard
-                key={user.id}
-                user={user}
-                onPress={() => router.push(`${BASE}/${user.id}` as never)}
-              />
-            ))}
-            {row.length === 1 ? <WkGridSpacer /> : null}
-          </WkGridRow>
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+      <WkGrid
+        data={list.isFirstLoad ? [] : list.rows}
+        renderCard={renderUser}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={empty}
         ListFooterComponent={

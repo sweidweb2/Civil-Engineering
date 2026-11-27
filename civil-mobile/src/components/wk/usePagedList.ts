@@ -29,6 +29,7 @@ export function usePagedList<T extends { id: string }>({
   initialFilter = '',
   enabled = true,
   resetKey,
+  persist = false,
 }: {
   fetcher: Fetcher<T>
   cacheKeyPrefix: string
@@ -37,6 +38,11 @@ export function usePagedList<T extends { id: string }>({
   enabled?: boolean
   /** When this changes, clear rows and restart at page 1 (categoryId, role…). */
   resetKey?: string
+  /**
+   * Save page 1 (without a search) for offline reading — the signed-in user's own
+   * lists only (see `useRemoteData` `persist`).
+   */
+  persist?: boolean
 }) {
   const [filter, setFilterState] = useState(initialFilter)
   const [query, setQuery] = useState('')
@@ -90,6 +96,7 @@ export function usePagedList<T extends { id: string }>({
   const remote = useRemoteData(load, {
     enabled,
     cacheKey: `${cacheKeyPrefix}:wk:${page}:${applied}:${filter}`,
+    persist: persist && page === 1 && applied === '',
   })
   const result = remote.status === 'success' ? remote.data : null
 

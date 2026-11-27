@@ -252,11 +252,11 @@ What shipped:
 What shipped, and where it differs from the plan below:
 
 - **Decision:** keep the custom cache (no TanStack Query). New deps: `expo-network`, `expo-file-system` (`npx expo install`, SDK 57).
-- **Offline reads:** `src/lib/offlineSnapshot.ts` saves allow-listed keys (own dashboards, profile/CV, projects + stages, page 1 of own lists, own listing detail, PM directory page 1) to one JSON file per user in `Paths.cache`; ≤ 40 entries, ≤ 7 days. **Changed:** used only as a fallback inside `useRemoteData` when a request fails with a network error and nothing is on screen (`offlineSavedAt` tells the screen it is a saved copy); online behaviour is unchanged. Cleared on logout, session expiry and login. Disabled on web.
+- **Offline reads:** `src/lib/offlineSnapshot.ts` saves responses for call sites that pass `persist: true` (own dashboards, profile/CV, projects + stages, page 1 of own lists without a search, own listing detail, PM directory) to `Paths.cache` — per user, a small index plus one file per entry; ≤ 40 entries, ≤ 7 days. Shown by `useRemoteData` only while nothing is on screen: after 2s of a pending first load (immediately when offline) or when a request fails without a server response (`offlineSavedAt` tells the screen it is a saved copy); live data or a real server error replaces it. Cleared on logout, session expiry and login. Disabled on web.
 - **Connectivity:** `src/services/connectivity.ts` + `src/hooks/useConnectivityWatch.ts` (mounted in `src/app/_layout.tsx`). Offline = `isConnected === false`. Reconnecting revalidates open screens. `src/components/feedback/OfflineBanner.tsx` in `PortalShell`.
 - **Changed (writes):** instead of disabling every save button, `apiRequest` fails non-GET calls immediately while offline (`ApiError` code `OFFLINE`, `offline.writeBlocked` message) and the existing error handling shows it.
 - **Idempotency [backend]:** `backend/src/middleware/idempotency.ts` on `POST /listings`, `/projects`, `/users` (in-process, 24h, per user; errors not stored; 409 for in-progress or reused-with-different-body). Mobile: `src/lib/idempotency.ts` `useIdempotencyKey` in the listing editor, new project and admin user create screens.
-- Tests: mobile `offlineSnapshot.test.ts`, `offlineReads.test.tsx`, `api.offline.test.ts`; backend `tests/unit/idempotency.middleware.test.ts`.
+- Tests: mobile `offlineSnapshot.test.ts`, `offlineReads.test.tsx`, `pagedListPersist.test.tsx`, `api.offline.test.ts`; backend `tests/unit/idempotency.middleware.test.ts`.
 - Not verified on a device yet: airplane-mode launch, banner, offline save message, reconnect refresh.
 
 Only start this if the product needs it, for example PMs checking projects on site with poor signal.

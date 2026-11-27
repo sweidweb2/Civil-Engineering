@@ -49,7 +49,7 @@ export function useWorkerProfile() {
   const [isSaving, setIsSaving] = useState(false)
 
   const load = useCallback(() => getMyWorkerProfile(), [])
-  const remote = useRemoteData(load, { cacheKey: cacheKeys.workersMe })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.workersMe, persist: true })
   const profile: WorkerProfile | null = remote.status === 'success' ? remote.data.data : null
   const verificationStatus: WorkerVerificationStatus =
     remote.status === 'success' ? remote.data.meta.verificationStatus : 'UNVERIFIED'

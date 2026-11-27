@@ -95,6 +95,7 @@ export function ProviderListingDetailScreen({
   const remote = useRemoteData(load, {
     enabled: Boolean(listingId),
     cacheKey: listingId ? `${cacheKeys.listingDetail}:${listingId}:view` : undefined,
+    persist: true,
   })
   const data = remote.status === 'success' ? remote.data : null
   const listing = data?.listing ?? null

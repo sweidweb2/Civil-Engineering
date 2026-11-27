@@ -128,22 +128,6 @@ export function workerExperienceSchema(t: TFunction) {
     })
 }
 
-/** Full list validation used when saving multiple experiences in one PUT. */
-export function workerExperiencesListSchema(t: TFunction) {
-  return z
-    .array(workerExperienceSchema(t))
-    .max(30)
-    .superRefine((items, ctx) => {
-      if (items.filter((item) => item.isCurrent).length > 1) {
-        ctx.addIssue({
-          code: 'custom',
-          message: t('validation.onlyOneCurrentExperience'),
-          path: [],
-        })
-      }
-    })
-}
-
 export function workerEducationSchema(t: TFunction) {
   return z
     .object({

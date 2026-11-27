@@ -89,7 +89,7 @@ export function ProviderDashboardScreen() {
   const today = useTodayCaption()
   const { c, shadow } = useWkPalette()
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardProvider })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardProvider, persist: true })
 
   const data = remote.status === 'success' ? remote.data : null
   const provider = data?.provider ?? null

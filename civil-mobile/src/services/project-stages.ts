@@ -13,14 +13,6 @@ export const STAGE_KEYS: StageKey[] = [
   'maintenance',
 ]
 
-export const STAGE_LABELS: Record<StageKey, string> = {
-  geotechnical: 'Geotechnical',
-  design: 'Design',
-  licensing: 'Licensing',
-  materials: 'Materials',
-  maintenance: 'Maintenance',
-}
-
 export const PROJECT_STAGE_STATUS_OPTIONS: { value: ProjectStageStatus; label: string }[] = [
   { value: 'NOT_STARTED', label: 'Not started' },
   { value: 'IN_PROGRESS', label: 'In progress' },

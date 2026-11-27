@@ -38,7 +38,7 @@ Source: locked batches 1–8. Lists only.
 - Report content
 - Favorite directory items
 - Delete own profile
-- No project access (no card, costs, docs, tasks, team)
+- Limited project access when invited: accept/reject invite, view own tasks only (see [Project Worker Invites & Tasks](../../[3]%20Decisions/[17]%20Project%20Worker%20Invites%20%26%20Tasks.md)); no budget, docs, full team, or PM tools
 
 ---
 
@@ -102,7 +102,7 @@ Source: locked batches 1–8. Lists only.
 - Reopen completed → active
 - Restore archived
 - Set project currency
-- Assign / reference workers as internal records only (does not grant the worker access)
+- Invite platform workers to a project (PENDING → accept/reject); manage project tasks (see [Project Worker Invites & Tasks](../../[3]%20Decisions/[17]%20Project%20Worker%20Invites%20%26%20Tasks.md))
 
 ---
 

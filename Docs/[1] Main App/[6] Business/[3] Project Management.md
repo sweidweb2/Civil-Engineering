@@ -133,8 +133,11 @@ Worker records can include:
 
 Attendance/time tracking is part of the potential worker-management scope.
 
-Assigning a worker to a project does not notify, contract, or bind the
-worker or any provider.
+Assigning a worker to a project does not hire, rent, or contract the worker
+on the platform. **Platform worker invites** (accept/reject + limited task
+access) are locked in
+[Project Worker Invites & Tasks](../../[3]%20Decisions/[17]%20Project%20Worker%20Invites%20%26%20Tasks.md)
+and supersede the older “reference-only / no worker access” rule for that flow only.
 
 ## Expenses
 

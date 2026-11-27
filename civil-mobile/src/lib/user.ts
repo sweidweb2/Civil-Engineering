@@ -1,6 +1,3 @@
-import type { TFunction } from 'i18next'
-
-import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'
 
 type NamedUser = {
@@ -35,11 +32,6 @@ export function userFirstName(user: NamedUser): string {
     user.email.split('@')[0] ||
     ''
   )
-}
-
-/** Localized role label; prefers `enums.role.*` keys. */
-export function roleLabel(role: string, t: TFunction): string {
-  return enumLabel(t, 'role', role)
 }
 
 /** Up to two initials ("Najd Equipment & Supply" → "NS"). Skips symbols like "&". */

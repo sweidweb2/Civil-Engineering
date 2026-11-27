@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { RefreshControl, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Plus, Users } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkError } from '@/components/wk/kit'
 import { useWkPalette, WK_TAB_SPACE } from '@/components/wk/palette'
 import { ListingGridSkeleton } from '@/components/wk/storefront'
@@ -14,8 +15,7 @@ import { UserRoleCategoryCard } from '@/features/admin/UserRoleCategoryCard'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { LIST_PERF, useStableListHeader } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
+import { useStableListHeader } from '@/lib/listPerf'
 import { errorMessage } from '@/services/feedback'
 import { listUsers, USER_ROLE_CATEGORIES, type UserRoleCounts } from '@/services/users'
 import { MONO_STYLE } from '@/theme/typography'
@@ -52,10 +52,19 @@ export function AdminUsersScreen() {
 
   const roles = remote.status === 'success' ? remote.data : EMPTY_ROLES
   const cards = useMemo(
-    () => USER_ROLE_CATEGORIES.map((role) => ({ role, count: roles[role] ?? 0 })),
+    () => USER_ROLE_CATEGORIES.map((role) => ({ id: role, role, count: roles[role] ?? 0 })),
     [roles],
   )
-  const rows = useMemo(() => toPairs(cards), [cards])
+  const renderRole = useCallback(
+    (card: (typeof cards)[number]) => (
+      <UserRoleCategoryCard
+        role={card.role}
+        count={card.count}
+        onPress={() => router.push(`${BASE}/roles/${card.role}` as never)}
+      />
+    ),
+    [],
+  )
   const isFirstLoad = remote.isLoading
   const totalUsers = cards.reduce((sum, card) => sum + card.count, 0)
 
@@ -113,24 +122,9 @@ export function AdminUsersScreen() {
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-admin-users">
-      <FlatList
-        data={isFirstLoad ? [] : rows}
-        keyExtractor={(row) => row.map((card) => card.role).join(':')}
-        {...LIST_PERF}
-        renderItem={({ item: row }) => (
-          <View className="flex-row gap-3">
-            {row.map((card) => (
-              <UserRoleCategoryCard
-                key={card.role}
-                role={card.role}
-                count={card.count}
-                onPress={() => router.push(`${BASE}/roles/${card.role}` as never)}
-              />
-            ))}
-            {row.length === 1 ? <View className="flex-1" /> : null}
-          </View>
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+      <WkGrid
+        data={isFirstLoad ? [] : cards}
+        renderCard={renderRole}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={empty}
         contentContainerClassName="px-5"

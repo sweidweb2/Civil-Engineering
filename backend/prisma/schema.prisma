@@ -61,6 +61,9 @@ model User {
   files                File[]
   provider             Provider?
   projects             Project[]
+  projectWorkerInvites ProjectWorker[] @relation("ProjectWorkerInvitee")
+  projectWorkersInvited ProjectWorker[] @relation("ProjectWorkerInviter")
+  projectTasksCreated  ProjectTask[]   @relation("ProjectTaskCreator")
   reviews              Review[]
   designRequests       DesignRequest[]
   sentNotifications    Notification[] @relation("SentNotifications")
@@ -606,6 +609,8 @@ model Project {
   maintenance         ProjectMaintenance?
   designRequests      DesignRequest[]
   productivityHours   ProjectProductivityHour[]
+  workers             ProjectWorker[]
+  tasks               ProjectTask[]
 
   @@index([status])
   @@index([ownerId, archivedAt, createdAt])
@@ -617,6 +622,61 @@ model Project {
   @@index([code(ops: raw("gin_trgm_ops"))], map: "projects_code_trgm_idx", type: Gin)
   @@index([city(ops: raw("gin_trgm_ops"))], map: "projects_city_trgm_idx", type: Gin)
   @@map("projects")
+}
+
+enum ProjectWorkerStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// PM invite of a platform WORKER onto a project (accept/reject; not a hire contract).
+model ProjectWorker {
+  id           String              @id @default(cuid())
+  projectId    String
+  workerUserId String
+  invitedById  String
+  status       ProjectWorkerStatus @default(PENDING)
+  invitedAt    DateTime            @default(now())
+  respondedAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worker       User                @relation("ProjectWorkerInvitee", fields: [workerUserId], references: [id], onDelete: Cascade)
+  invitedBy    User                @relation("ProjectWorkerInviter", fields: [invitedById], references: [id], onDelete: Restrict)
+  tasks        ProjectTask[]
+
+  @@unique([projectId, workerUserId])
+  @@index([workerUserId, status])
+  @@index([projectId, status])
+  @@map("project_workers")
+}
+
+enum ProjectTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+/// Flat project task; optional assignee must be an ACCEPTED ProjectWorker on the same project.
+model ProjectTask {
+  id                      String            @id @default(cuid())
+  projectId               String
+  title                   String
+  description             String?
+  status                  ProjectTaskStatus @default(TODO)
+  dueDate                 DateTime?         @db.Date
+  assigneeProjectWorkerId String?
+  createdById             String
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  project                 Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee                ProjectWorker?    @relation(fields: [assigneeProjectWorkerId], references: [id], onDelete: SetNull)
+  createdBy               User              @relation("ProjectTaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([projectId, status])
+  @@index([assigneeProjectWorkerId])
+  @@map("project_tasks")
 }
 
 /// One productivity hours value per project calendar day (re-entry upserts the same day).

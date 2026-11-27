@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { router } from 'expo-router'
 import { PenTool } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +8,7 @@ import { cacheKeys } from '@/lib/cacheKeys'
 import {
   DESIGN_REQUEST_STATUS_OPTIONS,
   designCategoryLabel,
+  type DesignRequest,
   type DesignRequestStatus,
   designRequestStatusLabel,
   listDesignRequests,
@@ -49,6 +51,29 @@ export function DesignRequestsListScreen({
       }),
   })
 
+  const renderRow = useCallback(
+    (row: DesignRequest) => (
+      <WkListRow
+        title={row.subject}
+        pill={{
+          label: designRequestStatusLabel(row.status),
+          tone: STATUS_TONE[row.status],
+        }}
+        sub={[
+          designCategoryLabel(row.category),
+          new Date(row.neededBy).toLocaleDateString(),
+          row.projectName,
+          row.designOfferTitle,
+          isAdmin ? row.requestedByName : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        onPress={() => router.push(`${basePath}/${row.id}` as never)}
+      />
+    ),
+    [basePath, isAdmin],
+  )
+
   return (
     <WkListScreen
       list={list}
@@ -66,25 +91,7 @@ export function DesignRequestsListScreen({
       ]}
       emptyIcon={PenTool}
       emptyTitle={t('designRequests.empty')}
-      renderItem={(row) => (
-        <WkListRow
-          title={row.subject}
-          pill={{
-            label: designRequestStatusLabel(row.status),
-            tone: STATUS_TONE[row.status],
-          }}
-          sub={[
-            designCategoryLabel(row.category),
-            new Date(row.neededBy).toLocaleDateString(),
-            row.projectName,
-            row.designOfferTitle,
-            isAdmin ? row.requestedByName : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-          onPress={() => router.push(`${basePath}/${row.id}` as never)}
-        />
-      )}
+      renderItem={renderRow}
     />
   )
 }

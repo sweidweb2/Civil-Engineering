@@ -69,7 +69,7 @@ export function ProviderProfileScreen() {
   const logoPick = useFilePick()
 
   const load = useCallback(() => getMyProvider(), [])
-  const remote = useRemoteData(load, { cacheKey: cacheKeys.providersMe })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.providersMe, persist: true })
   const provider = remote.status === 'success' ? remote.data.data : null
   const remoteLogoUrl = remote.status === 'success' ? remote.data.meta.logoDownloadUrl : null
   // Set right after an upload/remove so the new logo shows without a refetch.

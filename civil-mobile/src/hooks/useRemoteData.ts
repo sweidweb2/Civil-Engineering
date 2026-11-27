@@ -12,6 +12,7 @@ import {
   remoteCacheSubscribe,
 } from '@/lib/remoteCache'
 import { ApiError } from '@/services/api'
+import { isOffline } from '@/services/connectivity'
 import { useAuthStore } from '@/stores/authStore'
 
 export type RemoteIdle = { status: 'idle' }
@@ -32,7 +33,20 @@ type UseRemoteDataOptions = {
   cacheKey?: string
   /** How long a successful result stays fresh. Default 30s. */
   staleTime?: number
+  /**
+   * Save successful responses to disk for offline reading (`offlineSnapshot`). Only for
+   * the signed-in user's own working data (dashboards, own profile, page 1 of own lists
+   * without a search…), never admin lists of other people. Needs `cacheKey`.
+   */
+  persist?: boolean
 }
+
+/**
+ * While a first load is pending, show the saved offline copy after this long (right
+ * away when the device is known to be offline) instead of waiting for the request
+ * timeout. A quick response replaces nothing, so good networks never see old data.
+ */
+export const SAVED_COPY_GRACE_MS = 2_000
 
 type RefetchOptions = {
   /** Drop cached/current data and show the initial loading state. */
@@ -56,13 +70,15 @@ type RefetchOptions = {
  * kept on screen (a silent refresh failure the caller may want to report — see
  * `usePullToRefresh`); otherwise `true`.
  *
- * Offline: successful responses for allow-listed keys are saved to disk
- * (`offlineSnapshot`). If a request fails with a network error (no server response)
- * and nothing is on screen, the last saved copy is shown and `offlineSavedAt` is set
- * to when it was saved; it returns to `null` once live data loads.
+ * Offline (`persist: true`): successful responses are saved to disk (`offlineSnapshot`).
+ * When nothing is on screen yet, the last saved copy is shown if the request is still
+ * pending after `SAVED_COPY_GRACE_MS` (immediately when offline), or if it fails
+ * without a server response. `offlineSavedAt` is then set to when the copy was saved;
+ * it returns to `null` once live data loads. A real server error (`ApiError`) still
+ * replaces the saved copy with the error.
  */
 export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataOptions = {}) {
-  const { enabled = true, cacheKey, staleTime = REMOTE_STALE_MS } = options
+  const { enabled = true, cacheKey, staleTime = REMOTE_STALE_MS, persist = false } = options
   const cached = cacheKey ? remoteCacheRead<T>(cacheKey) : undefined
   const [state, setState] = useState<RemoteState<T>>(() =>
     cached !== undefined ? { status: 'success', data: cached.data } : { status: 'idle' },
@@ -73,6 +89,7 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   const loadRef = useRef(load)
   const cacheKeyRef = useRef(cacheKey)
   const staleTimeRef = useRef(staleTime)
+  const persistRef = useRef(persist)
   const stateRef = useRef(state)
   /** Cache key that `state` currently belongs to (prevents cross-page hadData). */
   const dataKeyRef = useRef<string | undefined>(cached !== undefined ? cacheKey : undefined)
@@ -94,7 +111,8 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   useEffect(() => {
     cacheKeyRef.current = cacheKey
     staleTimeRef.current = staleTime
-  }, [cacheKey, staleTime])
+    persistRef.current = persist
+  }, [cacheKey, staleTime, persist])
 
   useEffect(() => {
     stateRef.current = state
@@ -143,6 +161,40 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
       // A login / logout / session expiry in the meantime makes this result belong to
       // another session: never show or cache it.
       const generation = remoteCacheGeneration()
+      const isCurrent = () =>
+        requestId === requestIdRef.current && generation === remoteCacheGeneration()
+
+      // Saved offline copy for this key (read lazily, at most once per request).
+      const userId = useAuthStore.getState().user?.id
+      const persistKey = persistRef.current && requestKey && userId ? requestKey : undefined
+      let saved: ReturnType<typeof offlineSnapshotGet> | undefined
+      const readSaved = () => {
+        if (!persistKey || !userId) return Promise.resolve(undefined)
+        saved ??= offlineSnapshotGet(userId, persistKey)
+        return saved
+      }
+      let showingSaved = false
+      const showSaved = (entry: { data: unknown; savedAt: number }) => {
+        dataKeyRef.current = requestKey
+        show({ status: 'success', data: entry.data as T })
+        setOfflineSavedAt(entry.savedAt)
+        showingSaved = true
+      }
+      // Nothing on screen: show the saved copy if the request is slow (or we are offline).
+      const graceTimer =
+        persistKey && hadData === undefined
+          ? setTimeout(
+              () => {
+                void readSaved().then((entry) => {
+                  if (entry && isCurrent() && stateRef.current.status === 'loading') {
+                    showSaved(entry)
+                  }
+                })
+              },
+              isOffline() ? 0 : SAVED_COPY_GRACE_MS,
+            )
+          : undefined
+
       try {
         const data = requestKey
           ? await remoteCacheFetch(requestKey, () => loadRef.current(), {
@@ -150,39 +202,35 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
               shouldStore: () => Boolean(useAuthStore.getState().tokens),
             })
           : await loadRef.current()
-        if (requestId !== requestIdRef.current) return true
-        if (generation !== remoteCacheGeneration()) return true
+        if (!isCurrent()) return true
         dataKeyRef.current = requestKey
         show({ status: 'success', data })
         setOfflineSavedAt(null)
-        const userId = useAuthStore.getState().user?.id
-        if (requestKey && userId) void offlineSnapshotPut(userId, requestKey, data)
+        if (persistKey && userId) void offlineSnapshotPut(userId, persistKey, data)
         return true
       } catch (error) {
-        if (requestId !== requestIdRef.current) return true
-        if (generation !== remoteCacheGeneration()) return true
+        if (!isCurrent()) return true
         if (hadData !== undefined) {
           show({ status: 'success', data: hadData })
           return false
         }
-        // No server response (offline / timeout) and nothing on screen: show the last
-        // saved copy, if this key is saved for offline reading.
-        const userId = useAuthStore.getState().user?.id
-        if (requestKey && userId && !(error instanceof ApiError)) {
-          const saved = await offlineSnapshotGet(userId, requestKey)
-          if (requestId !== requestIdRef.current) return true
-          if (generation !== remoteCacheGeneration()) return true
-          if (saved) {
-            dataKeyRef.current = requestKey
-            show({ status: 'success', data: saved.data as T })
-            setOfflineSavedAt(saved.savedAt)
+        // A server answer (`ApiError`) is shown even over a saved copy; with no server
+        // response (offline / timeout), show the last saved copy if this key has one.
+        if (!(error instanceof ApiError)) {
+          if (showingSaved) return true
+          const entry = await readSaved()
+          if (!isCurrent()) return true
+          if (entry) {
+            showSaved(entry)
             return true
           }
         }
         dataKeyRef.current = undefined
+        setOfflineSavedAt(null)
         show({ status: 'error', error })
         return true
       } finally {
+        if (graceTimer) clearTimeout(graceTimer)
         if (requestId === requestIdRef.current) setIsFetching(false)
       }
     },

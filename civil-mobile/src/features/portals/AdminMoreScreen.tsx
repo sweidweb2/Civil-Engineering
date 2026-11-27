@@ -35,7 +35,7 @@ export function AdminMoreScreen() {
 
   // Same cache entry as Home, so badges are free when coming from there.
   const load = useCallback(async () => (await getAdminOverview()).data, [])
-  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin, persist: true })
   const overview = remote.status === 'success' ? remote.data : null
   const badge: Partial<Record<string, number>> = {
     queue: overview?.pendingRequests,

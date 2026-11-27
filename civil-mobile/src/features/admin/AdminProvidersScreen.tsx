@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { router } from 'expo-router'
 import { Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -40,6 +40,23 @@ export function AdminProvidersScreen() {
   })
 
   const all = counts ? counts.PENDING + counts.APPROVED + counts.SUSPENDED : null
+  const renderRow = useCallback(
+    (p: Provider) => (
+      <WkListRow
+        media={
+          // List rows only have the stored logo ref (usually an R2 key, not a URL).
+          <WkMedia photo={isHttpUrl(p.logoUrl) ? p.logoUrl : null} name={p.name} hero />
+        }
+        title={p.name}
+        pill={{ label: enumLabel(t, 'providerStatus', p.status), tone: PROVIDER_TONE[p.status] }}
+        sub={[p.city, p.country].filter(Boolean).join(', ') || null}
+        sub2={p.email ? ltr(p.email) : p.phone ? ltr(p.phone) : null}
+        onPress={() => router.push(`${BASE}/${p.id}` as never)}
+      />
+    ),
+    [t],
+  )
+
   return (
     <WkListScreen
       testID="e2e-admin-providers"
@@ -57,19 +74,7 @@ export function AdminProvidersScreen() {
       ]}
       emptyIcon={Store}
       emptyTitle={t('providers.empty')}
-      renderItem={(p) => (
-        <WkListRow
-          media={
-            // List rows only have the stored logo ref (usually an R2 key, not a URL).
-            <WkMedia photo={isHttpUrl(p.logoUrl) ? p.logoUrl : null} name={p.name} hero />
-          }
-          title={p.name}
-          pill={{ label: enumLabel(t, 'providerStatus', p.status), tone: PROVIDER_TONE[p.status] }}
-          sub={[p.city, p.country].filter(Boolean).join(', ') || null}
-          sub2={p.email ? ltr(p.email) : p.phone ? ltr(p.phone) : null}
-          onPress={() => router.push(`${BASE}/${p.id}` as never)}
-        />
-      )}
+      renderItem={renderRow}
     />
   )
 }

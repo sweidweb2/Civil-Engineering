@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { RefreshControl, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { FolderTree, HardHat, SearchX } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
-import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkButton, WkError, WkTopBar } from '@/components/wk/kit'
 import { useWkPalette, WK_TAB_SPACE } from '@/components/wk/palette'
 import { WkSearchField } from '@/components/wk/SearchField'
@@ -17,8 +17,6 @@ import { SpecialtyGridCard } from '@/features/pm/SpecialtyGridCard'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys, cacheTtl } from '@/lib/cacheKeys'
-import { LIST_PERF } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
 import { specialtyLabel, WORKER_SPECIALTIES, type WorkerSpecialty } from '@/lib/specialties'
 import { listActiveListingCategories } from '@/services/categories'
 import { errorMessage } from '@/services/feedback'
@@ -77,15 +75,25 @@ export function PmDirectoryScreen({
     enabled: kind === 'listings',
     cacheKey: `${cacheKeys.directory}:pm:categories:${applied}`,
     staleTime: cacheTtl.reference,
+    persist: applied === '',
   })
   const specialtiesRemote = useRemoteData(loadSpecialtyFacets, {
     enabled: kind === 'workers',
     cacheKey: `${cacheKeys.directory}:pm:specialty-counts:${applied}`,
     staleTime: cacheTtl.reference,
+    persist: applied === '',
   })
 
   const categories = categoriesRemote.status === 'success' ? categoriesRemote.data : []
-  const categoryRows = useMemo(() => toPairs(categories), [categories])
+  const renderCategory = useCallback(
+    (category: (typeof categories)[number]) => (
+      <CategoryGridCard
+        category={category}
+        onPress={() => router.push(`${basePath}/categories/${category.id}` as never)}
+      />
+    ),
+    [basePath],
+  )
 
   const specialtyCounts =
     specialtiesRemote.status === 'success' ? specialtiesRemote.data : ({} as Record<string, number>)
@@ -109,7 +117,16 @@ export function PmDirectoryScreen({
     })
   }, [applied, i18n.language, specialtyCounts])
 
-  const specialtyRows = useMemo(() => toPairs(specialties), [specialties])
+  const renderSpecialty = useCallback(
+    (specialty: (typeof specialties)[number]) => (
+      <SpecialtyGridCard
+        label={specialtyLabel(specialty.id, i18n.language)}
+        count={specialty.count}
+        onPress={() => router.push(`${basePath}/specialties/${specialty.id}` as never)}
+      />
+    ),
+    [basePath, i18n.language],
+  )
   const isCategoriesLoading = kind === 'listings' && categoriesRemote.isLoading
   const isSpecialtiesLoading = kind === 'workers' && specialtiesRemote.isLoading
 
@@ -239,23 +256,9 @@ export function PmDirectoryScreen({
     return (
       <View className="flex-1 bg-wk-bg" testID="e2e-pm-directory">
         {backHref ? <WkTopBar title={t('directory.title')} backHref={backHref} /> : null}
-        <FlatList
-          data={isCategoriesLoading ? [] : categoryRows}
-          keyExtractor={(row) => row.map((cat) => cat.id).join(':')}
-          {...LIST_PERF}
-          renderItem={({ item: row }) => (
-            <WkGridRow>
-              {row.map((category) => (
-                <CategoryGridCard
-                  key={category.id}
-                  category={category}
-                  onPress={() => router.push(`${basePath}/categories/${category.id}` as never)}
-                />
-              ))}
-              {row.length === 1 ? <WkGridSpacer /> : null}
-            </WkGridRow>
-          )}
-          ItemSeparatorComponent={() => <View className="h-3" />}
+        <WkGrid
+          data={isCategoriesLoading ? [] : categories}
+          renderCard={renderCategory}
           ListHeaderComponent={header}
           ListEmptyComponent={categoriesEmpty}
           keyboardShouldPersistTaps="handled"
@@ -281,24 +284,9 @@ export function PmDirectoryScreen({
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-pm-directory">
       {backHref ? <WkTopBar title={t('directory.title')} backHref={backHref} /> : null}
-      <FlatList
-        data={isSpecialtiesLoading ? [] : specialtyRows}
-        keyExtractor={(row) => row.map((item) => item.id).join(':')}
-        {...LIST_PERF}
-        renderItem={({ item: row }) => (
-          <WkGridRow>
-            {row.map((specialty) => (
-              <SpecialtyGridCard
-                key={specialty.id}
-                label={specialtyLabel(specialty.id, i18n.language)}
-                count={specialty.count}
-                onPress={() => router.push(`${basePath}/specialties/${specialty.id}` as never)}
-              />
-            ))}
-            {row.length === 1 ? <WkGridSpacer /> : null}
-          </WkGridRow>
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+      <WkGrid
+        data={isSpecialtiesLoading ? [] : specialties}
+        renderCard={renderSpecialty}
         ListHeaderComponent={header}
         ListEmptyComponent={specialtiesEmpty}
         keyboardShouldPersistTaps="handled"

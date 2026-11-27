@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { RefreshControl, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { FolderTree, Plus, SearchX } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
-import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkButton, WkError, WkTopBar } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
 import { WkSearchAddButton, WkSearchField } from '@/components/wk/SearchField'
@@ -15,8 +15,6 @@ import { CategoryGridCard } from '@/features/pm/CategoryGridCard'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys, cacheTtl } from '@/lib/cacheKeys'
-import { LIST_PERF } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
 import { listActiveListingCategories } from '@/services/categories'
 import { errorMessage } from '@/services/feedback'
 import { MONO_STYLE } from '@/theme/typography'
@@ -52,7 +50,15 @@ export function AdminListingsScreen() {
   })
 
   const categories = remote.status === 'success' ? remote.data : []
-  const rows = useMemo(() => toPairs(categories), [categories])
+  const renderCategory = useCallback(
+    (category: (typeof categories)[number]) => (
+      <CategoryGridCard
+        category={category}
+        onPress={() => router.push(`${BASE}/categories/${category.id}` as never)}
+      />
+    ),
+    [],
+  )
   const isFirstLoad = remote.isLoading
 
   const header = (
@@ -132,23 +138,9 @@ export function AdminListingsScreen() {
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-admin-listings">
       <WkTopBar title={t('listings.title')} backHref="/admin/more" />
-      <FlatList
-        data={isFirstLoad ? [] : rows}
-        keyExtractor={(row) => row.map((cat) => cat.id).join(':')}
-        {...LIST_PERF}
-        renderItem={({ item: row }) => (
-          <WkGridRow>
-            {row.map((category) => (
-              <CategoryGridCard
-                key={category.id}
-                category={category}
-                onPress={() => router.push(`${BASE}/categories/${category.id}` as never)}
-              />
-            ))}
-            {row.length === 1 ? <WkGridSpacer /> : null}
-          </WkGridRow>
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+      <WkGrid
+        data={isFirstLoad ? [] : categories}
+        renderCard={renderCategory}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         keyboardShouldPersistTaps="handled"

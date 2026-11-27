@@ -273,10 +273,6 @@ export function upsertMyWorkerProfile(input: WorkerProfileWriteInput) {
   })
 }
 
-export function deleteMyWorkerProfile() {
-  return apiRequest<void>('/workers/me', { method: 'DELETE' })
-}
-
 export function requestWorkerVerification() {
   return apiRequest<{ data: { verificationStatus: 'REQUESTED' } }>(
     '/workers/me/request-verification',

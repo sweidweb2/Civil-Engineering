@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react'
-import { FlatList, RefreshControl, ScrollView, Text, View } from 'react-native'
+import { useCallback, useEffect } from 'react'
+import { RefreshControl, ScrollView, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Package, Plus, RotateCcw } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
-import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkButton, WkError, WkHeroGlow, WkTopBar } from '@/components/wk/kit'
 import { PagedListFooter } from '@/components/wk/PagedListFooter'
 import { useWkPalette, WK_TAB_SPACE } from '@/components/wk/palette'
@@ -17,8 +17,6 @@ import { usePagedList } from '@/components/wk/usePagedList'
 import { ListingGridCard, ListingGridSkeleton } from '@/features/provider/ui/kit'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { LIST_PERF } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
 import { errorMessage } from '@/services/feedback'
 import {
   type Listing,
@@ -68,6 +66,7 @@ export function ProviderListingsScreen({
     cacheKeyPrefix: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${categoryId ?? 'all'}`,
     initialFilter: parseFilter(params.status),
     resetKey: categoryId,
+    persist: scope === 'mine',
     fetcher: ({ page, query, filter }) =>
       listListings(page, PAGE_SIZE, {
         q: query || undefined,
@@ -88,7 +87,15 @@ export function ProviderListingsScreen({
     ? undefined
     : (list.meta?.statusCounts as ListingStatusCounts | undefined)
   const allCount = counts ? counts.ACTIVE + counts.INACTIVE : null
-  const listRows = useMemo(() => toPairs(list.rows), [list.rows])
+  const renderListing = useCallback(
+    (listing: Listing) => (
+      <ListingGridCard
+        listing={listing}
+        onPress={() => router.push(`${basePath}/${listing.id}` as never)}
+      />
+    ),
+    [basePath],
+  )
 
   const filters: { value: Filter; label: string; count: number | null }[] = [
     { value: 'ALL', label: t('providerPortal.all'), count: allCount },
@@ -230,23 +237,9 @@ export function ProviderListingsScreen({
           count={list.total ? String(list.total) : undefined}
         />
       ) : null}
-      <FlatList
-        data={list.isFirstLoad ? [] : listRows}
-        keyExtractor={(row) => row.map((l) => l.id).join(':')}
-        {...LIST_PERF}
-        renderItem={({ item: row }) => (
-          <WkGridRow>
-            {row.map((listing) => (
-              <ListingGridCard
-                key={listing.id}
-                listing={listing}
-                onPress={() => router.push(`${basePath}/${listing.id}` as never)}
-              />
-            ))}
-            {row.length === 1 ? <WkGridSpacer /> : null}
-          </WkGridRow>
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+      <WkGrid
+        data={list.isFirstLoad ? [] : list.rows}
+        renderCard={renderListing}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={

@@ -1,7 +1,8 @@
-import { View } from 'react-native'
-import type { ReactNode } from 'react'
+import { type ReactElement, type ReactNode, useCallback } from 'react'
+import { FlatList, type FlatListProps, type ListRenderItemInfo, View } from 'react-native'
 
 import { Pressable } from '@/components/ui/pressable'
+import { LIST_PERF } from '@/lib/listPerf'
 
 import { useWkPalette } from './palette'
 
@@ -48,12 +49,46 @@ export function WkGridCard({
   )
 }
 
-/** One FlatList row: two cards (or one + spacer). */
-export function WkGridRow({ children }: { children: ReactNode }) {
-  return <View className="flex-row gap-3">{children}</View>
+/** 12px gap between list rows. Module-level so FlatList never remounts separators. */
+export function WkListGap() {
+  return <View className="h-3" />
 }
 
-/** Spacer that keeps a lone card at half width in a two-column row. */
-export function WkGridSpacer() {
-  return <View className="flex-1" />
+/** Half-width cells with a 6px inner gutter: a 12px column gap, and a lone last card keeps its width. */
+const CELL_START = { width: '50%', paddingEnd: 6 } as const
+const CELL_END = { width: '50%', paddingStart: 6 } as const
+
+const idOf = (item: { id: string }) => item.id
+
+type WkGridProps<T> = Omit<
+  FlatListProps<T>,
+  'data' | 'renderItem' | 'numColumns' | 'keyExtractor' | 'columnWrapperStyle'
+> & {
+  data: readonly T[]
+  /**
+   * One card. Keep it stable (`useCallback`): with a stable renderer, cells skip
+   * re-rendering when only the header (search text, filters) changes.
+   */
+  renderCard: (item: T) => ReactElement
+}
+
+/** Two-column portal grid (listings, categories, users…) with the shared list tuning. */
+export function WkGrid<T extends { id: string }>({ data, renderCard, ...rest }: WkGridProps<T>) {
+  const renderItem = useCallback(
+    ({ item, index }: ListRenderItemInfo<T>) => (
+      <View style={index % 2 === 0 ? CELL_START : CELL_END}>{renderCard(item)}</View>
+    ),
+    [renderCard],
+  )
+  return (
+    <FlatList
+      data={data}
+      numColumns={2}
+      keyExtractor={idOf}
+      renderItem={renderItem}
+      ItemSeparatorComponent={WkListGap}
+      {...LIST_PERF}
+      {...rest}
+    />
+  )
 }

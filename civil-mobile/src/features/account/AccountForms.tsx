@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { FieldRow, Section, TextField } from '@/components/kit'
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button'
 import {
   accountPasswordSchema,
   type AccountPasswordValues,
@@ -13,7 +11,6 @@ import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { invalidateOwnAccountCaches } from '@/lib/cacheKeys'
 import { type FieldErrors, parseForm } from '@/lib/form'
-import { ltr } from '@/lib/rtl'
 import { changePassword } from '@/services/auth'
 import { useToastSuccess } from '@/services/toast'
 import { getUser, updateUser } from '@/services/users'
@@ -100,53 +97,6 @@ export function useAccountDetails() {
   return { user, form, set, errors, isSaving, onSave }
 }
 
-/** Edit the signed-in user's own name and phone. */
-export function AccountDetailsForm() {
-  const { t } = useTranslation()
-  const { user, form, set, errors, isSaving, onSave } = useAccountDetails()
-
-  return (
-    <Section title={t('account.details')} description={user?.email ? ltr(user.email) : undefined}>
-      <FieldRow>
-        <TextField
-          label={t('common.firstName')}
-          value={form.firstName}
-          onChangeText={(value) => set('firstName', value)}
-          error={errors.firstName}
-        />
-        <TextField
-          label={t('common.lastName')}
-          value={form.lastName}
-          onChangeText={(value) => set('lastName', value)}
-          error={errors.lastName}
-        />
-      </FieldRow>
-      <TextField
-        label={t('common.displayName')}
-        value={form.displayName}
-        onChangeText={(value) => set('displayName', value)}
-        error={errors.displayName}
-        helper={t('account.displayNameHint')}
-      />
-      <TextField
-        label={t('common.phone')}
-        value={form.phone}
-        onChangeText={(value) => set('phone', value)}
-        error={errors.phone}
-        keyboardType="phone-pad"
-      />
-      <Button
-        onPress={() => void onSave()}
-        disabled={isSaving}
-        accessibilityState={{ busy: isSaving }}
-      >
-        {isSaving ? <ButtonSpinner /> : null}
-        <ButtonText>{isSaving ? t('common.saving') : t('account.saveDetails')}</ButtonText>
-      </Button>
-    </Section>
-  )
-}
-
 /** State + submit for changing the signed-in user's password. */
 export function usePasswordChange() {
   const { t } = useTranslation()
@@ -180,47 +130,4 @@ export function usePasswordChange() {
   }
 
   return { form, set, errors, isSaving, onSave }
-}
-
-export function PasswordForm() {
-  const { t } = useTranslation()
-  const { form, set, errors, isSaving, onSave } = usePasswordChange()
-
-  return (
-    <Section title={t('account.password')} description={t('account.passwordHint')}>
-      <TextField
-        label={t('account.currentPassword')}
-        required
-        secureTextEntry
-        value={form.currentPassword}
-        onChangeText={(value) => set('currentPassword', value)}
-        error={errors.currentPassword}
-      />
-      <TextField
-        label={t('account.newPassword')}
-        required
-        secureTextEntry
-        value={form.newPassword}
-        onChangeText={(value) => set('newPassword', value)}
-        error={errors.newPassword}
-      />
-      <TextField
-        label={t('account.confirmPassword')}
-        required
-        secureTextEntry
-        value={form.confirmPassword}
-        onChangeText={(value) => set('confirmPassword', value)}
-        error={errors.confirmPassword}
-      />
-      <Button
-        variant="outline"
-        onPress={() => void onSave()}
-        disabled={isSaving}
-        accessibilityState={{ busy: isSaving }}
-      >
-        {isSaving ? <ButtonSpinner /> : null}
-        <ButtonText>{isSaving ? t('account.updating') : t('account.updatePassword')}</ButtonText>
-      </Button>
-    </Section>
-  )
 }

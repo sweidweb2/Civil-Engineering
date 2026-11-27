@@ -78,10 +78,6 @@ export const PROVIDER_STATUS_OPTIONS: { value: ProviderStatus; label: string }[]
   { value: 'SUSPENDED', label: 'Suspended' },
 ]
 
-export function providerStatusLabel(status: ProviderStatus): string {
-  return PROVIDER_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
-}
-
 export function getMyProvider() {
   return apiRequest<ProviderLogoResponse>('/providers/me')
 }

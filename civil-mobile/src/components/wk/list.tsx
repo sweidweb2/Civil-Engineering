@@ -1,7 +1,15 @@
-import { FlatList, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native'
+import { type ReactNode, useCallback } from 'react'
+import {
+  FlatList,
+  type ListRenderItemInfo,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
 import { Image } from 'expo-image'
 import { ChevronRight, type LucideIcon, Plus, Search, Star, X } from 'lucide-react-native'
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import Animated, { FadeIn } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -15,13 +23,14 @@ import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { MONO_STYLE } from '@/theme/typography'
 
+import { WkListGap } from './GridCard'
 import { flipStyle, WkButton, WkError, WkPill, WkSkeletonCard, WkTopBar } from './kit'
 import { PagedListFooter } from './PagedListFooter'
 import { useWkPalette, WK_TAB_SPACE, type WkTone } from './palette'
 import type { PagedList } from './usePagedList'
 
-export { type PagedList, type PageResult, usePagedList } from './usePagedList'
 export { PagedListFooter } from './PagedListFooter'
+export { type PagedList, type PageResult, usePagedList } from './usePagedList'
 
 /**
  * Generic list screen on the green palette (the admin design's "generic
@@ -200,6 +209,12 @@ export function WkListScreen<T extends { id: string }>({
     ) : undefined
 
   const listHeader = useStableListHeader(top)
+  // Stable while the caller's `renderItem` is stable (`useCallback`), so rows skip
+  // re-rendering on search keystrokes (see `LIST_PERF.strictMode`).
+  const renderListItem = useCallback(
+    ({ item, index }: ListRenderItemInfo<T>) => renderItem(item, index),
+    [renderItem],
+  )
 
   return (
     <View className="flex-1 bg-wk-bg" testID={testID}>
@@ -214,8 +229,8 @@ export function WkListScreen<T extends { id: string }>({
         data={list.isFirstLoad ? [] : list.rows}
         keyExtractor={(item) => item.id}
         {...LIST_PERF}
-        renderItem={({ item, index }) => renderItem(item, index)}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        renderItem={renderListItem}
+        ItemSeparatorComponent={WkListGap}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={empty}
         ListFooterComponent={

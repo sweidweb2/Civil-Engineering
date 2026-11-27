@@ -61,10 +61,3 @@ export function cvCompletenessPercent(profile: CvShape | null): number {
   const done = sections.filter((s) => s.done).length
   return Math.round((done / sections.length) * 100)
 }
-
-/** Sections still missing, in CV order. */
-export function cvMissingSections(profile: CvShape | null): CvSectionKey[] {
-  return cvSectionStatuses(profile)
-    .filter((s) => !s.done)
-    .map((s) => s.key)
-}

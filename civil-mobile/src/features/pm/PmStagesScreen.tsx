@@ -176,6 +176,7 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
   const remote = useRemoteData(load, {
     enabled: Boolean(projectId),
     cacheKey: projectId ? `${cacheKeys.projectDetail}:${projectId}` : undefined,
+    persist: true,
   })
   const projectCode = remote.status === 'success' ? remote.data.data.project.code : null
   const summary = remote.status === 'success' ? remote.data.data.stages : null

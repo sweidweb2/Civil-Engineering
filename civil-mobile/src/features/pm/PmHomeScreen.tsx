@@ -36,7 +36,6 @@ import { userFirstName } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { getProjectStagesSummaries, type ProjectStagesSummary } from '@/services/project-stages'
 import {
-  getProjectSummary,
   listProjects,
   type Project,
   type ProjectStatus,
@@ -55,25 +54,16 @@ type Overview = {
   active: { project: Project; stages: ProjectStagesSummary | null }[]
 }
 
-/** List (+ summary) then stage summaries; soft-fail so one half can still render. */
+/**
+ * List + status summary in one request, then stage summaries for the carousel.
+ * Stage summaries soft-fail so the rest of the dashboard still renders.
+ */
 async function loadOverview(): Promise<Overview> {
-  let projects: Project[] = []
-  let summary: ProjectSummary | null = null
-  try {
-    const list = await listProjects({ page: 1, limit: 20, includeSummary: true })
-    projects = list.data
-    summary = list.summary
-  } catch {
-    const [listResult, summaryResult] = await Promise.allSettled([
-      listProjects({ page: 1, limit: 20 }),
-      getProjectSummary(),
-    ])
-    if (listResult.status === 'rejected' && summaryResult.status === 'rejected') {
-      throw listResult.reason
-    }
-    projects = listResult.status === 'fulfilled' ? listResult.value.data : []
-    summary = summaryResult.status === 'fulfilled' ? summaryResult.value.data : null
-  }
+  const { data: projects, summary } = await listProjects({
+    page: 1,
+    limit: 20,
+    includeSummary: true,
+  })
 
   const carousel = projects.filter((p) => CAROUSEL_STATUSES.includes(p.status)).slice(0, 5)
   const stageMap =
@@ -103,7 +93,7 @@ export function PmHomeScreen() {
   const user = useAuthStore((s) => s.user)
   const { c, shadow } = useWkPalette()
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardPm })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardPm, persist: true })
 
   const data = remote.status === 'success' ? remote.data : null
   const counts = data?.summary?.counts

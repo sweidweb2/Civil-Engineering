@@ -70,7 +70,7 @@ export function AdminDashboardScreen() {
   const today = useTodayCaption()
   const { c, shadow } = useWkPalette()
   const load = useCallback(() => loadOverview(), [])
-  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin })
+  const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin, persist: true })
   const data = remote.status === 'success' ? remote.data : null
 
   const requests = data?.pendingRequests ?? 0

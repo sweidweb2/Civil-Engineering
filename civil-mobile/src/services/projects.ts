@@ -25,10 +25,6 @@ export const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] =
   { value: 'CANCELLED', label: 'Cancelled' },
 ]
 
-export function projectTypeLabel(type: string | null | undefined): string {
-  return PROJECT_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? '—'
-}
-
 export function projectStatusLabel(status: string): string {
   return (
     PROJECT_STATUS_OPTIONS.find((option) => option.value === status)?.label ??
@@ -126,11 +122,6 @@ export function listProjects(
   if (params.q?.trim()) search.set('q', params.q.trim())
   if (params.includeSummary) search.set('includeSummary', 'true')
   return apiRequest<PaginatedProjects>(`/projects?${search.toString()}`)
-}
-
-/** Aggregate status counts — one round-trip instead of N list-for-total calls. */
-export function getProjectSummary() {
-  return apiRequest<{ data: ProjectSummary }>('/projects/summary')
 }
 
 export function getProjectById(id: string) {

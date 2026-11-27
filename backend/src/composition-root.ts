@@ -17,6 +17,16 @@ import { createNotificationsModule } from './modules/notifications/index.js'
 import { createProjectImagesModule } from './modules/project-images/index.js'
 import { createProjectProductivityModule } from './modules/project-productivity/index.js'
 import { createProjectStagesModule } from './modules/project-stages/index.js'
+import {
+  buildProjectTasksService,
+  createProjectTasksModule,
+  createWorkerProjectTasksModule,
+} from './modules/project-tasks/index.js'
+import {
+  buildProjectWorkersService,
+  createProjectWorkersModule,
+  createWorkerProjectsModule,
+} from './modules/project-workers/index.js'
 import { buildProjectsService, createProjectsModule } from './modules/projects/index.js'
 import { buildProvidersService, createProvidersModule } from './modules/providers/index.js'
 import { buildReviewsService, createReviewsModule } from './modules/reviews/index.js'
@@ -68,6 +78,8 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
   const providersService = buildProvidersService(moduleDeps)
   const listingsService = buildListingsService({ ...moduleDeps, providers: providersService })
   const projectsService = buildProjectsService(moduleDeps)
+  const projectWorkersService = buildProjectWorkersService(projectsService)
+  const projectTasksService = buildProjectTasksService(projectsService)
   const reviewsService = buildReviewsService({ ...moduleDeps, listingsService })
   const filesService = buildFilesService({ ...moduleDeps, projectsService })
 
@@ -88,7 +100,17 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       },
     }),
     managerProfiles: createManagerProfilesModule(),
-    workers: createWorkersModule(moduleDeps),
+    workers: (() => {
+      const workersRouter = Router()
+      workersRouter.use(createWorkersModule(moduleDeps))
+      workersRouter.use(
+        createWorkerProjectsModule({ projectsService, service: projectWorkersService }),
+      )
+      workersRouter.use(
+        createWorkerProjectTasksModule({ projectsService, service: projectTasksService }),
+      )
+      return workersRouter
+    })(),
     providers: createProvidersModule({ service: providersService }),
     categories: createCategoriesModule({
       ...moduleDeps,
@@ -103,6 +125,12 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       projectsRouter.use(createProjectsModule({ service: projectsService }))
       projectsRouter.use(createProjectStagesModule({ projectsService }))
       projectsRouter.use(createProjectProductivityModule({ projectsService }))
+      projectsRouter.use(
+        createProjectWorkersModule({ projectsService, service: projectWorkersService }),
+      )
+      projectsRouter.use(
+        createProjectTasksModule({ projectsService, service: projectTasksService }),
+      )
       return projectsRouter
     })(),
     projectImages: createProjectImagesModule({ ...moduleDeps, projectsService }),

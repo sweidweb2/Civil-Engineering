@@ -107,21 +107,6 @@ export function deleteListing(id: string) {
   })
 }
 
-export function formatListingPrice(
-  listing: Pick<Listing, 'currency' | 'price' | 'priceMin' | 'priceMax' | 'unit'>,
-): string {
-  const currency = listing.currency?.trim() || ''
-  const unit = listing.unit?.trim()
-  const suffix = unit ? ` / ${unit}` : ''
-  if (listing.price != null && listing.price !== '') {
-    return `${currency} ${listing.price}${suffix}`.trim()
-  }
-  if (listing.priceMin != null && listing.priceMax != null) {
-    return `${currency} ${listing.priceMin}–${listing.priceMax}${suffix}`.trim()
-  }
-  return '—'
-}
-
 export function listListings(
   page = 1,
   limit = 20,

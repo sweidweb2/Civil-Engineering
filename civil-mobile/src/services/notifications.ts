@@ -130,7 +130,3 @@ export async function unregisterPushForUser(accessToken: string | null | undefin
     console.warn('[push] unregister failed', error)
   }
 }
-
-export function getRegisteredPushToken(): string | null {
-  return registeredPushToken
-}

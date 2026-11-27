@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
-import { FlatList, Text, View } from 'react-native'
+import { useCallback } from 'react'
+import { Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { LayoutGrid } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkError, WkSkeletonCard, WkTopBar } from '@/components/wk/kit'
 import { PagedListFooter } from '@/components/wk/PagedListFooter'
 import { useWkPalette } from '@/components/wk/palette'
@@ -12,8 +12,7 @@ import { WkSearchAddButton, WkSearchField } from '@/components/wk/SearchField'
 import { usePagedList } from '@/components/wk/usePagedList'
 import { DesignOfferGridCard } from '@/features/design-offers/DesignOfferGridCard'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { LIST_PERF, useStableListHeader } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
+import { useStableListHeader } from '@/lib/listPerf'
 import { type DesignOffer, listDesignOffers } from '@/services/design-offers'
 import { errorMessage } from '@/services/feedback'
 
@@ -51,20 +50,22 @@ export function DesignOffersGridScreen({
       }),
   })
 
-  const listRows = useMemo(() => toPairs(list.rows), [list.rows])
   const screenTitle = title ?? t('designOffers.title')
 
-  const onPressOffer = (offer: DesignOffer) => {
-    if (onSelectOffer) {
-      onSelectOffer(offer)
-      return
-    }
-    if (mode === 'admin') {
-      router.push(`/admin/design-offers/${offer.id}` as never)
-      return
-    }
-    router.push(`/pm/design-requests/new?designOfferId=${offer.id}` as never)
-  }
+  const renderOffer = useCallback(
+    (offer: DesignOffer) => (
+      <DesignOfferGridCard
+        offer={offer}
+        showInactiveBadge={mode === 'admin'}
+        onPress={() => {
+          if (onSelectOffer) onSelectOffer(offer)
+          else if (mode === 'admin') router.push(`/admin/design-offers/${offer.id}` as never)
+          else router.push(`/pm/design-requests/new?designOfferId=${offer.id}` as never)
+        }}
+      />
+    ),
+    [mode, onSelectOffer],
+  )
 
   const header = (
     <View className="gap-3 pb-3">
@@ -121,24 +122,9 @@ export function DesignOffersGridScreen({
   const listHeader = useStableListHeader(header)
 
   const body = (
-    <FlatList
-      data={list.isFirstLoad ? [] : listRows}
-      keyExtractor={(row) => row.map((o) => o.id).join(':')}
-      {...LIST_PERF}
-      renderItem={({ item: row }) => (
-        <WkGridRow>
-          {row.map((offer) => (
-            <DesignOfferGridCard
-              key={offer.id}
-              offer={offer}
-              showInactiveBadge={mode === 'admin'}
-              onPress={() => onPressOffer(offer)}
-            />
-          ))}
-          {row.length === 1 ? <WkGridSpacer /> : null}
-        </WkGridRow>
-      )}
-      ItemSeparatorComponent={() => <View className="h-3" />}
+    <WkGrid
+      data={list.isFirstLoad ? [] : list.rows}
+      renderCard={renderOffer}
       ListHeaderComponent={listHeader}
       ListEmptyComponent={empty}
       ListFooterComponent={

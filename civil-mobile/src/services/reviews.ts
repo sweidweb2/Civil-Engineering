@@ -31,12 +31,6 @@ export type PaginatedReviews = {
   }
 }
 
-export function reviewStatusLabel(status: ReviewStatus): string {
-  if (status === 'PENDING') return 'Pending'
-  if (status === 'ACCEPTED') return 'Approved'
-  return 'Rejected'
-}
-
 export function listReviews(
   page = 1,
   limit = 20,

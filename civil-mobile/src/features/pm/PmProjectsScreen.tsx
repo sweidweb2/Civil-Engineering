@@ -1,5 +1,12 @@
-import { useEffect } from 'react'
-import { FlatList, RefreshControl, ScrollView, Text, View } from 'react-native'
+import { useCallback, useEffect } from 'react'
+import {
+  FlatList,
+  type ListRenderItemInfo,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { FolderKanban, Plus, RotateCcw } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { WkListGap } from '@/components/wk/GridCard'
 import { WkButton, WkError, WkHeroGlow } from '@/components/wk/kit'
 import { PagedListFooter } from '@/components/wk/PagedListFooter'
 import { useWkPalette, WK_TAB_SPACE } from '@/components/wk/palette'
@@ -49,6 +57,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
 
   const list = usePagedList<Project>({
     cacheKeyPrefix: `${cacheKeys.projects}:${basePath}:cards`,
+    persist: true,
     initialFilter: parseFilter(params.status),
     fetcher: async ({ page, query, filter }) => {
       const r = await listProjects({
@@ -76,6 +85,13 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
     summary ? (f === 'ALL' ? summary.total : summary.counts[f]) : null
   const chips = CHIPS.includes(filter) ? CHIPS : [...CHIPS, filter]
   const noneAtAll = summary?.total === 0
+
+  const renderProject = useCallback(
+    ({ item }: ListRenderItemInfo<Project>) => (
+      <ProjectCard project={item} onPress={() => router.push(`${basePath}/${item.id}` as never)} />
+    ),
+    [basePath],
+  )
 
   const header = (
     <View className="gap-3.5 pb-3.5">
@@ -207,13 +223,8 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
         data={list.isFirstLoad ? [] : list.rows}
         keyExtractor={(p) => p.id}
         {...LIST_PERF}
-        renderItem={({ item }) => (
-          <ProjectCard
-            project={item}
-            onPress={() => router.push(`${basePath}/${item.id}` as never)}
-          />
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        renderItem={renderProject}
+        ItemSeparatorComponent={WkListGap}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={

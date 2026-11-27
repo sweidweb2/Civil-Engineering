@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, Text, View } from 'react-native'
+import { useCallback, useState } from 'react'
+import { RefreshControl, Text, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { Package, SearchX } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
-import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkGrid } from '@/components/wk/GridCard'
 import { WkButton, WkError, WkTopBar } from '@/components/wk/kit'
 import { PagedListFooter } from '@/components/wk/PagedListFooter'
 import { useWkPalette } from '@/components/wk/palette'
@@ -17,8 +17,6 @@ import { DirectoryDetailSheet, type DirectoryEntry } from '@/features/pm/Directo
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys, cacheTtl } from '@/lib/cacheKeys'
-import { LIST_PERF } from '@/lib/listPerf'
-import { toPairs } from '@/lib/pagedRows'
 import { type Category, getCategory } from '@/services/categories'
 import { errorMessage } from '@/services/feedback'
 import { type Listing, listListings } from '@/services/listings'
@@ -79,7 +77,15 @@ export function PmCategoryListingsScreen({
     },
   })
 
-  const listRows = useMemo(() => toPairs(list.rows), [list.rows])
+  const renderListing = useCallback(
+    (listing: Listing) => (
+      <ListingGridCard
+        listing={listing}
+        onPress={() => setOpen({ kind: 'listing', id: listing.id, listing })}
+      />
+    ),
+    [],
+  )
   const title = categoryTitle(
     categoryRemote.status === 'success' ? categoryRemote.data : null,
     isAr,
@@ -144,23 +150,9 @@ export function PmCategoryListingsScreen({
         backHref={basePath}
         count={list.total ? String(list.total) : undefined}
       />
-      <FlatList
-        data={list.isFirstLoad ? [] : listRows}
-        keyExtractor={(row) => row.map((l) => l.id).join(':')}
-        {...LIST_PERF}
-        renderItem={({ item: row }) => (
-          <WkGridRow>
-            {row.map((listing) => (
-              <ListingGridCard
-                key={listing.id}
-                listing={listing}
-                onPress={() => setOpen({ kind: 'listing', id: listing.id, listing })}
-              />
-            ))}
-            {row.length === 1 ? <WkGridSpacer /> : null}
-          </WkGridRow>
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+      <WkGrid
+        data={list.isFirstLoad ? [] : list.rows}
+        renderCard={renderListing}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={

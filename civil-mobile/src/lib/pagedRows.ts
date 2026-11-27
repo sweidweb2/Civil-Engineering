@@ -26,10 +26,3 @@ export function mergePageRows<T extends { id: string }>(
 export function hasMorePages(rowCount: number, total: number, maxRows = MAX_PAGED_ROWS) {
   return rowCount < total && rowCount < maxRows
 }
-
-/** Split items into pairs for a two-column photo/grid FlatList. */
-export function toPairs<T>(items: T[]): T[][] {
-  const rows: T[][] = []
-  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2))
-  return rows
-}

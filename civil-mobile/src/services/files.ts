@@ -33,12 +33,6 @@ export function getDownloadUrl(fileId: string) {
   })
 }
 
-export function deleteFile(fileId: string) {
-  return apiRequest<void>(`/files/${fileId}`, {
-    method: 'DELETE',
-  })
-}
-
 /**
  * Optimize (images) → API multipart → R2 (server-side).
  * Same path as civil-web and gallery uploads — avoids RN blob PUT to R2 (unreliable on Android).

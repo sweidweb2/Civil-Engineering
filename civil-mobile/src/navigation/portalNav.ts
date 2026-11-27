@@ -101,6 +101,7 @@ export const CLIENT_NAV: PortalNavItem[] = [
 
 export const WORKER_NAV: PortalNavItem[] = [
   { key: 'home', label: 'Home', href: '/worker', icon: Home, end: true },
+  { key: 'projects', label: 'Projects', href: '/worker/projects', icon: FolderKanban },
   { key: 'cv', label: 'My CV', href: '/worker/cv', icon: FileUser },
   { key: 'account', label: 'Account', href: '/worker/account', icon: UserRound },
 ]

@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { router } from 'expo-router'
 import { FolderTree } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -5,7 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { usePagedList, WkListRow, WkListScreen } from '@/components/wk/list'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { CATEGORY_KIND_OPTIONS, type CategoryKind, listCategories } from '@/services/categories'
+import {
+  type Category,
+  CATEGORY_KIND_OPTIONS,
+  type CategoryKind,
+  listCategories,
+} from '@/services/categories'
 
 const PAGE_SIZE = 50
 const BASE = '/admin/categories'
@@ -22,6 +28,33 @@ export function AdminCategoriesScreen() {
         includeCounts: true,
       }),
   })
+
+  const renderRow = useCallback(
+    (cat: Category) => (
+      <WkListRow
+        title={cat.name}
+        pill={
+          cat.isActive
+            ? { label: t('common.active'), tone: 'green' }
+            : { label: t('common.inactive'), tone: 'neutral' }
+        }
+        sub={[
+          enumLabel(t, 'categoryKind', cat.kind),
+          cat.parentName ? t('categories.under', { parent: cat.parentName }) : null,
+          cat.nameAr,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        sub2={
+          cat.listingCount != null
+            ? t('adminPortal.listingCount', { count: cat.listingCount })
+            : null
+        }
+        onPress={() => router.push(`${BASE}/${cat.id}` as never)}
+      />
+    ),
+    [t],
+  )
 
   return (
     <WkListScreen
@@ -41,29 +74,7 @@ export function AdminCategoriesScreen() {
       ]}
       emptyIcon={FolderTree}
       emptyTitle={t('categories.empty')}
-      renderItem={(cat) => (
-        <WkListRow
-          title={cat.name}
-          pill={
-            cat.isActive
-              ? { label: t('common.active'), tone: 'green' }
-              : { label: t('common.inactive'), tone: 'neutral' }
-          }
-          sub={[
-            enumLabel(t, 'categoryKind', cat.kind),
-            cat.parentName ? t('categories.under', { parent: cat.parentName }) : null,
-            cat.nameAr,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-          sub2={
-            cat.listingCount != null
-              ? t('adminPortal.listingCount', { count: cat.listingCount })
-              : null
-          }
-          onPress={() => router.push(`${BASE}/${cat.id}` as never)}
-        />
-      )}
+      renderItem={renderRow}
     />
   )
 }

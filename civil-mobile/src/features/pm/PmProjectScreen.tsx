@@ -5,6 +5,7 @@ import {
   CalendarRange,
   ChevronRight,
   FileText,
+  HardHat,
   type LucideIcon,
   MapPin,
   Milestone,
@@ -83,6 +84,7 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
   const remote = useRemoteData(load, {
     enabled: Boolean(projectId),
     cacheKey: projectId ? `${cacheKeys.projectDetail}:${projectId}` : undefined,
+    persist: true,
   })
   const project = remote.status === 'success' ? remote.data.data.project : null
   const stages = remote.status === 'success' ? remote.data.data.stages : null
@@ -254,6 +256,30 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
               </View>
             </View>
             <StageSegments states={stageStates(stages)} tone="surface" />
+          </Pressable>
+
+          {/* My workers */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('projectTeam.title')}
+            onPress={() => router.push(`${BASE}/${project.id}/workers` as never)}
+            className="flex-row items-center gap-3 rounded-[22px] border border-wk-line bg-wk-sf p-[18px] active:opacity-90"
+            style={shadow}
+          >
+            <View className="size-10 items-center justify-center rounded-xl bg-wk-brand-soft">
+              <HardHat size={19} color={c.brand} strokeWidth={1.9} />
+            </View>
+            <View className="min-w-0 flex-1 gap-0.5">
+              <Text className="text-[15px] font-semibold text-wk-ink">
+                {t('projectTeam.title')}
+              </Text>
+              <Text className="text-[13px] text-wk-ink2" numberOfLines={2}>
+                {t('projectTeam.entryHint')}
+              </Text>
+            </View>
+            <View style={flipStyle()}>
+              <ChevronRight size={20} color={c.ink3} />
+            </View>
           </Pressable>
 
           <WkSection icon={FileText} title={t('pmPortal.basics')}>

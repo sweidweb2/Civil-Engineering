@@ -18,26 +18,29 @@ The Bedrock checklist defers a server-state library "until a cache lib is justif
 ### 1. Keep the custom cache; add a read-only disk fallback
 
 - **No TanStack Query.** Offline reads are a ~150-line extension of `useRemoteData` (`src/lib/offlineSnapshot.ts`). The deferral in Bedrock stands.
-- Successful responses for an **allow-list** of keys are saved to disk. They are read **only as a fallback**: when a request fails with a network error (no server response) and nothing is on screen. Online behaviour does not change.
+- Screens opt in per call with `useRemoteData({ persist: true })` (or `usePagedList({ persist: true })`, which saves page 1 without a search only). Successful responses for those calls are saved to disk.
+- A saved copy is shown only while **nothing is on screen**: when the first request is still pending after 2s (`SAVED_COPY_GRACE_MS`, immediately when the device is known to be offline), or when it fails without a server response. Live data replaces it as soon as it arrives; a real server error (`ApiError`) replaces it with the error. A quick online response never shows the saved copy.
 - Screens showing a saved copy get `offlineSavedAt` from `useRemoteData`; a global banner says the app is offline.
 
-### 2. What is saved (allow-list)
+### 2. What is saved (`persist: true` call sites)
 
 Only the signed-in user's own working data: dashboards, own profile / CV, own projects (detail + stages), page 1 of own project and listing lists (no search), own listing detail, PM directory page 1.
 
 **Not saved:** admin lists of other people (users, sign-ups, verifications, reviews), searches, later pages, edit forms.
 
+_2026-11-27:_ the call site now decides, replacing a regex allow-list over cache-key strings. The regexes had drifted from the real `usePagedList` key shape (`…:wk:1::…`), so page 1 of the project and listing lists had silently never been saved.
+
 ### 3. Storage, limits, privacy
 
-| Rule                         | Detail                                                                                                                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Where                        | `expo-file-system` `Paths.cache`, one JSON file per user (`offline-snapshot-v1-<userId>.json`). OS cache dir: excluded from backups, may be purged — fine for a cache. |
-| Not in Zustand / SecureStore | Zustand ≠ API cache (decision [5]); SecureStore is for secrets and small values.                                                                                       |
-| Limits                       | ≤ 40 entries, each ≤ 7 days old; writes batched (1.5s).                                                                                                                |
-| Privacy                      | Deleted on logout, session expiry and login. Other users' data never read (file and entries keyed by user id).                                                         |
-| Images                       | Not stored by this layer. Presigned URLs inside saved payloads expire, but images load from expo-image's disk cache via stable cache keys (caching plan Phase 3).      |
-| Web                          | Disabled (no file system; civil-web is the web client).                                                                                                                |
-| Versioning                   | `version` field in the file; a mismatch or corrupt file is treated as empty.                                                                                           |
+| Rule                         | Detail                                                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Where                        | `expo-file-system` `Paths.cache`, one folder per user (`offline-snapshot-v3-<userId>/`) with a small `index.json` (key → saved time) and one file per entry. A save writes only its own entry plus the index; entries are read lazily. OS cache dir: excluded from backups, may be purged — fine for a cache. |
+| Not in Zustand / SecureStore | Zustand ≠ API cache (decision [5]); SecureStore is for secrets and small values.                                                                                                                                                                                                                              |
+| Limits                       | ≤ 40 entries (oldest saved evicted, its file deleted), each ≤ 7 days old.                                                                                                                                                                                                                                     |
+| Privacy                      | Deleted on logout, session expiry and login. Other users' data never read (file and entries keyed by user id).                                                                                                                                                                                                |
+| Images                       | Not stored by this layer. Presigned URLs inside saved payloads expire, but images load from expo-image's disk cache via stable cache keys (caching plan Phase 3).                                                                                                                                             |
+| Web                          | Disabled (no file system; civil-web is the web client).                                                                                                                                                                                                                                                       |
+| Versioning                   | Folder prefix carries the layout version (`v3`); older files/folders are deleted on clear. A corrupt index or entry is treated as missing.                                                                                                                                                                    |
 
 ### 4. Writes stay online-only
 
@@ -61,7 +64,7 @@ Only the signed-in user's own working data: dashboards, own profile / CV, own pr
 
 ## Consequences
 
-- Opening a screen offline shows the last saved copy instead of an error, for the allow-listed data.
+- Opening a screen offline (or on a very slow connection) shows the last saved copy within 2s instead of an error or a 30s spinner, for the `persist` data.
 - Saving offline gives an immediate, clear message instead of a 30s timeout.
 - Personal data now persists on the device (app sandbox, cache dir) until logout or 7 days.
 - Idempotency keys are shared across instances via Postgres.

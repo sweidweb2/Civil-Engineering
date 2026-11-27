@@ -22,13 +22,14 @@ export const cacheKeys = {
    * `-v2` avoids colliding with pre-bundle caches that stored a bare project.
    */
   projectDetail: 'projects:detail-v2',
-  /**
-   * Legacy prefix kept for invalidate-all on project mutations.
-   * Stage-only entries are no longer written; detail embeds stages.
-   */
-  projectStages: 'projects:stages',
   /** `projects:productivity:<id>` — daily productivity hours series. */
   projectProductivity: 'projects:productivity',
+  /** `projects:workers:<id>` — PM project worker invites. */
+  projectWorkers: 'projects:workers',
+  /** `projects:tasks:<id>` — PM project tasks. */
+  projectTasks: 'projects:tasks',
+  /** `workers:me:projects` — worker portal project invites. */
+  workerProjects: 'workers:me:projects',
   /** `listings:detail:<id>:view|edit` — one listing (detail screen / editor). */
   listingDetail: 'listings:detail',
   users: 'users:list',
@@ -71,8 +72,23 @@ export function invalidateProjectCaches() {
   remoteCacheInvalidate(cacheKeys.dashboardAdmin)
   remoteCacheInvalidate(cacheKeys.projects)
   remoteCacheInvalidate(cacheKeys.projectDetail)
-  remoteCacheInvalidate(cacheKeys.projectStages)
   remoteCacheInvalidate(cacheKeys.projectProductivity)
+  remoteCacheInvalidate(cacheKeys.projectWorkers)
+  remoteCacheInvalidate(cacheKeys.projectTasks)
+  remoteCacheInvalidate(cacheKeys.workerProjects)
+}
+
+/** After project-worker invite / accept / reject / remove. */
+export function invalidateProjectWorkerCaches() {
+  remoteCacheInvalidate(cacheKeys.projectWorkers)
+  remoteCacheInvalidate(cacheKeys.workerProjects)
+  remoteCacheInvalidate(cacheKeys.projectTasks)
+}
+
+/** After project task create / update / delete. */
+export function invalidateProjectTaskCaches() {
+  remoteCacheInvalidate(cacheKeys.projectTasks)
+  remoteCacheInvalidate(cacheKeys.workerProjects)
 }
 
 /**

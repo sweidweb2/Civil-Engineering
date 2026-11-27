@@ -116,6 +116,7 @@ const isFresh = (savedAt: number, now = Date.now()) => now - savedAt <= OFFLINE_
 
 async function ensureLoaded(userId: string, retried = false): Promise<void> {
   if (loaded?.userId === userId) return
+  const calledAt = generation
   if (!loading) {
     const startedAt = generation
     loading = (async () => {
@@ -137,65 +138,82 @@ async function ensureLoaded(userId: string, retried = false): Promise<void> {
     })
   }
   await loading
-  // Another user's load was in flight, or a clear happened: load again for this user once.
+  // A logout / session clear happened meanwhile: never reload the old user's data.
+  if (calledAt !== generation) return
+  // Another user's load was in flight: load again for this user once.
   if (loaded?.userId !== userId && !loading) {
     if (!retried) await ensureLoaded(userId, true)
   }
 }
 
-let indexWrites: Promise<void> = Promise.resolve()
+/**
+ * All disk writes run one at a time, in call order, so two saves of the same key can
+ * never land out of order. Each task is best effort (disk full / no permission just
+ * means no offline copy) and a failure never blocks later tasks: the chain never rejects.
+ */
+let writes: Promise<void> = Promise.resolve()
 
-/** Queue an index write; each one serializes the latest state, so writes never land out of order. */
-function writeIndex(state: Loaded) {
-  indexWrites = indexWrites.then(async () => {
-    if (!storage || loaded !== state) return
-    const file: IndexFile = { userId: state.userId, keys: Object.fromEntries(state.index) }
-    await storage.writeIndex(state.userId, JSON.stringify(file)).catch(() => undefined)
+function enqueueWrite(task: () => void | Promise<void>): Promise<void> {
+  writes = writes.then(async () => {
+    try {
+      await task()
+    } catch {
+      // Best effort.
+    }
   })
+  return writes
 }
 
-/** Resolves once queued index writes have finished (tests). */
+/** Resolves once queued disk writes have finished (tests). */
 export function offlineSnapshotSettled() {
-  return indexWrites
+  return writes
 }
 
 /** Remember a successful response for offline reading. The caller decides what to persist. */
 export async function offlineSnapshotPut(userId: string, key: string, data: unknown) {
   if (!storage) return
+  const calledAt = generation
   await ensureLoaded(userId)
   const state = loaded
-  if (!state || state.userId !== userId) return
+  if (calledAt !== generation || !state || state.userId !== userId) return
   const savedAt = Date.now()
   state.index.delete(key)
   state.index.set(key, savedAt)
   state.entries.set(key, { data, savedAt })
   // Map keeps insertion order: drop the least recently saved past the cap.
+  const evicted: string[] = []
   while (state.index.size > OFFLINE_MAX_ENTRIES) {
     const oldest = state.index.keys().next().value
     if (oldest === undefined) break
     state.index.delete(oldest)
     state.entries.delete(oldest)
-    try {
-      storage.removeEntry(userId, oldest)
-    } catch {
-      // Already gone.
+    evicted.push(oldest)
+  }
+  await enqueueWrite(async () => {
+    // Cleared (logout) after this save was queued: write nothing.
+    if (!storage || loaded !== state) return
+    for (const old of evicted) {
+      try {
+        storage.removeEntry(userId, old)
+      } catch {
+        // Already gone.
+      }
     }
-  }
-  // Best effort: disk full / no permission just means no offline copy.
-  try {
+    // Index only after its entry is on disk, so it never points at a missing write.
     await storage.writeEntry(userId, key, JSON.stringify(data))
-  } catch {
-    return
-  }
-  if (loaded === state) writeIndex(state)
+    if (loaded !== state) return
+    const file: IndexFile = { userId, keys: Object.fromEntries(state.index) }
+    await storage.writeIndex(userId, JSON.stringify(file))
+  })
 }
 
 /** Last saved response for `key`, if any and not too old. */
 export async function offlineSnapshotGet(userId: string, key: string): Promise<Entry | undefined> {
   if (!storage) return undefined
+  const calledAt = generation
   await ensureLoaded(userId)
   const state = loaded
-  if (!state || state.userId !== userId) return undefined
+  if (calledAt !== generation || !state || state.userId !== userId) return undefined
   const savedAt = state.index.get(key)
   if (savedAt === undefined || !isFresh(savedAt)) return undefined
   const cached = state.entries.get(key)
@@ -216,9 +234,14 @@ export function offlineSnapshotClearAll() {
   generation += 1
   loaded = null
   loading = null
+  const target = storage
   try {
-    storage?.clearAll()
+    target?.clearAll()
   } catch {
     // Nothing to delete / not readable.
   }
+  // A native write already in progress can still land after the delete above (queued
+  // ones see `loaded` changed and skip): clear once more after it settles. Queued
+  // before any write of the next session, so it never deletes the next user's data.
+  void enqueueWrite(() => target?.clearAll())
 }

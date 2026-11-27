@@ -91,6 +91,69 @@ describe('offline snapshot store', () => {
     expect((await offlineSnapshotGet('u1', 'dashboard:pm'))?.data).toBe(2)
   })
 
+  it('keeps writing after a write throws (one failure never blocks later saves)', async () => {
+    const writeIndex = mem.storage.writeIndex
+    mem.storage.writeIndex = () => {
+      mem.storage.writeIndex = writeIndex
+      throw new Error('disk full')
+    }
+    await offlineSnapshotPut('u1', 'dashboard:pm', 1)
+    await offlineSnapshotPut('u1', 'workers:me', 2)
+    await offlineSnapshotSettled()
+    expect(Object.keys(JSON.parse(mem.files.get(mem.indexPath('u1'))!).keys)).toEqual([
+      'dashboard:pm',
+      'workers:me',
+    ])
+  })
+
+  it('lands two saves of the same key in call order', async () => {
+    let releaseFirst!: () => void
+    const writeEntry = mem.storage.writeEntry
+    mem.storage.writeEntry = async (userId, key, text) => {
+      if (text === '"old"') await new Promise<void>((resolve) => (releaseFirst = resolve))
+      await writeEntry(userId, key, text)
+    }
+    const first = offlineSnapshotPut('u1', 'dashboard:pm', 'old')
+    const second = offlineSnapshotPut('u1', 'dashboard:pm', 'new')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    releaseFirst()
+    await Promise.all([first, second])
+    expect(mem.files.get(mem.entryPath('u1', 'dashboard:pm'))).toBe('"new"')
+  })
+
+  it('writes nothing for a save that was still loading when the user logged out', async () => {
+    let releaseIndex!: () => void
+    const readIndex = mem.storage.readIndex
+    mem.storage.readIndex = async (userId) => {
+      await new Promise<void>((resolve) => (releaseIndex = resolve))
+      return readIndex(userId)
+    }
+    const put = offlineSnapshotPut('u1', 'dashboard:pm', 'private')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    offlineSnapshotClearAll()
+    mem.storage.readIndex = readIndex
+    releaseIndex()
+    await put
+    await offlineSnapshotSettled()
+    expect(mem.files.size).toBe(0)
+  })
+
+  it('removes a write that was already on its way to disk when the user logged out', async () => {
+    let releaseWrite!: () => void
+    const writeEntry = mem.storage.writeEntry
+    mem.storage.writeEntry = async (userId, key, text) => {
+      await new Promise<void>((resolve) => (releaseWrite = resolve))
+      await writeEntry(userId, key, text) // lands after the first delete
+    }
+    const put = offlineSnapshotPut('u1', 'dashboard:pm', 'private')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    offlineSnapshotClearAll()
+    releaseWrite()
+    await put
+    await offlineSnapshotSettled()
+    expect(mem.files.size).toBe(0)
+  })
+
   it('treats a corrupt entry file as missing', async () => {
     await offlineSnapshotPut('u1', 'dashboard:pm', 2)
     await offlineSnapshotSettled()

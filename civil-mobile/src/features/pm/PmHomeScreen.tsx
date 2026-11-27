@@ -33,6 +33,7 @@ import { cacheKeys } from '@/lib/cacheKeys'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
 import { userFirstName } from '@/lib/user'
+import { ApiError } from '@/services/api'
 import { errorMessage } from '@/services/feedback'
 import { getProjectStagesSummaries, type ProjectStagesSummary } from '@/services/project-stages'
 import {
@@ -54,16 +55,28 @@ type Overview = {
   active: { project: Project; stages: ProjectStagesSummary | null }[]
 }
 
+/** List + status summary; if the server fails (5xx), retry the list alone so it still renders. */
+async function loadProjectsWithSummary(): Promise<{
+  projects: Project[]
+  summary: ProjectSummary | null
+}> {
+  try {
+    const list = await listProjects({ page: 1, limit: 20, includeSummary: true })
+    return { projects: list.data, summary: list.summary }
+  } catch (error) {
+    // Offline / timeout / 4xx: a second request would fail the same way.
+    if (!(error instanceof ApiError) || error.status < 500) throw error
+    const list = await listProjects({ page: 1, limit: 20 })
+    return { projects: list.data, summary: null }
+  }
+}
+
 /**
  * List + status summary in one request, then stage summaries for the carousel.
  * Stage summaries soft-fail so the rest of the dashboard still renders.
  */
 async function loadOverview(): Promise<Overview> {
-  const { data: projects, summary } = await listProjects({
-    page: 1,
-    limit: 20,
-    includeSummary: true,
-  })
+  const { projects, summary } = await loadProjectsWithSummary()
 
   const carousel = projects.filter((p) => CAROUSEL_STATUSES.includes(p.status)).slice(0, 5)
   const stageMap =

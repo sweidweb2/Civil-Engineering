@@ -1,6 +1,5 @@
 import type { AuthActor } from '../../authz/index.js'
 import { getRequestLogger } from '../../logging/index.js'
-
 import type { FilesService } from './files.service.js'
 
 type SoftDeleteFiles = Pick<FilesService, 'softDelete'>

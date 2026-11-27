@@ -3,10 +3,9 @@ import type { RequestHandler, Response } from 'express'
 
 import { prisma } from '../database/prisma.js'
 import { conflict, validationError } from '../errors/app-error.js'
+import { Prisma } from '../generated/prisma/client.js'
 import { maybePurgeExpiredIdempotencyKeys } from '../jobs/index.js'
 import { getRequestLogger } from '../logging/index.js'
-import { Prisma } from '../generated/prisma/client.js'
-
 import { stableStringify } from './stable-json.js'
 
 /**

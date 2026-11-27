@@ -42,8 +42,6 @@ export function createFilesModule(deps: { service: FilesService }) {
 }
 
 export type { FilesService }
-export { linkUploadedFile } from './link-uploaded-file.js'
-export { purgeExpiredIdempotencyRecords } from './purge-idempotency.js'
 export {
   assertAllowedImageUpload,
   createImageUpload,
@@ -55,6 +53,7 @@ export {
   readUploadBytes,
   toWebpBuffer,
 } from './image-policy.js'
+export { linkUploadedFile } from './link-uploaded-file.js'
 export {
   createOwnerGalleryService,
   type OwnerGalleryImage,
@@ -63,3 +62,4 @@ export {
   type OwnerGalleryRepository,
   type OwnerGalleryService,
 } from './owner-gallery.service.js'
+export { purgeExpiredIdempotencyRecords } from './purge-idempotency.js'

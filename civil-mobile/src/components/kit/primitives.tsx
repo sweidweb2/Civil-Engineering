@@ -1,4 +1,4 @@
-import { Children, type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { Pressable as RNPressable, type PressableProps, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { ChevronRight, type LucideIcon } from 'lucide-react-native'
@@ -18,10 +18,9 @@ import { useThemeColors } from '@/hooks/useThemeColors'
 import { flipStyle, tracking } from '@/lib/rtl'
 import { sizes } from '@/theme/sizes'
 import { motion } from '@/theme/spacing'
-import { MONO_STYLE, NUM_STYLE, TYPE } from '@/theme/typography'
+import { MONO_STYLE, TYPE } from '@/theme/typography'
 
-import { AnimatedNumber } from './AnimatedNumber'
-import { type Tone, TONE_BG, TONE_COLOR, TONE_DOT, TONE_TEXT } from './tones'
+import { type Tone, TONE_COLOR, TONE_TEXT } from './tones'
 
 const AnimatedPressable = withUniwind(Animated.createAnimatedComponent(RNPressable))
 const EASE_OUT = Easing.out(Easing.quad)

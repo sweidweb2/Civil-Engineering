@@ -109,11 +109,5 @@ export function arabicDefaultTextStyle(): TextStyle {
   return { fontFamily: fontFamily.arabic.regular }
 }
 
-/** Tabular figures for every number. */
-export const NUM_STYLE = { fontVariant: ['tabular-nums' as const] }
-
 /** Monospace + tabular figures: amounts in rows, codes, eyebrows, chart labels. */
 export const MONO_STYLE = { fontFamily: fontFamily.mono, fontVariant: ['tabular-nums' as const] }
-
-/** Back-compat export (older imports used `typography`). */
-export const typography = { fontFamily, type } as const

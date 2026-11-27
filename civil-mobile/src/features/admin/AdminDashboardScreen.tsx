@@ -19,8 +19,6 @@ import Animated, { FadeIn } from 'react-native-reanimated'
 
 import { useTodayCaption } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
-import { ProjectGroupRow } from '@/features/pm/ui/kit'
-import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
 import {
   WkError,
   WkEyebrow,
@@ -30,6 +28,8 @@ import {
   WkTabScroll,
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
+import { ProjectGroupRow } from '@/features/pm/ui/kit'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'

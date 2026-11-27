@@ -2,8 +2,8 @@ import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
-import { UserRoleIsoArt } from '@/features/admin/UserRoleIsoArt'
 import { useWkPalette } from '@/components/wk/palette'
+import { UserRoleIsoArt } from '@/features/admin/UserRoleIsoArt'
 import { enumLabel } from '@/i18n/labels'
 import type { AuthRole } from '@/services/auth'
 

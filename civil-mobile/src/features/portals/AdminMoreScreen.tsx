@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 
 import { useLogout } from '@/components/LogoutButton'
 import { Pressable } from '@/components/ui/pressable'
-import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import {
   flipStyle,
   WkConfirm,
@@ -15,6 +14,7 @@ import {
   WkTabScroll,
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'

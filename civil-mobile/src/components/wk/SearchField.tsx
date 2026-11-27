@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
 import { TextInput, View } from 'react-native'
 import { Plus, Search, X } from 'lucide-react-native'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'

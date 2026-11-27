@@ -2,7 +2,6 @@ import { type ReactNode, useState } from 'react'
 import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
-import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { WkBodyScroll, WkCard, WkTabScroll, WkTopBar } from '@/components/wk/kit'
 import {
   WkAccountDetailsCard,
@@ -10,6 +9,7 @@ import {
   WkPreferences,
   WkSegmented,
 } from '@/components/wk/settings'
+import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'
 import { initialsOf, userDisplayName } from '@/lib/user'

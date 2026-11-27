@@ -15,6 +15,17 @@ import Animated, { FadeInDown } from 'react-native-reanimated'
 
 import { BottomSheet } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { WkChoice, WkDangerZone, WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkGalleryCard } from '@/components/wk/GalleryCard'
+import {
+  flipStyle,
+  WkButton,
+  WkConfirm,
+  type WkConfirmState,
+  WkEyebrow,
+  WkPill,
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { ProductivityHoursSection } from '@/features/pm/ProductivityHoursSection'
 import {
   EMPTY_PROJECT_FORM,
@@ -33,17 +44,6 @@ import {
   stageStateOf,
   stageStates,
 } from '@/features/pm/ui/kit'
-import { WkChoice, WkDangerZone, WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
-import { WkGalleryCard } from '@/components/wk/GalleryCard'
-import {
-  flipStyle,
-  WkButton,
-  WkConfirm,
-  type WkConfirmState,
-  WkEyebrow,
-  WkPill,
-} from '@/components/wk/kit'
-import { useWkPalette } from '@/components/wk/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useSeedOnce } from '@/hooks/useSeedOnce'

@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import type { BottomNavItem } from '@/components/layout/BottomNavigation'
 import { Pressable } from '@/components/ui/pressable'
-
 import { useWkPalette } from '@/components/wk/palette'
 
 const LAYOUT = LinearTransition.springify().damping(18).stiffness(200)

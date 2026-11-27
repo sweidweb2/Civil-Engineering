@@ -20,7 +20,6 @@ import { PagedListFooter } from './PagedListFooter'
 import { useWkPalette, WK_TAB_SPACE, type WkTone } from './palette'
 import type { PagedList } from './usePagedList'
 
-export { type PagedList, type PageResult, usePagedList } from './usePagedList'
 export { PagedListFooter } from './PagedListFooter'
 
 /**

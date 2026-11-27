@@ -9,15 +9,6 @@ import Animated, { FadeIn } from 'react-native-reanimated'
 import { useTodayCaption } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import {
-  currentStage,
-  PHOTO_DOT,
-  ProjectGroupRow,
-  projectStatusLabel,
-  StageSegments,
-  stageStates,
-} from '@/features/pm/ui/kit'
-import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
-import {
   flipStyle,
   WkError,
   WkEyebrow,
@@ -27,6 +18,15 @@ import {
   WkTabScroll,
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
+import {
+  currentStage,
+  PHOTO_DOT,
+  ProjectGroupRow,
+  projectStatusLabel,
+  StageSegments,
+  stageStates,
+} from '@/features/pm/ui/kit'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'

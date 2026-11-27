@@ -34,6 +34,9 @@ import {
   type UpdateProjectInput,
 } from '@/services/projects'
 
+/** Edit draft — concurrency token is attached at save from `project.updatedAt`. */
+type ProjectEditForm = Omit<UpdateProjectInput, 'expectedUpdatedAt'>
+
 import { ProjectDetailsTab } from './components/details/ProjectDetailsTab'
 import { ProjectIdentityHeader } from './components/ProjectIdentityHeader'
 import { ProjectStagesStepper } from './components/ProjectStagesStepper'
@@ -96,7 +99,7 @@ export function ProjectDetailPage() {
     { label: project?.name ?? t('projects:details') },
   ]
 
-  const [formData, setFormData] = useState<UpdateProjectInput>({})
+  const [formData, setFormData] = useState<ProjectEditForm>({})
 
   const handleEdit = () => {
     if (!project) return

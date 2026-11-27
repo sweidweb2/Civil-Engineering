@@ -3,7 +3,6 @@ import { router } from 'expo-router'
 import { KeyRound, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { passwordSchema } from '@/features/auth/password.schema'
 import {
   WkChoice,
   WkField,
@@ -13,6 +12,7 @@ import {
   WkToggle,
 } from '@/components/wk/forms'
 import { WkButton } from '@/components/wk/kit'
+import { passwordSchema } from '@/features/auth/password.schema'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'

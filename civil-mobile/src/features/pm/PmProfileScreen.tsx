@@ -3,13 +3,13 @@ import { router } from 'expo-router'
 import { GraduationCap, Link2, MapPin, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
+import { WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkButton } from '@/components/wk/kit'
 import {
   formFromManagerProfile,
   type ManagerProfileForm,
   managerProfileSchema,
 } from '@/features/pm/managerProfile.schema'
-import { WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
-import { WkButton } from '@/components/wk/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { type FieldErrors, parseForm } from '@/lib/form'

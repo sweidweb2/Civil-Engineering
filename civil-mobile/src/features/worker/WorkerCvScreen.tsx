@@ -3,9 +3,6 @@ import { router } from 'expo-router'
 import { CircleCheck, CircleDashed, Clock, ShieldAlert, ShieldCheck } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
-import { type CvSectionStatus, cvSectionStatuses } from '@/features/worker/cvCompleteness'
-import { specialtyLabel } from '@/lib/specialties'
 import {
   WkCard,
   WkError,
@@ -18,10 +15,13 @@ import {
   WkTabScroll,
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
+import { type CvSectionStatus, cvSectionStatuses } from '@/features/worker/cvCompleteness'
 import { AVAILABILITY_TONE, CV_SECTION_META, VERIFICATION_KEY } from '@/features/worker/ui/sections'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'
+import { specialtyLabel } from '@/lib/specialties'
 import { userDisplayName } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import type { WorkerProfile } from '@/services/workers'

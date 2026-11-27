@@ -5,9 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { useWkPalette } from '@/components/wk/palette'
 import { DesignOffersGridScreen } from '@/features/design-offers/DesignOffersGridScreen'
 import { DesignRequestsListScreen } from '@/features/design-requests/DesignRequestsListScreen'
-import { useWkPalette } from '@/components/wk/palette'
 
 type Tab = 'requests' | 'offers'
 

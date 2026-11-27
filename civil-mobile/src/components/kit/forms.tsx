@@ -1,4 +1,4 @@
-﻿import { Children, type ReactNode, useState } from 'react'
+import { Children, type ReactNode, useState } from 'react'
 import { Text, TextInput, type TextInputProps, View } from 'react-native'
 import { AlertCircle, Eye, EyeOff, type LucideIcon } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'

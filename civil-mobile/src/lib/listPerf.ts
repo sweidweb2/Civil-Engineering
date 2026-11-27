@@ -1,4 +1,4 @@
-import { useCallback, useRef, type ReactNode } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef } from 'react'
 
 /**
  * Shared FlatList tuning for portal grids/lists — tighter window than RN defaults
@@ -18,6 +18,10 @@ export const LIST_PERF = {
  */
 export function useStableListHeader(header: ReactNode) {
   const ref = useRef(header)
-  ref.current = header
+
+  useEffect(() => {
+    ref.current = header
+  }, [header])
+
   return useCallback(() => ref.current ?? null, [])
 }

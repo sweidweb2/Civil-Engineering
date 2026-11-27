@@ -28,14 +28,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import {
-  ListingPhoto,
-  PhotoScrim,
-  rentPrice,
-  salePrice,
-  statusLabel,
-  useCategoryName,
-} from '@/features/provider/ui/kit'
-import {
   flipStyle,
   WkConfirm,
   type WkConfirmState,
@@ -46,6 +38,14 @@ import {
   WkSkeletonCard,
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import {
+  ListingPhoto,
+  PhotoScrim,
+  rentPrice,
+  salePrice,
+  statusLabel,
+  useCategoryName,
+} from '@/features/provider/ui/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'

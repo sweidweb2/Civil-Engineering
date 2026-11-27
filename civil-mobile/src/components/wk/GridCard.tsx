@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
 import { View } from 'react-native'
+import type { ReactNode } from 'react'
 
 import { Pressable } from '@/components/ui/pressable'
 

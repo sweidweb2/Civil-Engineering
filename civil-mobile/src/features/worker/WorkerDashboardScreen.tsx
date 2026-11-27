@@ -17,7 +17,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated'
 
 import { useTodayCaption } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
-import { cvSectionStatuses } from '@/features/worker/cvCompleteness'
 import {
   WkButton,
   WkError,
@@ -32,6 +31,7 @@ import {
   WkTabScroll,
 } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import { cvSectionStatuses } from '@/features/worker/cvCompleteness'
 import { AVAILABILITY_TONE, CV_SECTION_META, VERIFICATION_KEY } from '@/features/worker/ui/sections'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { useHandleApiError } from '@/hooks/useHandleApiError'

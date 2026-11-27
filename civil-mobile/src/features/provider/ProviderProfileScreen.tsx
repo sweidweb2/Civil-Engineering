@@ -5,13 +5,6 @@ import { Camera, Images, MapPin, Phone, Store, Trash2 } from 'lucide-react-nativ
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
-import {
-  companyWriteFromForm,
-  EMPTY_COMPANY,
-  providerCompanySchema,
-  type ProviderCompanyValues,
-} from '@/features/provider/company.schema'
-import { PvOptionSheet } from '@/features/provider/ui/kit'
 import { WkField, WkSection } from '@/components/wk/forms'
 import {
   WkButton,
@@ -28,6 +21,13 @@ import {
   WkPreferences,
   WkSegmented,
 } from '@/components/wk/settings'
+import {
+  companyWriteFromForm,
+  EMPTY_COMPANY,
+  providerCompanySchema,
+  type ProviderCompanyValues,
+} from '@/features/provider/company.schema'
+import { PvOptionSheet } from '@/features/provider/ui/kit'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'

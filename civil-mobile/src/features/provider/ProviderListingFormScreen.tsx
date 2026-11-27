@@ -5,7 +5,6 @@ import { Banknote, CircleAlert, FileText } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { GalleryImagesField } from '@/components/files/GalleryImagesField'
-import { useListingEditor } from '@/features/provider/useListingEditor'
 import {
   WkChoice,
   WkField,
@@ -17,6 +16,7 @@ import {
 } from '@/components/wk/forms'
 import { WkButton } from '@/components/wk/kit'
 import { useWkPalette } from '@/components/wk/palette'
+import { useListingEditor } from '@/features/provider/useListingEditor'
 import { type ListingStatus, RENTAL_UNITS } from '@/services/listings'
 import { useLanguageStore } from '@/stores/languageStore'
 

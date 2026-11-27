@@ -73,7 +73,6 @@ function ProductivityHoursChart({ entries }: { entries: ProjectProductivityHourE
       <Svg width={chartWidth} height={CHART_HEIGHT}>
         {[0, 0.5, 1].map((ratio) => {
           const y = PAD.top + innerH * (1 - ratio)
-          const label = (yMax * ratio).toFixed(ratio === 0 || ratio === 1 ? 0 : 1)
           return (
             <Line
               key={`grid-${ratio}`}

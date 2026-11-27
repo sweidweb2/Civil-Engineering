@@ -7,6 +7,7 @@ import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/
 import type { DesignOffersService } from '../design-offers/index.js'
 import type { AllowedFileMime } from '../files/files.schema.js'
 import type { FilesService } from '../files/files.service.js'
+import { linkUploadedFile } from '../files/link-uploaded-file.js'
 import type { NotificationsRepository } from '../notifications/notifications.types.js'
 import type { DesignRequestsRepository } from './design-requests.repository.js'
 import type {
@@ -295,7 +296,13 @@ export function createDesignRequestsService(
             originalName: file.originalName,
             body: file.body,
           })
-          record = await repository.updateRequirementPath(record.id, uploaded.key)
+          record = await linkUploadedFile({
+            actor,
+            filesService,
+            fileId: uploaded.id,
+            kind: 'design_requests.create',
+            link: () => repository.updateRequirementPath(record.id, uploaded.key),
+          })
         } catch (error) {
           await repository.delete(record.id).catch(() => undefined)
           throw error
@@ -356,7 +363,15 @@ export function createDesignRequestsService(
         originalName: file.originalName,
         body: file.body,
       })
-      return toResponse(await repository.updateRequirementPath(record.id, uploaded.key))
+      return toResponse(
+        await linkUploadedFile({
+          actor,
+          filesService,
+          fileId: uploaded.id,
+          kind: 'design_requests.requirement',
+          link: () => repository.updateRequirementPath(record.id, uploaded.key),
+        }),
+      )
     },
 
     async uploadResponseFile(id, actor, file) {
@@ -381,7 +396,13 @@ export function createDesignRequestsService(
         originalName: file.originalName,
         body: file.body,
       })
-      const updated = await repository.updateResponsePath(record.id, uploaded.key)
+      const updated = await linkUploadedFile({
+        actor,
+        filesService,
+        fileId: uploaded.id,
+        kind: 'design_requests.response',
+        link: () => repository.updateResponsePath(record.id, uploaded.key),
+      })
       if (previousKey && previousKey !== uploaded.key) {
         void deleteStorageKey(previousKey)
       }

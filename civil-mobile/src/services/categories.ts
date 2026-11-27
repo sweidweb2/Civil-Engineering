@@ -46,15 +46,24 @@ export const CATEGORY_KIND_OPTIONS: { value: CategoryKind; label: string }[] = [
   { value: 'WORKER', label: 'Worker' },
 ]
 
+export const LISTING_CATEGORY_KINDS: CategoryKind[] = ['MATERIAL', 'EQUIPMENT', 'SERVICE']
+
 export function listCategories(
   page = 1,
   limit = 100,
-  filters?: { q?: string; kind?: CategoryKind; includeCounts?: boolean },
+  filters?: {
+    q?: string
+    kind?: CategoryKind
+    /** One round-trip for several kinds (`kinds=MATERIAL,EQUIPMENT,SERVICE`). */
+    kinds?: CategoryKind[]
+    includeCounts?: boolean
+  },
 ) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters?.q) params.set('q', filters.q)
   if (filters?.includeCounts === false) params.set('includeCounts', 'false')
-  if (filters?.kind) params.set('kind', filters.kind)
+  if (filters?.kinds?.length) params.set('kinds', filters.kinds.join(','))
+  else if (filters?.kind) params.set('kind', filters.kind)
   return apiRequest<PaginatedCategories>(`/categories?${params.toString()}`)
 }
 
@@ -63,17 +72,42 @@ export function getCategory(id: string) {
 }
 
 /**
- * Top-level categories of one kind, i.e. valid parents (backend: same kind,
- * platform scope, two levels max). Pages through the API's 100-row cap.
+ * Fetch pages 2…N in parallel. Fulfilled pages are kept; a single failed page
+ * does not discard earlier data (`allSettled`).
  */
-export async function listParentCandidates(kind: CategoryKind) {
-  const out: Category[] = []
-  for (let page = 1; page <= 20; page += 1) {
-    const r = await listCategories(page, 100, { kind, includeCounts: false })
-    out.push(...r.data.filter((c) => !c.parentId))
-    if (page * 100 >= r.meta.total || r.data.length === 0) break
+async function appendCategoryPages(
+  out: Category[],
+  filters: {
+    q?: string
+    kind?: CategoryKind
+    kinds?: CategoryKind[]
+    includeCounts?: boolean
+  },
+  totalPages: number,
+  pick: (cat: Category) => boolean,
+) {
+  if (totalPages <= 1) return out
+  const rest = await Promise.allSettled(
+    Array.from({ length: totalPages - 1 }, (_, i) => listCategories(i + 2, 100, filters)),
+  )
+  for (const page of rest) {
+    if (page.status === 'fulfilled') out.push(...page.value.data.filter(pick))
   }
   return out
+}
+
+/**
+ * Top-level categories of one kind, i.e. valid parents (backend: same kind,
+ * platform scope, two levels max). Pages through the API's 100-row cap;
+ * remaining pages after the first load in parallel (partial success OK).
+ */
+export async function listParentCandidates(kind: CategoryKind) {
+  const filters = { kind, includeCounts: false as const }
+  const first = await listCategories(1, 100, filters)
+  const out = first.data.filter((c) => !c.parentId)
+  const totalPages = Math.min(20, Math.max(1, Math.ceil(first.meta.total / 100)))
+  if (first.data.length === 0) return out
+  return appendCategoryPages(out, filters, totalPages, (c) => !c.parentId)
 }
 
 export function createCategory(input: CategoryWriteInput) {
@@ -98,4 +132,29 @@ export function isListingCategory(category: Category) {
   return (
     category.kind === 'MATERIAL' || category.kind === 'EQUIPMENT' || category.kind === 'SERVICE'
   )
+}
+
+function isActiveListingCategory(cat: Category) {
+  return isListingCategory(cat) && cat.isActive && (cat.listingCount ?? 0) > 0
+}
+
+/**
+ * Active marketplace categories that have at least one listing.
+ * One `kinds=` filter; first page then remaining pages in parallel (cap 20,
+ * same ceiling as `listParentCandidates`). Later-page failures keep page-1
+ * results instead of failing the whole load.
+ */
+export async function listActiveListingCategories(q?: string) {
+  const filters = {
+    kinds: LISTING_CATEGORY_KINDS,
+    q: q || undefined,
+    includeCounts: true as const,
+  }
+  const first = await listCategories(1, 100, filters)
+  const out = first.data.filter(isActiveListingCategory)
+  const totalPages = Math.min(20, Math.max(1, Math.ceil(first.meta.total / 100)))
+  if (first.data.length > 0) {
+    await appendCategoryPages(out, filters, totalPages, isActiveListingCategory)
+  }
+  return out.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
 }

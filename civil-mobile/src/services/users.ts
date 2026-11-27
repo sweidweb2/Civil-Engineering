@@ -27,11 +27,14 @@ export type User = {
   updatedAt: string
 }
 
+export type UserRoleCounts = Record<AuthRole, number>
+
 export type UserDirectoryCounts = {
   accounts: number
   active: number
   inactive: number
   managers: number
+  roles: UserRoleCounts
 }
 
 export type PaginatedUsers = {
@@ -44,6 +47,16 @@ export type PaginatedUsers = {
     counts?: UserDirectoryCounts
   }
 }
+
+/** Browse order for the admin users role hub. */
+export const USER_ROLE_CATEGORIES: AuthRole[] = [
+  'WORKER',
+  'PROVIDER',
+  'MANAGER',
+  'CLIENT',
+  'ADMIN',
+  'SUPER',
+]
 
 export type CreateUserInput = {
   email: string
@@ -75,10 +88,11 @@ export const AUTH_ROLE_OPTIONS: { value: AuthRole; label: string }[] = [
   { value: 'CLIENT', label: 'Client' },
 ]
 
-export function listUsers(page = 1, limit = 20, q?: string, counts = true) {
+export function listUsers(page = 1, limit = 20, q?: string, counts = true, role?: AuthRole) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (q) params.set('q', q)
   if (!counts) params.set('counts', 'false')
+  if (role) params.set('role', role)
   return apiRequest<PaginatedUsers>(`/users?${params.toString()}`)
 }
 

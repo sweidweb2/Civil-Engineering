@@ -10,9 +10,9 @@ import {
   toApiDate,
   validateProject,
 } from '@/features/pm/projectForm'
-import { WkChoice, WkField, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
-import { WkGalleryCard } from '@/features/worker/ui/GalleryCard'
-import { WkButton } from '@/features/worker/ui/kit'
+import { WkChoice, WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkGalleryCard } from '@/components/wk/GalleryCard'
+import { WkButton } from '@/components/wk/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateProjectCaches } from '@/lib/cacheKeys'

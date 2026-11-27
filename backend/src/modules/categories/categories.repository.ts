@@ -112,7 +112,7 @@ function toLeanRecord(row: CategoryLeanRow): CategoryRecord {
 function listWhere(query: ListCategoriesQuery): Prisma.CategoryWhereInput {
   return {
     scope: 'PLATFORM',
-    kind: query.kind,
+    kind: query.kinds?.length ? { in: query.kinds } : undefined,
     ...(query.q
       ? {
           OR: [

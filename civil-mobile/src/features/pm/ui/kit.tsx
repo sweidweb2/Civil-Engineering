@@ -3,11 +3,9 @@ import { Image } from 'expo-image'
 import type { TFunction } from 'i18next'
 import { FolderKanban } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
-import Animated, { FadeInDown } from 'react-native-reanimated'
-
 import { Pressable } from '@/components/ui/pressable'
-import { WkPill } from '@/features/worker/ui/kit'
-import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
+import { WkPill } from '@/components/wk/kit'
+import { useWkPalette, type WkTone } from '@/components/wk/palette'
 import { enumLabel } from '@/i18n/labels'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
@@ -18,7 +16,7 @@ import { MONO_STYLE } from '@/theme/typography'
 
 /**
  * PM-portal pieces from resources/pm/PM Portal.dc.html, on the shared green
- * palette (`wk-*` tokens / useWorkerPalette).
+ * palette (`wk-*` tokens / useWkPalette).
  */
 
 /* ─── Status ───────────────────────────────────────────────────────────── */
@@ -98,7 +96,7 @@ export function StageSegments({
   states: StageState[]
   tone?: 'hero' | 'surface'
 }) {
-  const { c, isDark } = useWorkerPalette()
+  const { c, isDark } = useWkPalette()
   const colors =
     tone === 'surface'
       ? {
@@ -163,7 +161,7 @@ export function ProjectThumb({
   cacheKey?: string | null
   size: number
 }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   return (
     <View
       className="items-center justify-center overflow-hidden bg-wk-sf2"
@@ -188,47 +186,37 @@ export function ProjectThumb({
 /* ─── Rows ─────────────────────────────────────────────────────────────── */
 
 /** Card row for the Projects tab: thumb, name + pill, code · city, progress. */
-export function ProjectCard({
-  project,
-  onPress,
-  index = 0,
-}: {
-  project: Project
-  onPress: () => void
-  index?: number
-}) {
+export function ProjectCard({ project, onPress }: { project: Project; onPress: () => void }) {
   const { t } = useTranslation()
-  const { shadow } = useWorkerPalette()
+  const { shadow } = useWkPalette()
   return (
-    <Animated.View entering={FadeInDown.duration(320).delay(Math.min(index, 8) * 30)}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${project.name}, ${projectStatusLabel(t, project.status)}`}
-        onPress={onPress}
-        className="flex-row gap-3.5 rounded-[22px] bg-wk-sf p-3 active:opacity-90"
-        style={shadow}
-      >
-        <ProjectThumb uri={project.mainImageUrl} cacheKey={project.mainImageKey} size={80} />
-        <View className="min-w-0 flex-1 gap-1.5 pe-0.5 pt-0.5">
-          <View className="flex-row items-start gap-2">
-            <Text
-              className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-wk-ink"
-              numberOfLines={2}
-            >
-              {project.name}
-            </Text>
-            <ProjectPill status={project.status} />
-          </View>
-          <Text className="text-[13px] text-wk-ink3" numberOfLines={1}>
-            {[project.code ? ltr(project.code) : null, project.city].filter(Boolean).join(' · ') ||
-              '—'}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${project.name}, ${projectStatusLabel(t, project.status)}`}
+      onPress={onPress}
+      className="flex-row gap-3.5 rounded-[22px] bg-wk-sf p-3 active:opacity-90"
+      style={shadow}
+    >
+      <ProjectThumb uri={project.mainImageUrl} cacheKey={project.mainImageKey} size={80} />
+      <View className="min-w-0 flex-1 gap-1.5 pe-0.5 pt-0.5">
+        <View className="flex-row items-start gap-2">
+          <Text
+            className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-wk-ink"
+            numberOfLines={2}
+          >
+            {project.name}
           </Text>
-          <View className="mt-auto">
-            <ProgressLine value={project.progress} status={project.status} />
-          </View>
+          <ProjectPill status={project.status} />
         </View>
-      </Pressable>
-    </Animated.View>
+        <Text className="text-[13px] text-wk-ink3" numberOfLines={1}>
+          {[project.code ? ltr(project.code) : null, project.city].filter(Boolean).join(' · ') ||
+            '—'}
+        </Text>
+        <View className="mt-auto">
+          <ProgressLine value={project.progress} status={project.status} />
+        </View>
+      </View>
+    </Pressable>
   )
 }
 

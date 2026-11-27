@@ -116,7 +116,11 @@ export function useListingEditor({ mode, listingId, basePath, isAdmin }: UseList
         invalidateListingCaches()
         router.replace(`${basePath}/${created.data.id}` as never)
       } else if (listingId) {
-        await updateListing(listingId, parsed.data)
+        if (!listingData) return
+        await updateListing(listingId, {
+          ...parsed.data,
+          expectedUpdatedAt: listingData.updatedAt,
+        })
         invalidateListingCaches()
         toastSuccess(t('listings.saved'))
         router.replace(`${basePath}/${listingId}` as never)

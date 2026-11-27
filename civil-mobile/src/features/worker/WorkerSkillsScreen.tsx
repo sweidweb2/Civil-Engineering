@@ -4,7 +4,7 @@ import { Plus, Search, Wrench, X } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
-import { WkPickerSheet } from '@/features/worker/ui/forms'
+import { WkPickerSheet } from '@/components/wk/forms'
 import {
   WkBodyScroll,
   WkEmpty,
@@ -15,8 +15,8 @@ import {
   WkPill,
   WkSkeletonCard,
   WkTopBar,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { SKILL_LEVEL_TONE } from '@/features/worker/ui/sections'
 import { useWorkerCategories } from '@/features/worker/useWorkerCategories'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
@@ -35,7 +35,7 @@ import {
  */
 export function WorkerSkillsScreen() {
   const { t, i18n } = useTranslation()
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const { profile, isReady, error, refetch, isSaving, saveMerged } = useWorkerProfile()
   const { trades, isLoading: tradesLoading } = useWorkerCategories()
   const [draft, setDraft] = useState<{ id: string; label: string } | null>(null)

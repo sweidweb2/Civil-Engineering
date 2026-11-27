@@ -245,7 +245,7 @@ export function createWorkersRepository(): WorkersRepository {
     },
 
     async updateVisibility(userId, isPublic) {
-      const row = await prisma.$transaction(async (tx) => {
+      const row = await runInTransaction(async (tx) => {
         await tx.workerProfile.update({
           where: { userId },
           data: { isPublic },
@@ -259,7 +259,7 @@ export function createWorkersRepository(): WorkersRepository {
     },
 
     async ensureProfileWithVisibility(userId, isPublic) {
-      const row = await prisma.$transaction(async (tx) => {
+      const row = await runInTransaction(async (tx) => {
         await tx.workerProfile.upsert({
           where: { userId },
           create: { userId, isPublic },

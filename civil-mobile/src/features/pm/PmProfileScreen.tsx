@@ -8,8 +8,8 @@ import {
   type ManagerProfileForm,
   managerProfileSchema,
 } from '@/features/pm/managerProfile.schema'
-import { WkField, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
-import { WkButton } from '@/features/worker/ui/kit'
+import { WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkButton } from '@/components/wk/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { type FieldErrors, parseForm } from '@/lib/form'

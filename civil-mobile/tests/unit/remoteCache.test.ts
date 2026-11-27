@@ -95,12 +95,14 @@ describe('remoteCache', () => {
     expect(remoteCacheGet(cacheKeys.workersMe)).toEqual({})
   })
 
-  it('invalidateGalleryCaches routes by kind', () => {
+  it('invalidateGalleryCaches routes by kind without wiping category counts', () => {
     remoteCacheSet(`${cacheKeys.listingsMine}:1::`, [])
     remoteCacheSet(`${cacheKeys.projects}:1::`, [])
+    remoteCacheSet(`${cacheKeys.categories}:wk:1::`, [])
     invalidateGalleryCaches('listing')
     expect(remoteCacheGet(`${cacheKeys.listingsMine}:1::`)).toBeUndefined()
     expect(remoteCacheGet(`${cacheKeys.projects}:1::`)).toEqual([])
+    expect(remoteCacheGet(`${cacheKeys.categories}:wk:1::`)).toEqual([])
     remoteCacheSet(`${cacheKeys.projects}:1::`, [])
     invalidateGalleryCaches('project')
     expect(remoteCacheGet(`${cacheKeys.projects}:1::`)).toBeUndefined()

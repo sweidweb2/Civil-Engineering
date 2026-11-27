@@ -15,6 +15,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated'
 
 import { BottomSheet } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
+import { ProductivityHoursSection } from '@/features/pm/ProductivityHoursSection'
 import {
   EMPTY_PROJECT_FORM,
   formFromProject,
@@ -32,14 +33,8 @@ import {
   stageStateOf,
   stageStates,
 } from '@/features/pm/ui/kit'
-import {
-  WkChoice,
-  WkDangerZone,
-  WkField,
-  WkFormScreen,
-  WkSection,
-} from '@/features/worker/ui/forms'
-import { WkGalleryCard } from '@/features/worker/ui/GalleryCard'
+import { WkChoice, WkDangerZone, WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkGalleryCard } from '@/components/wk/GalleryCard'
 import {
   flipStyle,
   WkButton,
@@ -47,18 +42,17 @@ import {
   type WkConfirmState,
   WkEyebrow,
   WkPill,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useSeedOnce } from '@/hooks/useSeedOnce'
 import { enumLabel, enumOptions } from '@/i18n/labels'
 import { cacheKeys, invalidateProjectCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
-import { getProjectStagesSummary, STAGE_KEYS } from '@/services/project-stages'
+import { getProjectDetail, STAGE_KEYS } from '@/services/project-stages'
 import {
   archiveProject,
-  getProjectById,
   type Project,
   PROJECT_STATUS_OPTIONS,
   PROJECT_TYPE_OPTIONS,
@@ -75,7 +69,7 @@ const DEFAULT_BASE = '/pm/projects'
 export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string } = {}) {
   const BASE = basePath
   const { t } = useTranslation()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -83,25 +77,15 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
 
   const load = useCallback(() => {
     if (!projectId) return Promise.reject(new Error('Project id required'))
-    return getProjectById(projectId)
+    return getProjectDetail(projectId)
   }, [projectId])
+  // One cache entry under `projectDetail` — stage saves call `invalidateProjectCaches()`.
   const remote = useRemoteData(load, {
     enabled: Boolean(projectId),
     cacheKey: projectId ? `${cacheKeys.projectDetail}:${projectId}` : undefined,
   })
-  const project = remote.status === 'success' ? remote.data.data : null
-
-  // Stages load separately (keyed): saving in the Stages editor invalidates
-  // `projects:stages`, so this refreshes in the background on its own.
-  const loadStages = useCallback(() => {
-    if (!projectId) return Promise.reject(new Error('Project id required'))
-    return getProjectStagesSummary(projectId)
-  }, [projectId])
-  const stagesRemote = useRemoteData(loadStages, {
-    enabled: Boolean(projectId),
-    cacheKey: projectId ? `${cacheKeys.projectStages}:${projectId}` : undefined,
-  })
-  const stages = stagesRemote.status === 'success' ? stagesRemote.data.data : null
+  const project = remote.status === 'success' ? remote.data.data.project : null
+  const stages = remote.status === 'success' ? remote.data.data.stages : null
 
   const [form, setForm] = useState<ProjectFormValues>(EMPTY_PROJECT_FORM)
   const [errors, setErrors] = useState<ProjectFormErrors>({})
@@ -128,7 +112,10 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
     }
     setIsSaving(true)
     try {
+      const current = remote.status === 'success' ? remote.data.data.project : null
+      if (!current) return
       await updateProject(projectId, {
+        expectedUpdatedAt: current.updatedAt,
         name: form.name.trim(),
         code: form.code.trim(),
         // '' clears the column (backend maps blank → null); undefined would leave it unchanged.
@@ -343,6 +330,8 @@ export function PmProjectScreen({ basePath = DEFAULT_BASE }: { basePath?: string
             />
           </WkSection>
 
+          <ProductivityHoursSection projectId={project.id} />
+
           <WkDangerZone
             title={t('projects.dangerZone')}
             body={t('projects.dangerHint')}
@@ -375,7 +364,7 @@ function ProjectOverviewCard({
   scheduleLine: string
 }) {
   const { t } = useTranslation()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const tone = PROJECT_TONE[project.status]
   const [tip, setTip] = useState<OverviewFact | null>(null)
 

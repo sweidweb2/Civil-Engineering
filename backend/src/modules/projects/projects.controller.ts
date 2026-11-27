@@ -47,7 +47,7 @@ export function createProjectsController(service: ProjectsService): ProjectsCont
     async getById(req, res, next) {
       try {
         const actor = parseAuthActor(req)
-        const project = await service.assertAccessible(String(req.params.id), actor)
+        const project = await service.getAccessibleProject(String(req.params.id), actor)
         res.status(200).json({ data: project })
       } catch (error) {
         next(error)

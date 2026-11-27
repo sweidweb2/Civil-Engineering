@@ -143,6 +143,27 @@ export function createListingImagesRepository(): ListingImagesRepository {
       await prisma.listingImage.delete({ where: { id } })
     },
 
+    async deleteAndPromoteMain(imageId, listingId) {
+      await runInTransaction(async (tx) => {
+        await tx.$executeRaw`SELECT id FROM listings WHERE id = ${listingId} FOR UPDATE`
+        await tx.listingImage.delete({ where: { id: imageId } })
+        const next = await tx.listingImage.findFirst({
+          where: { listingId },
+          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
+          select: { id: true },
+        })
+        if (!next) return
+        await tx.listingImage.updateMany({
+          where: { listingId, isMain: true },
+          data: { isMain: false },
+        })
+        await tx.listingImage.update({
+          where: { id: next.id },
+          data: { isMain: true },
+        })
+      })
+    },
+
     async unsetMainImage(listingId) {
       await prisma.listingImage.updateMany({
         where: { listingId, isMain: true },

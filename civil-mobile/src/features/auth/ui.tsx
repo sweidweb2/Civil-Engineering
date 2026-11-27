@@ -44,7 +44,7 @@ import Svg, {
 } from 'react-native-svg'
 
 import { Pressable } from '@/components/ui/pressable'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { useWkPalette } from '@/components/wk/palette'
 import { ltrInputStyle } from '@/lib/rtl'
 import { MONO_STYLE } from '@/theme/typography'
 
@@ -195,7 +195,7 @@ function PulseDot({ color, size = 10 }: { color: string; size?: number }) {
  * draws itself in, and the brand lock-up. No copy — the form sits below it.
  */
 export function AuthHero({ brand }: { brand: string }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const insets = useSafeAreaInsets()
   const art = { width: 264, height: 240 }
 
@@ -368,7 +368,7 @@ type AuthFieldProps = Omit<TextInputProps, 'className' | 'style'> & {
 
 /** Tall input with a leading icon, a soft focus ring and inline error. */
 export function AuthField({ label, icon: Icon, error, valid, inputRef, ...input }: AuthFieldProps) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const [focused, setFocused] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const secret = Boolean(input.secureTextEntry)
@@ -444,7 +444,7 @@ export type PasswordRule = { label: string; met: boolean }
 
 /** Three-segment strength bar + live rule chips (rules mirror password.schema). */
 export function PasswordChecklist({ rules }: { rules: PasswordRule[] }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const met = rules.filter((r) => r.met).length
   const barColor = met === rules.length ? 'bg-wk-brand' : met >= 2 ? 'bg-wk-amber' : 'bg-wk-red'
 
@@ -498,7 +498,7 @@ export function RoleTile({
   selected: boolean
   onPress: () => void
 }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   return (
     <View className="min-w-0 flex-1">
       <PressScale
@@ -581,7 +581,7 @@ export function AuthButton({
   arrow?: boolean
   testID?: string
 }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const fg = variant === 'brand' ? c.onBrand : c.ink
   return (
     <PressScale
@@ -621,7 +621,7 @@ export type TimelineStep = {
 
 /** Vertical status timeline: done (green check), active (pulsing amber), upcoming. */
 export function AuthTimeline({ steps, liveLabel }: { steps: TimelineStep[]; liveLabel: string }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   return (
     <View>
       {steps.map((step, i) => {

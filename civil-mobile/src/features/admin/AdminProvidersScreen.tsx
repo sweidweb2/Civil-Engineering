@@ -4,7 +4,7 @@ import { Store } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { PROVIDER_TONE } from '@/features/admin/ui'
-import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/features/worker/ui/list'
+import { usePagedList, WkListRow, WkListScreen, WkMedia } from '@/components/wk/list'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { isHttpUrl } from '@/lib/imageSource'

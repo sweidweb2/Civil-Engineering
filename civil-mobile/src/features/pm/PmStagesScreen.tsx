@@ -22,8 +22,8 @@ import { draftFromSummary, fieldsForStage, fileFieldsForStage } from '@/features
 import { saveStageDraft, type StageDraft } from '@/features/pm/stagePayloads'
 import { type StageState, stageStateOf } from '@/features/pm/ui/kit'
 import { StageDocRow } from '@/features/pm/ui/StageDocRow'
-import { WkChoice, WkField, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
-import { WkButton } from '@/features/worker/ui/kit'
+import { WkChoice, WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkButton } from '@/components/wk/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { useSeedOnce } from '@/hooks/useSeedOnce'
@@ -31,12 +31,11 @@ import { enumLabel, enumOptions } from '@/i18n/labels'
 import { cacheKeys, invalidateProjectCaches } from '@/lib/cacheKeys'
 import { ltr } from '@/lib/rtl'
 import {
-  getProjectStagesSummary,
+  getProjectDetail,
   PROJECT_STAGE_STATUS_OPTIONS,
   STAGE_KEYS,
   type StageKey,
 } from '@/services/project-stages'
-import { getProjectById } from '@/services/projects'
 import { useToastSuccess } from '@/services/toast'
 
 const DEFAULT_BASE = '/pm/projects'
@@ -170,25 +169,16 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
   const [isSaving, setIsSaving] = useState(false)
   const [jumped, setJumped] = useState(Boolean(stage))
 
-  const loadProject = useCallback(() => {
+  const load = useCallback(() => {
     if (!projectId) return Promise.reject(new Error('Project id required'))
-    return getProjectById(projectId)
+    return getProjectDetail(projectId)
   }, [projectId])
-  const projectRemote = useRemoteData(loadProject, {
+  const remote = useRemoteData(load, {
     enabled: Boolean(projectId),
     cacheKey: projectId ? `${cacheKeys.projectDetail}:${projectId}` : undefined,
   })
-  const projectCode = projectRemote.status === 'success' ? projectRemote.data.data.code : null
-
-  const loadStages = useCallback(() => {
-    if (!projectId) return Promise.reject(new Error('Project id required'))
-    return getProjectStagesSummary(projectId)
-  }, [projectId])
-  const stagesRemote = useRemoteData(loadStages, {
-    enabled: Boolean(projectId),
-    cacheKey: projectId ? `${cacheKeys.projectStages}:${projectId}` : undefined,
-  })
-  const summary = stagesRemote.status === 'success' ? stagesRemote.data.data : null
+  const projectCode = remote.status === 'success' ? remote.data.data.project.code : null
+  const summary = remote.status === 'success' ? remote.data.data.stages : null
 
   const states = useMemo(
     () =>
@@ -239,13 +229,17 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
     }
     setIsSaving(true)
     try {
-      await saveStageDraft(projectId, activeKey, draft)
+      const saved = await saveStageDraft(projectId, activeKey, draft)
+      const nextToken = saved.data.updatedAt
+      if (nextToken) {
+        setDraft((d) => ({ ...d, expectedUpdatedAt: nextToken }))
+      }
       invalidateProjectCaches()
       const wasAllDone = STAGE_KEYS.every((k) => states[k] === 'done')
       const nowAllDone =
         draft.status === 'COMPLETED' &&
         STAGE_KEYS.every((k) => k === activeKey || states[k] === 'done')
-      void stagesRemote.refetch()
+      void remote.refetch()
       if (nowAllDone && !wasAllDone) {
         toastSuccess(t('pmPortal.allStagesToast'))
       } else if (!next || isLast) {
@@ -266,17 +260,10 @@ export function PmStagesScreen({ basePath = DEFAULT_BASE }: { basePath?: string 
       title={t('stages.title')}
       count={projectCode ? ltr(projectCode) : undefined}
       backHref={`${BASE}/${projectId ?? ''}`}
-      isLoading={(projectRemote.isLoading || stagesRemote.isLoading) && !summary}
-      error={
-        stagesRemote.status === 'error'
-          ? stagesRemote.error
-          : projectRemote.status === 'error'
-            ? projectRemote.error
-            : undefined
-      }
+      isLoading={remote.isLoading && !summary}
+      error={remote.status === 'error' ? remote.error : undefined}
       onRetry={() => {
-        void projectRemote.refetch()
-        void stagesRemote.refetch()
+        void remote.refetch()
       }}
       testID="e2e-pm-stages"
       footer={

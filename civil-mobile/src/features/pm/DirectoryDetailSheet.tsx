@@ -16,9 +16,9 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { BottomSheet } from '@/components/kit'
-import { cardPrice, useCategoryName } from '@/features/provider/ui/kit'
-import { specialtyLabel } from '@/features/worker/specialties'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { cardPrice, useCategoryName } from '@/components/wk/storefront'
+import { specialtyLabel } from '@/lib/specialties'
+import { useWkPalette } from '@/components/wk/palette'
 import { enumLabel } from '@/i18n/labels'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
 import { ltr } from '@/lib/rtl'
@@ -41,7 +41,7 @@ export function DirectoryDetailSheet({
   onClose: () => void
 }) {
   const { t, i18n } = useTranslation()
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const categoryName = useCategoryName()
   // Keep the last entry while the sheet animates closed.
   const [shown, setShown] = useState<DirectoryEntry | null>(entry)

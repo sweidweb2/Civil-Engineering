@@ -86,6 +86,8 @@ export type CreateProjectInput = {
 }
 
 export type UpdateProjectInput = {
+  /** Optimistic-concurrency token — pass the project's current `updatedAt`. */
+  expectedUpdatedAt: string
   name?: string
   description?: string
   code?: string

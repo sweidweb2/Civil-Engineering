@@ -42,6 +42,8 @@ export function createFilesModule(deps: { service: FilesService }) {
 }
 
 export type { FilesService }
+export { linkUploadedFile } from './link-uploaded-file.js'
+export { purgeExpiredIdempotencyRecords } from './purge-idempotency.js'
 export {
   assertAllowedImageUpload,
   createImageUpload,

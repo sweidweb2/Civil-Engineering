@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { BriefcaseBusiness } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { WkGroup, WkRow } from '@/features/worker/ui/kit'
+import { WkGroup, WkRow } from '@/components/wk/kit'
 import { WorkerAccountScreen } from '@/features/worker/WorkerAccountScreen'
 
 export default function PmAccount() {

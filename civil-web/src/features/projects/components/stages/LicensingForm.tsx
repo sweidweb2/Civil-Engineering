@@ -29,6 +29,7 @@ function emptyDraft(): UpsertLicensingInput {
     status: 'NOT_STARTED',
     expiryDate: '',
     notes: '',
+    expectedUpdatedAt: null,
   }
 }
 
@@ -43,6 +44,7 @@ function fromRecord(data: ProjectLicensing | null): UpsertLicensingInput {
     status: data.status,
     expiryDate: data.expiryDate ?? '',
     notes: data.notes ?? '',
+    expectedUpdatedAt: data.updatedAt,
   }
 }
 
@@ -72,7 +74,7 @@ export function LicensingForm({
   const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertLicensing(projectId, {
+      const saved = await upsertLicensing(projectId, {
         ...form,
         permitNumber: form.permitNumber || null,
         issuingAuthority: form.issuingAuthority || null,
@@ -82,7 +84,9 @@ export function LicensingForm({
         expiryDate: form.expiryDate || null,
         notes: form.notes || null,
       } as UpsertLicensingInput)
-      setBaseline(form)
+      const next = { ...form, expectedUpdatedAt: saved.data.updatedAt }
+      setForm(next)
+      setBaseline(next)
       toast.success(t('stages.saved'))
       if (continueNext) onContinue()
       else onSaved()

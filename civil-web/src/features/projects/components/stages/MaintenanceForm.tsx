@@ -32,6 +32,7 @@ function emptyDraft(): UpsertMaintenanceInput {
     status: 'NOT_STARTED',
     reportFilePath: '',
     notes: '',
+    expectedUpdatedAt: null,
   }
 }
 
@@ -47,6 +48,7 @@ function fromRecord(data: ProjectMaintenance | null): UpsertMaintenanceInput {
     status: data.status,
     reportFilePath: data.reportFilePath ?? '',
     notes: data.notes ?? '',
+    expectedUpdatedAt: data.updatedAt,
   }
 }
 
@@ -76,7 +78,7 @@ export function MaintenanceForm({
   const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertMaintenance(projectId, {
+      const saved = await upsertMaintenance(projectId, {
         ...form,
         maintenanceType: form.maintenanceType || null,
         description: form.description || null,
@@ -87,7 +89,9 @@ export function MaintenanceForm({
         reportFilePath: form.reportFilePath || null,
         notes: form.notes || null,
       } as UpsertMaintenanceInput)
-      setBaseline(form)
+      const next = { ...form, expectedUpdatedAt: saved.data.updatedAt }
+      setForm(next)
+      setBaseline(next)
       toast.success(t('stages.saved'))
       if (continueNext) onContinue()
       else onSaved()

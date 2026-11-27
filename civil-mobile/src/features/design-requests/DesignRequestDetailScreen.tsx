@@ -17,10 +17,10 @@ import { useTranslation } from 'react-i18next'
 
 import { ImagePreviewModal } from '@/components/files/ImagePreviewModal'
 import { Pressable } from '@/components/ui/pressable'
-import { PvOptionSheet } from '@/features/provider/ui/kit'
-import { WkDangerZone, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
-import { WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { PvOptionSheet } from '@/components/wk/storefront'
+import { WkDangerZone, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkConfirm, type WkConfirmState } from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -376,7 +376,7 @@ function StatusAction({
   onPress: () => void
   disabled?: boolean
 }) {
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const iconColor = tone === 'danger' ? c.red : tone === 'brand' ? c.brand : c.ink2
   const tileClass =
     tone === 'danger' ? 'bg-wk-red-soft' : tone === 'brand' ? 'bg-wk-brand-soft' : 'bg-wk-sf2'

@@ -3,13 +3,13 @@ import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
-import { WkBodyScroll, WkCard, WkTabScroll, WkTopBar } from '@/features/worker/ui/kit'
+import { WkBodyScroll, WkCard, WkTabScroll, WkTopBar } from '@/components/wk/kit'
 import {
   WkAccountDetailsCard,
   WkPasswordCard,
   WkPreferences,
   WkSegmented,
-} from '@/features/worker/ui/settings'
+} from '@/components/wk/settings'
 import { enumLabel } from '@/i18n/labels'
 import { ltr } from '@/lib/rtl'
 import { initialsOf, userDisplayName } from '@/lib/user'

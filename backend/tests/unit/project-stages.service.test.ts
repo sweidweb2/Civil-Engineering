@@ -60,9 +60,14 @@ function createHarness() {
     if (id !== 'p1') throw new AppError('NOT_FOUND', 'Project not found', 404)
     return project
   })
+  const getAccessibleProject = vi.fn(async (id: string) => {
+    if (id !== 'p1') throw new AppError('NOT_FOUND', 'Project not found', 404)
+    return { ...project, mainImageUrl: null, mainImageKey: null }
+  })
 
   const projectsService = {
     assertAccessible,
+    getAccessibleProject,
   } as unknown as ProjectsService
 
   const repository: ProjectStagesRepository = {
@@ -91,7 +96,7 @@ function createHarness() {
   }
 
   const service = createProjectStagesService({ repository, projectsService })
-  return { service, repository, assertAccessible }
+  return { service, repository, assertAccessible, getAccessibleProject }
 }
 
 describe('projectStagesService', () => {
@@ -128,6 +133,7 @@ describe('projectStagesService', () => {
         startDate: '2026-01-01T00:00:00.000Z',
         completionDate: '2026-02-01T00:00:00.000Z',
         notes: 'Notes',
+        expectedUpdatedAt: null,
       },
       { id: 'owner-1', roles: ['MANAGER'] },
     )
@@ -143,6 +149,27 @@ describe('projectStagesService', () => {
     await expect(
       service.getSummary('missing', { id: 'owner-1', roles: ['MANAGER'] }),
     ).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('returns project and stages together from getDetail', async () => {
+    const { service, getAccessibleProject, repository } = createHarness()
+    const detail = await service.getDetail('p1', { id: 'owner-1', roles: ['MANAGER'] })
+    expect(getAccessibleProject).toHaveBeenCalledWith('p1', {
+      id: 'owner-1',
+      roles: ['MANAGER'],
+    })
+    expect(repository.findAllByProjectId).toHaveBeenCalledWith('p1')
+    expect(detail.project.id).toBe('p1')
+    expect(detail.stages.geotechnical.exists).toBe(false)
+  })
+
+  it('returns the project with empty stages when stage rows fail to load', async () => {
+    const { service, repository } = createHarness()
+    vi.mocked(repository.findAllByProjectId).mockRejectedValueOnce(new Error('db down'))
+    const detail = await service.getDetail('p1', { id: 'owner-1', roles: ['MANAGER'] })
+    expect(detail.project.id).toBe('p1')
+    expect(detail.stages.geotechnical.exists).toBe(false)
+    expect(detail.stages.design.exists).toBe(false)
   })
 
   it('marks summary complete after a saved geotechnical row', async () => {

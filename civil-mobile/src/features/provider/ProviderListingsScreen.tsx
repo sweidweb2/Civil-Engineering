@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native'
+import { useEffect, useMemo } from 'react'
+import { FlatList, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { Package, Plus, RotateCcw, Search, X } from 'lucide-react-native'
+import { Package, Plus, RotateCcw } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import Animated, { FadeIn } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -9,14 +9,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { ListingGridCard, ListingGridSkeleton } from '@/features/provider/ui/kit'
-import { WkButton, WkError, WkHeroGlow, WkTopBar } from '@/features/worker/ui/kit'
-import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
+import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkButton, WkError, WkHeroGlow, WkTopBar } from '@/components/wk/kit'
+import { PagedListFooter } from '@/components/wk/PagedListFooter'
+import { useWkPalette, WK_TAB_SPACE } from '@/components/wk/palette'
+import { WkSearchAddButton, WkSearchField } from '@/components/wk/SearchField'
+import { usePagedList } from '@/components/wk/usePagedList'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { mergePageRows } from '@/lib/pagedRows'
+import { LIST_PERF } from '@/lib/listPerf'
+import { toPairs } from '@/lib/pagedRows'
 import { errorMessage } from '@/services/feedback'
-import { type Listing, type ListingStatus, listListings } from '@/services/listings'
+import {
+  type Listing,
+  type ListingStatus,
+  type ListingStatusCounts,
+  listListings,
+} from '@/services/listings'
 import { MONO_STYLE } from '@/theme/typography'
 
 const PAGE_SIZE = 24
@@ -24,13 +33,6 @@ type Filter = 'ALL' | ListingStatus
 
 function parseFilter(value: unknown): Filter {
   return value === 'ACTIVE' || value === 'INACTIVE' ? value : 'ALL'
-}
-
-/** Two cards per row; an odd last card keeps half width. */
-function toRows(items: Listing[]): Listing[][] {
-  const rows: Listing[][] = []
-  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2))
-  return rows
 }
 
 /**
@@ -57,74 +59,36 @@ export function ProviderListingsScreen({
 } = {}) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { c, shadow, isDark } = useWorkerPalette()
+  const { c, shadow, isDark } = useWkPalette()
   useStatusBarStyle(isDark ? 'light' : 'dark')
   const params = useLocalSearchParams<{ status?: string }>()
+  const pull = usePullToRefresh()
 
-  const [filter, setFilter] = useState<Filter>(() => parseFilter(params.status))
-  const [query, setQuery] = useState('')
-  const [applied, setApplied] = useState('')
-  const [page, setPage] = useState(1)
-  const [rows, setRows] = useState<Listing[]>([])
-
-  /** A new search or filter starts again from page one with an empty grid. */
-  const restart = useCallback((next: { filter?: Filter; applied?: string }) => {
-    if (next.filter !== undefined) setFilter(next.filter)
-    if (next.applied !== undefined) setApplied(next.applied)
-    setPage(1)
-    setRows([])
-  }, [])
-
-  // Switching category (admin browse) clears the previous grid.
-  useEffect(() => {
-    setPage(1)
-    setRows([])
-  }, [categoryId])
-
-  // Home stat tiles deep-link here with ?status=…
-  useEffect(() => {
-    if (params.status !== undefined) restart({ filter: parseFilter(params.status) })
-  }, [params.status, restart])
-
-  // Debounced search.
-  useEffect(() => {
-    const next = query.trim()
-    if (next === applied) return
-    const id = setTimeout(() => restart({ applied: next }), 300)
-    return () => clearTimeout(id)
-  }, [query, applied, restart])
-
-  const load = useCallback(
-    () =>
+  const list = usePagedList<Listing>({
+    cacheKeyPrefix: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${categoryId ?? 'all'}`,
+    initialFilter: parseFilter(params.status),
+    resetKey: categoryId,
+    fetcher: ({ page, query, filter }) =>
       listListings(page, PAGE_SIZE, {
-        q: applied || undefined,
-        status: filter === 'ALL' ? undefined : filter,
+        q: query || undefined,
+        status: filter === 'ALL' || !filter ? undefined : (filter as ListingStatus),
         categoryId: categoryId || undefined,
         counts: false,
       }),
-    [applied, categoryId, filter, page],
-  )
-  const pull = usePullToRefresh()
-  const remote = useRemoteData(load, {
-    cacheKey: `${scope === 'admin' ? cacheKeys.listingsAdmin : cacheKeys.listingsMine}:grid:${categoryId ?? 'all'}:${page}:${applied}:${filter}`,
   })
-  const result = remote.status === 'success' ? remote.data : null
 
+  // Home stat tiles deep-link here with ?status=…
   useEffect(() => {
-    if (!result) return
-    setRows((current) => {
-      if (result.meta.page === 1) return result.data
-      return mergePageRows(current, result.data)
-    })
-  }, [result])
+    if (params.status !== undefined) list.setFilter(parseFilter(params.status))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.status])
 
   // Status chip counts are global (not category-scoped) — hide them in a category view.
-  const counts = categoryId ? undefined : result?.meta.statusCounts
-  const total = result?.meta.total ?? 0
+  const counts = categoryId
+    ? undefined
+    : (list.meta?.statusCounts as ListingStatusCounts | undefined)
   const allCount = counts ? counts.ACTIVE + counts.INACTIVE : null
-  const isFirstLoad = remote.isLoading && rows.length === 0
-  const hasMore = rows.length < total
-  const listRows = useMemo(() => toRows(rows), [rows])
+  const listRows = useMemo(() => toPairs(list.rows), [list.rows])
 
   const filters: { value: Filter; label: string; count: number | null }[] = [
     { value: 'ALL', label: t('providerPortal.all'), count: allCount },
@@ -133,52 +97,26 @@ export function ProviderListingsScreen({
   ]
 
   const noneAtAll = !categoryId && allCount === 0
-  const clearAll = () => {
-    setQuery('')
-    restart({ applied: '', filter: 'ALL' })
-  }
+  const filter = (list.filter || 'ALL') as Filter
 
   const header = (
     <View className="gap-3.5 pb-3.5">
-      <View className="flex-row gap-2.5">
-        <View
-          className="h-12 min-w-0 flex-1 flex-row items-center gap-2.5 rounded-[14px] border border-wk-line bg-wk-sf ps-3.5"
-          style={shadow}
-        >
-          <Search size={18} color={c.ink3} strokeWidth={1.9} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('providerPortal.searchMine')}
-            placeholderTextColor={c.ink3}
-            accessibilityLabel={t('providerPortal.searchMine')}
-            returnKeyType="search"
-            autoCorrect={false}
-            onSubmitEditing={() => {
-              if (query.trim() !== applied) restart({ applied: query.trim() })
-            }}
-            className="h-full min-w-0 flex-1 text-[15px] text-wk-ink"
+      <WkSearchField
+        value={list.query}
+        onChangeText={list.setQuery}
+        placeholder={t('providerPortal.searchMine')}
+        accessibilityLabel={t('providerPortal.searchMine')}
+        onSubmit={() => {
+          const next = list.query.trim()
+          if (next !== list.applied) list.restart({ applied: next })
+        }}
+        trailing={
+          <WkSearchAddButton
+            label={t('providerHome.newListing')}
+            onPress={() => router.push(`${basePath}/new` as never)}
           />
-          {query ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.clearSearch')}
-              onPress={() => setQuery('')}
-              className="size-11 items-center justify-center"
-            >
-              <X size={16} color={c.ink3} strokeWidth={2} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('providerHome.newListing')}
-          onPress={() => router.push(`${basePath}/new` as never)}
-          className="size-12 items-center justify-center rounded-[14px] bg-wk-ink active:opacity-80"
-        >
-          <Plus size={22} color={c.bg} strokeWidth={2} />
-        </Pressable>
-      </View>
+        }
+      />
 
       <ScrollView
         horizontal
@@ -194,9 +132,7 @@ export function ProviderListingsScreen({
               key={f.value}
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
-              onPress={() => {
-                if (f.value !== filter) restart({ filter: f.value })
-              }}
+              onPress={() => list.setFilter(f.value)}
               className={`h-[38px] flex-row items-center gap-1.5 rounded-full border px-3.5 ${
                 on ? 'border-wk-ink bg-wk-ink' : 'border-wk-line bg-wk-sf'
               }`}
@@ -217,18 +153,18 @@ export function ProviderListingsScreen({
         })}
       </ScrollView>
 
-      {remote.status === 'error' && rows.length === 0 ? (
+      {list.error && list.rows.length === 0 ? (
         <WkError
-          message={errorMessage(remote.error, t('common.errorGeneric'))}
-          onRetry={() => void remote.refetch()}
+          message={errorMessage(list.error, t('common.errorGeneric'))}
+          onRetry={() => void list.refetch()}
         />
       ) : null}
-      {isFirstLoad ? <ListingGridSkeleton /> : null}
+      {list.isFirstLoad ? <ListingGridSkeleton /> : null}
     </View>
   )
 
   const empty =
-    !isFirstLoad && remote.status === 'success' && rows.length === 0 ? (
+    !list.isFirstLoad && list.status === 'success' && list.rows.length === 0 ? (
       <Animated.View
         entering={FadeIn.duration(300)}
         className="overflow-hidden rounded-[26px] bg-wk-sf"
@@ -247,15 +183,15 @@ export function ProviderListingsScreen({
           <Text className="text-[17px] font-semibold text-wk-ink">
             {noneAtAll
               ? t('providerPortal.emptyFirstTitle')
-              : categoryId && !applied && filter === 'ALL'
+              : categoryId && !list.applied && filter === 'ALL'
                 ? t('pmPortal.categoryListingsEmpty')
                 : t('providerPortal.noMatchTitle')}
           </Text>
           <Text className="text-[15px] leading-[22px] text-wk-ink2">
             {noneAtAll
               ? t('providerPortal.emptyFirstBody')
-              : applied
-                ? t('providerPortal.noMatchQuery', { query: applied })
+              : list.applied
+                ? t('providerPortal.noMatchQuery', { query: list.applied })
                 : categoryId && filter === 'ALL'
                   ? t('pmPortal.categoryListingsEmptyHint')
                   : filter === 'ACTIVE'
@@ -277,7 +213,7 @@ export function ProviderListingsScreen({
                 height={48}
                 icon={RotateCcw}
                 label={t('providerPortal.clearFilters')}
-                onPress={clearAll}
+                onPress={() => list.clearAll('ALL')}
               />
             )}
           </View>
@@ -291,40 +227,36 @@ export function ProviderListingsScreen({
         <WkTopBar
           title={title || t('listings.title')}
           backHref={backHref}
-          count={total ? String(total) : undefined}
+          count={list.total ? String(list.total) : undefined}
         />
       ) : null}
       <FlatList
-        data={isFirstLoad ? [] : listRows}
+        data={list.isFirstLoad ? [] : listRows}
         keyExtractor={(row) => row.map((l) => l.id).join(':')}
-        renderItem={({ item: row, index }) => (
-          <View className="flex-row gap-3">
-            {row.map((listing, col) => (
+        {...LIST_PERF}
+        renderItem={({ item: row }) => (
+          <WkGridRow>
+            {row.map((listing) => (
               <ListingGridCard
                 key={listing.id}
                 listing={listing}
-                index={index * 2 + col}
                 onPress={() => router.push(`${basePath}/${listing.id}` as never)}
               />
             ))}
-            {row.length === 1 ? <View className="flex-1" /> : null}
-          </View>
+            {row.length === 1 ? <WkGridSpacer /> : null}
+          </WkGridRow>
         )}
         ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={
-          hasMore && rows.length > 0 ? (
-            <View className="pt-4">
-              <WkButton
-                variant="soft"
-                height={48}
-                label={t('providerPortal.loadMore')}
-                loading={remote.isFetching}
-                onPress={() => setPage((p) => p + 1)}
-              />
-            </View>
-          ) : undefined
+          <PagedListFooter
+            rowCount={list.rows.length}
+            hasMore={list.hasMore}
+            isFetching={list.isFetching}
+            error={list.error}
+            onLoadMore={list.loadMore}
+          />
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -335,8 +267,8 @@ export function ProviderListingsScreen({
         }}
         refreshControl={
           <RefreshControl
-            refreshing={remote.isFetching && rows.length > 0 && page === 1}
-            onRefresh={() => pull(() => (page === 1 ? remote.refetch() : setPage(1)))}
+            refreshing={list.isFetching && list.rows.length > 0 && list.page === 1}
+            onRefresh={() => pull(() => list.refresh())}
             tintColor={c.ink3}
             colors={[c.brand]}
           />

@@ -105,7 +105,10 @@ export function ListingDetailsPage() {
     }
     setIsSaving(true)
     try {
-      await updateListing(id, parsed.data)
+      await updateListing(id, {
+        ...parsed.data,
+        expectedUpdatedAt: listing.updatedAt,
+      })
       toast.success(t('admin:listings.form.updated'))
       setIsEditing(false)
       await remote.refetch()

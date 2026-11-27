@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import { translateUniqueConflict } from '../../database/unique-conflict.js'
+import { conflict } from '../../errors/app-error.js'
 import type { ProjectStageStatus as PrismaStageStatus } from '../../generated/prisma/client.js'
 import { logPerf } from '../../logging/perf.js'
 import type {
@@ -34,6 +35,52 @@ function textOrNull(value: string | null | undefined): string | null {
   if (value == null) return null
   const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
+}
+
+/**
+ * Compare-and-swap upsert keyed by projectId.
+ * `expectedUpdatedAt === null` is create-only; a non-null token updates only if
+ * the row's updatedAt still matches (same pattern as worker CV).
+ */
+async function casUpsertByProjectId<TRow>(options: {
+  projectId: string
+  expectedUpdatedAt: string | null
+  findExistingId: () => Promise<string | null>
+  create: () => Promise<TRow>
+  updateMany: (expected: Date) => Promise<number>
+  findAfterUpdate: () => Promise<TRow>
+}): Promise<TRow> {
+  const { expectedUpdatedAt } = options
+  return translateUniqueConflict(async () => {
+    if (expectedUpdatedAt == null) {
+      const existing = await options.findExistingId()
+      if (existing) {
+        throw conflict(
+          'expectedUpdatedAt is required to update an existing stage',
+          'STAGE_VERSION_REQUIRED',
+        )
+      }
+      return options.create()
+    }
+
+    const expected = new Date(expectedUpdatedAt)
+    if (Number.isNaN(expected.getTime())) {
+      throw conflict('expectedUpdatedAt must be a valid timestamp', 'STAGE_VERSION_INVALID')
+    }
+
+    const count = await options.updateMany(expected)
+    if (count !== 1) {
+      const stillThere = await options.findExistingId()
+      if (!stillThere) {
+        throw conflict(
+          'expectedUpdatedAt must be null when creating a stage',
+          'STAGE_VERSION_INVALID',
+        )
+      }
+      throw conflict('Stage was modified elsewhere; reload and try again', 'STAGE_VERSION_CONFLICT')
+    }
+    return options.findAfterUpdate()
+  })
 }
 
 function mapGeotechnical(row: {
@@ -307,25 +354,42 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
     },
 
     async upsertGeotechnical(projectId, input) {
+      const { expectedUpdatedAt, ...fields } = input
       const data = {
-        soilType: textOrNull(input.soilType),
-        soilBearingCapacity: input.soilBearingCapacity ?? null,
-        groundwaterLevel: input.groundwaterLevel ?? null,
-        foundationRecommendation: textOrNull(input.foundationRecommendation),
-        reportFilePath: textOrNull(input.reportFilePath),
-        consultantName: textOrNull(input.consultantName),
-        status: input.status,
-        startDate: toDate(input.startDate),
-        completionDate: toDate(input.completionDate),
-        notes: textOrNull(input.notes),
+        soilType: textOrNull(fields.soilType),
+        soilBearingCapacity: fields.soilBearingCapacity ?? null,
+        groundwaterLevel: fields.groundwaterLevel ?? null,
+        foundationRecommendation: textOrNull(fields.foundationRecommendation),
+        reportFilePath: textOrNull(fields.reportFilePath),
+        consultantName: textOrNull(fields.consultantName),
+        status: fields.status,
+        startDate: toDate(fields.startDate),
+        completionDate: toDate(fields.completionDate),
+        notes: textOrNull(fields.notes),
       }
-      return translateUniqueConflict(async () => {
-        const row = await prisma.geotechnicalStudy.upsert({
-          where: { projectId },
-          create: { projectId, ...data },
-          update: data,
-        })
-        return mapGeotechnical(row)
+      return casUpsertByProjectId({
+        projectId,
+        expectedUpdatedAt,
+        findExistingId: async () => {
+          const row = await prisma.geotechnicalStudy.findUnique({
+            where: { projectId },
+            select: { id: true },
+          })
+          return row?.id ?? null
+        },
+        create: async () =>
+          mapGeotechnical(await prisma.geotechnicalStudy.create({ data: { projectId, ...data } })),
+        updateMany: async (expected) => {
+          const cas = await prisma.geotechnicalStudy.updateMany({
+            where: { projectId, updatedAt: expected },
+            data,
+          })
+          return cas.count
+        },
+        findAfterUpdate: async () =>
+          mapGeotechnical(
+            await prisma.geotechnicalStudy.findUniqueOrThrow({ where: { projectId } }),
+          ),
       })
     },
 
@@ -335,25 +399,40 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
     },
 
     async upsertDesign(projectId, input) {
+      const { expectedUpdatedAt, ...fields } = input
       const data = {
-        architecturalDesignPath: textOrNull(input.architecturalDesignPath),
-        structuralDesignPath: textOrNull(input.structuralDesignPath),
-        mepDesignPath: textOrNull(input.mepDesignPath),
-        architectName: textOrNull(input.architectName),
-        structuralEngineerName: textOrNull(input.structuralEngineerName),
-        mepEngineerName: textOrNull(input.mepEngineerName),
-        status: input.status,
-        startDate: toDate(input.startDate),
-        completionDate: toDate(input.completionDate),
-        notes: textOrNull(input.notes),
+        architecturalDesignPath: textOrNull(fields.architecturalDesignPath),
+        structuralDesignPath: textOrNull(fields.structuralDesignPath),
+        mepDesignPath: textOrNull(fields.mepDesignPath),
+        architectName: textOrNull(fields.architectName),
+        structuralEngineerName: textOrNull(fields.structuralEngineerName),
+        mepEngineerName: textOrNull(fields.mepEngineerName),
+        status: fields.status,
+        startDate: toDate(fields.startDate),
+        completionDate: toDate(fields.completionDate),
+        notes: textOrNull(fields.notes),
       }
-      return translateUniqueConflict(async () => {
-        const row = await prisma.projectDesign.upsert({
-          where: { projectId },
-          create: { projectId, ...data },
-          update: data,
-        })
-        return mapDesign(row)
+      return casUpsertByProjectId({
+        projectId,
+        expectedUpdatedAt,
+        findExistingId: async () => {
+          const row = await prisma.projectDesign.findUnique({
+            where: { projectId },
+            select: { id: true },
+          })
+          return row?.id ?? null
+        },
+        create: async () =>
+          mapDesign(await prisma.projectDesign.create({ data: { projectId, ...data } })),
+        updateMany: async (expected) => {
+          const cas = await prisma.projectDesign.updateMany({
+            where: { projectId, updatedAt: expected },
+            data,
+          })
+          return cas.count
+        },
+        findAfterUpdate: async () =>
+          mapDesign(await prisma.projectDesign.findUniqueOrThrow({ where: { projectId } })),
       })
     },
 
@@ -363,23 +442,38 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
     },
 
     async upsertLicensing(projectId, input) {
+      const { expectedUpdatedAt, ...fields } = input
       const data = {
-        permitNumber: textOrNull(input.permitNumber),
-        issuingAuthority: textOrNull(input.issuingAuthority),
-        applicationDate: toDate(input.applicationDate),
-        approvalDate: toDate(input.approvalDate),
-        permitFilePath: textOrNull(input.permitFilePath),
-        status: input.status,
-        expiryDate: toDate(input.expiryDate),
-        notes: textOrNull(input.notes),
+        permitNumber: textOrNull(fields.permitNumber),
+        issuingAuthority: textOrNull(fields.issuingAuthority),
+        applicationDate: toDate(fields.applicationDate),
+        approvalDate: toDate(fields.approvalDate),
+        permitFilePath: textOrNull(fields.permitFilePath),
+        status: fields.status,
+        expiryDate: toDate(fields.expiryDate),
+        notes: textOrNull(fields.notes),
       }
-      return translateUniqueConflict(async () => {
-        const row = await prisma.projectLicensing.upsert({
-          where: { projectId },
-          create: { projectId, ...data },
-          update: data,
-        })
-        return mapLicensing(row)
+      return casUpsertByProjectId({
+        projectId,
+        expectedUpdatedAt,
+        findExistingId: async () => {
+          const row = await prisma.projectLicensing.findUnique({
+            where: { projectId },
+            select: { id: true },
+          })
+          return row?.id ?? null
+        },
+        create: async () =>
+          mapLicensing(await prisma.projectLicensing.create({ data: { projectId, ...data } })),
+        updateMany: async (expected) => {
+          const cas = await prisma.projectLicensing.updateMany({
+            where: { projectId, updatedAt: expected },
+            data,
+          })
+          return cas.count
+        },
+        findAfterUpdate: async () =>
+          mapLicensing(await prisma.projectLicensing.findUniqueOrThrow({ where: { projectId } })),
       })
     },
 
@@ -389,28 +483,45 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
     },
 
     async upsertMaterials(projectId, input) {
+      const { expectedUpdatedAt, ...fields } = input
       const data = {
-        supplierName: textOrNull(input.supplierName),
-        materialDescription: textOrNull(input.materialDescription),
-        quantity: input.quantity ?? null,
-        unit: textOrNull(input.unit),
-        totalCost: input.totalCost ?? null,
-        currency: textOrNull(input.currency),
-        originCountry: textOrNull(input.originCountry),
-        orderDate: toDate(input.orderDate),
-        expectedArrivalDate: toDate(input.expectedArrivalDate),
-        actualArrivalDate: toDate(input.actualArrivalDate),
-        invoiceFilePath: textOrNull(input.invoiceFilePath),
-        status: input.status,
-        notes: textOrNull(input.notes),
+        supplierName: textOrNull(fields.supplierName),
+        materialDescription: textOrNull(fields.materialDescription),
+        quantity: fields.quantity ?? null,
+        unit: textOrNull(fields.unit),
+        totalCost: fields.totalCost ?? null,
+        currency: textOrNull(fields.currency),
+        originCountry: textOrNull(fields.originCountry),
+        orderDate: toDate(fields.orderDate),
+        expectedArrivalDate: toDate(fields.expectedArrivalDate),
+        actualArrivalDate: toDate(fields.actualArrivalDate),
+        invoiceFilePath: textOrNull(fields.invoiceFilePath),
+        status: fields.status,
+        notes: textOrNull(fields.notes),
       }
-      return translateUniqueConflict(async () => {
-        const row = await prisma.materialProcurement.upsert({
-          where: { projectId },
-          create: { projectId, ...data },
-          update: data,
-        })
-        return mapMaterials(row)
+      return casUpsertByProjectId({
+        projectId,
+        expectedUpdatedAt,
+        findExistingId: async () => {
+          const row = await prisma.materialProcurement.findUnique({
+            where: { projectId },
+            select: { id: true },
+          })
+          return row?.id ?? null
+        },
+        create: async () =>
+          mapMaterials(await prisma.materialProcurement.create({ data: { projectId, ...data } })),
+        updateMany: async (expected) => {
+          const cas = await prisma.materialProcurement.updateMany({
+            where: { projectId, updatedAt: expected },
+            data,
+          })
+          return cas.count
+        },
+        findAfterUpdate: async () =>
+          mapMaterials(
+            await prisma.materialProcurement.findUniqueOrThrow({ where: { projectId } }),
+          ),
       })
     },
 
@@ -420,24 +531,41 @@ export function createProjectStagesRepository(): ProjectStagesRepository {
     },
 
     async upsertMaintenance(projectId, input) {
+      const { expectedUpdatedAt, ...fields } = input
       const data = {
-        maintenanceType: textOrNull(input.maintenanceType),
-        description: textOrNull(input.description),
-        responsiblePerson: textOrNull(input.responsiblePerson),
-        scheduledDate: toDate(input.scheduledDate),
-        completionDate: toDate(input.completionDate),
-        cost: input.cost ?? null,
-        status: input.status,
-        reportFilePath: textOrNull(input.reportFilePath),
-        notes: textOrNull(input.notes),
+        maintenanceType: textOrNull(fields.maintenanceType),
+        description: textOrNull(fields.description),
+        responsiblePerson: textOrNull(fields.responsiblePerson),
+        scheduledDate: toDate(fields.scheduledDate),
+        completionDate: toDate(fields.completionDate),
+        cost: fields.cost ?? null,
+        status: fields.status,
+        reportFilePath: textOrNull(fields.reportFilePath),
+        notes: textOrNull(fields.notes),
       }
-      return translateUniqueConflict(async () => {
-        const row = await prisma.projectMaintenance.upsert({
-          where: { projectId },
-          create: { projectId, ...data },
-          update: data,
-        })
-        return mapMaintenance(row)
+      return casUpsertByProjectId({
+        projectId,
+        expectedUpdatedAt,
+        findExistingId: async () => {
+          const row = await prisma.projectMaintenance.findUnique({
+            where: { projectId },
+            select: { id: true },
+          })
+          return row?.id ?? null
+        },
+        create: async () =>
+          mapMaintenance(await prisma.projectMaintenance.create({ data: { projectId, ...data } })),
+        updateMany: async (expected) => {
+          const cas = await prisma.projectMaintenance.updateMany({
+            where: { projectId, updatedAt: expected },
+            data,
+          })
+          return cas.count
+        },
+        findAfterUpdate: async () =>
+          mapMaintenance(
+            await prisma.projectMaintenance.findUniqueOrThrow({ where: { projectId } }),
+          ),
       })
     },
   }

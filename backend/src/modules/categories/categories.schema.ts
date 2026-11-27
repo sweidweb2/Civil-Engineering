@@ -27,16 +27,46 @@ export const categoryIdParamsSchema = z.object({
   id: z.string().trim().min(1),
 })
 
-export const listCategoriesQuerySchema = paginationQuerySchema.extend({
-  q: optionalQueryText,
-  kind: categoryKindSchema.optional(),
-  /** When false, skip per-row children/listings counts (pickers). Default true. */
-  includeCounts: z.preprocess((value) => {
-    if (value === 'false' || value === '0' || value === false) return false
-    if (value === 'true' || value === '1' || value === true) return true
+/** Comma-separated or repeated `kinds` → one DB `IN` filter (directory / listings grids). */
+const categoryKindsQuerySchema = z.preprocess((value) => {
+  if (value == null || value === '') return undefined
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
     return value
-  }, z.boolean().optional()),
-})
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0)
+  }
+  return value
+}, z.array(categoryKindSchema).min(1).max(4).optional())
+
+/**
+ * Accepts legacy `kind=` or `kinds=` (comma / repeated). Output always uses `kinds`
+ * only — `kind` is folded in so callers never see both.
+ */
+export const listCategoriesQuerySchema = paginationQuerySchema
+  .extend({
+    q: optionalQueryText,
+    kind: categoryKindSchema.optional(),
+    kinds: categoryKindsQuerySchema,
+    /** When false, skip per-row children/listings counts (pickers). Default true. */
+    includeCounts: z.preprocess((value) => {
+      if (value === 'false' || value === '0' || value === false) return false
+      if (value === 'true' || value === '1' || value === true) return true
+      return value
+    }, z.boolean().optional()),
+  })
+  .transform((value) => {
+    const kinds =
+      value.kinds && value.kinds.length > 0 ? value.kinds : value.kind ? [value.kind] : undefined
+    return {
+      page: value.page,
+      limit: value.limit,
+      q: value.q,
+      kinds,
+      includeCounts: value.includeCounts,
+    }
+  })
 
 export const createCategoryBodySchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -62,12 +92,26 @@ export const updateCategoryBodySchema = z
 
 export type CategoryKind = z.infer<typeof categoryKindSchema>
 
+/** Normalized list query (`kind` already folded into `kinds` by the Zod schema). */
 export type ListCategoriesQuery = {
   page: number
   limit: number
   q?: string
-  kind?: CategoryKind
+  kinds?: CategoryKind[]
   includeCounts?: boolean
+}
+
+/** Service / test input may still pass legacy `kind`; normalize with `resolveCategoryKinds`. */
+export type ListCategoriesQueryInput = ListCategoriesQuery & { kind?: CategoryKind }
+
+/** `kinds` wins when both are set; otherwise a single `kind` becomes a one-element list. */
+export function resolveCategoryKinds(query: {
+  kind?: CategoryKind
+  kinds?: CategoryKind[]
+}): CategoryKind[] | undefined {
+  if (query.kinds && query.kinds.length > 0) return query.kinds
+  if (query.kind) return [query.kind]
+  return undefined
 }
 
 export type CreateCategoryBody = {

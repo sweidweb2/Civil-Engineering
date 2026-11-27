@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { BottomNavItem } from '@/components/layout/BottomNavigation'
 import { Pressable } from '@/components/ui/pressable'
 
-import { useWorkerPalette } from './palette'
+import { useWkPalette } from '@/components/wk/palette'
 
 const LAYOUT = LinearTransition.springify().damping(18).stiffness(200)
 
@@ -23,7 +23,7 @@ export function WorkerTabBar({
   renderIcon: (item: BottomNavItem, color: string) => ReactNode
 }) {
   const insets = useSafeAreaInsets()
-  const { c, float } = useWorkerPalette()
+  const { c, float } = useWkPalette()
   return (
     <View
       pointerEvents="box-none"

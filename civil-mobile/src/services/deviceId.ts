@@ -3,6 +3,10 @@ import * as SecureStore from 'expo-secure-store'
 
 const STORAGE_KEY = 'civil-device-id'
 
+const SECURE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+}
+
 function createId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
@@ -35,7 +39,7 @@ async function writeStored(id: string): Promise<void> {
     return
   }
   try {
-    await SecureStore.setItemAsync(STORAGE_KEY, id)
+    await SecureStore.setItemAsync(STORAGE_KEY, id, SECURE_OPTIONS)
   } catch {
     // Ignore secure-store failures; caller still has an in-memory id for this session.
   }

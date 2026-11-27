@@ -5,6 +5,10 @@ import type {
   CategoriesRepository,
   CategoryRecord,
 } from '../../src/modules/categories/categories.repository.js'
+import {
+  listCategoriesQuerySchema,
+  resolveCategoryKinds,
+} from '../../src/modules/categories/categories.schema.js'
 import { createCategoriesService } from '../../src/modules/categories/categories.service.js'
 
 const admin = { id: 'admin-1', roles: ['ADMIN'] }
@@ -59,6 +63,21 @@ function setup(opts?: { existing?: CategoryRecord | null; duplicate?: { id: stri
   return { repository, service: createCategoriesService({ repository }) }
 }
 
+describe('resolveCategoryKinds', () => {
+  it('prefers kinds over kind', () => {
+    expect(resolveCategoryKinds({ kind: 'WORKER', kinds: ['MATERIAL', 'SERVICE'] })).toEqual([
+      'MATERIAL',
+      'SERVICE',
+    ])
+  })
+
+  it('folds a single kind into kinds via the query schema', () => {
+    const parsed = listCategoriesQuerySchema.parse({ page: '1', limit: '20', kind: 'EQUIPMENT' })
+    expect(parsed.kinds).toEqual(['EQUIPMENT'])
+    expect('kind' in parsed).toBe(false)
+  })
+})
+
 describe('categoriesService', () => {
   it('forbids clients from listing categories', async () => {
     const { service } = setup()
@@ -73,7 +92,7 @@ describe('categoriesService', () => {
     })
     const result = await service.listCategories({ page: 1, limit: 20, kind: 'WORKER' }, worker)
     expect(result.data).toHaveLength(1)
-    expect(repository.findMany).toHaveBeenCalledWith(expect.objectContaining({ kind: 'WORKER' }))
+    expect(repository.findMany).toHaveBeenCalledWith(expect.objectContaining({ kinds: ['WORKER'] }))
   })
 
   it('forbids workers from listing non-WORKER category kinds', async () => {
@@ -81,6 +100,27 @@ describe('categoriesService', () => {
     await expect(
       service.listCategories({ page: 1, limit: 20, kind: 'MATERIAL' }, worker),
     ).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('forbids workers from listing mixed kinds filters', async () => {
+    const { service } = setup()
+    await expect(
+      service.listCategories(
+        { page: 1, limit: 20, kinds: ['MATERIAL', 'EQUIPMENT', 'SERVICE'] },
+        worker,
+      ),
+    ).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('passes kinds through to the repository for admins', async () => {
+    const { service, repository } = setup()
+    await service.listCategories(
+      { page: 1, limit: 20, kinds: ['MATERIAL', 'EQUIPMENT', 'SERVICE'] },
+      admin,
+    )
+    expect(repository.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ kinds: ['MATERIAL', 'EQUIPMENT', 'SERVICE'] }),
+    )
   })
 
   it('creates a top-level platform category and slugs the name', async () => {

@@ -140,6 +140,8 @@ export const createListingBodySchema = z
 
 export const updateListingBodySchema = z
   .object({
+    /** Optimistic-concurrency token — must match the listing's current `updatedAt`. */
+    expectedUpdatedAt: z.string().datetime({ offset: true }),
     providerId: listingFields.providerId,
     categoryId: listingFields.categoryId,
     name: listingFields.name.optional(),
@@ -155,9 +157,13 @@ export const updateListingBodySchema = z
     quantityAvailable: listingFields.quantityAvailable,
     status: listingStatusSchema.optional(),
   })
-  .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'At least one field is required',
-  })
+  .refine(
+    (value) => {
+      const { expectedUpdatedAt: _token, ...rest } = value
+      return Object.values(rest).some((field) => field !== undefined)
+    },
+    { message: 'At least one field is required' },
+  )
   .refine(updatePricingModeOk, {
     message: 'Provide a fixed price, or both min and max prices (not both modes)',
     path: ['price'],

@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next'
 
 import { ImagePreviewModal } from '@/components/files/ImagePreviewModal'
 import { Pressable } from '@/components/ui/pressable'
-import { PvOptionSheet } from '@/features/provider/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { PvOptionSheet } from '@/components/wk/storefront'
+import { useWkPalette } from '@/components/wk/palette'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useRemoteFilePreview } from '@/hooks/useRemoteFilePreview'
 import { fileIdFromStorageKey } from '@/lib/fileKey'
@@ -33,7 +33,7 @@ export function StageDocRow({
   disabled?: boolean
 }) {
   const { t } = useTranslation()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const toastSuccess = useToastSuccess()
   const toastApiError = useToastApiError()
   const { sheetOpen, setSheetOpen, isBusy, pickAndRun } = useFilePick()

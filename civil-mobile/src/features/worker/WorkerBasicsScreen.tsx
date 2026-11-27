@@ -3,15 +3,9 @@ import { router } from 'expo-router'
 import { HardHat, Languages, MapPin, UserRound } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { specialtyLabel, specialtyOptions } from '@/features/worker/specialties'
-import {
-  WkField,
-  WkFormScreen,
-  WkPickerSheet,
-  WkSection,
-  WkSelect,
-} from '@/features/worker/ui/forms'
-import { WkButton } from '@/features/worker/ui/kit'
+import { specialtyLabel, specialtyOptions } from '@/lib/specialties'
+import { WkField, WkFormScreen, WkPickerSheet, WkSection, WkSelect } from '@/components/wk/forms'
+import { WkButton } from '@/components/wk/kit'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { workerBasicsSchema, type WorkerBasicsValues } from '@/features/worker/worker.schema'
 import { useSeedOnce } from '@/hooks/useSeedOnce'

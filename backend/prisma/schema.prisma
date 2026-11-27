@@ -270,6 +270,21 @@ model DeniedRefreshToken {
   @@map("denied_refresh_tokens")
 }
 
+/// Shared idempotency keys for create endpoints (survives restart / multi-instance).
+model IdempotencyRecord {
+  scope     String   @id
+  bodyHash  String
+  state     String
+  status    Int?
+  body      Json?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
 // =============================================================================
 // devices — Expo push tokens (mobile notification bedrock)
 // =============================================================================
@@ -582,14 +597,15 @@ model Project {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   archivedAt      DateTime?
-  owner              User                  @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  images             ProjectImage[]
-  geotechnicalStudy  GeotechnicalStudy?
-  design             ProjectDesign?
-  licensing          ProjectLicensing?
+  owner               User                       @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  images              ProjectImage[]
+  geotechnicalStudy   GeotechnicalStudy?
+  design              ProjectDesign?
+  licensing           ProjectLicensing?
   materialProcurement MaterialProcurement?
-  maintenance        ProjectMaintenance?
-  designRequests     DesignRequest[]
+  maintenance         ProjectMaintenance?
+  designRequests      DesignRequest[]
+  productivityHours   ProjectProductivityHour[]
 
   @@index([status])
   @@index([ownerId, archivedAt, createdAt])
@@ -601,6 +617,23 @@ model Project {
   @@index([code(ops: raw("gin_trgm_ops"))], map: "projects_code_trgm_idx", type: Gin)
   @@index([city(ops: raw("gin_trgm_ops"))], map: "projects_city_trgm_idx", type: Gin)
   @@map("projects")
+}
+
+/// One productivity hours value per project calendar day (re-entry upserts the same day).
+model ProjectProductivityHour {
+  id        String   @id @default(cuid())
+  projectId String
+  /// Calendar day the hours apply to (date-only).
+  workDate  DateTime @db.Date
+  /// Hours worked that day (0.0–24.0, one decimal place).
+  hours     Decimal  @db.Decimal(4, 1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, workDate])
+  @@index([projectId, workDate])
+  @@map("project_productivity_hours")
 }
 
 model ProjectImage {

@@ -87,8 +87,8 @@ export function PortalShell({ portal, children }: PortalShellProps) {
           ),
           onPress: () => {
             if (pathname !== item.href) {
-              // Tabs replace so bottom-nav switches do not pile history.
-              router.replace(item.href as never)
+              // Tabs navigator keeps screens mounted; navigate jumps without remount.
+              router.navigate(item.href as never)
             }
           },
         }

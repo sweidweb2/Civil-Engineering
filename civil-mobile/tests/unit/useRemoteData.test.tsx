@@ -3,6 +3,8 @@ import { act, create } from 'react-test-renderer'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { remoteCacheGet, remoteCacheInvalidate } from '@/lib/remoteCache'
 
+import { __resetRemoteDataTestFocus, __setRemoteDataTestFocused } from './jest.setup'
+
 // The real store pulls in expo-router; the hook only reads `tokens`.
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: { getState: () => ({ tokens: { accessToken: 't', refreshToken: 'r' } }) },
@@ -26,7 +28,10 @@ async function mount(load: () => Promise<string>, cacheKey: string) {
 const dataOf = (hook: Hook) => (hook.status === 'success' ? hook.data : undefined)
 
 describe('useRemoteData (phase 1)', () => {
-  beforeEach(() => remoteCacheInvalidate())
+  beforeEach(() => {
+    remoteCacheInvalidate()
+    __resetRemoteDataTestFocus()
+  })
 
   it('an open screen refetches in the background when its key is invalidated', async () => {
     const load = jest.fn().mockResolvedValueOnce('old price').mockResolvedValueOnce('new price')
@@ -40,6 +45,30 @@ describe('useRemoteData (phase 1)', () => {
 
     expect(load).toHaveBeenCalledTimes(2)
     expect(dataOf(ref.current)).toBe('new price')
+    await unmount()
+  })
+
+  it('defers invalidation refetch until the screen is focused again', async () => {
+    const load = jest.fn().mockResolvedValueOnce('old').mockResolvedValueOnce('new')
+    const { ref, unmount } = await mount(load, 'listings:mine:grid:deferred::')
+    expect(dataOf(ref.current)).toBe('old')
+
+    await act(async () => {
+      __setRemoteDataTestFocused(false)
+    })
+
+    await act(async () => {
+      remoteCacheInvalidate('listings:mine')
+    })
+    expect(load).toHaveBeenCalledTimes(1)
+    expect(dataOf(ref.current)).toBe('old')
+
+    await act(async () => {
+      __setRemoteDataTestFocused(true)
+    })
+
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(dataOf(ref.current)).toBe('new')
     await unmount()
   })
 

@@ -3,8 +3,8 @@ import { router } from 'expo-router'
 import { BadgeCheck, Calendar } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { WkDangerZone, WkField, WkFormScreen, WkSection } from '@/features/worker/ui/forms'
-import { WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
+import { WkDangerZone, WkField, WkFormScreen, WkSection } from '@/components/wk/forms'
+import { WkButton, WkConfirm, type WkConfirmState } from '@/components/wk/kit'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import {
   workerCertificationSchema,

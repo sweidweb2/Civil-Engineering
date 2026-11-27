@@ -30,8 +30,8 @@ import {
   WkRow,
   WkSkeletonCard,
   WkTabScroll,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { AVAILABILITY_TONE, CV_SECTION_META, VERIFICATION_KEY } from '@/features/worker/ui/sections'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
@@ -55,7 +55,7 @@ export function WorkerDashboardScreen() {
   const today = useTodayCaption()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const { profile, verificationStatus, isReady, error, refetch, isFetching } = useWorkerProfile()
   const [isRequesting, setIsRequesting] = useState(false)
 

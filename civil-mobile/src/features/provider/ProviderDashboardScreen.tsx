@@ -17,8 +17,8 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import { useTodayCaption } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { ListingRailCard, PhotoScrim, PvSectionHead } from '@/features/provider/ui/kit'
-import { WkError, WkEyebrow, WkHeroGlow, WkPill, WkTabScroll } from '@/features/worker/ui/kit'
-import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
+import { WkError, WkEyebrow, WkHeroGlow, WkPill, WkTabScroll } from '@/components/wk/kit'
+import { useWkPalette, type WkTone } from '@/components/wk/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
@@ -87,7 +87,7 @@ const toNewListing = () => router.push('/provider/listings/new' as never)
 export function ProviderDashboardScreen() {
   const { t } = useTranslation()
   const today = useTodayCaption()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardProvider })
 

@@ -76,6 +76,11 @@ export type ListingWriteInput = {
   status?: ListingStatus
 }
 
+export type ListingUpdateInput = Partial<ListingWriteInput> & {
+  /** Optimistic-concurrency token — pass the listing's current `updatedAt`. */
+  expectedUpdatedAt: string
+}
+
 export function getListingById(id: string) {
   return apiRequest<{ data: Listing }>(`/listings/${id}`)
 }
@@ -89,7 +94,7 @@ export function createListing(input: ListingWriteInput, options: { idempotencyKe
   })
 }
 
-export function updateListing(id: string, input: Partial<ListingWriteInput>) {
+export function updateListing(id: string, input: ListingUpdateInput) {
   return apiRequest<{ data: Listing }>(`/listings/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),

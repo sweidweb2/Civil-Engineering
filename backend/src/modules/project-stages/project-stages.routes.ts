@@ -30,6 +30,12 @@ export function createProjectStagesRouter(deps: ProjectStagesRouterDeps): Router
   )
 
   router.get(
+    '/:projectId/detail',
+    validate({ params: projectIdParamsSchema }),
+    controller.getDetail,
+  )
+
+  router.get(
     '/:projectId/stages',
     validate({ params: projectIdParamsSchema }),
     controller.getSummary,

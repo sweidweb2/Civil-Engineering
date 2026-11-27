@@ -26,10 +26,13 @@ export type ProjectsService = {
   ) => Promise<{
     data: ProjectListItem[]
     meta: { total: number; page: number; limit: number; totalPages: number }
+    /** Always set: aggregate when `includeSummary`, otherwise `null`. */
+    summary: ProjectSummary | null
   }>
-  getProjectById: (id: string) => Promise<Project>
   /** Cross-module / HTTP: load project and enforce owner-or-admin. */
   assertAccessible: (id: string, actor: AuthActor) => Promise<Project>
+  /** Owner-or-admin check + progress + main image URL (HTTP GET /projects/:id). */
+  getAccessibleProject: (id: string, actor: AuthActor) => Promise<Project>
   createProject: (input: CreateProjectBody, ownerId: string) => Promise<Project>
   updateProject: (id: string, input: UpdateProjectBody, actor: AuthActor) => Promise<Project>
   archiveProject: (id: string, actor: AuthActor) => Promise<void>
@@ -116,7 +119,10 @@ export function createProjectsService(
   return {
     async listProjects(query, actor) {
       const ownerScope = isAdmin(actor.roles) ? undefined : actor.id
-      const { projects, total } = await repository.findMany(query, ownerScope)
+      const [{ projects, total }, summary] = await Promise.all([
+        repository.findMany(query, ownerScope),
+        query.includeSummary ? repository.summarize(ownerScope) : Promise.resolve(undefined),
+      ])
       const page = query.page ?? 1
       const limit = query.limit ?? 20
 
@@ -150,6 +156,7 @@ export function createProjectsService(
           limit,
           totalPages: Math.ceil(total / limit),
         },
+        summary: summary ?? null,
       }
     },
 
@@ -170,11 +177,11 @@ export function createProjectsService(
       }
     },
 
-    async getProjectById(id) {
-      return presentProjectWithMainImage(await loadOrThrow(id))
-    },
-
     assertAccessible,
+
+    async getAccessibleProject(id, actor) {
+      return presentProjectWithMainImage(await assertAccessible(id, actor))
+    },
 
     async createProject(input, ownerId) {
       if (input.code) {

@@ -53,19 +53,20 @@ Only the signed-in user's own working data: dashboards, own profile / CV, own pr
   - scope = user id + method + route + key;
   - 2xx responses replayed for 24h (`Idempotent-Replayed: true`);
   - errors are not stored, so a corrected retry is processed normally;
-  - same key with a different body → `409 IDEMPOTENCY_KEY_REUSED`;
+  - same key with a different body → `409 IDEMPOTENCY_KEY_REUSED` (body hash is key-order stable);
   - concurrent duplicate → `409 IDEMPOTENCY_IN_PROGRESS`.
-- **In-process memory** (bounded LRU, 10k entries), like the rate limiter. This respects [Redis](./[8]%20Redis.md): no shared store. Keys are per process and lost on restart, which is acceptable for the single-instance deployment.
+- **Postgres** table `idempotency_records` (default). Shared across API instances and survives restart. Unit tests may inject an in-memory store. Still no Redis ([8] Redis.md).
+- Outcomes are persisted **before** the response is sent (avoids a crash window that leaves a pending key with no replay).
+- Expired rows are purged hourly (`jobs.purgeExpiredIdempotencyKeys`, advisory-locked) with a throttled opportunistic pass from the middleware for serverless.
 
 ## Consequences
 
 - Opening a screen offline shows the last saved copy instead of an error, for the allow-listed data.
 - Saving offline gives an immediate, clear message instead of a 30s timeout.
 - Personal data now persists on the device (app sandbox, cache dir) until logout or 7 days.
-- With multiple API instances, idempotency keys would not be shared: a retry routed to another instance could still duplicate. Moving to a shared store needs a new decision.
+- Idempotency keys are shared across instances via Postgres.
 
 ## Revisit when
 
 - Offline **writes** become a product requirement (needs a queue, conflict rules, and per-action decisions).
-- The API runs on more than one instance (shared idempotency store).
 - The custom cache grows past what is reasonable to maintain. TanStack Query + a persister is the fallback option.

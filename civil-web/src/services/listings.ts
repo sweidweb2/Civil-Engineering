@@ -136,7 +136,12 @@ export function createListing(input: ListingWriteInput) {
   })
 }
 
-export function updateListing(id: string, input: Partial<ListingWriteInput>) {
+export type ListingUpdateInput = Partial<ListingWriteInput> & {
+  /** Optimistic-concurrency token — pass the listing's current `updatedAt`. */
+  expectedUpdatedAt: string
+}
+
+export function updateListing(id: string, input: ListingUpdateInput) {
   return apiRequest<{ data: Listing }>(`/listings/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),

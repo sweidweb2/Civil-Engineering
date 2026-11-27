@@ -103,13 +103,27 @@ describe('projectsService', () => {
 
   it('lets the owner update a project', async () => {
     const { service, repository } = setup()
-    await service.updateProject('p1', { name: 'Site A Renamed' }, owner)
-    expect(repository.update).toHaveBeenCalledWith('p1', { name: 'Site A Renamed', progress: 0 })
+    await service.updateProject(
+      'p1',
+      { expectedUpdatedAt: '2026-01-01T00:00:00.000Z', name: 'Site A Renamed' },
+      owner,
+    )
+    expect(repository.update).toHaveBeenCalledWith('p1', {
+      expectedUpdatedAt: '2026-01-01T00:00:00.000Z',
+      name: 'Site A Renamed',
+      progress: 0,
+    })
   })
 
   it('forbids a non-owner from updating', async () => {
     const { service } = setup()
-    await expect(service.updateProject('p1', { name: 'Nope' }, other)).rejects.toMatchObject({
+    await expect(
+      service.updateProject(
+        'p1',
+        { expectedUpdatedAt: '2026-01-01T00:00:00.000Z', name: 'Nope' },
+        other,
+      ),
+    ).rejects.toMatchObject({
       status: 403,
     })
   })
@@ -128,6 +142,7 @@ describe('projectsService', () => {
       await service.updateProject(
         'p1',
         {
+          expectedUpdatedAt: '2026-01-01T00:00:00.000Z',
           startDate: '2026-10-01T00:00:00.000Z',
           endDate: '2026-10-11T00:00:00.000Z',
         },
@@ -148,6 +163,7 @@ describe('projectsService', () => {
       service.updateProject(
         'p1',
         {
+          expectedUpdatedAt: '2026-01-01T00:00:00.000Z',
           startDate: '2026-10-11T00:00:00.000Z',
           endDate: '2026-10-01T00:00:00.000Z',
         },
@@ -160,7 +176,13 @@ describe('projectsService', () => {
     const existingOther = makeProject({ id: 'p2', code: 'SITE-B' })
     const { repository, service } = setup(makeProject())
     vi.mocked(repository.findByCode).mockResolvedValue(existingOther)
-    await expect(service.updateProject('p1', { code: 'SITE-B' }, owner)).rejects.toMatchObject({
+    await expect(
+      service.updateProject(
+        'p1',
+        { expectedUpdatedAt: '2026-01-01T00:00:00.000Z', code: 'SITE-B' },
+        owner,
+      ),
+    ).rejects.toMatchObject({
       code: 'CODE_IN_USE',
       status: 409,
     })

@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import type { DbClient } from '../../database/transaction.js'
+import { conflict } from '../../errors/app-error.js'
 import type { ProjectStatus, ProjectType } from '../../generated/prisma/client.js'
 import type { CreateProjectBody, ListProjectsQuery, UpdateProjectBody } from './projects.schema.js'
 import type { Project, ProjectListRow } from './projects.types.js'
@@ -287,36 +288,62 @@ export function createProjectsRepository(): ProjectsRepository {
     },
 
     async update(id, input) {
+      const { expectedUpdatedAt, ...fields } = input
+      const expected = new Date(expectedUpdatedAt)
+      if (Number.isNaN(expected.getTime())) {
+        throw conflict('expectedUpdatedAt must be a valid timestamp', 'PROJECT_VERSION_INVALID')
+      }
+
       const updateData: Record<string, unknown> = {}
 
-      if (input.name !== undefined) updateData.name = input.name
-      if (input.description !== undefined)
-        updateData.description = input.description?.trim() || null
-      if (input.code !== undefined) updateData.code = input.code?.trim() || null
-      if (input.address !== undefined) updateData.address = input.address?.trim() || null
-      if (input.city !== undefined) updateData.city = input.city?.trim() || null
-      if (input.country !== undefined) updateData.country = input.country?.trim() || null
-      if (input.startDate !== undefined)
-        updateData.startDate = input.startDate ? new Date(input.startDate) : null
-      if (input.endDate !== undefined)
-        updateData.endDate = input.endDate ? new Date(input.endDate) : null
-      if (input.actualStartDate !== undefined)
-        updateData.actualStartDate = input.actualStartDate ? new Date(input.actualStartDate) : null
-      if (input.actualEndDate !== undefined)
-        updateData.actualEndDate = input.actualEndDate ? new Date(input.actualEndDate) : null
-      if (input.status !== undefined) updateData.status = input.status as ProjectStatus
-      if (input.progress !== undefined) updateData.progress = input.progress
-      if (input.budget !== undefined) updateData.budget = input.budget
-      if (input.currency !== undefined) updateData.currency = input.currency
-      if (input.actualCost !== undefined) updateData.actualCost = input.actualCost
-      if (input.type !== undefined) updateData.type = input.type as ProjectType
-      if (input.isPublic !== undefined) updateData.isPublic = input.isPublic
-      if (input.notes !== undefined) updateData.notes = input.notes?.trim() || null
+      if (fields.name !== undefined) updateData.name = fields.name
+      if (fields.description !== undefined)
+        updateData.description = fields.description?.trim() || null
+      if (fields.code !== undefined) updateData.code = fields.code?.trim() || null
+      if (fields.address !== undefined) updateData.address = fields.address?.trim() || null
+      if (fields.city !== undefined) updateData.city = fields.city?.trim() || null
+      if (fields.country !== undefined) updateData.country = fields.country?.trim() || null
+      if (fields.startDate !== undefined)
+        updateData.startDate = fields.startDate ? new Date(fields.startDate) : null
+      if (fields.endDate !== undefined)
+        updateData.endDate = fields.endDate ? new Date(fields.endDate) : null
+      if (fields.actualStartDate !== undefined)
+        updateData.actualStartDate = fields.actualStartDate
+          ? new Date(fields.actualStartDate)
+          : null
+      if (fields.actualEndDate !== undefined)
+        updateData.actualEndDate = fields.actualEndDate ? new Date(fields.actualEndDate) : null
+      if (fields.status !== undefined) updateData.status = fields.status as ProjectStatus
+      if (fields.progress !== undefined) updateData.progress = fields.progress
+      if (fields.budget !== undefined) updateData.budget = fields.budget
+      if (fields.currency !== undefined) updateData.currency = fields.currency
+      if (fields.actualCost !== undefined) updateData.actualCost = fields.actualCost
+      if (fields.type !== undefined) updateData.type = fields.type as ProjectType
+      if (fields.isPublic !== undefined) updateData.isPublic = fields.isPublic
+      if (fields.notes !== undefined) updateData.notes = fields.notes?.trim() || null
 
-      const project = await prisma.project.update({
-        where: { id },
+      const cas = await prisma.project.updateMany({
+        where: { id, updatedAt: expected, archivedAt: null },
         data: updateData,
       })
+      if (cas.count !== 1) {
+        const stillThere = await prisma.project.findFirst({
+          where: { id, archivedAt: null },
+          select: { id: true },
+        })
+        if (!stillThere) {
+          throw conflict(
+            'Project was modified elsewhere; reload and try again',
+            'PROJECT_VERSION_CONFLICT',
+          )
+        }
+        throw conflict(
+          'Project was modified elsewhere; reload and try again',
+          'PROJECT_VERSION_CONFLICT',
+        )
+      }
+
+      const project = await prisma.project.findUniqueOrThrow({ where: { id } })
       return mapToProject(project)
     },
 

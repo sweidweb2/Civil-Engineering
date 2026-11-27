@@ -131,6 +131,8 @@ export type UpsertGeotechnicalInput = {
   startDate: string
   completionDate: string
   notes: string
+  /** ISO timestamp loaded from the API; null only on first create. */
+  expectedUpdatedAt: string | null
 }
 
 export type UpsertDesignInput = {
@@ -144,6 +146,7 @@ export type UpsertDesignInput = {
   startDate: string
   completionDate: string
   notes: string
+  expectedUpdatedAt: string | null
 }
 
 export type UpsertLicensingInput = {
@@ -155,6 +158,7 @@ export type UpsertLicensingInput = {
   status: ProjectStageStatus
   expiryDate: string | null
   notes: string
+  expectedUpdatedAt: string | null
 }
 
 export type UpsertMaterialsInput = {
@@ -171,6 +175,7 @@ export type UpsertMaterialsInput = {
   invoiceFilePath: string
   status: ProjectStageStatus
   notes: string
+  expectedUpdatedAt: string | null
 }
 
 export type UpsertMaintenanceInput = {
@@ -183,6 +188,7 @@ export type UpsertMaintenanceInput = {
   status: ProjectStageStatus
   reportFilePath: string
   notes: string
+  expectedUpdatedAt: string | null
 }
 
 export function getProjectStagesSummary(projectId: string) {

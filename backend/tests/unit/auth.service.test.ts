@@ -63,6 +63,7 @@ describe('auth.service', () => {
       recordRegistrationAttempt: vi.fn(async () => undefined),
       updatePasswordHash: vi.fn(),
       updatePasswordHashAndInvalidateRefresh: vi.fn(),
+      invalidateRefreshTokens: vi.fn(async () => undefined),
       denyRefreshJti: vi.fn(async () => undefined),
       claimRefreshJti: vi.fn(async () => 'claimed' as const),
       isRefreshJtiDenied: vi.fn(async () => false),

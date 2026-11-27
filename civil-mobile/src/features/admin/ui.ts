@@ -1,4 +1,4 @@
-import type { WkTone } from '@/features/worker/ui/palette'
+import type { WkTone } from '@/components/wk/palette'
 import { intlLocale } from '@/lib/locale'
 import type { ProviderStatus } from '@/services/providers'
 import type { ReviewStatus } from '@/services/reviews'

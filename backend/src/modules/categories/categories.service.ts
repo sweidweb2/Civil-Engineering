@@ -1,6 +1,7 @@
 import type { AuthActor } from '../../authz/index.js'
 import { isAdmin } from '../../authz/index.js'
 import type { AppConfig } from '../../config/index.js'
+import { isForeignKeyConflictError } from '../../database/fk-conflict.js'
 import {
   conflict,
   forbidden,
@@ -13,20 +14,25 @@ import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { AllowedFileMime } from '../files/files.schema.js'
 import type { FilesService } from '../files/files.service.js'
+import { linkUploadedFile } from '../files/link-uploaded-file.js'
 import { auditActivity } from '../logging/index.js'
 import type { CategoriesRepository, CategoryRecord } from './categories.repository.js'
 import type {
   CategoryKind,
   CreateCategoryBody,
-  ListCategoriesQuery,
+  ListCategoriesQueryInput,
   UpdateCategoryBody,
 } from './categories.schema.js'
+import { resolveCategoryKinds } from './categories.schema.js'
 import type { Category, PaginatedCategories } from './categories.types.js'
 
 const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 export type CategoriesService = {
-  listCategories: (query: ListCategoriesQuery, actor: AuthActor) => Promise<PaginatedCategories>
+  listCategories: (
+    query: ListCategoriesQueryInput,
+    actor: AuthActor,
+  ) => Promise<PaginatedCategories>
   getCategoryById: (id: string, actor: AuthActor) => Promise<Category>
   createCategory: (input: CreateCategoryBody, actor: AuthActor) => Promise<Category>
   updateCategory: (id: string, input: UpdateCategoryBody, actor: AuthActor) => Promise<Category>
@@ -175,13 +181,17 @@ export function createCategoriesService(deps: CategoriesServiceDeps): Categories
 
     async listCategories(query, actor) {
       const access = assertCanView(actor)
-      if (access === 'worker-trades') {
-        if (query.kind != null && query.kind !== 'WORKER') {
-          throw forbidden('Workers can only view worker trade categories')
-        }
+      const requestedKinds = resolveCategoryKinds(query)
+      if (access === 'worker-trades' && requestedKinds?.some((kind) => kind !== 'WORKER')) {
+        throw forbidden('Workers can only view worker trade categories')
       }
-      const effectiveQuery: ListCategoriesQuery =
-        access === 'worker-trades' ? { ...query, kind: 'WORKER' } : query
+      const effectiveQuery = {
+        page: query.page,
+        limit: query.limit,
+        q: query.q,
+        includeCounts: query.includeCounts,
+        kinds: access === 'worker-trades' ? (['WORKER'] as CategoryKind[]) : requestedKinds,
+      }
       const [{ items, total }, kindCounts] = await Promise.all([
         repository.findMany(effectiveQuery),
         repository.countByKind(),
@@ -292,7 +302,13 @@ export function createCategoriesService(deps: CategoriesServiceDeps): Categories
         originalName: file.originalName,
         body: file.body,
       })
-      const record = await repository.updateImagePath(id, uploaded.key)
+      const record = await linkUploadedFile({
+        actor,
+        filesService,
+        fileId: uploaded.id,
+        kind: 'categories.image',
+        link: () => repository.updateImagePath(id, uploaded.key),
+      })
       if (existing.imagePath && existing.imagePath !== uploaded.key) {
         await deleteStorageKey(existing.imagePath)
       }
@@ -308,7 +324,17 @@ export function createCategoriesService(deps: CategoriesServiceDeps): Categories
           'CATEGORY_IN_USE',
         )
       }
-      await repository.delete(id)
+      try {
+        await repository.delete(id)
+      } catch (error) {
+        if (isForeignKeyConflictError(error)) {
+          throw conflict(
+            'Remove subcategories and listings before deleting this category',
+            'CATEGORY_IN_USE',
+          )
+        }
+        throw error
+      }
       await deleteStorageKey(category.imagePath)
       auditActivity({
         userId: actor.id,

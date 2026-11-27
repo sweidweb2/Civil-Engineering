@@ -1,5 +1,12 @@
 import { assertSelfOrAdmin, type AuthActor, isAdmin, isSuper } from '../../authz/index.js'
-import { conflict, forbidden, notFound, validationError } from '../../errors/app-error.js'
+import { translateUniqueConflict } from '../../database/unique-conflict.js'
+import {
+  conflict,
+  forbidden,
+  isUniqueConflictError,
+  notFound,
+  validationError,
+} from '../../errors/app-error.js'
 import { getRequestLogger } from '../../logging/index.js'
 import { hashPassword, invalidateAccessPrincipal } from '../auth/index.js'
 import { type AvatarUrlResolver, resolveAvatarUrlsSafe } from '../files/avatar-urls.js'
@@ -8,6 +15,7 @@ import {
   type FilesService,
   type ImageUploadFile,
   isAllowedImageMime,
+  linkUploadedFile,
   MAX_BRAND_IMAGE_BYTES,
   readUploadBytes,
 } from '../files/index.js'
@@ -341,19 +349,29 @@ export function createUsersService(
       const passwordHash = await hashPassword(input.password)
       const isVerified = input.isVerified ?? false
 
-      const created = await repository.create({
-        email: input.email,
-        passwordHash,
-        role: input.role,
-        isVerified,
-        verificationStatus: isVerified ? 'VERIFIED' : 'UNVERIFIED',
-        profile: {
-          firstName: input.firstName,
-          lastName: input.lastName,
-          displayName: input.displayName,
-          phone: input.phone,
-        },
-      })
+      let created
+      try {
+        created = await translateUniqueConflict(() =>
+          repository.create({
+            email: input.email,
+            passwordHash,
+            role: input.role,
+            isVerified,
+            verificationStatus: isVerified ? 'VERIFIED' : 'UNVERIFIED',
+            profile: {
+              firstName: input.firstName,
+              lastName: input.lastName,
+              displayName: input.displayName,
+              phone: input.phone,
+            },
+          }),
+        )
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('Email already in use', 'EMAIL_IN_USE')
+        }
+        throw error
+      }
       auditActivity({
         userId: actor.id,
         action: 'users.create',
@@ -464,21 +482,13 @@ export function createUsersService(
       })
 
       const previousFileId = user.profile?.avatarUrl
-      let updated
-      try {
-        updated = await repository.setAvatarFileId(id, uploaded.id)
-      } catch (error) {
-        // Avoid orphan READY files that the PENDING/DELETED sweeper would miss.
-        try {
-          await filesService.softDelete(actor, uploaded.id)
-        } catch (cleanupError) {
-          getRequestLogger().warn(
-            { err: cleanupError, fileId: uploaded.id, kind: 'users.avatar_orphan_cleanup_failed' },
-            'failed to soft-delete orphaned avatar upload',
-          )
-        }
-        throw error
-      }
+      const updated = await linkUploadedFile({
+        actor,
+        filesService,
+        fileId: uploaded.id,
+        kind: 'users.avatar',
+        link: () => repository.setAvatarFileId(id, uploaded.id),
+      })
 
       if (previousFileId && previousFileId !== uploaded.id) {
         try {
@@ -562,18 +572,28 @@ export function createUsersService(
       }
 
       const passwordHash = await hashPassword(input.password)
-      const created = await repository.create({
-        email,
-        passwordHash,
-        role: input.role,
-        status: 'PENDING',
-        profile: {
-          firstName: input.firstName,
-          lastName: input.lastName,
-          displayName: input.displayName,
-          phone: input.phone,
-        },
-      })
+      let created
+      try {
+        created = await translateUniqueConflict(() =>
+          repository.create({
+            email,
+            passwordHash,
+            role: input.role,
+            status: 'PENDING',
+            profile: {
+              firstName: input.firstName,
+              lastName: input.lastName,
+              displayName: input.displayName,
+              phone: input.phone,
+            },
+          }),
+        )
+      } catch (error) {
+        if (isUniqueConflictError(error)) {
+          throw conflict('Email already in use', 'EMAIL_IN_USE')
+        }
+        throw error
+      }
       auditActivity({
         userId: actor.id,
         action: 'users.approval_create',

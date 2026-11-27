@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { countsQuerySchema } from '../_shared/counts.schema.js'
 import { paginationQuerySchema } from '../_shared/pagination.schema.js'
 
 export const projectIdParamsSchema = z.object({
@@ -19,6 +20,8 @@ export const listProjectsQuerySchema = paginationQuerySchema.extend({
     .enum(['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL', 'INFRASTRUCTURE', 'RENOVATION', 'OTHER'])
     .optional(),
   q: optionalSearchQuery,
+  /** When true, attach status aggregate summary in the same response (PM home / list). */
+  includeSummary: countsQuerySchema,
 })
 
 // Minimal create - just essential info
@@ -55,9 +58,10 @@ export const createProjectBodySchema = z
     { message: 'End date must be after the start date', path: ['endDate'] },
   )
 
-// Update allows all fields
+// Update allows all fields. `expectedUpdatedAt` is the optimistic-concurrency token.
 export const updateProjectBodySchema = z
   .object({
+    expectedUpdatedAt: z.string().datetime({ offset: true }),
     name: z
       .string()
       .trim()
@@ -95,9 +99,13 @@ export const updateProjectBodySchema = z
     isPublic: z.boolean().optional(),
     notes: z.string().trim().optional().or(z.literal('')),
   })
-  .refine((value) => Object.keys(value).length > 0, {
-    message: 'At least one field is required',
-  })
+  .refine(
+    (value) => {
+      const { expectedUpdatedAt: _token, ...rest } = value
+      return Object.values(rest).some((field) => field !== undefined)
+    },
+    { message: 'At least one field is required' },
+  )
 
 export type ListProjectsQuery = z.infer<typeof listProjectsQuerySchema>
 export type CreateProjectBody = z.infer<typeof createProjectBodySchema>

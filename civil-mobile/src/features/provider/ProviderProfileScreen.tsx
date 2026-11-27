@@ -12,7 +12,7 @@ import {
   type ProviderCompanyValues,
 } from '@/features/provider/company.schema'
 import { PvOptionSheet } from '@/features/provider/ui/kit'
-import { WkField, WkSection } from '@/features/worker/ui/forms'
+import { WkField, WkSection } from '@/components/wk/forms'
 import {
   WkButton,
   WkError,
@@ -20,14 +20,14 @@ import {
   WkPill,
   WkSkeletonCard,
   WkTabScroll,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette, type WkTone } from '@/components/wk/palette'
 import {
   WkAccountDetailsCard,
   WkPasswordCard,
   WkPreferences,
   WkSegmented,
-} from '@/features/worker/ui/settings'
+} from '@/components/wk/settings'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -58,7 +58,7 @@ const STATUS_TONE: Record<ProviderStatus, WkTone> = {
 
 export function ProviderProfileScreen() {
   const { t } = useTranslation()
-  const { shadow } = useWorkerPalette()
+  const { shadow } = useWkPalette()
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
   const toastApiError = useToastApiError()

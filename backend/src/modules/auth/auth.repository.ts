@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import { runInTransaction } from '../../database/transaction.js'
 import { Prisma, type Role, type UserStatus } from '../../generated/prisma/client.js'
 
 export type AuthUserRecord = {
@@ -71,6 +72,8 @@ export type AuthRepository = {
     passwordHash: string,
     invalidBefore?: Date,
   ) => Promise<void>
+  /** Stamp refreshInvalidBefore so every outstanding refresh JWT for the user fails. */
+  invalidateRefreshTokens: (userId: string, invalidBefore?: Date) => Promise<void>
   /** Persist a denied refresh jti until expiresAt (idempotent). */
   denyRefreshJti: (jti: string, expiresAt: Date) => Promise<void>
   /**
@@ -163,7 +166,7 @@ export function createAuthRepository(): AuthRepository {
     },
 
     async createUserWithDeviceCap(input) {
-      return prisma.$transaction(async (tx) => {
+      return runInTransaction(async (tx) => {
         // Serialize registrations for this device fingerprint across concurrent requests.
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.deviceId}))`
 
@@ -234,6 +237,14 @@ export function createAuthRepository(): AuthRepository {
       await prisma.user.update({
         where: { id: userId },
         data: { passwordHash, refreshInvalidBefore: invalidBefore },
+        select: { id: true },
+      })
+    },
+
+    async invalidateRefreshTokens(userId, invalidBefore = new Date()) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { refreshInvalidBefore: invalidBefore },
         select: { id: true },
       })
     },

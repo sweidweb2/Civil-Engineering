@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js'
+import { runInTransaction } from '../../database/transaction.js'
 import type { Prisma, Role, UserStatus, VerificationStatus } from '../../generated/prisma/client.js'
 import type {
   ListApprovalsQuery,
@@ -215,7 +216,10 @@ export function createUsersRepository(): UsersRepository {
     async findMany(query) {
       const page = query.page ?? 1
       const limit = query.limit ?? 20
-      const where = userSearchWhere(query.q)
+      const where: Prisma.UserWhereInput = {
+        ...(query.role ? { role: query.role } : {}),
+        ...userSearchWhere(query.q),
+      }
 
       const [users, total] = await Promise.all([
         prisma.user.findMany({
@@ -365,11 +369,23 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countApprovals() {
-      const [pending, approved, providersPending] = await Promise.all([
-        prisma.user.count({ where: { role: { in: approvalRoles }, status: 'PENDING' } }),
-        prisma.user.count({ where: { role: { in: approvalRoles }, status: 'ACTIVE' } }),
-        prisma.user.count({ where: { role: 'PROVIDER', status: 'PENDING' } }),
-      ])
+      const groups = await prisma.user.groupBy({
+        by: ['role', 'status'],
+        where: { role: { in: approvalRoles } },
+        _count: { _all: true },
+      })
+      let pending = 0
+      let approved = 0
+      let providersPending = 0
+      for (const group of groups) {
+        const n = group._count._all
+        if (group.status === 'PENDING') {
+          pending += n
+          if (group.role === 'PROVIDER') providersPending += n
+        } else if (group.status === 'ACTIVE') {
+          approved += n
+        }
+      }
       return { pending, approved, providersPending }
     },
 
@@ -395,14 +411,23 @@ export function createUsersRepository(): UsersRepository {
     },
 
     async countVerifications() {
-      const workers = { role: 'WORKER' as const }
-      const [total, unverified, requested, verified] = await Promise.all([
-        prisma.user.count({ where: workers }),
-        prisma.user.count({ where: { ...workers, verificationStatus: 'UNVERIFIED' } }),
-        prisma.user.count({ where: { ...workers, verificationStatus: 'REQUESTED' } }),
-        prisma.user.count({ where: { ...workers, verificationStatus: 'VERIFIED' } }),
-      ])
-      return { workers: total, unverified, requested, verified }
+      const groups = await prisma.user.groupBy({
+        by: ['verificationStatus'],
+        where: { role: 'WORKER' },
+        _count: { _all: true },
+      })
+      let workers = 0
+      let unverified = 0
+      let requested = 0
+      let verified = 0
+      for (const group of groups) {
+        const n = group._count._all
+        workers += n
+        if (group.verificationStatus === 'UNVERIFIED') unverified = n
+        else if (group.verificationStatus === 'REQUESTED') requested = n
+        else if (group.verificationStatus === 'VERIFIED') verified = n
+      }
+      return { workers, unverified, requested, verified }
     },
 
     async updateVerification(id, verificationStatus) {
@@ -473,7 +498,7 @@ export function createUsersRepository(): UsersRepository {
       const hasProfileData = Object.values(profileData).some((val) => val !== undefined)
       const deleteWorkerProfile = options?.deleteWorkerProfile === true
 
-      const user = await prisma.$transaction(async (tx) => {
+      const user = await runInTransaction(async (tx) => {
         const updated = await tx.user.update({
           where: { id },
           data: {

@@ -19,6 +19,7 @@ describe('project stage schemas', () => {
     startDate: '2026-01-01T00:00:00.000Z',
     completionDate: '2026-02-01T00:00:00.000Z',
     notes: 'Notes',
+    expectedUpdatedAt: null,
   }
 
   it('accepts a valid geotechnical payload', () => {
@@ -43,13 +44,16 @@ describe('project stage schemas', () => {
   })
 
   it('accepts a partial draft with only status', () => {
-    expect(upsertDesignBodySchema.safeParse({ status: 'IN_PROGRESS' }).success).toBe(true)
+    expect(
+      upsertDesignBodySchema.safeParse({ status: 'IN_PROGRESS', expectedUpdatedAt: null }).success,
+    ).toBe(true)
   })
 
   it('rejects overlong strings', () => {
     const result = upsertDesignBodySchema.safeParse({
       architecturalDesignPath: 'a'.repeat(501),
       status: 'NOT_STARTED',
+      expectedUpdatedAt: null,
     })
     expect(result.success).toBe(false)
   })
@@ -57,6 +61,7 @@ describe('project stage schemas', () => {
   it('rejects invalid status', () => {
     const result = upsertLicensingBodySchema.safeParse({
       status: 'DRAFT',
+      expectedUpdatedAt: null,
     })
     expect(result.success).toBe(false)
   })
@@ -66,7 +71,17 @@ describe('project stage schemas', () => {
       orderDate: '2026-02-01T00:00:00.000Z',
       expectedArrivalDate: '2026-01-01T00:00:00.000Z',
       status: 'NOT_STARTED',
+      expectedUpdatedAt: null,
     })
     expect(result.success).toBe(false)
+  })
+
+  it('accepts blank expectedUpdatedAt as null (first create)', () => {
+    const result = upsertGeotechnicalBodySchema.safeParse({
+      ...baseGeo,
+      expectedUpdatedAt: '',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.expectedUpdatedAt).toBeNull()
   })
 })

@@ -6,7 +6,7 @@ import { Camera, FileUp, FolderOpen, Images, LayoutGrid, Mail, Phone } from 'luc
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
-import { PvOptionSheet } from '@/features/provider/ui/kit'
+import { PvOptionSheet } from '@/components/wk/storefront'
 import {
   WkChoice,
   WkField,
@@ -14,7 +14,7 @@ import {
   WkPickerSheet,
   WkSection,
   WkSelect,
-} from '@/features/worker/ui/forms'
+} from '@/components/wk/forms'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
@@ -74,10 +74,13 @@ export function DesignRequestCreateScreen() {
   const contactRemote = useRemoteData(loadContact, {
     cacheKey: `${cacheKeys.designRequests}:contact`,
   })
+  // Defer 100-row picker payloads until a sheet opens or a value is prefilled.
   const projectsRemote = useRemoteData(loadProjects, {
+    enabled: projectPickerOpen || Boolean(projectId),
     cacheKey: `${cacheKeys.designRequests}:projects`,
   })
   const offersRemote = useRemoteData(loadOffers, {
+    enabled: offerPickerOpen || Boolean(designOfferId),
     cacheKey: `${cacheKeys.designOffers}:picker`,
   })
 
@@ -145,7 +148,7 @@ export function DesignRequestCreateScreen() {
     <WkFormScreen
       title={t('designRequests.newRequest')}
       backHref={BASE}
-      isLoading={contactRemote.isLoading || projectsRemote.isLoading || offersRemote.isLoading}
+      isLoading={contactRemote.isLoading}
       footer={
         <View className="px-5 pb-2">
           <Pressable
@@ -259,6 +262,8 @@ export function DesignRequestCreateScreen() {
         options={projectOptions}
         value={projectId}
         isLoading={projectsRemote.isLoading}
+        error={projectsRemote.status === 'error' ? projectsRemote.error : undefined}
+        onRetry={() => void projectsRemote.refetch({ fresh: true })}
         searchPlaceholder={t('designRequests.searchProjects')}
         emptyLabel={(query) =>
           query ? t('designRequests.noProjectsMatch', { query }) : t('designRequests.noProjects')
@@ -276,6 +281,8 @@ export function DesignRequestCreateScreen() {
         options={offerOptions}
         value={designOfferId}
         isLoading={offersRemote.isLoading}
+        error={offersRemote.status === 'error' ? offersRemote.error : undefined}
+        onRetry={() => void offersRemote.refetch({ fresh: true })}
         searchPlaceholder={t('designOffers.search')}
         emptyLabel={(query) => (query ? t('designOffers.emptySearch') : t('designOffers.empty'))}
         onSelect={(option) => {

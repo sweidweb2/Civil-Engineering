@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusEffect } from 'expo-router'
 
 import { offlineSnapshotGet, offlineSnapshotPut } from '@/lib/offlineSnapshot'
 import {
@@ -47,8 +48,9 @@ type RefetchOptions = {
  *
  * Keyed hooks share in-flight requests with other screens using the same key, and
  * refetch in the background (keeping current data) when their key is invalidated
- * or when the app returns to the foreground with stale data — so screens left
- * open under a stack see edits made elsewhere.
+ * or when the app returns to the foreground with stale data — but only while the
+ * host screen is focused. Unfocused stack screens mark themselves dirty and
+ * refresh on the next focus, so one mutation does not fan out across the stack.
  *
  * `refetch()` resolves `false` only when the request failed while previous data was
  * kept on screen (a silent refresh failure the caller may want to report — see
@@ -75,6 +77,15 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
   /** Cache key that `state` currently belongs to (prevents cross-page hadData). */
   const dataKeyRef = useRef<string | undefined>(cached !== undefined ? cacheKey : undefined)
   const requestIdRef = useRef(0)
+  /**
+   * Start unfocused; `useFocusEffect` sets true when the host screen is active.
+   * Avoids a same-tick invalidate refetch before focus is known.
+   * Unit tests' `useFocusEffect` stub focuses on mount so invalidate tests still pass.
+   */
+  const isFocusedRef = useRef(false)
+  /** Invalidate/revalidate arrived while blurred — refetch on next focus. */
+  const pendingRefreshRef = useRef(false)
+  const refetchRef = useRef<(opts?: RefetchOptions) => Promise<boolean>>(async () => true)
 
   useEffect(() => {
     loadRef.current = load
@@ -178,17 +189,38 @@ export function useRemoteData<T>(load: () => Promise<T>, options: UseRemoteDataO
     [show],
   )
 
-  // Invalidation of this key (or a prefix of it) elsewhere → background refetch.
+  useEffect(() => {
+    refetchRef.current = refetch
+  }, [refetch])
+
+  // Track focus via Expo Router: unfocused stack screens defer invalidate/revalidate.
+  useFocusEffect(
+    useCallback(() => {
+      isFocusedRef.current = true
+      if (enabled && pendingRefreshRef.current) {
+        pendingRefreshRef.current = false
+        void refetchRef.current()
+      }
+      return () => {
+        isFocusedRef.current = false
+      }
+    }, [enabled]),
+  )
+
+  // Invalidation of this key (or a prefix of it) elsewhere → background refetch
+  // while focused; otherwise wait until the screen is focused again.
   // App back in foreground → refetch only if this key is no longer fresh.
   // refetch() keeps the current data on screen, so there is no skeleton flash.
   useEffect(() => {
     if (!enabled || !cacheKey) return
     return remoteCacheSubscribe((event) => {
-      if (event.type === 'invalidate') {
-        if (remoteCacheKeyMatches(cacheKey, event.prefix)) void refetch()
-      } else if (remoteCacheGet<T>(cacheKey) === undefined) {
-        void refetch()
-      }
+      const needsRefresh =
+        event.type === 'invalidate'
+          ? remoteCacheKeyMatches(cacheKey, event.prefix)
+          : remoteCacheGet<T>(cacheKey) === undefined
+      if (!needsRefresh) return
+      if (isFocusedRef.current) void refetch()
+      else pendingRefreshRef.current = true
     })
   }, [enabled, cacheKey, refetch])
 

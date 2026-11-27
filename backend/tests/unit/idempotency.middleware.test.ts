@@ -132,7 +132,18 @@ describe('idempotent() middleware', () => {
     for (const k of ['a', 'b', 'c']) {
       store.set(k, { state: 'pending', bodyHash: 'h', expiresAt: Date.now() + 1000 })
     }
-    expect(store.size()).toBe(2)
+    expect(store.size?.()).toBe(2)
     expect(store.get('a')).toBeUndefined()
+  })
+
+  it('treats key-reordered JSON bodies as the same request', async () => {
+    await request(ctx.app).post('/things').set('Idempotency-Key', KEY).send({ name: 'a', extra: 1 })
+    const retry = await request(ctx.app)
+      .post('/things')
+      .set('Idempotency-Key', KEY)
+      .send({ extra: 1, name: 'a' })
+    expect(retry.status).toBe(201)
+    expect(retry.headers[IDEMPOTENCY_REPLAYED_HEADER]).toBe('true')
+    expect(ctx.created()).toBe(1)
   })
 })

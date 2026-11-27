@@ -1,20 +1,12 @@
-import { ScrollView, Text, View } from 'react-native'
+import { FlatList, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { ChevronRight, type LucideIcon, Plus } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
-import Animated, { FadeInDown } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Pressable } from '@/components/ui/pressable'
-import {
-  flipStyle,
-  WkEmpty,
-  WkError,
-  WkPill,
-  WkSkeletonCard,
-  WkTopBar,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette, type WkTone } from '@/features/worker/ui/palette'
+import { flipStyle, WkEmpty, WkError, WkPill, WkSkeletonCard, WkTopBar } from '@/components/wk/kit'
+import { useWkPalette, type WkTone } from '@/components/wk/palette'
 import { CV_SECTION_META, formatMonth, todayIso } from '@/features/worker/ui/sections'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { intlLocale } from '@/lib/locale'
@@ -37,7 +29,7 @@ function hrefFor(kind: CollectionKind, index: string) {
 export function WorkerCollectionListScreen({ kind }: { kind: CollectionKind }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { c, shadow, float } = useWorkerPalette()
+  const { c, shadow, float } = useWkPalette()
   const { profile, isReady, error, refetch } = useWorkerProfile()
   const locale = intlLocale()
   const today = todayIso()
@@ -92,72 +84,72 @@ export function WorkerCollectionListScreen({ kind }: { kind: CollectionKind }) {
         backHref="/worker/cv"
         count={rows.length ? t('worker.countTotal', { count: rows.length }) : undefined}
       />
-      <ScrollView
+      <FlatList
         className="flex-1"
+        data={error && !profile ? [] : !isReady ? [] : rows}
+        keyExtractor={(row) => row.key}
         contentContainerClassName="gap-3 px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}
-      >
-        {error && !profile ? (
-          <WkError
-            message={errorMessage(error, t('common.errorGeneric'))}
-            onRetry={() => void refetch({ fresh: true })}
-          />
-        ) : !isReady ? (
-          <>
-            <WkSkeletonCard />
-            <WkSkeletonCard />
-            <WkSkeletonCard />
-          </>
-        ) : rows.length === 0 ? (
-          <WkEmpty
-            icon={Icon}
-            title={t(`worker.${kind}Empty`)}
-            body={t(`worker.${kind}EmptyHint`)}
-          />
-        ) : (
-          rows.map((row, i) => (
-            <Animated.View key={row.key} entering={FadeInDown.delay(i * 40).duration(320)}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={[row.title, row.subtitle, row.meta, row.pill?.label]
-                  .filter(Boolean)
-                  .join(', ')}
-                onPress={() => router.push(hrefFor(kind, row.key) as never)}
-                className="flex-row items-start gap-3.5 rounded-[20px] bg-wk-sf p-4 active:opacity-80"
-                style={shadow}
-              >
-                <View className="size-10 items-center justify-center rounded-xl bg-wk-brand-soft">
-                  <Icon size={19} color={c.brand} strokeWidth={1.9} />
-                </View>
-                <View className="min-w-0 flex-1 gap-1">
-                  <Text className="text-[15px] font-semibold leading-[19px] text-wk-ink">
-                    {row.title}
-                  </Text>
-                  {row.subtitle ? (
-                    <Text className="text-[13px] leading-[18px] text-wk-ink2">{row.subtitle}</Text>
+        contentContainerStyle={{ paddingBottom: 120 + insets.bottom, flexGrow: 1 }}
+        ListEmptyComponent={
+          error && !profile ? (
+            <WkError
+              message={errorMessage(error, t('common.errorGeneric'))}
+              onRetry={() => void refetch({ fresh: true })}
+            />
+          ) : !isReady ? (
+            <View className="gap-3">
+              <WkSkeletonCard />
+              <WkSkeletonCard />
+              <WkSkeletonCard />
+            </View>
+          ) : (
+            <WkEmpty
+              icon={Icon}
+              title={t(`worker.${kind}Empty`)}
+              body={t(`worker.${kind}EmptyHint`)}
+            />
+          )
+        }
+        renderItem={({ item: row }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={[row.title, row.subtitle, row.meta, row.pill?.label]
+              .filter(Boolean)
+              .join(', ')}
+            onPress={() => router.push(hrefFor(kind, row.key) as never)}
+            className="flex-row items-start gap-3.5 rounded-[20px] bg-wk-sf p-4 active:opacity-80"
+            style={shadow}
+          >
+            <View className="size-10 items-center justify-center rounded-xl bg-wk-brand-soft">
+              <Icon size={19} color={c.brand} strokeWidth={1.9} />
+            </View>
+            <View className="min-w-0 flex-1 gap-1">
+              <Text className="text-[15px] font-semibold leading-[19px] text-wk-ink">
+                {row.title}
+              </Text>
+              {row.subtitle ? (
+                <Text className="text-[13px] leading-[18px] text-wk-ink2">{row.subtitle}</Text>
+              ) : null}
+              {row.meta || row.pill ? (
+                <View className="flex-row flex-wrap items-center gap-2 pt-1">
+                  {row.meta ? (
+                    <Text
+                      className="text-[11px] font-medium text-wk-ink3"
+                      style={{ fontVariant: ['tabular-nums'] }}
+                    >
+                      {row.meta}
+                    </Text>
                   ) : null}
-                  {row.meta || row.pill ? (
-                    <View className="flex-row flex-wrap items-center gap-2 pt-1">
-                      {row.meta ? (
-                        <Text
-                          className="text-[11px] font-medium text-wk-ink3"
-                          style={{ fontVariant: ['tabular-nums'] }}
-                        >
-                          {row.meta}
-                        </Text>
-                      ) : null}
-                      {row.pill ? <WkPill label={row.pill.label} tone={row.pill.tone} /> : null}
-                    </View>
-                  ) : null}
+                  {row.pill ? <WkPill label={row.pill.label} tone={row.pill.tone} /> : null}
                 </View>
-                <View className="mt-2.5" style={flipStyle()}>
-                  <ChevronRight size={18} color={c.ink3} strokeWidth={1.9} />
-                </View>
-              </Pressable>
-            </Animated.View>
-          ))
+              ) : null}
+            </View>
+            <View className="mt-2.5" style={flipStyle()}>
+              <ChevronRight size={18} color={c.ink3} strokeWidth={1.9} />
+            </View>
+          </Pressable>
         )}
-      </ScrollView>
+      />
 
       {/* Floating add button */}
       <View

@@ -13,8 +13,8 @@ import {
   type WkConfirmState,
   WkGroup,
   WkTabScroll,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
@@ -27,7 +27,7 @@ import { useAuthStore } from '@/stores/authStore'
 /** Admin "More" tab: identity card → account, admin tools with badges, log out. */
 export function AdminMoreScreen() {
   const { t } = useTranslation()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const user = useAuthStore((s) => s.user)
   const name = user ? userDisplayName(user) : t('account.title')
   const { isLoggingOut, logoutNow } = useLogout()

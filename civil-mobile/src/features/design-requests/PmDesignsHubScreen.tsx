@@ -7,7 +7,7 @@ import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { DesignOffersGridScreen } from '@/features/design-offers/DesignOffersGridScreen'
 import { DesignRequestsListScreen } from '@/features/design-requests/DesignRequestsListScreen'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { useWkPalette } from '@/components/wk/palette'
 
 type Tab = 'requests' | 'offers'
 
@@ -15,7 +15,7 @@ type Tab = 'requests' | 'offers'
 export function PmDesignsHubScreen() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { c, shadow, isDark } = useWorkerPalette()
+  const { c, shadow, isDark } = useWkPalette()
   useStatusBarStyle(isDark ? 'light' : 'dark')
   const [tab, setTab] = useState<Tab>('requests')
 

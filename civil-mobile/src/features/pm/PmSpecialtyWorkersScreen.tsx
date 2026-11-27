@@ -1,22 +1,24 @@
-import { useCallback, useEffect, useState } from 'react'
-import { FlatList, RefreshControl, Text, TextInput, View } from 'react-native'
+import { useState } from 'react'
+import { FlatList, RefreshControl, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { useLocalSearchParams } from 'expo-router'
-import { BadgeCheck, HardHat, Search, SearchX, X } from 'lucide-react-native'
+import { BadgeCheck, HardHat, SearchX } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { DirectoryDetailSheet, type DirectoryEntry } from '@/features/pm/DirectoryDetailSheet'
-import { specialtyLabel } from '@/features/worker/specialties'
-import { WkButton, WkError, WkSkeletonCard, WkTopBar } from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { specialtyLabel } from '@/lib/specialties'
+import { WkButton, WkError, WkSkeletonCard, WkTopBar } from '@/components/wk/kit'
+import { PagedListFooter } from '@/components/wk/PagedListFooter'
+import { useWkPalette } from '@/components/wk/palette'
+import { WkSearchField } from '@/components/wk/SearchField'
+import { usePagedList } from '@/components/wk/usePagedList'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
+import { LIST_PERF } from '@/lib/listPerf'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
-import { mergePageRows } from '@/lib/pagedRows'
 import { initialsOf } from '@/lib/user'
 import { errorMessage } from '@/services/feedback'
 import { directoryWorkerName, listWorkers, type WorkerDirectoryItem } from '@/services/workers'
@@ -33,62 +35,31 @@ export function PmSpecialtyWorkersScreen({
 } = {}) {
   const { t, i18n } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { c, shadow, isDark } = useWorkerPalette()
+  const { c, shadow, isDark } = useWkPalette()
   useStatusBarStyle(isDark ? 'light' : 'dark')
   const params = useLocalSearchParams<{ id?: string }>()
   const specialtyId = typeof params.id === 'string' ? params.id : params.id?.[0]
   const title = specialtyLabel(specialtyId, i18n.language) || t('pmPortal.workers')
-
-  const [query, setQuery] = useState('')
-  const [applied, setApplied] = useState('')
-  const [page, setPage] = useState(1)
-  const [workers, setWorkers] = useState<WorkerDirectoryItem[]>([])
+  const pull = usePullToRefresh()
   const [open, setOpen] = useState<DirectoryEntry | null>(null)
 
-  const restart = useCallback((next?: { applied?: string }) => {
-    if (next?.applied !== undefined) setApplied(next.applied)
-    setPage(1)
-    setWorkers([])
-  }, [])
-
-  useEffect(() => {
-    const next = query.trim()
-    if (next === applied) return
-    const id = setTimeout(() => restart({ applied: next }), 300)
-    return () => clearTimeout(id)
-  }, [query, applied, restart])
-
-  const loadWorkers = useCallback(async () => {
-    if (!specialtyId) throw new Error('Specialty id required')
-    const r = await listWorkers({
-      page,
-      limit: PAGE_SIZE,
-      q: applied || undefined,
-      specialty: specialtyId,
-    })
-    return { rows: r.data, total: r.meta.total, page: r.meta.page }
-  }, [applied, page, specialtyId])
-
-  const pull = usePullToRefresh()
-  const workersRemote = useRemoteData(loadWorkers, {
+  const list = usePagedList<WorkerDirectoryItem>({
+    cacheKeyPrefix: specialtyId
+      ? `${cacheKeys.directory}:pm:specialty:${specialtyId}`
+      : `${cacheKeys.directory}:pm:specialty`,
     enabled: Boolean(specialtyId),
-    cacheKey: specialtyId
-      ? `${cacheKeys.directory}:pm:specialty:${specialtyId}:${page}:${applied}`
-      : undefined,
+    resetKey: specialtyId,
+    fetcher: async ({ page, query }) => {
+      if (!specialtyId) throw new Error('Specialty id required')
+      const r = await listWorkers({
+        page,
+        limit: PAGE_SIZE,
+        q: query || undefined,
+        specialty: specialtyId,
+      })
+      return { data: r.data, meta: { total: r.meta.total, page: r.meta.page } }
+    },
   })
-  const result = workersRemote.status === 'success' ? workersRemote.data : null
-
-  useEffect(() => {
-    if (!result) return
-    setWorkers((current) => {
-      if (result.page === 1) return result.rows
-      return mergePageRows(current, result.rows)
-    })
-  }, [result])
-
-  const total = result?.total ?? 0
-  const isFirstLoad = workersRemote.isLoading && workers.length === 0
-  const hasMore = workers.length < total
 
   function workerRow(worker: WorkerDirectoryItem) {
     const name = directoryWorkerName(worker)
@@ -138,39 +109,19 @@ export function PmSpecialtyWorkersScreen({
 
   const header = (
     <View className="gap-3.5 pb-3.5">
-      <View
-        className="h-12 flex-row items-center gap-2.5 rounded-[14px] border border-wk-line bg-wk-sf ps-3.5"
-        style={shadow}
-      >
-        <Search size={18} color={c.ink3} strokeWidth={1.9} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('pmPortal.searchWorkers')}
-          placeholderTextColor={c.ink3}
-          accessibilityLabel={t('pmPortal.searchWorkers')}
-          returnKeyType="search"
-          autoCorrect={false}
-          className="h-full min-w-0 flex-1 text-[15px] text-wk-ink"
-        />
-        {query ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('common.clearSearch')}
-            onPress={() => setQuery('')}
-            className="size-11 items-center justify-center"
-          >
-            <X size={16} color={c.ink3} strokeWidth={2} />
-          </Pressable>
-        ) : null}
-      </View>
-      {workersRemote.status === 'error' && workers.length === 0 ? (
+      <WkSearchField
+        value={list.query}
+        onChangeText={list.setQuery}
+        placeholder={t('pmPortal.searchWorkers')}
+        accessibilityLabel={t('pmPortal.searchWorkers')}
+      />
+      {list.error && list.rows.length === 0 ? (
         <WkError
-          message={errorMessage(workersRemote.error, t('common.errorGeneric'))}
-          onRetry={() => void workersRemote.refetch()}
+          message={errorMessage(list.error, t('common.errorGeneric'))}
+          onRetry={() => void list.refetch()}
         />
       ) : null}
-      {isFirstLoad ? (
+      {list.isFirstLoad ? (
         <View className="gap-3">
           <WkSkeletonCard />
           <WkSkeletonCard />
@@ -180,32 +131,32 @@ export function PmSpecialtyWorkersScreen({
   )
 
   const empty =
-    !isFirstLoad && workersRemote.status === 'success' && workers.length === 0 ? (
+    !list.isFirstLoad && list.status === 'success' && list.rows.length === 0 ? (
       <View className="items-center gap-2.5 px-6 py-10">
         <View
           className="size-16 items-center justify-center rounded-[20px] bg-wk-sf"
           style={shadow}
         >
-          {applied ? (
+          {list.applied ? (
             <SearchX size={28} color={c.brand} strokeWidth={1.75} />
           ) : (
             <HardHat size={28} color={c.brand} strokeWidth={1.75} />
           )}
         </View>
         <Text className="mt-1.5 text-[17px] font-semibold text-wk-ink">
-          {applied ? t('pmPortal.noMatches') : t('pmPortal.specialtyWorkersEmpty')}
+          {list.applied ? t('pmPortal.noMatches') : t('pmPortal.specialtyWorkersEmpty')}
         </Text>
         <Text className="max-w-[260px] text-center text-[15px] leading-[22px] text-wk-ink2">
-          {applied ? t('pmPortal.noMatchesHint') : t('pmPortal.specialtyWorkersEmptyHint')}
+          {list.applied ? t('pmPortal.noMatchesHint') : t('pmPortal.specialtyWorkersEmptyHint')}
         </Text>
-        {applied ? (
+        {list.applied ? (
           <View className="mt-1.5">
             <WkButton
               compact
               variant="soft"
               height={44}
               label={t('common.clearSearch')}
-              onPress={() => setQuery('')}
+              onPress={list.clear}
             />
           </View>
         ) : null}
@@ -214,14 +165,19 @@ export function PmSpecialtyWorkersScreen({
 
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-pm-specialty-workers">
-      <WkTopBar title={title} backHref={basePath} count={total ? String(total) : undefined} />
+      <WkTopBar
+        title={title}
+        backHref={basePath}
+        count={list.total ? String(list.total) : undefined}
+      />
       <FlatList
-        data={isFirstLoad ? [] : workers}
+        data={list.isFirstLoad ? [] : list.rows}
         keyExtractor={(worker) => worker.id}
+        {...LIST_PERF}
         renderItem={({ item, index }) => (
           <View
             className={`overflow-hidden ${index === 0 ? 'rounded-t-[22px]' : ''} ${
-              index === workers.length - 1 ? 'rounded-b-[22px]' : 'border-b border-wk-line'
+              index === list.rows.length - 1 ? 'rounded-b-[22px]' : 'border-b border-wk-line'
             }`}
           >
             {workerRow(item)}
@@ -230,17 +186,13 @@ export function PmSpecialtyWorkersScreen({
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={
-          hasMore && workers.length > 0 ? (
-            <View className="pt-4">
-              <WkButton
-                variant="soft"
-                height={48}
-                label={t('providerPortal.loadMore')}
-                loading={workersRemote.isFetching}
-                onPress={() => setPage((p) => p + 1)}
-              />
-            </View>
-          ) : undefined
+          <PagedListFooter
+            rowCount={list.rows.length}
+            hasMore={list.hasMore}
+            isFetching={list.isFetching}
+            error={list.error}
+            onLoadMore={list.loadMore}
+          />
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -251,8 +203,8 @@ export function PmSpecialtyWorkersScreen({
         }}
         refreshControl={
           <RefreshControl
-            refreshing={workersRemote.isFetching && workers.length > 0 && page === 1}
-            onRefresh={() => pull(() => (page === 1 ? workersRemote.refetch() : restart()))}
+            refreshing={list.isFetching && list.rows.length > 0 && list.page === 1}
+            onRefresh={() => pull(() => list.refresh())}
             tintColor={c.ink3}
             colors={[c.brand]}
           />

@@ -186,7 +186,10 @@ export function ListingFormDialog({
     setIsSaving(true)
     try {
       const saved = listing
-        ? await updateListing(listing.id, parsed.data)
+        ? await updateListing(listing.id, {
+            ...parsed.data,
+            expectedUpdatedAt: listing.updatedAt,
+          })
         : await createListing(parsed.data)
       if (mainImageFile) {
         try {

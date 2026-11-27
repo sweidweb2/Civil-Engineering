@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { FolderTree } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { usePagedList, WkListRow, WkListScreen } from '@/features/worker/ui/list'
+import { usePagedList, WkListRow, WkListScreen } from '@/components/wk/list'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { CATEGORY_KIND_OPTIONS, type CategoryKind, listCategories } from '@/services/categories'

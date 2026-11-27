@@ -144,6 +144,27 @@ export function createProjectImagesRepository(): ProjectImagesRepository {
       await prisma.projectImage.delete({ where: { id } })
     },
 
+    async deleteAndPromoteMain(imageId, projectId) {
+      await runInTransaction(async (tx) => {
+        await tx.$executeRaw`SELECT id FROM projects WHERE id = ${projectId} FOR UPDATE`
+        await tx.projectImage.delete({ where: { id: imageId } })
+        const next = await tx.projectImage.findFirst({
+          where: { projectId },
+          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
+          select: { id: true },
+        })
+        if (!next) return
+        await tx.projectImage.updateMany({
+          where: { projectId, isMain: true },
+          data: { isMain: false },
+        })
+        await tx.projectImage.update({
+          where: { id: next.id },
+          data: { isMain: true },
+        })
+      })
+    },
+
     async unsetMainImage(projectId) {
       await prisma.projectImage.updateMany({
         where: { projectId, isMain: true },

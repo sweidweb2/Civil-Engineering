@@ -9,19 +9,24 @@ import { getLogger } from '../logging/index.js'
 import { createAuthRepository } from '../modules/auth/auth.repository.js'
 import { notifyUser } from '../modules/devices/index.js'
 import { createFilesRepository } from '../modules/files/files.repository.js'
+import { purgeExpiredIdempotencyRecords } from '../modules/files/purge-idempotency.js'
 import { getStorageService } from '../storage/index.js'
 
 const PURGE_DENIED_REFRESH_INTERVAL_MS = 60 * 60 * 1000
 const PURGE_DELETED_FILES_INTERVAL_MS = 60 * 60 * 1000
+const PURGE_IDEMPOTENCY_INTERVAL_MS = 60 * 60 * 1000
 const STALE_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 const FILE_CLEANUP_BATCH = 50
 /** Stable Postgres advisory lock keys (multi-instance single-flight). */
 const LOCK_PURGE_DENIED_REFRESH = 810_001
 const LOCK_PURGE_DELETED_FILES = 810_002
+const LOCK_PURGE_IDEMPOTENCY = 810_003
 
 let purgeDeniedRefreshTimer: ReturnType<typeof setInterval> | undefined
 let purgeDeletedFilesTimer: ReturnType<typeof setInterval> | undefined
+let purgeIdempotencyTimer: ReturnType<typeof setInterval> | undefined
 let lastDeletedFilesPurgeAt = 0
+let lastIdempotencyPurgeAt = 0
 
 /**
  * Hard-delete an R2 object after soft-delete in Postgres.
@@ -183,10 +188,51 @@ export function startDeletedFileObjectsPurgeScheduler(): void {
   purgeDeletedFilesTimer.unref?.()
 }
 
+/** Delete expired idempotency keys (idempotent; one winner across API instances). */
+export async function purgeExpiredIdempotencyKeys(): Promise<number> {
+  if (!process.env.DATABASE_URL) {
+    return 0
+  }
+  try {
+    const removed = await withAdvisoryLock(LOCK_PURGE_IDEMPOTENCY, async () => {
+      const count = await purgeExpiredIdempotencyRecords()
+      if (count > 0) {
+        getLogger().info({ removed: count }, 'jobs.purgeExpiredIdempotencyKeys')
+      }
+      return count
+    })
+    return removed ?? 0
+  } catch (error) {
+    getLogger().error({ err: error }, 'jobs.purgeExpiredIdempotencyKeys failed')
+    return 0
+  }
+}
+
+/**
+ * Throttled GC for serverless where setInterval does not run.
+ * Safe to call from idempotent create paths; at most once per hour per instance.
+ */
+export function maybePurgeExpiredIdempotencyKeys(): void {
+  const now = Date.now()
+  if (now - lastIdempotencyPurgeAt < PURGE_IDEMPOTENCY_INTERVAL_MS) return
+  lastIdempotencyPurgeAt = now
+  void purgeExpiredIdempotencyKeys()
+}
+
+export function startIdempotencyPurgeScheduler(): void {
+  if (purgeIdempotencyTimer) return
+  void purgeExpiredIdempotencyKeys()
+  purgeIdempotencyTimer = setInterval(() => {
+    void purgeExpiredIdempotencyKeys()
+  }, PURGE_IDEMPOTENCY_INTERVAL_MS)
+  purgeIdempotencyTimer.unref?.()
+}
+
 /** Boot all long-lived inline maintenance jobs (non-serverless). */
 export function startBackgroundJobs(): void {
   startDeniedRefreshTokenPurgeScheduler()
   startDeletedFileObjectsPurgeScheduler()
+  startIdempotencyPurgeScheduler()
 }
 
 export { notifyUser }

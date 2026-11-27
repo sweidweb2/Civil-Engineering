@@ -14,7 +14,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { PROVIDER_TONE } from '@/features/admin/ui'
-import { PvOptionSheet } from '@/features/provider/ui/kit'
+import { PvOptionSheet } from '@/components/wk/storefront'
 import {
   WkChoice,
   WkField,
@@ -23,9 +23,9 @@ import {
   WkPickerSheet,
   WkSection,
   WkSelect,
-} from '@/features/worker/ui/forms'
-import { WkButton, WkCard, WkPill } from '@/features/worker/ui/kit'
-import { WkMedia } from '@/features/worker/ui/list'
+} from '@/components/wk/forms'
+import { WkButton, WkCard, WkPill } from '@/components/wk/kit'
+import { WkMedia } from '@/components/wk/list'
 import { useFilePick } from '@/hooks/useFilePick'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'

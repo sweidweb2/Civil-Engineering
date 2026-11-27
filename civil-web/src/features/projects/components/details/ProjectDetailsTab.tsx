@@ -160,7 +160,10 @@ export function ProjectDetailsTab({ project, onEdit, onUpdated }: ProjectDetails
     setIsSavingNote(true)
     try {
       const nextNotes = project.notes?.trim() ? `${project.notes.trim()}\n\n${text}` : text
-      await updateProject(project.id, { notes: nextNotes })
+      await updateProject(project.id, {
+        expectedUpdatedAt: project.updatedAt,
+        notes: nextNotes,
+      })
       setNoteDraft('')
       toast.success(t('projects:noteAdded'))
       onUpdated()

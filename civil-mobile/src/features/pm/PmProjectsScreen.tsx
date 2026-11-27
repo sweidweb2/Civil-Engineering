@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
-import { FlatList, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native'
+import { useEffect } from 'react'
+import { FlatList, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { FolderKanban, Plus, RotateCcw, Search, X } from 'lucide-react-native'
+import { FolderKanban, Plus, RotateCcw } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import Animated, { FadeIn } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -9,20 +9,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStatusBarStyle } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { ProjectCard, ProjectCardSkeleton } from '@/features/pm/ui/kit'
-import { WkButton, WkError, WkHeroGlow } from '@/features/worker/ui/kit'
-import { useWorkerPalette, WK_TAB_SPACE } from '@/features/worker/ui/palette'
+import { WkButton, WkError, WkHeroGlow } from '@/components/wk/kit'
+import { PagedListFooter } from '@/components/wk/PagedListFooter'
+import { useWkPalette, WK_TAB_SPACE } from '@/components/wk/palette'
+import { WkSearchAddButton, WkSearchField } from '@/components/wk/SearchField'
+import { usePagedList } from '@/components/wk/usePagedList'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
-import { mergePageRows } from '@/lib/pagedRows'
+import { LIST_PERF } from '@/lib/listPerf'
 import { errorMessage } from '@/services/feedback'
 import {
-  getProjectSummary,
   listProjects,
   type Project,
   PROJECT_STATUS_OPTIONS,
   type ProjectStatus,
+  type ProjectSummary,
 } from '@/services/projects'
 import { MONO_STYLE } from '@/theme/typography'
 
@@ -40,65 +42,36 @@ function parseFilter(value: unknown): Filter {
 export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: string } = {}) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { c, shadow, isDark } = useWorkerPalette()
+  const { c, shadow, isDark } = useWkPalette()
   useStatusBarStyle(isDark ? 'light' : 'dark')
   const params = useLocalSearchParams<{ status?: string }>()
+  const pull = usePullToRefresh()
 
-  const [filter, setFilter] = useState<Filter>(() => parseFilter(params.status))
-  const [query, setQuery] = useState('')
-  const [applied, setApplied] = useState('')
-  const [page, setPage] = useState(1)
-  const [rows, setRows] = useState<Project[]>([])
-
-  const restart = useCallback((next: { filter?: Filter; applied?: string }) => {
-    if (next.filter !== undefined) setFilter(next.filter)
-    if (next.applied !== undefined) setApplied(next.applied)
-    setPage(1)
-    setRows([])
-  }, [])
-
-  useEffect(() => {
-    if (params.status !== undefined) restart({ filter: parseFilter(params.status) })
-  }, [params.status, restart])
-
-  useEffect(() => {
-    const next = query.trim()
-    if (next === applied) return
-    const id = setTimeout(() => restart({ applied: next }), 300)
-    return () => clearTimeout(id)
-  }, [query, applied, restart])
-
-  const load = useCallback(
-    () =>
-      listProjects({
+  const list = usePagedList<Project>({
+    cacheKeyPrefix: `${cacheKeys.projects}:${basePath}:cards`,
+    initialFilter: parseFilter(params.status),
+    fetcher: async ({ page, query, filter }) => {
+      const r = await listProjects({
         page,
         limit: PAGE_SIZE,
-        q: applied || undefined,
-        status: filter === 'ALL' ? undefined : filter,
-      }),
-    [applied, filter, page],
-  )
-  const pull = usePullToRefresh()
-  const remote = useRemoteData(load, {
-    cacheKey: `${cacheKeys.projects}:${basePath}:cards:${page}:${applied}:${filter}`,
+        q: query || undefined,
+        status: filter === 'ALL' || !filter ? undefined : (filter as ProjectStatus),
+        includeSummary: true,
+      })
+      return {
+        data: r.data,
+        meta: { ...r.meta, summary: r.summary },
+      }
+    },
   })
-  const result = remote.status === 'success' ? remote.data : null
-
-  const loadSummary = useCallback(() => getProjectSummary(), [])
-  const summaryRemote = useRemoteData(loadSummary, { cacheKey: `${cacheKeys.projects}:summary` })
-  const summary = summaryRemote.status === 'success' ? summaryRemote.data.data : null
 
   useEffect(() => {
-    if (!result) return
-    setRows((current) => {
-      if (result.meta.page === 1) return result.data
-      return mergePageRows(current, result.data)
-    })
-  }, [result])
+    if (params.status !== undefined) list.setFilter(parseFilter(params.status))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.status])
 
-  const total = result?.meta.total ?? 0
-  const isFirstLoad = remote.isLoading && rows.length === 0
-  const hasMore = rows.length < total
+  const summary = (list.meta?.summary as ProjectSummary | undefined) ?? null
+  const filter = (list.filter || 'ALL') as Filter
   const countOf = (f: Filter) =>
     summary ? (f === 'ALL' ? summary.total : summary.counts[f]) : null
   const chips = CHIPS.includes(filter) ? CHIPS : [...CHIPS, filter]
@@ -106,45 +79,22 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
 
   const header = (
     <View className="gap-3.5 pb-3.5">
-      <View className="flex-row gap-2.5">
-        <View
-          className="h-12 min-w-0 flex-1 flex-row items-center gap-2.5 rounded-[14px] border border-wk-line bg-wk-sf ps-3.5"
-          style={shadow}
-        >
-          <Search size={18} color={c.ink3} strokeWidth={1.9} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('pmPortal.searchProjects')}
-            placeholderTextColor={c.ink3}
-            accessibilityLabel={t('pmPortal.searchProjects')}
-            returnKeyType="search"
-            autoCorrect={false}
-            onSubmitEditing={() => {
-              if (query.trim() !== applied) restart({ applied: query.trim() })
-            }}
-            className="h-full min-w-0 flex-1 text-[15px] text-wk-ink"
+      <WkSearchField
+        value={list.query}
+        onChangeText={list.setQuery}
+        placeholder={t('pmPortal.searchProjects')}
+        accessibilityLabel={t('pmPortal.searchProjects')}
+        onSubmit={() => {
+          const next = list.query.trim()
+          if (next !== list.applied) list.restart({ applied: next })
+        }}
+        trailing={
+          <WkSearchAddButton
+            label={t('pmHome.newProject')}
+            onPress={() => router.push(`${basePath}/new` as never)}
           />
-          {query ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.clearSearch')}
-              onPress={() => setQuery('')}
-              className="size-11 items-center justify-center"
-            >
-              <X size={16} color={c.ink3} strokeWidth={2} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('pmHome.newProject')}
-          onPress={() => router.push(`${basePath}/new` as never)}
-          className="size-12 items-center justify-center rounded-[14px] bg-wk-ink active:opacity-80"
-        >
-          <Plus size={22} color={c.bg} strokeWidth={2} />
-        </Pressable>
-      </View>
+        }
+      />
 
       <ScrollView
         horizontal
@@ -161,9 +111,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
               key={f}
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
-              onPress={() => {
-                if (f !== filter) restart({ filter: f })
-              }}
+              onPress={() => list.setFilter(f)}
               className={`h-[38px] flex-row items-center gap-1.5 rounded-full border px-3.5 ${
                 on ? 'border-wk-ink bg-wk-ink' : 'border-wk-line bg-wk-sf'
               }`}
@@ -184,13 +132,13 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
         })}
       </ScrollView>
 
-      {remote.status === 'error' && rows.length === 0 ? (
+      {list.error && list.rows.length === 0 ? (
         <WkError
-          message={errorMessage(remote.error, t('common.errorGeneric'))}
-          onRetry={() => void remote.refetch()}
+          message={errorMessage(list.error, t('common.errorGeneric'))}
+          onRetry={() => void list.refetch()}
         />
       ) : null}
-      {isFirstLoad ? (
+      {list.isFirstLoad ? (
         <View className="gap-3">
           <ProjectCardSkeleton />
           <ProjectCardSkeleton />
@@ -201,7 +149,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
   )
 
   const empty =
-    !isFirstLoad && remote.status === 'success' && rows.length === 0 ? (
+    !list.isFirstLoad && list.status === 'success' && list.rows.length === 0 ? (
       <Animated.View
         entering={FadeIn.duration(300)}
         className="overflow-hidden rounded-[26px] bg-wk-sf"
@@ -223,8 +171,8 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
           <Text className="text-[15px] leading-[22px] text-wk-ink2">
             {noneAtAll
               ? t('pmPortal.emptyBody')
-              : applied
-                ? t('pmPortal.noMatchQuery', { query: applied })
+              : list.applied
+                ? t('pmPortal.noMatchQuery', { query: list.applied })
                 : t('pmPortal.noMatchStatus', {
                     status:
                       filter === 'ALL' ? '' : enumLabel(t, 'projectStatus', filter).toLowerCase(),
@@ -245,10 +193,7 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
                 height={48}
                 icon={RotateCcw}
                 label={t('providerPortal.clearFilters')}
-                onPress={() => {
-                  setQuery('')
-                  restart({ applied: '', filter: 'ALL' })
-                }}
+                onPress={() => list.clearAll('ALL')}
               />
             )}
           </View>
@@ -259,12 +204,12 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
   return (
     <View className="flex-1 bg-wk-bg" testID="e2e-pm-projects">
       <FlatList
-        data={isFirstLoad ? [] : rows}
+        data={list.isFirstLoad ? [] : list.rows}
         keyExtractor={(p) => p.id}
-        renderItem={({ item, index }) => (
+        {...LIST_PERF}
+        renderItem={({ item }) => (
           <ProjectCard
             project={item}
-            index={index}
             onPress={() => router.push(`${basePath}/${item.id}` as never)}
           />
         )}
@@ -272,17 +217,13 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={
-          hasMore && rows.length > 0 ? (
-            <View className="pt-4">
-              <WkButton
-                variant="soft"
-                height={48}
-                label={t('providerPortal.loadMore')}
-                loading={remote.isFetching}
-                onPress={() => setPage((p) => p + 1)}
-              />
-            </View>
-          ) : undefined
+          <PagedListFooter
+            rowCount={list.rows.length}
+            hasMore={list.hasMore}
+            isFetching={list.isFetching}
+            error={list.error}
+            onLoadMore={list.loadMore}
+          />
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -293,13 +234,8 @@ export function PmProjectsScreen({ basePath = '/pm/projects' }: { basePath?: str
         }}
         refreshControl={
           <RefreshControl
-            refreshing={remote.isFetching && rows.length > 0 && page === 1}
-            onRefresh={() =>
-              pull(() => {
-                void summaryRemote.refetch()
-                return page === 1 ? remote.refetch() : restart({})
-              })
-            }
+            refreshing={list.isFetching && list.rows.length > 0 && list.page === 1}
+            onRefresh={() => pull(() => list.refresh())}
             tintColor={c.ink3}
             colors={[c.brand]}
           />

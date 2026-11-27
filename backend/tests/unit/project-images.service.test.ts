@@ -70,6 +70,7 @@ describe('projectImagesService', () => {
       ),
       reorderAtomic: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),
+      deleteAndPromoteMain: vi.fn(async () => undefined),
       unsetMainImage: vi.fn(async () => undefined),
       findMainImageByProjectId: vi.fn(async () => makeImage({ isMain: true })),
     }

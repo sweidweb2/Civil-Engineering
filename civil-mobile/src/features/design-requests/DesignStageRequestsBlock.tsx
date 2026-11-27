@@ -5,7 +5,7 @@ import { PenTool, Plus } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
 import { Pressable } from '@/components/ui/pressable'
-import { WkSection } from '@/features/worker/ui/forms'
+import { WkSection } from '@/components/wk/forms'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
 import {

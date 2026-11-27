@@ -36,6 +36,7 @@ function emptyDraft(): UpsertMaterialsInput {
     invoiceFilePath: '',
     status: 'NOT_STARTED',
     notes: '',
+    expectedUpdatedAt: null,
   }
 }
 
@@ -55,6 +56,7 @@ function fromRecord(data: MaterialProcurement | null): UpsertMaterialsInput {
     invoiceFilePath: data.invoiceFilePath ?? '',
     status: data.status,
     notes: data.notes ?? '',
+    expectedUpdatedAt: data.updatedAt,
   }
 }
 
@@ -84,7 +86,7 @@ export function MaterialsForm({
   const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertMaterials(projectId, {
+      const saved = await upsertMaterials(projectId, {
         ...form,
         supplierName: form.supplierName || null,
         materialDescription: form.materialDescription || null,
@@ -99,7 +101,9 @@ export function MaterialsForm({
         invoiceFilePath: form.invoiceFilePath || null,
         notes: form.notes || null,
       } as UpsertMaterialsInput)
-      setBaseline(form)
+      const next = { ...form, expectedUpdatedAt: saved.data.updatedAt }
+      setForm(next)
+      setBaseline(next)
       toast.success(t('stages.saved'))
       if (continueNext) onContinue()
       else onSaved()

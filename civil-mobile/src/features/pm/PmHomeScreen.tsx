@@ -16,7 +16,7 @@ import {
   StageSegments,
   stageStates,
 } from '@/features/pm/ui/kit'
-import { PhotoScrim, PvSectionHead } from '@/features/provider/ui/kit'
+import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
 import {
   flipStyle,
   WkError,
@@ -25,8 +25,8 @@ import {
   WkHeroGlow,
   WkSkeletonCard,
   WkTabScroll,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
 import { cacheKeys } from '@/lib/cacheKeys'
@@ -55,14 +55,26 @@ type Overview = {
   active: { project: Project; stages: ProjectStagesSummary | null }[]
 }
 
-/** Summary + one list page, then stage summaries for the (max 5) carousel projects. */
+/** List (+ summary) then stage summaries; soft-fail so one half can still render. */
 async function loadOverview(): Promise<Overview> {
-  const [summary, list] = await Promise.allSettled([
-    getProjectSummary(),
-    listProjects({ page: 1, limit: 20 }),
-  ])
-  if (summary.status === 'rejected' && list.status === 'rejected') throw list.reason
-  const projects = list.status === 'fulfilled' ? list.value.data : []
+  let projects: Project[] = []
+  let summary: ProjectSummary | null = null
+  try {
+    const list = await listProjects({ page: 1, limit: 20, includeSummary: true })
+    projects = list.data
+    summary = list.summary
+  } catch {
+    const [listResult, summaryResult] = await Promise.allSettled([
+      listProjects({ page: 1, limit: 20 }),
+      getProjectSummary(),
+    ])
+    if (listResult.status === 'rejected' && summaryResult.status === 'rejected') {
+      throw listResult.reason
+    }
+    projects = listResult.status === 'fulfilled' ? listResult.value.data : []
+    summary = summaryResult.status === 'fulfilled' ? summaryResult.value.data : null
+  }
+
   const carousel = projects.filter((p) => CAROUSEL_STATUSES.includes(p.status)).slice(0, 5)
   const stageMap =
     carousel.length === 0
@@ -71,7 +83,7 @@ async function loadOverview(): Promise<Overview> {
           .then((r) => r.data)
           .catch(() => ({}) as Record<string, ProjectStagesSummary>)
   return {
-    summary: summary.status === 'fulfilled' ? summary.value.data : null,
+    summary,
     projects,
     active: carousel.map((project) => ({
       project,
@@ -89,7 +101,7 @@ export function PmHomeScreen() {
   const { t } = useTranslation()
   const today = useTodayCaption()
   const user = useAuthStore((s) => s.user)
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardPm })
 

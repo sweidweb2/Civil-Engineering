@@ -55,6 +55,11 @@ export type OwnerGalleryRepository = {
   /** Apply displayOrder updates for one owner in a single transaction. */
   reorderAtomic: (ownerId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
+  /**
+   * Delete one image and, when it was main, promote the next remaining image —
+   * all in one transaction so the owner never briefly has zero mains under concurrency.
+   */
+  deleteAndPromoteMain?: (imageId: string, ownerId: string) => Promise<void>
   unsetMainImage: (ownerId: string) => Promise<void>
   findMainImageByOwnerId: (ownerId: string) => Promise<OwnerGalleryImage | null>
 }
@@ -244,18 +249,14 @@ export function createOwnerGalleryService(deps: OwnerGalleryServiceDeps): OwnerG
       if (!image) throw notFound('Image not found', policy.notFoundCode)
       await policy.assertCanManage(actor, image.ownerId)
 
-      await repository.delete(imageId)
-
-      if (policy.autoMain && image.isMain) {
-        const remaining = await repository.findByOwnerId(image.ownerId)
-        const next = remaining[0]
-        if (next) {
-          try {
-            await repository.setMainAtomic(image.ownerId, next.id)
-          } catch (error) {
-            mapGalleryUniqueConflict(error)
-          }
+      try {
+        if (policy.autoMain && image.isMain && repository.deleteAndPromoteMain) {
+          await repository.deleteAndPromoteMain(imageId, image.ownerId)
+        } else {
+          await repository.delete(imageId)
         }
+      } catch (error) {
+        mapGalleryUniqueConflict(error)
       }
 
       try {

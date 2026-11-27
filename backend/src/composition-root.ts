@@ -15,6 +15,7 @@ import { buildListingsService, createListingsModule } from './modules/listings/i
 import { createLoggingModule } from './modules/logging/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
 import { createProjectImagesModule } from './modules/project-images/index.js'
+import { createProjectProductivityModule } from './modules/project-productivity/index.js'
 import { createProjectStagesModule } from './modules/project-stages/index.js'
 import { buildProjectsService, createProjectsModule } from './modules/projects/index.js'
 import { buildProvidersService, createProvidersModule } from './modules/providers/index.js'
@@ -101,6 +102,7 @@ export function createCompositionRoot(deps: CompositionRootDeps = {}): Compositi
       const projectsRouter = Router()
       projectsRouter.use(createProjectsModule({ service: projectsService }))
       projectsRouter.use(createProjectStagesModule({ projectsService }))
+      projectsRouter.use(createProjectProductivityModule({ projectsService }))
       return projectsRouter
     })(),
     projectImages: createProjectImagesModule({ ...moduleDeps, projectsService }),

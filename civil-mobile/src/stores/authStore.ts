@@ -175,7 +175,8 @@ bindAuthSession({
 // next microtask, as before, ran *before* the read finished (React Native defines
 // `window`), so a saved session briefly looked logged-out. Keep a long safety net only.
 // Web / SSR: localStorage resolves immediately, keep the microtask fallback.
-export const NATIVE_HYDRATION_TIMEOUT_MS = 4_000
+/** Longer than a typical SecureStore read; still caps a hung rehydrate spinner. */
+export const NATIVE_HYDRATION_TIMEOUT_MS = 8_000
 
 function openHydrationGate() {
   if (!useAuthStore.getState().isHydrated) {

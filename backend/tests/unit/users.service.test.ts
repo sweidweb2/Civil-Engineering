@@ -190,6 +190,7 @@ describe('usersService', () => {
           listProjects: vi.fn(async () => ({
             data: [],
             meta: { total: 11, page: 1, limit: 5, totalPages: 3 },
+            summary: null,
           })),
         },
         reviews: {

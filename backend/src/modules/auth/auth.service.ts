@@ -236,6 +236,13 @@ export function createAuthService(
       const claim = await claimRefreshToken(repository, payload.jti, refreshTtlSeconds(payload))
       if (claim === 'reuse') {
         warnAuthFailure('refresh_reuse', { userId: user.id })
+        // Stolen/replayed refresh: invalidate every outstanding refresh for this user.
+        await repository.invalidateRefreshTokens(user.id).catch((error) => {
+          getRequestLogger().warn(
+            { err: error, userId: user.id, kind: 'auth.refresh_reuse_revoke_failed' },
+            'failed to revoke sessions after refresh reuse',
+          )
+        })
         throw unauthorized('Invalid or expired refresh token')
       }
 

@@ -4,7 +4,7 @@ import type { ProjectStagesSummary, ProjectStageStatus, StageKey } from '@/servi
 /** Per-stage form fields and file slots for the project stages editor. */
 
 function emptyDraft(status: ProjectStageStatus = 'NOT_STARTED'): StageDraft {
-  return { status }
+  return { status, expectedUpdatedAt: '' }
 }
 
 export function draftFromSummary(summary: ProjectStagesSummary, key: StageKey): StageDraft {
@@ -12,8 +12,12 @@ export function draftFromSummary(summary: ProjectStagesSummary, key: StageKey): 
   if (!slot.data) return emptyDraft()
   const draft: StageDraft = {}
   for (const [field, value] of Object.entries(slot.data)) {
+    if (field === 'updatedAt' || field === 'id' || field === 'projectId' || field === 'createdAt') {
+      continue
+    }
     draft[field] = value == null ? '' : String(value)
   }
+  draft.expectedUpdatedAt = slot.data.updatedAt ?? ''
   return draft
 }
 

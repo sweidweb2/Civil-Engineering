@@ -11,7 +11,7 @@ import {
 import type { CvSectionKey } from '@/features/worker/cvCompleteness'
 import type { WorkerAvailability, WorkerVerificationStatus } from '@/services/workers'
 
-import type { WkTone } from './palette'
+import type { WkTone } from '@/components/wk/palette'
 
 export const CV_SECTION_META: Record<CvSectionKey, { icon: LucideIcon; href: string }> = {
   basics: { icon: UserRound, href: '/worker/cv/basics' },

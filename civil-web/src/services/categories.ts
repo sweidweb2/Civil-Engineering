@@ -89,12 +89,18 @@ export function localizedCategoryParentName(
 export function listCategories(
   page = 1,
   limit = 8,
-  filters?: { q?: string; kind?: CategoryKind; includeCounts?: boolean },
+  filters?: {
+    q?: string
+    kind?: CategoryKind
+    kinds?: CategoryKind[]
+    includeCounts?: boolean
+  },
 ) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters?.q) params.set('q', filters.q)
   if (filters?.includeCounts === false) params.set('includeCounts', 'false')
-  if (filters?.kind) params.set('kind', filters.kind)
+  if (filters?.kinds?.length) params.set('kinds', filters.kinds.join(','))
+  else if (filters?.kind) params.set('kind', filters.kind)
   return apiRequest<PaginatedCategories>(`/categories?${params.toString()}`)
 }
 

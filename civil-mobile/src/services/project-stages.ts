@@ -1,4 +1,5 @@
 import { apiRequest } from './api'
+import { getProjectById, type Project } from './projects'
 
 export type ProjectStageStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD'
 
@@ -38,6 +39,7 @@ export type GeotechnicalStudy = {
   startDate: string
   completionDate: string
   notes: string
+  updatedAt: string
 }
 
 export type ProjectDesign = {
@@ -51,6 +53,7 @@ export type ProjectDesign = {
   startDate: string
   completionDate: string
   notes: string
+  updatedAt: string
 }
 
 export type ProjectLicensing = {
@@ -62,6 +65,7 @@ export type ProjectLicensing = {
   status: ProjectStageStatus
   expiryDate: string | null
   notes: string
+  updatedAt: string
 }
 
 export type MaterialProcurement = {
@@ -78,6 +82,7 @@ export type MaterialProcurement = {
   invoiceFilePath: string
   status: ProjectStageStatus
   notes: string
+  updatedAt: string
 }
 
 export type ProjectMaintenance = {
@@ -90,6 +95,7 @@ export type ProjectMaintenance = {
   status: ProjectStageStatus
   reportFilePath: string
   notes: string
+  updatedAt: string
 }
 
 export type StageSlot<T> = {
@@ -107,14 +113,72 @@ export type ProjectStagesSummary = {
   maintenance: StageSlot<ProjectMaintenance>
 }
 
-export type UpsertGeotechnicalInput = GeotechnicalStudy
-export type UpsertDesignInput = ProjectDesign
-export type UpsertLicensingInput = ProjectLicensing
-export type UpsertMaterialsInput = MaterialProcurement
-export type UpsertMaintenanceInput = ProjectMaintenance
+type StageConcurrency = {
+  /** ISO timestamp loaded from the API; null only on first create. */
+  expectedUpdatedAt: string | null
+}
+
+export type UpsertGeotechnicalInput = Omit<GeotechnicalStudy, 'updatedAt'> & StageConcurrency
+export type UpsertDesignInput = Omit<ProjectDesign, 'updatedAt'> & StageConcurrency
+export type UpsertLicensingInput = Omit<ProjectLicensing, 'updatedAt'> & StageConcurrency
+export type UpsertMaterialsInput = Omit<MaterialProcurement, 'updatedAt'> & StageConcurrency
+export type UpsertMaintenanceInput = Omit<ProjectMaintenance, 'updatedAt'> & StageConcurrency
+
+const EMPTY_STAGE_SLOT = {
+  exists: false,
+  isComplete: false,
+  missingCount: 0,
+  data: null,
+} as const
+
+/** Empty stage board when the stages half of a detail load fails. */
+export function emptyProjectStagesSummary(): ProjectStagesSummary {
+  return {
+    geotechnical: { ...EMPTY_STAGE_SLOT },
+    design: { ...EMPTY_STAGE_SLOT },
+    licensing: { ...EMPTY_STAGE_SLOT },
+    materials: { ...EMPTY_STAGE_SLOT },
+    maintenance: { ...EMPTY_STAGE_SLOT },
+  }
+}
 
 export function getProjectStagesSummary(projectId: string) {
   return apiRequest<{ data: ProjectStagesSummary }>(`/projects/${projectId}/stages`)
+}
+
+export type ProjectDetailResponse = {
+  data: { project: Project; stages: ProjectStagesSummary }
+}
+
+/**
+ * Project + stage summary in one round-trip.
+ * If the bundled endpoint fails, falls back to independent project + stages calls
+ * so one half can still render.
+ */
+export async function getProjectDetail(projectId: string): Promise<ProjectDetailResponse> {
+  try {
+    return await apiRequest<ProjectDetailResponse>(`/projects/${projectId}/detail`)
+  } catch (bundledError) {
+    const [projectResult, stagesResult] = await Promise.allSettled([
+      getProjectById(projectId),
+      getProjectStagesSummary(projectId),
+    ])
+    if (projectResult.status === 'rejected' && stagesResult.status === 'rejected') {
+      throw bundledError
+    }
+    if (projectResult.status === 'rejected') {
+      throw projectResult.reason
+    }
+    return {
+      data: {
+        project: projectResult.value.data,
+        stages:
+          stagesResult.status === 'fulfilled'
+            ? stagesResult.value.data
+            : emptyProjectStagesSummary(),
+      },
+    }
+  }
 }
 
 /** One round-trip for several project stage summaries (PM home carousel). */

@@ -32,6 +32,7 @@ function emptyDraft(): UpsertDesignInput {
     startDate: '',
     completionDate: '',
     notes: '',
+    expectedUpdatedAt: null,
   }
 }
 
@@ -48,6 +49,7 @@ function fromRecord(data: ProjectDesign | null): UpsertDesignInput {
     startDate: data.startDate ?? '',
     completionDate: data.completionDate ?? '',
     notes: data.notes ?? '',
+    expectedUpdatedAt: data.updatedAt,
   }
 }
 
@@ -77,7 +79,7 @@ export function DesignForm({
   const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertDesign(projectId, {
+      const saved = await upsertDesign(projectId, {
         ...form,
         architecturalDesignPath: form.architecturalDesignPath || null,
         structuralDesignPath: form.structuralDesignPath || null,
@@ -89,7 +91,9 @@ export function DesignForm({
         completionDate: form.completionDate || null,
         notes: form.notes || null,
       } as UpsertDesignInput)
-      setBaseline(form)
+      const next = { ...form, expectedUpdatedAt: saved.data.updatedAt }
+      setForm(next)
+      setBaseline(next)
       toast.success(t('stages.saved'))
       if (continueNext) onContinue()
       else onSaved()

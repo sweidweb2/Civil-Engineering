@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { MyAvatarPhoto } from '@/features/account/MyAvatarPhoto'
 import { type CvSectionStatus, cvSectionStatuses } from '@/features/worker/cvCompleteness'
-import { specialtyLabel } from '@/features/worker/specialties'
+import { specialtyLabel } from '@/lib/specialties'
 import {
   WkCard,
   WkError,
@@ -16,8 +16,8 @@ import {
   WkRow,
   WkSkeletonCard,
   WkTabScroll,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { AVAILABILITY_TONE, CV_SECTION_META, VERIFICATION_KEY } from '@/features/worker/ui/sections'
 import { useWorkerProfile } from '@/features/worker/useWorkerProfile'
 import { enumLabel } from '@/i18n/labels'
@@ -39,7 +39,7 @@ function initialsOf(name: string): string {
 export function WorkerCvScreen() {
   const { t, i18n } = useTranslation()
   const user = useAuthStore((s) => s.user)
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const { profile, verificationStatus, isReady, error, refetch, isFetching } = useWorkerProfile()
 
   const sections = cvSectionStatuses(profile)

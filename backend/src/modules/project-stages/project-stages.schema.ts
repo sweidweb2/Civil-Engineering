@@ -67,6 +67,12 @@ function dateOrder(earlier: string | null | undefined, later: string | null | un
   return new Date(later).getTime() >= new Date(earlier).getTime()
 }
 
+/** ISO timestamp the client loaded; null only when creating the first stage row. */
+const expectedUpdatedAtField = z.preprocess(
+  blankToNull,
+  z.string().datetime({ offset: true }).nullable(),
+)
+
 /** Draft-friendly upsert: all content fields optional; status required. */
 export const upsertGeotechnicalBodySchema = z
   .object({
@@ -80,6 +86,7 @@ export const upsertGeotechnicalBodySchema = z
     startDate: optionalDateString('Start date'),
     completionDate: optionalDateString('Completion date'),
     notes: optionalText(5000, 'Notes'),
+    expectedUpdatedAt: expectedUpdatedAtField,
   })
   .refine((value) => dateOrder(value.startDate, value.completionDate), {
     message: 'Completion date must be on or after the start date',
@@ -98,6 +105,7 @@ export const upsertDesignBodySchema = z
     startDate: optionalDateString('Start date'),
     completionDate: optionalDateString('Completion date'),
     notes: optionalText(5000, 'Notes'),
+    expectedUpdatedAt: expectedUpdatedAtField,
   })
   .refine((value) => dateOrder(value.startDate, value.completionDate), {
     message: 'Completion date must be on or after the start date',
@@ -114,6 +122,7 @@ export const upsertLicensingBodySchema = z
     status: projectStageStatusSchema,
     expiryDate: optionalDateString('Expiry date'),
     notes: optionalText(5000, 'Notes'),
+    expectedUpdatedAt: expectedUpdatedAtField,
   })
   .refine((value) => dateOrder(value.applicationDate, value.approvalDate), {
     message: 'Approval date must be on or after the application date',
@@ -139,6 +148,7 @@ export const upsertMaterialsBodySchema = z
     invoiceFilePath: optionalText(500, 'Invoice file path'),
     status: projectStageStatusSchema,
     notes: optionalText(5000, 'Notes'),
+    expectedUpdatedAt: expectedUpdatedAtField,
   })
   .refine((value) => dateOrder(value.orderDate, value.expectedArrivalDate), {
     message: 'Expected arrival date must be on or after the order date',
@@ -160,6 +170,7 @@ export const upsertMaintenanceBodySchema = z
     status: projectStageStatusSchema,
     reportFilePath: optionalText(500, 'Report file path'),
     notes: optionalText(5000, 'Notes'),
+    expectedUpdatedAt: expectedUpdatedAtField,
   })
   .refine((value) => dateOrder(value.scheduledDate, value.completionDate), {
     message: 'Completion date must be on or after the scheduled date',

@@ -16,10 +16,19 @@ export const cacheKeys = {
   listingsAdmin: 'listings:admin',
   directory: 'directory:list',
   projects: 'projects:list',
-  /** `projects:detail:<id>` — one project (detail + stages header). */
-  projectDetail: 'projects:detail',
-  /** `projects:stages:<id>` — stage summary for one project. */
+  /**
+   * `projects:detail-v2:<id>` — GET `/projects/:id/detail` payload
+   * `{ data: { project, stages } }` shared by project + stages screens.
+   * `-v2` avoids colliding with pre-bundle caches that stored a bare project.
+   */
+  projectDetail: 'projects:detail-v2',
+  /**
+   * Legacy prefix kept for invalidate-all on project mutations.
+   * Stage-only entries are no longer written; detail embeds stages.
+   */
   projectStages: 'projects:stages',
+  /** `projects:productivity:<id>` — daily productivity hours series. */
+  projectProductivity: 'projects:productivity',
   /** `listings:detail:<id>:view|edit` — one listing (detail screen / editor). */
   listingDetail: 'listings:detail',
   users: 'users:list',
@@ -63,12 +72,28 @@ export function invalidateProjectCaches() {
   remoteCacheInvalidate(cacheKeys.projects)
   remoteCacheInvalidate(cacheKeys.projectDetail)
   remoteCacheInvalidate(cacheKeys.projectStages)
+  remoteCacheInvalidate(cacheKeys.projectProductivity)
 }
 
-/** After gallery upload/delete/set-main for a listing or project owner. */
+/**
+ * After gallery upload/delete/set-main. Narrower than full listing/project
+ * invalidation — category/provider count lists and stage/productivity keys are
+ * unchanged when only images move.
+ */
 export function invalidateGalleryCaches(kind: 'listing' | 'project') {
-  if (kind === 'listing') invalidateListingCaches()
-  else invalidateProjectCaches()
+  if (kind === 'listing') {
+    remoteCacheInvalidate(cacheKeys.listingDetail)
+    remoteCacheInvalidate(cacheKeys.listingsMine)
+    remoteCacheInvalidate(cacheKeys.listingsAdmin)
+    remoteCacheInvalidate(cacheKeys.directory)
+    remoteCacheInvalidate(cacheKeys.dashboardProvider)
+    remoteCacheInvalidate(cacheKeys.dashboardAdmin)
+    return
+  }
+  remoteCacheInvalidate(cacheKeys.projectDetail)
+  remoteCacheInvalidate(cacheKeys.projects)
+  remoteCacheInvalidate(cacheKeys.dashboardPm)
+  remoteCacheInvalidate(cacheKeys.dashboardAdmin)
 }
 
 /** After user / approval / provider / review admin mutations. */

@@ -134,7 +134,7 @@ export function ProjectDetailPage() {
     }
     setIsSaving(true)
     try {
-      await updateProject(id, formData)
+      await updateProject(id, { ...formData, expectedUpdatedAt: project.updatedAt })
       toast.success(t('projects:updated'))
       setIsEditing(false)
       void remote.refetch()

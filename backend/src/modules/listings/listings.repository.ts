@@ -1,4 +1,10 @@
 import { prisma } from '../../database/prisma.js'
+import {
+  DEFAULT_TX_MAX_WAIT_MS,
+  DEFAULT_TX_TIMEOUT_MS,
+  runInTransaction,
+} from '../../database/transaction.js'
+import { conflict } from '../../errors/app-error.js'
 import { type ListingStatus, Prisma, type RentalUnit } from '../../generated/prisma/client.js'
 import type { ListingType, ListListingsQuery, UpdateListingBody } from './listings.schema.js'
 import type { ListingSnapshot, ListingStatusCounts, ListingTypeCounts } from './listings.types.js'
@@ -426,12 +432,13 @@ export function createListingsRepository(): ListingsRepository {
             },
           }),
         ),
+        { maxWait: DEFAULT_TX_MAX_WAIT_MS, timeout: DEFAULT_TX_TIMEOUT_MS },
       )
     },
 
     async adjustProviderPrices(input) {
       const maxDecimal184 = 99_999_999_999_999
-      return prisma.$transaction(async (tx) => {
+      return runInTransaction(async (tx) => {
         // Allow large catalogs without hitting the pool's default statement_timeout.
         await tx.$executeRaw`SET LOCAL statement_timeout = '120000'`
 
@@ -520,24 +527,40 @@ export function createListingsRepository(): ListingsRepository {
     },
 
     async update(id, input) {
-      const row = await prisma.listing.update({
-        where: { id },
+      const { expectedUpdatedAt, ...fields } = input
+      const expected = new Date(expectedUpdatedAt)
+      if (Number.isNaN(expected.getTime())) {
+        throw conflict('expectedUpdatedAt must be a valid timestamp', 'LISTING_VERSION_INVALID')
+      }
+
+      const cas = await prisma.listing.updateMany({
+        where: { id, updatedAt: expected },
         data: {
-          providerId: input.providerId,
-          categoryId: input.categoryId,
-          name: input.name,
-          description: input.description,
-          brand: input.brand,
-          unit: input.unit,
-          currency: input.currency,
-          price: input.price,
-          priceMin: input.priceMin,
-          priceMax: input.priceMax,
-          rentalPrice: input.rentalPrice,
-          rentalUnit: input.rentalUnit,
-          quantityAvailable: input.quantityAvailable,
-          status: input.status,
+          providerId: fields.providerId,
+          categoryId: fields.categoryId,
+          name: fields.name,
+          description: fields.description,
+          brand: fields.brand,
+          unit: fields.unit,
+          currency: fields.currency,
+          price: fields.price,
+          priceMin: fields.priceMin,
+          priceMax: fields.priceMax,
+          rentalPrice: fields.rentalPrice,
+          rentalUnit: fields.rentalUnit,
+          quantityAvailable: fields.quantityAvailable,
+          status: fields.status,
         },
+      })
+      if (cas.count !== 1) {
+        throw conflict(
+          'Listing was modified elsewhere; reload and try again',
+          'LISTING_VERSION_CONFLICT',
+        )
+      }
+
+      const row = await prisma.listing.findUniqueOrThrow({
+        where: { id },
         include: listingInclude,
       })
       return toRecord(row)
@@ -561,7 +584,7 @@ export function createListingsRepository(): ListingsRepository {
     },
 
     async deleteOrHide(id) {
-      return prisma.$transaction(async (tx) => {
+      return runInTransaction(async (tx) => {
         const locked = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT id FROM listings WHERE id = ${id} FOR UPDATE
         `

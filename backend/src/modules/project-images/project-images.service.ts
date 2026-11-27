@@ -115,6 +115,7 @@ function adaptRepository(repository: ProjectImagesRepository): OwnerGalleryRepos
     },
     reorderAtomic: (ownerId, orderedIds) => repository.reorderAtomic(ownerId, orderedIds),
     delete: (id) => repository.delete(id),
+    deleteAndPromoteMain: (imageId, ownerId) => repository.deleteAndPromoteMain(imageId, ownerId),
     unsetMainImage: (ownerId) => repository.unsetMainImage(ownerId),
     findMainImageByOwnerId: async (ownerId) => {
       const image = await repository.findMainImageByProjectId(ownerId)

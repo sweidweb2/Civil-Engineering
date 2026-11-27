@@ -12,9 +12,9 @@ import {
   WkFormScreen,
   WkSection,
   WkToggle,
-} from '@/features/worker/ui/forms'
-import { WkButton, WkCard, WkConfirm, type WkConfirmState, WkPill } from '@/features/worker/ui/kit'
-import { WkMedia } from '@/features/worker/ui/list'
+} from '@/components/wk/forms'
+import { WkButton, WkCard, WkConfirm, type WkConfirmState, WkPill } from '@/components/wk/kit'
+import { WkMedia } from '@/components/wk/list'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel, enumOptions } from '@/i18n/labels'

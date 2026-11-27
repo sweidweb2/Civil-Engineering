@@ -5,8 +5,11 @@ import * as Notifications from 'expo-notifications'
 import { AndroidImportance } from 'expo-notifications'
 import { router } from 'expo-router'
 
+import { isAllowedNotificationPath } from '@/lib/notificationPath'
 import type { DevicePlatform } from '@/services/devices'
 import * as devicesApi from '@/services/devices'
+
+export { isAllowedNotificationPath } from '@/lib/notificationPath'
 
 // Native-only; calling on web throws (missing ExpoNotifications methods).
 if (Platform.OS !== 'web') {
@@ -39,15 +42,18 @@ function pathFromNotificationData(data: Record<string, unknown> | undefined): st
   if (!data) return null
   const path = data.path
   if (typeof path === 'string' && path.startsWith('/')) {
-    return path
+    return isAllowedNotificationPath(path) ? path : null
   }
   const url = data.url
   if (typeof url === 'string') {
-    if (url.startsWith('/')) return url
+    if (url.startsWith('/')) {
+      return isAllowedNotificationPath(url) ? url : null
+    }
     const scheme = 'civilmobile://'
     if (url.startsWith(scheme)) {
       const rest = url.slice(scheme.length)
-      return rest.startsWith('/') ? rest : `/${rest}`
+      const normalized = rest.startsWith('/') ? rest : `/${rest}`
+      return isAllowedNotificationPath(normalized) ? normalized : null
     }
   }
   return null

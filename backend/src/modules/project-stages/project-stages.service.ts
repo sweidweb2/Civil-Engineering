@@ -1,6 +1,7 @@
 import { assertOwnerOrAdmin, type AuthActor } from '../../authz/index.js'
 import { conflict, isUniqueConflictError } from '../../errors/app-error.js'
 import type { ProjectsService } from '../projects/index.js'
+import type { Project } from '../projects/projects.types.js'
 import {
   designMissing,
   geotechnicalMissing,
@@ -63,8 +64,15 @@ function toSummary(rows: {
   }
 }
 
+export type ProjectWithStages = {
+  project: Project
+  stages: ProjectStagesSummary
+}
+
 export type ProjectStagesService = {
   getSummary: (projectId: string, actor: AuthActor) => Promise<ProjectStagesSummary>
+  /** Project + stage summary in one round-trip (authz project load once). */
+  getDetail: (projectId: string, actor: AuthActor) => Promise<ProjectWithStages>
   getSummaries: (
     input: BatchStageSummariesBody,
     actor: AuthActor,
@@ -128,6 +136,28 @@ export function createProjectStagesService(deps: ProjectStagesServiceDeps): Proj
     async getSummary(projectId, actor) {
       await assertProject(projectId, actor)
       return toSummary(await repository.findAllByProjectId(projectId))
+    },
+
+    async getDetail(projectId, actor) {
+      const project = await projectsService.getAccessibleProject(projectId, actor)
+      try {
+        return {
+          project,
+          stages: toSummary(await repository.findAllByProjectId(projectId)),
+        }
+      } catch {
+        // Keep the project usable when stage rows fail to load.
+        return {
+          project,
+          stages: toSummary({
+            geotechnical: null,
+            design: null,
+            licensing: null,
+            materials: null,
+            maintenance: null,
+          }),
+        }
+      }
     },
 
     async getSummaries(input, actor) {

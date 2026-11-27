@@ -17,21 +17,35 @@ import { Platform } from 'react-native'
  * - Web: disabled (no file system; civil-web is the web client).
  */
 
-const FORMAT_VERSION = 1
-const FILE_PREFIX = 'offline-snapshot-v1-'
+/**
+ * Bumped when persisted payload shapes change (e.g. project detail now embeds stages).
+ * Mismatched files are treated as empty so stale entries are never shown.
+ */
+const FORMAT_VERSION = 2
+const FILE_PREFIX = 'offline-snapshot-v2-'
+/** Also delete leftover v1 files on clear so devices do not keep dead cache. */
+const LEGACY_FILE_PREFIXES = ['offline-snapshot-v1-'] as const
 export const OFFLINE_MAX_ENTRIES = 40
 export const OFFLINE_MAX_AGE_MS = 7 * 24 * 60 * 60_000
 const WRITE_DELAY_MS = 1_500
 
+/**
+ * Match real cache key shapes from screens (page 1, empty search only).
+ * Examples:
+ * - `projects:list:/pm/projects:cards:1::ALL`
+ * - `listings:mine:grid:all:1::ALL`
+ * - `directory:list:pm:categories:` / `directory:list:pm:specialty-counts:`
+ */
 const PERSISTABLE: RegExp[] = [
   /^dashboard:/,
   /^(workers|providers):me$/,
-  /^projects:(detail|stages):[^:]+$/,
+  /** `projects:detail-v2:<id>` — `{ data: { project, stages } }`. */
+  /^projects:detail-v2:[^:]+$/,
   /^projects:list:summary$/,
   /^projects:list:[^:]*:cards:1::[^:]*$/,
-  /^listings:mine:grid:1::[^:]*$/,
+  /^listings:mine:grid:[^:]+:1::[^:]*$/,
   /^listings:detail:[^:]+:view$/,
-  /^directory:list:pm:[^:]+:1:$/,
+  /^directory:list:pm:(categories|specialty-counts):$/,
 ]
 
 /** True for cache keys that may be saved for offline reading (own data, page 1, no search). */
@@ -71,7 +85,10 @@ function createFileStorage(): OfflineSnapshotStorage {
       const { File, Paths } = fs()
       for (const item of Paths.cache.list()) {
         const name = item.uri.split('/').pop() ?? ''
-        if (item instanceof File && name.startsWith(FILE_PREFIX)) item.delete()
+        if (!(item instanceof File)) continue
+        if (name.startsWith(FILE_PREFIX) || LEGACY_FILE_PREFIXES.some((p) => name.startsWith(p))) {
+          item.delete()
+        }
       }
     },
   }
@@ -129,7 +146,10 @@ function scheduleWrite() {
   if (writeTimer) return
   writeTimer = setTimeout(() => {
     writeTimer = undefined
-    flushOfflineSnapshot()
+    // Yield once so list navigations paint before JSON stringify + disk write.
+    queueMicrotask(() => {
+      flushOfflineSnapshot()
+    })
   }, WRITE_DELAY_MS)
 }
 

@@ -13,8 +13,8 @@ import {
   WkSection,
   WkSelect,
   WkToggle,
-} from '@/features/worker/ui/forms'
-import { WkButton, WkConfirm, type WkConfirmState } from '@/features/worker/ui/kit'
+} from '@/components/wk/forms'
+import { WkButton, WkConfirm, type WkConfirmState } from '@/components/wk/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumOptions } from '@/i18n/labels'

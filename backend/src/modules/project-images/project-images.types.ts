@@ -46,6 +46,7 @@ export type ProjectImagesRepository = {
   ) => Promise<ProjectImage>
   reorderAtomic: (projectId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
+  deleteAndPromoteMain: (imageId: string, projectId: string) => Promise<void>
   unsetMainImage: (projectId: string) => Promise<void>
   findMainImageByProjectId: (projectId: string) => Promise<ProjectImage | null>
 }

@@ -11,8 +11,8 @@ import {
   WkPasswordField,
   WkSection,
   WkToggle,
-} from '@/features/worker/ui/forms'
-import { WkButton } from '@/features/worker/ui/kit'
+} from '@/components/wk/forms'
+import { WkButton } from '@/components/wk/kit'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { enumOptions } from '@/i18n/labels'
 import { invalidateAdminCaches } from '@/lib/cacheKeys'

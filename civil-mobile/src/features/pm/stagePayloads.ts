@@ -22,6 +22,7 @@ function toRequiredString(value: string | undefined): string {
 /** Builds the stage-specific payload from the form draft and upserts it. */
 export function saveStageDraft(projectId: string, key: StageKey, draft: StageDraft) {
   const status = (draft.status as ProjectStageStatus) || 'NOT_STARTED'
+  const expectedUpdatedAt = toNullable(draft.expectedUpdatedAt)
   if (key === 'geotechnical') {
     return upsertGeotechnical(projectId, {
       soilType: toRequiredString(draft.soilType),
@@ -34,6 +35,7 @@ export function saveStageDraft(projectId: string, key: StageKey, draft: StageDra
       startDate: toRequiredString(draft.startDate),
       completionDate: toRequiredString(draft.completionDate),
       notes: toRequiredString(draft.notes),
+      expectedUpdatedAt,
     })
   } else if (key === 'design') {
     return upsertDesign(projectId, {
@@ -47,6 +49,7 @@ export function saveStageDraft(projectId: string, key: StageKey, draft: StageDra
       startDate: toRequiredString(draft.startDate),
       completionDate: toRequiredString(draft.completionDate),
       notes: toRequiredString(draft.notes),
+      expectedUpdatedAt,
     })
   } else if (key === 'licensing') {
     return upsertLicensing(projectId, {
@@ -58,6 +61,7 @@ export function saveStageDraft(projectId: string, key: StageKey, draft: StageDra
       status,
       expiryDate: toNullable(draft.expiryDate),
       notes: toRequiredString(draft.notes),
+      expectedUpdatedAt,
     })
   } else if (key === 'materials') {
     return upsertMaterials(projectId, {
@@ -74,6 +78,7 @@ export function saveStageDraft(projectId: string, key: StageKey, draft: StageDra
       invoiceFilePath: toRequiredString(draft.invoiceFilePath),
       status,
       notes: toRequiredString(draft.notes),
+      expectedUpdatedAt,
     })
   } else {
     return upsertMaintenance(projectId, {
@@ -86,6 +91,7 @@ export function saveStageDraft(projectId: string, key: StageKey, draft: StageDra
       status,
       reportFilePath: toRequiredString(draft.reportFilePath),
       notes: toRequiredString(draft.notes),
+      expectedUpdatedAt,
     })
   }
 }

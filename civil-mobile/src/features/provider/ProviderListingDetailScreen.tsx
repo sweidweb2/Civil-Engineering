@@ -44,8 +44,8 @@ import {
   WkGroup,
   WkPill,
   WkSkeletonCard,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { useHandleApiError } from '@/hooks/useHandleApiError'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { enumLabel } from '@/i18n/labels'
@@ -74,7 +74,7 @@ export function ProviderListingDetailScreen({
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   useStatusBarStyle('light')
   const handleApiError = useHandleApiError()
   const toastSuccess = useToastSuccess()
@@ -117,9 +117,20 @@ export function ProviderListingDetailScreen({
   const [busy, setBusy] = useState<'status' | 'delete' | null>(null)
   const [confirm, setConfirm] = useState<WkConfirmState | null>(null)
 
+  function syncPhotoIndex(offsetX: number) {
+    if (width <= 0 || photos.length === 0) return
+    const next = Math.round(offsetX / width)
+    const clamped = Math.max(0, Math.min(photos.length - 1, next))
+    if (clamped !== index) setIndex(clamped)
+  }
+
   function onPage(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const next = Math.round(e.nativeEvent.contentOffset.x / width)
-    if (next !== index) setIndex(Math.max(0, Math.min(photos.length - 1, next)))
+    syncPhotoIndex(e.nativeEvent.contentOffset.x)
+  }
+
+  /** Keep ±1 image window in sync while dragging so adjacent slides aren't blank. */
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    syncPhotoIndex(e.nativeEvent.contentOffset.x)
   }
 
   function showPhoto(i: number) {
@@ -131,7 +142,10 @@ export function ProviderListingDetailScreen({
     const next = current.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
     setBusy('status')
     try {
-      await updateListing(current.id, { status: next })
+      await updateListing(current.id, {
+        expectedUpdatedAt: current.updatedAt,
+        status: next,
+      })
       invalidateListingCaches()
       toastSuccess(
         next === 'ACTIVE' ? t('providerPortal.liveToast') : t('providerPortal.hiddenToast'),
@@ -242,18 +256,22 @@ export function ProviderListingDetailScreen({
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
               onMomentumScrollEnd={onPage}
               accessibilityLabel={t('gallery.title')}
             >
-              {photos.map(({ uri, key: photoKey }) => (
+              {photos.map(({ uri, key: photoKey }, i) => (
                 <View key={uri} style={{ width, height: PHOTO_HEIGHT }}>
-                  <Image
-                    source={remoteImage(uri, photoKey)}
-                    cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
-                    style={{ width: '100%', height: '100%' }}
-                    contentFit="cover"
-                    transition={200}
-                  />
+                  {Math.abs(i - index) <= 1 ? (
+                    <Image
+                      source={remoteImage(uri, photoKey)}
+                      cachePolicy={REMOTE_IMAGE_CACHE_POLICY}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : null}
                 </View>
               ))}
             </ScrollView>

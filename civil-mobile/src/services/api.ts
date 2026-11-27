@@ -7,6 +7,7 @@ import { isOffline } from '@/services/connectivity'
 /**
  * Dev API host must be the machine running the backend — not `localhost` on a
  * physical device/emulator. Prefer Metro's LAN host so IP churn does not break login.
+ * Release builds require `EXPO_PUBLIC_API_BASE_URL` over HTTPS (no cleartext fallback).
  */
 function resolveApiBaseUrl(): string {
   const fromEnv = (process.env.EXPO_PUBLIC_API_BASE_URL ?? '').replace(/\/$/, '')
@@ -24,9 +25,17 @@ function resolveApiBaseUrl(): string {
     if (Platform.OS === 'android') {
       return 'http://10.0.2.2:3000/api/v1'
     }
+
+    return fromEnv || 'http://localhost:3000/api/v1'
   }
 
-  return fromEnv || 'http://localhost:3000/api/v1'
+  if (!fromEnv) {
+    throw new Error('EXPO_PUBLIC_API_BASE_URL is required outside __DEV__')
+  }
+  if (!/^https:\/\//i.test(fromEnv)) {
+    throw new Error('EXPO_PUBLIC_API_BASE_URL must use HTTPS outside __DEV__')
+  }
+  return fromEnv
 }
 
 const API_BASE_URL = resolveApiBaseUrl()

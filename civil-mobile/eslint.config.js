@@ -34,7 +34,6 @@ module.exports = defineConfig([
       'node_modules/**',
       'android/**',
       'ios/**',
-      'resources/**',
       'src/components/ui/**',
     ],
   },

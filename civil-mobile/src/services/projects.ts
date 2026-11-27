@@ -64,6 +64,12 @@ export type Project = {
   archivedAt?: string | null
 }
 
+export type ProjectSummary = {
+  total: number
+  averageProgress: number
+  counts: Record<ProjectStatus, number>
+}
+
 export type PaginatedProjects = {
   data: Project[]
   meta: {
@@ -72,6 +78,8 @@ export type PaginatedProjects = {
     total: number
     totalPages: number
   }
+  /** Aggregate when `includeSummary`; otherwise `null`. */
+  summary: ProjectSummary | null
 }
 
 export type CreateProjectInput = {
@@ -84,6 +92,8 @@ export type CreateProjectInput = {
 }
 
 export type UpdateProjectInput = {
+  /** Optimistic-concurrency token — pass the project's current `updatedAt`. */
+  expectedUpdatedAt: string
   name?: string
   description?: string
   code?: string
@@ -97,12 +107,6 @@ export type UpdateProjectInput = {
   notes?: string
 }
 
-export type ProjectSummary = {
-  total: number
-  averageProgress: number
-  counts: Record<ProjectStatus, number>
-}
-
 export function listProjects(
   params: {
     page?: number
@@ -110,6 +114,7 @@ export function listProjects(
     status?: ProjectStatus
     type?: ProjectType
     q?: string
+    includeSummary?: boolean
   } = {},
 ) {
   const search = new URLSearchParams({
@@ -119,6 +124,7 @@ export function listProjects(
   if (params.status) search.set('status', params.status)
   if (params.type) search.set('type', params.type)
   if (params.q?.trim()) search.set('q', params.q.trim())
+  if (params.includeSummary) search.set('includeSummary', 'true')
   return apiRequest<PaginatedProjects>(`/projects?${search.toString()}`)
 }
 

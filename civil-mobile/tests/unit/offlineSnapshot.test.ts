@@ -25,22 +25,25 @@ describe('isPersistableKey', () => {
     'dashboard:pm',
     'workers:me',
     'providers:me',
-    'projects:detail:p1',
-    'projects:stages:p1',
+    'projects:detail-v2:p1',
     'projects:list:summary',
     'projects:list:/pm/projects:cards:1::ALL',
-    'listings:mine:grid:1::ACTIVE',
+    'listings:mine:grid:all:1::ACTIVE',
     'listings:detail:l1:view',
-    'directory:list:pm:workers:1:',
+    'directory:list:pm:categories:',
+    'directory:list:pm:specialty-counts:',
   ])('saves own working data: %s', (key) => expect(isPersistableKey(key)).toBe(true))
 
   it.each([
     'users:list:wk:1::', // other people's accounts (admin)
     'queue:list:wk:1::pending',
-    'listings:mine:grid:2::ALL', // later pages
-    'listings:mine:grid:1:cement:ALL', // searches
+    'listings:mine:grid:all:2::ALL', // later pages
+    'listings:mine:grid:all:1:cement:ALL', // searches
     'listings:detail:l1:edit',
-    'directory:list:pm:workers:1:bob',
+    'directory:list:pm:categories:bob', // searched directory
+    'directory:list:pm:specialty-counts:bob',
+    'projects:detail:p1', // pre-v2 bare-project shape
+    'projects:stages:p1', // stage-only keys no longer written
   ])('does not save: %s', (key) => expect(isPersistableKey(key)).toBe(false))
 })
 
@@ -90,10 +93,12 @@ describe('offline snapshot store', () => {
 
   it('keeps at most OFFLINE_MAX_ENTRIES entries (oldest saved goes first)', async () => {
     for (let i = 0; i <= OFFLINE_MAX_ENTRIES; i += 1) {
-      await offlineSnapshotPut('u1', `projects:detail:p${i}`, i)
+      await offlineSnapshotPut('u1', `projects:detail-v2:p${i}`, i)
     }
-    expect(await offlineSnapshotGet('u1', 'projects:detail:p0')).toBeUndefined()
-    expect(await offlineSnapshotGet('u1', `projects:detail:p${OFFLINE_MAX_ENTRIES}`)).toBeDefined()
+    expect(await offlineSnapshotGet('u1', 'projects:detail-v2:p0')).toBeUndefined()
+    expect(
+      await offlineSnapshotGet('u1', `projects:detail-v2:p${OFFLINE_MAX_ENTRIES}`),
+    ).toBeDefined()
   })
 
   it('clearAll forgets memory and files (logout)', async () => {

@@ -21,6 +21,8 @@ export const setAvatarBodySchema = z.object({
 export const listUsersQuerySchema = paginationQuerySchema.extend({
   q: optionalSearchQuery,
   counts: countsQuerySchema,
+  /** Optional role filter for admin directory browse-by-role. */
+  role: z.enum(['SUPER', 'ADMIN', 'PROVIDER', 'WORKER', 'MANAGER', 'CLIENT']).optional(),
 })
 
 export const listLookupQuerySchema = paginationQuerySchema.extend({

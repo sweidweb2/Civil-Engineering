@@ -1,37 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, Text, TextInput, View } from 'react-native'
+import { FlatList, RefreshControl, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { FolderTree, Plus, Search, SearchX, X } from 'lucide-react-native'
+import { FolderTree, Plus, SearchX } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStatusBarStyle } from '@/components/kit'
-import { Pressable } from '@/components/ui/pressable'
 import { CategoryGridCard } from '@/features/pm/CategoryGridCard'
-import { ListingGridSkeleton } from '@/features/provider/ui/kit'
-import { WkButton, WkError, WkTopBar } from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+import { ListingGridSkeleton } from '@/components/wk/storefront'
+import { WkGridRow, WkGridSpacer } from '@/components/wk/GridCard'
+import { WkButton, WkError, WkTopBar } from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
+import { WkSearchAddButton, WkSearchField } from '@/components/wk/SearchField'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys, cacheTtl } from '@/lib/cacheKeys'
-import {
-  type Category,
-  type CategoryKind,
-  isListingCategory,
-  listCategories,
-} from '@/services/categories'
+import { LIST_PERF } from '@/lib/listPerf'
+import { toPairs } from '@/lib/pagedRows'
+import { listActiveListingCategories } from '@/services/categories'
 import { errorMessage } from '@/services/feedback'
 import { MONO_STYLE } from '@/theme/typography'
 
-const LISTING_KINDS: CategoryKind[] = ['MATERIAL', 'EQUIPMENT', 'SERVICE']
 const BASE = '/admin/listings'
-
-/** Two category cards per row. */
-function toRows(items: Category[]): Category[][] {
-  const rows: Category[][] = []
-  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2))
-  return rows
-}
 
 /**
  * Admin → More → Listings: browse by category first, then open the
@@ -40,7 +30,7 @@ function toRows(items: Category[]): Category[][] {
 export function AdminListingsScreen() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { c, shadow, isDark } = useWorkerPalette()
+  const { c, shadow, isDark } = useWkPalette()
   useStatusBarStyle(isDark ? 'light' : 'dark')
 
   const [query, setQuery] = useState('')
@@ -53,21 +43,7 @@ export function AdminListingsScreen() {
     return () => clearTimeout(id)
   }, [query, applied])
 
-  const load = useCallback(async () => {
-    const pages = await Promise.all(
-      LISTING_KINDS.map((kind) =>
-        listCategories(1, 100, {
-          kind,
-          q: applied || undefined,
-          includeCounts: true,
-        }),
-      ),
-    )
-    return pages
-      .flatMap((r) => r.data)
-      .filter((cat) => isListingCategory(cat) && cat.isActive && (cat.listingCount ?? 0) > 0)
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
-  }, [applied])
+  const load = useCallback(() => listActiveListingCategories(applied || undefined), [applied])
 
   const pull = usePullToRefresh()
   const remote = useRemoteData(load, {
@@ -76,47 +52,23 @@ export function AdminListingsScreen() {
   })
 
   const categories = remote.status === 'success' ? remote.data : []
-  const rows = useMemo(() => toRows(categories), [categories])
+  const rows = useMemo(() => toPairs(categories), [categories])
   const isFirstLoad = remote.isLoading
 
   const header = (
     <View className="gap-3.5 pb-3.5">
-      <View className="flex-row gap-2.5">
-        <View
-          className="h-12 min-w-0 flex-1 flex-row items-center gap-2.5 rounded-[14px] border border-wk-line bg-wk-sf ps-3.5"
-          style={shadow}
-        >
-          <Search size={18} color={c.ink3} strokeWidth={1.9} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('pmPortal.searchCategories')}
-            placeholderTextColor={c.ink3}
-            accessibilityLabel={t('categories.search')}
-            returnKeyType="search"
-            autoCorrect={false}
-            className="h-full min-w-0 flex-1 text-[15px] text-wk-ink"
+      <WkSearchField
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('pmPortal.searchCategories')}
+        accessibilityLabel={t('categories.search')}
+        trailing={
+          <WkSearchAddButton
+            label={t('providerHome.newListing')}
+            onPress={() => router.push(`${BASE}/new` as never)}
           />
-          {query ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.clearSearch')}
-              onPress={() => setQuery('')}
-              className="size-11 items-center justify-center"
-            >
-              <X size={16} color={c.ink3} strokeWidth={2} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('providerHome.newListing')}
-          onPress={() => router.push(`${BASE}/new` as never)}
-          className="size-12 items-center justify-center rounded-[14px] bg-wk-ink active:opacity-80"
-        >
-          <Plus size={22} color={c.bg} strokeWidth={2} />
-        </Pressable>
-      </View>
+        }
+      />
 
       {remote.status === 'success' ? (
         <Text className="text-[11px] font-medium uppercase text-wk-ink3" style={MONO_STYLE}>
@@ -183,18 +135,18 @@ export function AdminListingsScreen() {
       <FlatList
         data={isFirstLoad ? [] : rows}
         keyExtractor={(row) => row.map((cat) => cat.id).join(':')}
-        renderItem={({ item: row, index }) => (
-          <View className="flex-row gap-3">
-            {row.map((category, col) => (
+        {...LIST_PERF}
+        renderItem={({ item: row }) => (
+          <WkGridRow>
+            {row.map((category) => (
               <CategoryGridCard
                 key={category.id}
                 category={category}
-                index={index * 2 + col}
                 onPress={() => router.push(`${BASE}/categories/${category.id}` as never)}
               />
             ))}
-            {row.length === 1 ? <View className="flex-1" /> : null}
-          </View>
+            {row.length === 1 ? <WkGridSpacer /> : null}
+          </WkGridRow>
         )}
         ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={header}

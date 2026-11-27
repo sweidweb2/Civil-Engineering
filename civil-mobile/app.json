@@ -27,7 +27,7 @@
       "predictiveBackGestureEnabled": false,
       "supportsRtl": true,
       "package": "com.civilengineering.mobile",
-      "usesCleartextTraffic": true,
+      "usesCleartextTraffic": false,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",

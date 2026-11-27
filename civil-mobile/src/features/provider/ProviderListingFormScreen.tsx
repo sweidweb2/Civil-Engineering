@@ -14,9 +14,9 @@ import {
   WkSection,
   WkSelect,
   WkToggle,
-} from '@/features/worker/ui/forms'
-import { WkButton } from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/forms'
+import { WkButton } from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { type ListingStatus, RENTAL_UNITS } from '@/services/listings'
 import { useLanguageStore } from '@/stores/languageStore'
 
@@ -41,7 +41,7 @@ export function ProviderListingFormScreen({
   const isAdmin = scope === 'admin'
   const [providerOpen, setProviderOpen] = useState(false)
   const { t } = useTranslation()
-  const { c } = useWorkerPalette()
+  const { c } = useWkPalette()
   const isAr = useLanguageStore((s) => s.language) === 'ar'
   const { id } = useLocalSearchParams<{ id?: string }>()
   const listingId = typeof id === 'string' ? id : id?.[0]

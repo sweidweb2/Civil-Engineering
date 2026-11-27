@@ -1,4 +1,4 @@
-import { mergePageRows } from '@/lib/pagedRows'
+import { hasMorePages, MAX_PAGED_ROWS, mergePageRows } from '@/lib/pagedRows'
 import {
   REMOTE_CACHE_MAX_ENTRIES,
   REMOTE_KEEP_MS,
@@ -142,5 +142,21 @@ describe('mergePageRows', () => {
       { id: 'b', v: 2 },
       { id: 'c', v: 1 },
     ])
+  })
+
+  it('caps accumulated rows at maxRows (keeps earliest pages)', () => {
+    const current = Array.from({ length: 4 }, (_, i) => ({ id: String(i), v: 1 }))
+    const incoming = [
+      { id: '4', v: 1 },
+      { id: '5', v: 1 },
+    ]
+    expect(mergePageRows(current, incoming, 5).map((r) => r.id)).toEqual(['0', '1', '2', '3', '4'])
+  })
+})
+
+describe('hasMorePages', () => {
+  it('stops when the in-memory cap is reached even if total is higher', () => {
+    expect(hasMorePages(MAX_PAGED_ROWS, MAX_PAGED_ROWS + 50)).toBe(false)
+    expect(hasMorePages(20, 100)).toBe(true)
   })
 })

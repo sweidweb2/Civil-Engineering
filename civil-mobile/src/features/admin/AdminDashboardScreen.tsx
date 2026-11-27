@@ -20,7 +20,7 @@ import Animated, { FadeIn } from 'react-native-reanimated'
 import { useTodayCaption } from '@/components/kit'
 import { Pressable } from '@/components/ui/pressable'
 import { ProjectGroupRow } from '@/features/pm/ui/kit'
-import { PhotoScrim, PvSectionHead } from '@/features/provider/ui/kit'
+import { PhotoScrim, PvSectionHead } from '@/components/wk/storefront'
 import {
   WkError,
   WkEyebrow,
@@ -28,8 +28,8 @@ import {
   WkHeroGlow,
   WkSkeletonCard,
   WkTabScroll,
-} from '@/features/worker/ui/kit'
-import { useWorkerPalette } from '@/features/worker/ui/palette'
+} from '@/components/wk/kit'
+import { useWkPalette } from '@/components/wk/palette'
 import { useRemoteData } from '@/hooks/useRemoteData'
 import { cacheKeys } from '@/lib/cacheKeys'
 import { REMOTE_IMAGE_CACHE_POLICY, remoteImage } from '@/lib/imageSource'
@@ -68,7 +68,7 @@ export function AdminDashboardScreen() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const today = useTodayCaption()
-  const { c, shadow } = useWorkerPalette()
+  const { c, shadow } = useWkPalette()
   const load = useCallback(() => loadOverview(), [])
   const remote = useRemoteData(load, { cacheKey: cacheKeys.dashboardAdmin })
   const data = remote.status === 'success' ? remote.data : null

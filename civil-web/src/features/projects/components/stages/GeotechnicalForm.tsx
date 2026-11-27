@@ -33,6 +33,7 @@ function emptyDraft(): UpsertGeotechnicalInput {
     startDate: '',
     completionDate: '',
     notes: '',
+    expectedUpdatedAt: null,
   }
 }
 
@@ -49,6 +50,7 @@ function fromRecord(data: GeotechnicalStudy | null): UpsertGeotechnicalInput {
     startDate: data.startDate ?? '',
     completionDate: data.completionDate ?? '',
     notes: data.notes ?? '',
+    expectedUpdatedAt: data.updatedAt,
   }
 }
 
@@ -78,7 +80,7 @@ export function GeotechnicalForm({
   const persist = async (continueNext: boolean) => {
     setIsSaving(true)
     try {
-      await upsertGeotechnical(projectId, {
+      const saved = await upsertGeotechnical(projectId, {
         ...form,
         groundwaterLevel: form.groundwaterLevel?.trim() ? form.groundwaterLevel : null,
         soilType: form.soilType || null,
@@ -90,7 +92,9 @@ export function GeotechnicalForm({
         completionDate: form.completionDate || null,
         notes: form.notes || null,
       } as UpsertGeotechnicalInput)
-      setBaseline(form)
+      const next = { ...form, expectedUpdatedAt: saved.data.updatedAt }
+      setForm(next)
+      setBaseline(next)
       toast.success(t('stages.saved'))
       if (continueNext) onContinue()
       else onSaved()

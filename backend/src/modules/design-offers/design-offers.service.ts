@@ -6,6 +6,7 @@ import { getRequestLogger } from '../../logging/index.js'
 import { resolvePublicOrPresignedUrl, type StorageService } from '../../storage/index.js'
 import type { AllowedFileMime } from '../files/files.schema.js'
 import type { FilesService } from '../files/files.service.js'
+import { linkUploadedFile } from '../files/link-uploaded-file.js'
 import type { DesignOffersRepository } from './design-offers.repository.js'
 import type {
   CreateDesignOfferBody,
@@ -191,7 +192,13 @@ export function createDesignOffersService(deps: DesignOffersServiceDeps): Design
         originalName: file.originalName,
         body: file.body,
       })
-      const record = await repository.updateImagePath(id, uploaded.key)
+      const record = await linkUploadedFile({
+        actor,
+        filesService,
+        fileId: uploaded.id,
+        kind: 'design_offers.image',
+        link: () => repository.updateImagePath(id, uploaded.key),
+      })
       if (existing.imagePath && existing.imagePath !== uploaded.key) {
         await deleteStorageKey(existing.imagePath)
       }

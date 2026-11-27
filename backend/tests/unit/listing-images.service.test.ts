@@ -101,6 +101,7 @@ describe('listingImagesService', () => {
       ),
       reorderAtomic: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),
+      deleteAndPromoteMain: vi.fn(async () => undefined),
       unsetMainImage: vi.fn(async () => undefined),
       findMainImageByListingId: vi.fn(async () => makeImage({ isMain: true })),
     }

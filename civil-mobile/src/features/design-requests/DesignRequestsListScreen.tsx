@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { PenTool } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 
-import { usePagedList, WkListRow, WkListScreen } from '@/features/worker/ui/list'
+import { usePagedList, WkListRow, WkListScreen } from '@/components/wk/list'
 import { cacheKeys } from '@/lib/cacheKeys'
 import {
   DESIGN_REQUEST_STATUS_OPTIONS,

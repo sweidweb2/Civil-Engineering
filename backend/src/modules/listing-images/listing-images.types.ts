@@ -43,6 +43,7 @@ export type ListingImagesRepository = {
   ) => Promise<ListingImage>
   reorderAtomic: (listingId: string, orderedIds: string[]) => Promise<void>
   delete: (id: string) => Promise<void>
+  deleteAndPromoteMain: (imageId: string, listingId: string) => Promise<void>
   unsetMainImage: (listingId: string) => Promise<void>
   findMainImageByListingId: (listingId: string) => Promise<ListingImage | null>
 }

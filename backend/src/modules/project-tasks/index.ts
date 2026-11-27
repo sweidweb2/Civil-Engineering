@@ -1,5 +1,5 @@
-import type { ProjectsService } from '../projects/index.js'
 import { createProjectWorkersRepository } from '../project-workers/project-workers.repository.js'
+import type { ProjectsService } from '../projects/index.js'
 import { createProjectTasksController } from './project-tasks.controller.js'
 import { createProjectTasksRepository } from './project-tasks.repository.js'
 import { createProjectTasksRouter, createWorkerProjectTasksRouter } from './project-tasks.routes.js'

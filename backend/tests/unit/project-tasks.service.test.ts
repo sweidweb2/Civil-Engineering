@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ProjectsService } from '../../src/modules/projects/index.js'
-import type { Project } from '../../src/modules/projects/projects.types.js'
-import type { ProjectWorkersRepository } from '../../src/modules/project-workers/project-workers.repository.js'
-import type { WorkerProjectSummary } from '../../src/modules/project-workers/project-workers.types.js'
 import type { ProjectTasksRepository } from '../../src/modules/project-tasks/project-tasks.repository.js'
 import { createProjectTasksService } from '../../src/modules/project-tasks/project-tasks.service.js'
 import type { ProjectTask } from '../../src/modules/project-tasks/project-tasks.types.js'
+import type { ProjectWorkersRepository } from '../../src/modules/project-workers/project-workers.repository.js'
+import type { WorkerProjectSummary } from '../../src/modules/project-workers/project-workers.types.js'
+import type { ProjectsService } from '../../src/modules/projects/index.js'
+import type { Project } from '../../src/modules/projects/projects.types.js'
 
 const owner = { id: 'owner-1', roles: ['MANAGER'] }
 const worker = { id: 'worker-1', roles: ['WORKER'] }

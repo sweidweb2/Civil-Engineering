@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ProjectsService } from '../../src/modules/projects/index.js'
-import type { Project } from '../../src/modules/projects/projects.types.js'
 import type { ProjectWorkersRepository } from '../../src/modules/project-workers/project-workers.repository.js'
 import { createProjectWorkersService } from '../../src/modules/project-workers/project-workers.service.js'
 import type {
   ProjectWorker,
   WorkerProjectSummary,
 } from '../../src/modules/project-workers/project-workers.types.js'
+import type { ProjectsService } from '../../src/modules/projects/index.js'
+import type { Project } from '../../src/modules/projects/projects.types.js'
 
 const owner = { id: 'owner-1', roles: ['MANAGER'] }
 const worker = { id: 'worker-1', roles: ['WORKER'] }

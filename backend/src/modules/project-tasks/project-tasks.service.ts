@@ -1,16 +1,16 @@
 import { assertOwner, assertOwnerOrAdmin, type AuthActor } from '../../authz/index.js'
 import { forbidden, notFound, unauthorized, validationError } from '../../errors/app-error.js'
+import type { ProjectWorkersRepository } from '../project-workers/project-workers.repository.js'
 import type { ProjectsService } from '../projects/index.js'
 import type { Project } from '../projects/projects.types.js'
+import type { ProjectTasksRepository } from './project-tasks.repository.js'
 import type {
   CreateProjectTaskBody,
   ListProjectTasksQuery,
   UpdateProjectTaskBody,
   WorkerUpdateTaskBody,
 } from './project-tasks.schema.js'
-import type { ProjectTasksRepository } from './project-tasks.repository.js'
 import type { ProjectTask } from './project-tasks.types.js'
-import type { ProjectWorkersRepository } from '../project-workers/project-workers.repository.js'
 
 function isReadOnlyProject(project: Project): boolean {
   return (

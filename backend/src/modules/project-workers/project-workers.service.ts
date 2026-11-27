@@ -6,14 +6,14 @@ import {
   unauthorized,
   validationError,
 } from '../../errors/app-error.js'
-import type { Project } from '../projects/projects.types.js'
 import type { ProjectsService } from '../projects/index.js'
+import type { Project } from '../projects/projects.types.js'
+import type { ProjectWorkersRepository } from './project-workers.repository.js'
 import type {
   InviteProjectWorkerBody,
   ListProjectWorkersQuery,
   ListWorkerProjectsQuery,
 } from './project-workers.schema.js'
-import type { ProjectWorkersRepository } from './project-workers.repository.js'
 import type {
   ProjectWorker,
   ProjectWorkersNotifyGateway,
